@@ -1,103 +1,56 @@
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
-const http = require('http');
-const { Server } = require('socket.io');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
 app.use(express.json());
+
+// የ public ፎልደርን (index.html) እንዲያነብ ያደርጋል
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ⚠️ የርስዎ MONGODB አድራሻ (የይለፍ ቃሉ ውስጥ ያለው '/' እንዳይበላሽ ወደ '%2F' ተቀይሯል)
 const mongoURI = "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-mongoose.connect(mongoURI)
+
+// ከ Database ጋር ማገናኘት
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("✅ ከ MongoDB ዳታቤዝ ጋር በትክክል ተገናኝቷል!"))
     .catch(err => console.error("❌ ዳታቤዝ አልተገናኘም:", err));
 
+// የ User ዳታቤዝ ቅርፅ (Schema)
 const userSchema = new mongoose.Schema({
-    phone: String, name: String, password: String,
-    mainBalance: Number, playBalance: Number, played: Number, won: Number
+    phone: String,
+    name: String,
+    password: String,
+    mainBalance: Number,
+    playBalance: Number,
+    played: Number,
+    won: Number
 });
 const User = mongoose.model('User', userSchema);
 
-let gameState = "WAITING";
-let countdown = 25;
-let globalJackpot = 0;
-let livePlayers = 0;
-let calledNumbers = []; 
-let numberPool = [];
-let gameLoopInterval = null;
-
-setInterval(() => {
-    if (gameState === "WAITING") {
-        countdown--;
-        io.emit('game_sync', { state: gameState, time: countdown, jackpot: globalJackpot, players: livePlayers });
-        if (countdown <= 0) {
-            if (globalJackpot > 0) startGame();
-            else countdown = 25;
-        }
-    }
-}, 1000);
-
-function startGame() {
-    gameState = "PLAYING";
-    numberPool = Array.from({length: 75}, (_, i) => i + 1);
-    calledNumbers = [];
-    let prizePool = globalJackpot - (globalJackpot * 0.10); 
-    io.emit('game_started', { prize: prizePool, players: livePlayers });
-    gameLoopInterval = setInterval(() => {
-        if (numberPool.length === 0) { endGame(null, null, prizePool); return; }
-        let num = numberPool.splice(Math.floor(Math.random() * numberPool.length), 1)[0];
-        calledNumbers.push(num);
-        io.emit('number_called', { number: num, count: calledNumbers.length });
-    }, 3000);
-}
-
-function endGame(winnerName, winningTicket, prize) {
-    clearInterval(gameLoopInterval);
-    io.emit('game_over', { winner: winnerName, ticket: winningTicket, prize: prize });
-    setTimeout(() => { gameState = "WAITING"; countdown = 25; globalJackpot = 0; livePlayers = 0; }, 10000); 
-}
-
-io.on('connection', (socket) => {
-    socket.emit('game_sync', { state: gameState, time: countdown, jackpot: globalJackpot, players: livePlayers });
-    socket.on('place_bet', (betAmount) => { if (gameState === "WAITING") { globalJackpot += betAmount; livePlayers++; } });
-    socket.on('bingo_won', (data) => { if (gameState === "PLAYING") { endGame(data.playerName, data.ticketId, globalJackpot * 0.90); } });
-});
-
-app.post('/api/register', async (req, res) => {
-    try {
-        const { phone, name, password } = req.body;
-        const existingUser = await User.findOne({ phone: phone });
-        if (existingUser) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
-        const newUser = new User({ phone, name, password, mainBalance: 100, playBalance: 100, played: 0, won: 0 });
-        await newUser.save();
-        res.json({ success: true, message: "በተሳካ ሁኔታ ተመዝግበዋል!" });
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
-});
-
-app.post('/api/login', async (req, res) => {
-    try {
-        const { phone, password } = req.body;
-        const user = await User.findOne({ phone: phone });
-        if (!user || user.password !== password) return res.json({ success: false, message: "ስልክ ቁጥር ወይም የይለፍ ቃል ተሳስቷል!" });
-        res.json({ success: true, user: user });
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
-});
-
+// ዳታን ከ HTML ተቀብሎ Database ላይ Save የሚያደርግ API
 app.post('/api/syncUser', async (req, res) => {
     try {
-        const { phone, mainBalance, playBalance, played, won } = req.body;
-        await User.findOneAndUpdate({ phone: phone }, { mainBalance, playBalance, played, won });
-        res.json({ success: true });
-    } catch (error) { res.status(500).json({ success: false }); }
+        const { phone, name, password, mainBalance, playBalance, played, won } = req.body;
+        // ተጠቃሚው ካለ ዳታውን Update ያደርጋል፣ ከሌለ አዲስ ይመዘግባል
+        await User.findOneAndUpdate(
+            { phone: phone },
+            { name, password, mainBalance, playBalance, played, won },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, message: "✅ ዳታው Database ላይ ገብቷል!" });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
-app.get('*', (req, res) => {
+
+// ተጠቃሚው ዌብሳይቱን ሲከፍት index.html ን እንዲያገኝ
+app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// ሰርቨሩን ማስነሳት
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Live Server running on port ${PORT}`);
+app.listen(PORT, () => {
+    console.log(`🚀 Bingo Server is running on port ${PORT}`);
 });
