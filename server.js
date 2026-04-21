@@ -6,9 +6,17 @@ const app = express();
 app.use(express.json());
 
 // የ public ፎልደርን (index.html) እንዲያነብ ያደርጋል
-app.use(express.static(path.join(__dirname, 'public')));
+const express = require('express');
+const path = require('path');
+const mongoose = require('mongoose');
 
-// ⚠️ የርስዎ MONGODB አድራሻ (የይለፍ ቃሉ ውስጥ ያለው '/' እንዳይበላሽ ወደ '%2F' ተቀይሯል)
+const app = express();
+app.use(express.json());
+
+// ፋይሎቹ ሁሉ ያሉት root ፎልደር ውስጥ ስለሆነ __dirname ብቻ በቂ ነው
+app.use(express.static(__dirname)); 
+
+// ⚠️ የርስዎ MONGODB አድራሻ
 const mongoURI = "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 
 // ከ Database ጋር ማገናኘት
@@ -32,7 +40,6 @@ const User = mongoose.model('User', userSchema);
 app.post('/api/syncUser', async (req, res) => {
     try {
         const { phone, name, password, mainBalance, playBalance, played, won } = req.body;
-        // ተጠቃሚው ካለ ዳታውን Update ያደርጋል፣ ከሌለ አዲስ ይመዘግባል
         await User.findOneAndUpdate(
             { phone: phone },
             { name, password, mainBalance, playBalance, played, won },
@@ -46,7 +53,7 @@ app.post('/api/syncUser', async (req, res) => {
 
 // ተጠቃሚው ዌብሳይቱን ሲከፍት index.html ን እንዲያገኝ
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html')); // እዚህ ጋር '/public/' የሚለውን አስወግደነዋል
 });
 
 // ሰርቨሩን ማስነሳት
