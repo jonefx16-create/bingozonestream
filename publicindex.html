@@ -337,47 +337,314 @@
     <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">👤</span><span id="nav-text-profile">Profile</span></div>
 </nav>
 
-<script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io();
-    let selected = [], timerVal = 25, called = []; 
-    let mainBalance = 100.00, playBalance = 100.00, gamesPlayed = 0, totalWon = 0;
-    let registeredPhoneNumber = "", isGameRunning = false, hasBetThisRound = false;
-    let userTicketsData = [], isLoginMode = false, currentLang = 'am';
-
-    // 🔐 AUTHENTICATION
-    async function authenticateUser() {
-        let phone = document.getElementById('reg-phone').value.trim();
-        let pass = document.getElementById('reg-pass').value.trim();
-        let name = document.getElementById('reg-name').value.trim();
-        let btn = document.getElementById('start-btn');
-
-        if (!/^(09|07)\d{8}$/.test(phone)) return alert("ትክክለኛ ስልክ (09/07) ያስገቡ!");
-        
-        btn.innerText = "እየገባ ነው..."; btn.disabled = true;
-        let endpoint = isLoginMode ? '/api/login' : '/api/register';
-        let body = isLoginMode ? { phone, password: pass } : { phone, name, password: pass };
-
+    // =========================================================
+    // ⚠️ ከ SERVER.JS ጋር የሚገናኘው ኮድ
+    // =========================================================
+    async function syncWithMongoDBDataAPI(userData) {
         try {
-            let res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-            let data = await res.json();
-            if (!data.success) { alert(data.message); btn.innerText = isLoginMode ? "ግባ (Login)" : "ወደ ጌም ግባ (Register)"; btn.disabled = false; return; }
+            await fetch('/api/syncUser', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData)
+            });
+            console.log("✅ ዳታ ወደ Database ተልኳል!");
+        } catch (e) {
+            console.log("❌ ወደ Database መላክ አልተቻለም: ", e);
+        }
+    }
+    // =========================================================
 
-            if (isLoginMode) {
-                let u = data.user; registeredPhoneNumber = u.phone; mainBalance = u.mainBalance;
-                document.getElementById('p-name').innerText = u.name;
-                document.getElementById('auth-page').classList.remove('active-page');
-                document.getElementById('home-page').classList.add('active-page');
-                document.getElementById('navbar').style.display = 'flex';
-                document.getElementById('global-header').style.display = 'flex';
-                initGrid();
-            } else {
-                alert(data.message); toggleAuthMode();
-            }
-        } catch (e) { alert("የሰርቨር ስህተት!"); btn.disabled = false; }
+    let selected = [], timerVal = 25, called = []; 
+    let mainBalance = 0.00; 
+    let playBalance = 0.00; 
+    let gamesPlayed = 0, totalWon = 0, timerInterval;
+    let registeredPhoneNumber = "";
+    let isGameRunning = false; 
+    let userTicketsData = []; 
+    let isLoginMode = false;
+    let currentLang = 'am';
+
+    const depAccounts = { 
+        'telebirr': {num: '0933638022', name: 'Tsedey Abebe (ፀደይ አበበ)'}, 
+        'cbe': {num: '0988180301', name: 'Yohannes Aberham (ዮሀንስ አብርሀም)'}, 
+        'mpesa': {num: '251707896800', name: 'Yohannes Aberham (ዮሀንስ አብርሀም)'} 
+    };
+    
+    const bHeads = ['B', 'I', 'N', 'G', 'O'];
+    const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#ea580c'];
+
+    const dict = {
+        'am': {
+            'authSubReg': 'ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)', 'authSubLog': 'ወደ አካውንትዎ ይግቡ (Login)',
+            'startBtnReg': 'መዝገብ (Register)', 'startBtnLog': 'ግባ (Login)',
+            'toggleReg': 'አዲስ አካውንት ይክፈቱ (Register)', 'toggleLog': 'አካውንት አለዎት? ይግቡ (Login)',
+            'lbl-age': 'እድሜዬ 21+ መሆኑን አረጋግጣለሁ', 'lbl-terms': 'በውልና ደንቦች እስማማለሁ',
+            'hdr-lbl-main': 'ዋና ሂሳብ', 'hdr-lbl-play': 'መጫወቻ ሂሳብ',
+            'lbl-timer': 'ቀሪ ሰከንድ', 'lbl-buy-desc': 'ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ (1 ካርቴላ = 10 ብር)',
+            'lbl-btn-clear': 'አጽዳ', 'lbl-btn-rand': 'በዘፈቀደ', 'bet-btn': 'BET NOW (ወራረድ)',
+            'lbl-live-stat': 'የቀጥታ ጨዋታ ሁኔታ', 'gameWait': 'ቁጥሮችን በመጠባበቅ ላይ...',
+            'lbl-tkt-title': 'የእኔ ካርቴላዎች', 'tInfoNo': 'እስካሁን ካርቴላ አልገዙም', 'tInfoYes': 'የገዙት ካርቴላ ብዛት: ',
+            'lbl-w-title': 'የእኔ ሂሳብ', 'lbl-w-main': 'ዋና ሂሳብ (Main Balance)', 'lbl-w-play': 'መጫወቻ ሂሳብ (Play Balance)',
+            'lbl-w-witbtn': 'Withdraw (ወጪ ማድረጊያ)', 'lbl-w-depbtn': 'Deposit (ገንዘብ ማስገቢያ)',
+            'lbl-wit-desc': 'ወጪ ማድረጊያ መንገድ ይምረጡ', 'lbl-wit-acc': 'ገንዘቡ የሚላክበት አካውንት/ስልክ ቁጥር (ማስተካከል ይቻላል):',
+            'lbl-wit-conf': 'ወጪ ጠይቅ (Withdraw)', 'lbl-wit-close': 'ዝጋ',
+            'lbl-dep-desc': 'ገንዘብ ማስገቢያ መንገድ ይምረጡ', 'lbl-dep-name': 'የአካውንት ስም:', 'lbl-dep-to': 'ወደዚህ ቁጥር ያስገቡ:',
+            'lbl-dep-up': 'ደረሰኝ ያስገቡ (Upload Receipt):', 'lbl-dep-conf': 'ዲፖዚት አረጋግጥ', 'lbl-dep-close': 'ዝጋ',
+            'lbl-hist-title': '📜 የጨዋታ እና የሂሳብ ታሪክ', 'lbl-hist-none': 'ታሪክ የለም',
+            'lbl-rank-title': '🏆 ከፍተኛ አሸናፊዎች', 'lbl-rank-sub': 'በ24 ሰዓት ውስጥ ብዙ ያሸነፉ',
+            'lbl-prof-p': 'የተጫወቱት', 'lbl-prof-w': 'ያሸነፉት',
+            'lbl-lang': 'ቋንቋ / Language', 'lbl-support': 'ማንኛውም እገዛ ካስፈለጎት እባክዎ ያናግሩን፡',
+            'lbl-nav-wal': '💰 የእኔ ሂሳብ (Wallet)', 'lbl-nav-out': '🚪 ዘግተህ ውጣ (Logout)',
+            'w-title-txt': 'አሸናፊ', 'w-tkt-txt': 'አሸናፊ ካርቴላ:', 'w-prz-txt': 'የገንዘብ ሽልማት:', 'w-btn-txt': 'ወደ መነሻ ተመለስ'
+        },
+        'en': {
+            'authSubReg': 'Register (Get 100 ETB Bonus)', 'authSubLog': 'Login to your account',
+            'startBtnReg': 'Register', 'startBtnLog': 'Login',
+            'toggleReg': 'Create new account (Register)', 'toggleLog': 'Have an account? Login',
+            'lbl-age': 'I confirm I am 21+ years old', 'lbl-terms': 'I agree to the Terms & Conditions',
+            'hdr-lbl-main': 'Main Balance', 'hdr-lbl-play': 'Play Balance',
+            'lbl-timer': 'Seconds Left', 'lbl-buy-desc': 'Select numbers to buy tickets (1 Ticket = 10 ETB)',
+            'lbl-btn-clear': 'Clear', 'lbl-btn-rand': 'Random', 'bet-btn': 'BET NOW',
+            'lbl-live-stat': 'Live Game Status', 'gameWait': 'Waiting for numbers...',
+            'lbl-tkt-title': 'My Tickets', 'tInfoNo': 'You haven\'t bought any tickets yet.', 'tInfoYes': 'Tickets Bought: ',
+            'lbl-w-title': 'My Wallet', 'lbl-w-main': 'Main Balance', 'lbl-w-play': 'Play Balance',
+            'lbl-w-witbtn': 'Withdraw', 'lbl-w-depbtn': 'Deposit',
+            'lbl-wit-desc': 'Select Withdrawal Method', 'lbl-wit-acc': 'Withdrawal Account/Phone Number (Editable):',
+            'lbl-wit-conf': 'Request Withdraw', 'lbl-wit-close': 'Close',
+            'lbl-dep-desc': 'Select Deposit Method', 'lbl-dep-name': 'Account Name:', 'lbl-dep-to': 'Deposit to this number:',
+            'lbl-dep-up': 'Upload Receipt (Screenshot):', 'lbl-dep-conf': 'Confirm Deposit', 'lbl-dep-close': 'Close',
+            'lbl-hist-title': '📜 Game & Wallet History', 'lbl-hist-none': 'No History Found',
+            'lbl-rank-title': '🏆 Top Winners', 'lbl-rank-sub': 'Most wins in 24 hours',
+            'lbl-prof-p': 'Games Played', 'lbl-prof-w': 'Total Won',
+            'lbl-lang': 'Language', 'lbl-support': 'For any assistance, please contact us:',
+            'lbl-nav-wal': '💰 My Wallet', 'lbl-nav-out': '🚪 Logout',
+            'w-title-txt': 'Winner', 'w-tkt-txt': 'Winning Ticket:', 'w-prz-txt': 'Cash Prize:', 'w-btn-txt': 'Back to Home'
+        }
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        if(lang === 'am') {
+            document.getElementById('btn-lang-am').style.background = 'var(--faded-green)';
+            document.getElementById('btn-lang-am').style.color = 'black';
+            document.getElementById('btn-lang-en').style.background = 'transparent';
+            document.getElementById('btn-lang-en').style.color = 'var(--faded-green)';
+        } else {
+            document.getElementById('btn-lang-en').style.background = 'var(--faded-green)';
+            document.getElementById('btn-lang-en').style.color = 'black';
+            document.getElementById('btn-lang-am').style.background = 'transparent';
+            document.getElementById('btn-lang-am').style.color = 'var(--faded-green)';
+        }
+
+        let d = dict[lang];
+        if(isLoginMode) {
+            document.getElementById('auth-subtitle').innerText = d.authSubLog;
+            document.getElementById('start-btn').innerText = d.startBtnLog;
+            document.getElementById('toggle-auth-text').innerText = d.toggleReg;
+        } else {
+            document.getElementById('auth-subtitle').innerText = d.authSubReg;
+            document.getElementById('start-btn').innerText = d.startBtnReg;
+            document.getElementById('toggle-auth-text').innerText = d.toggleLog;
+        }
+        
+        const keys = ['lbl-age', 'lbl-terms', 'hdr-lbl-main', 'hdr-lbl-play', 'lbl-timer', 'lbl-buy-desc', 'lbl-btn-clear', 'lbl-btn-rand', 'lbl-live-stat', 'lbl-tkt-title', 'lbl-w-title', 'lbl-w-main', 'lbl-w-play', 'lbl-w-witbtn', 'lbl-w-depbtn', 'lbl-wit-desc', 'lbl-wit-acc', 'lbl-wit-conf', 'lbl-wit-close', 'lbl-dep-desc', 'lbl-dep-name', 'lbl-dep-to', 'lbl-dep-up', 'lbl-dep-conf', 'lbl-dep-close', 'lbl-hist-title', 'lbl-hist-none', 'lbl-rank-title', 'lbl-rank-sub', 'lbl-prof-p', 'lbl-prof-w', 'lbl-lang', 'lbl-support', 'lbl-nav-wal', 'lbl-nav-out', 'w-title-txt', 'w-tkt-txt', 'w-prz-txt', 'w-btn-txt'];
+        
+        keys.forEach(k => { if(document.getElementById(k)) document.getElementById(k).innerText = d[k]; });
+
+        if(document.getElementById('bet-btn').innerText.includes("BET")) document.getElementById('bet-btn').innerText = d['bet-btn'];
+        if(document.getElementById('game-status').innerText.includes("መጠባበቅ") || document.getElementById('game-status').innerText.includes("Wait")) document.getElementById('game-status').innerText = d['gameWait'];
+        
+        if(selected.length > 0) document.getElementById('t-info').innerText = d['tInfoYes'] + selected.length;
+        else document.getElementById('t-info').innerText = d['tInfoNo'];
     }
 
-    // 🎮 GAME LOGIC
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        if(isLoginMode) {
+            document.getElementById('reg-name').style.display = 'none';
+            document.getElementById('terms-box').style.display = 'none';
+        } else {
+            document.getElementById('reg-name').style.display = 'block';
+            document.getElementById('terms-box').style.display = 'block';
+        }
+        setLang(currentLang);
+        v();
+    }
+
+    function v() { 
+        if(isLoginMode) {
+            document.getElementById('start-btn').disabled = !(document.getElementById('reg-phone').value && document.getElementById('reg-pass').value);
+        } else {
+            document.getElementById('start-btn').disabled = !(document.getElementById('c1').checked && document.getElementById('c2').checked && document.getElementById('reg-pass').value.length > 0); 
+        }
+    }
+
+    function login() {
+        let phoneInput = document.getElementById('reg-phone').value;
+        let passInput = document.getElementById('reg-pass').value;
+        let nameInput = document.getElementById('reg-name').value || "Player";
+        
+        let users = JSON.parse(localStorage.getItem('bingoUltimateUsers_DB')) || {};
+
+        if(isLoginMode) {
+            if(users[phoneInput] && users[phoneInput].password === passInput) {
+                nameInput = users[phoneInput].name;
+                mainBalance = parseFloat(users[phoneInput].mainBalance || users[phoneInput].balance || 0);
+                playBalance = parseFloat(users[phoneInput].playBalance || users[phoneInput].balance || 0);
+                gamesPlayed = users[phoneInput].played || 0;
+                totalWon = users[phoneInput].won || 0;
+                
+                if(!users[phoneInput].id) {
+                    users[phoneInput].id = "ID-" + Math.floor(Math.random() * 90000 + 10000);
+                    localStorage.setItem('bingoUltimateUsers_DB', JSON.stringify(users));
+                }
+            } else {
+                alert(currentLang === 'am' ? "ስልክ ቁጥር ወይም የይለፍ ቃል ተሳስቷል!" : "Invalid Phone Number or Password!");
+                return;
+            }
+        } else {
+            if(users[phoneInput]) {
+                alert(currentLang === 'am' ? "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ Login የሚለውን ተጭነው ይግቡ።" : "Phone number already exists! Please login.");
+                return;
+            }
+            let newId = "ID-" + Math.floor(Math.random() * 90000 + 10000);
+            users[phoneInput] = { name: nameInput, password: passInput, mainBalance: 100.00, playBalance: 100.00, played: 0, won: 0, id: newId };
+            mainBalance = 100.00;
+            playBalance = 100.00;
+            gamesPlayed = 0;
+            totalWon = 0;
+            localStorage.setItem('bingoUltimateUsers_DB', JSON.stringify(users));
+        }
+
+        registeredPhoneNumber = phoneInput || "0900000000";
+        document.getElementById('p-name').innerText = nameInput;
+        document.getElementById('hdr-name').innerText = nameInput;
+        document.getElementById('hdr-id').innerText = users[phoneInput].id; 
+        document.getElementById('p-phone').innerText = registeredPhoneNumber;
+        document.getElementById('wit-phone').value = registeredPhoneNumber; 
+        document.getElementById('p-games-played').innerText = gamesPlayed;
+        document.getElementById('p-games-won').innerText = totalWon + " ETB";
+
+        updateBalanceDisplay();
+        if(!isLoginMode) addHistoryRecord(currentLang==='am'?"ቦነስ (Bonus)":"Registration Bonus", "+100 ETB", "var(--faded-green)");
+        
+        document.getElementById('auth-page').classList.remove('active-page');
+        document.getElementById('home-page').classList.add('active-page');
+        document.getElementById('navbar').style.display = 'flex';
+        document.getElementById('global-header').style.display = 'flex';
+        setLang(currentLang);
+        initGrid(); startTimer();
+    }
+
+    function updateBalanceDisplay() {
+        let mainTxt = mainBalance.toFixed(2);
+        let playTxt = playBalance.toFixed(2);
+        
+        document.getElementById('hdr-main-balance').innerText = mainTxt + " ETB";
+        document.getElementById('hdr-play-balance').innerText = playTxt + " ETB";
+        
+        document.getElementById('main-bal').innerText = mainTxt;
+        document.getElementById('play-bal').innerText = playTxt;
+        
+        if(registeredPhoneNumber) {
+            let users = JSON.parse(localStorage.getItem('bingoUltimateUsers_DB')) || {};
+            if(users[registeredPhoneNumber]) {
+                users[registeredPhoneNumber].mainBalance = mainBalance;
+                users[registeredPhoneNumber].playBalance = playBalance;
+                users[registeredPhoneNumber].played = gamesPlayed;
+                users[registeredPhoneNumber].won = totalWon;
+                localStorage.setItem('bingoUltimateUsers_DB', JSON.stringify(users));
+                
+                // BACKEND DB SYNC TRIGGER
+                syncWithMongoDBDataAPI(users[registeredPhoneNumber]);
+            }
+        }
+    }
+
+    function clearSelection() {
+        selected = [];
+        document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
+        document.getElementById('jp').innerText = "0 ETB";
+    }
+
+    function randomSelection() {
+        clearSelection();
+        let randoms = [];
+        while(randoms.length < 5) {
+            let r = Math.floor(Math.random() * 100) + 1;
+            if(!randoms.includes(r)) randoms.push(r);
+        }
+        selected = randoms;
+        document.querySelectorAll('.num-btn').forEach(btn => {
+            if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected');
+        });
+        document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; 
+    }
+
+    function toggleForm(type) {
+        document.getElementById('sec-dep').style.display = 'none';
+        document.getElementById('sec-wit').style.display = 'none';
+        if(type === 'dep') document.getElementById('sec-dep').style.display = 'block';
+        if(type === 'wit') document.getElementById('sec-wit').style.display = 'block';
+    }
+
+    function setDepMethod(method, element) {
+        let siblings = element.parentNode.children;
+        for(let s of siblings) s.classList.remove('active');
+        element.classList.add('active');
+        
+        document.getElementById('dep-acc').innerText = depAccounts[method].num;
+        document.getElementById('dep-name').innerText = depAccounts[method].name;
+    }
+
+    function setWitMethod(element) {
+        let siblings = element.parentNode.children;
+        for(let s of siblings) s.classList.remove('active');
+        element.classList.add('active');
+    }
+
+    function copyNumber() {
+        let num = document.getElementById('dep-acc').innerText;
+        navigator.clipboard.writeText(num);
+        alert(currentLang==='am'?"ቁጥሩ ኮፒ ተደርጓል: ":"Copied: " + num);
+    }
+
+    function processDeposit() {
+        let amt = parseFloat(document.getElementById('dep-amt').value);
+        let receipt = document.getElementById('dep-receipt').value;
+        
+        if(!amt || amt <= 0) return alert(currentLang==='am'?"ትክክለኛ መጠን ያስገቡ!":"Enter valid amount!");
+        if(!receipt) return alert(currentLang==='am'?"እባክዎ ደረሰኝ (Screenshot) ያስገቡ!":"Please upload a receipt!");
+        
+        mainBalance += amt; 
+        playBalance += amt;
+        updateBalanceDisplay();
+        
+        addHistoryRecord(currentLang==='am'?"ገንዘብ ገቢ (Deposit)":"Deposit", `+${amt} ETB`, "var(--blue)");
+        alert(currentLang==='am'?`የ ${amt} ETB ጥያቄዎ እና ደረሰኝዎ በተሳካ ሁኔታ ተልኳል!`:`Your deposit of ${amt} ETB is processing!`);
+        document.getElementById('dep-amt').value = ''; 
+        document.getElementById('dep-receipt').value = '';
+        toggleForm('none');
+    }
+
+    function processWithdraw() {
+        let amt = parseFloat(document.getElementById('wit-amt').value);
+        let withdrawAcc = document.getElementById('wit-phone').value;
+        
+        if(!amt || amt <= 0) return alert(currentLang==='am'?"ትክክለኛ መጠን ያስገቡ!":"Enter valid amount!");
+        if(!withdrawAcc) return alert(currentLang==='am'?"ገንዘብ የሚላክበትን አካውንት ያስገቡ!":"Enter withdrawal account!");
+        
+        if(amt > mainBalance) return alert(currentLang==='am'?"በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!":"Insufficient Main Balance!");
+        
+        mainBalance -= amt; 
+        updateBalanceDisplay(); 
+        
+        addHistoryRecord(currentLang==='am'?`ወጪ ወደ ${withdrawAcc}`:`Withdraw to ${withdrawAcc}`, `-${amt} ETB`, "var(--orange)");
+        alert(currentLang==='am'?`ወደ ${withdrawAcc} የ ${amt} ETB የወጪ ጥያቄዎ ገብቷል!`:`Withdrawal request of ${amt} ETB submitted!`);
+        document.getElementById('wit-amt').value = ''; toggleForm('none');
+    }
+
     function initGrid() {
         const box = document.getElementById('grid-box'); box.innerHTML = '';
         for(let i=1; i<=100; i++) {
@@ -385,60 +652,278 @@
             d.onclick = () => {
                 if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); }
                 else if(selected.length < 5) { d.classList.add('selected'); selected.push(i); }
+                else { alert(currentLang==='am'?"ከ 5 ካርቴላ በላይ መምረጥ አይቻልም!":"Max 5 tickets allowed!"); }
                 document.getElementById('jp').innerText = (selected.length * 10) + " ETB";
             };
             box.appendChild(d);
         }
     }
 
-    function prepareBoard() {
-        const board = document.getElementById('board'); board.innerHTML = '';
-        ['B', 'I', 'N', 'G', 'O'].forEach((h, i) => { 
-            let d = document.createElement('div'); d.className='b-cell b-head'; 
-            d.style.background = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#ea580c'][i]; 
-            d.innerText=h; board.appendChild(d); 
-        });
-        for(let r=1; r<=15; r++) { 
-            for(let c=0; c<5; c++) {
-                let num = r + (c * 15); 
-                let d = document.createElement('div'); d.className='b-cell'; d.id='c-'+num; d.innerText=num; 
-                board.appendChild(d);
+    function startTimer() {
+        timerVal = 25; 
+        document.getElementById('timer').innerText = timerVal;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if(timerVal > 0) { timerVal--; document.getElementById('timer').innerText = timerVal; }
+            else { 
+                clearInterval(timerInterval); 
+                if(selected.length > 0) {
+                    let betAmount = selected.length * 10; 
+                    if(!document.getElementById('bet-btn').innerText.includes("✅")) {
+                        if(mainBalance >= betAmount) placeBet();
+                        else { alert(currentLang==='am'?"በቂ ሂሳብ የሎትም!":"Insufficient Balance!"); showPage('wallet'); return; }
+                    }
+                    runGame(); 
+                } else { alert(currentLang==='am'?"ለቀጣይ ዙር ቁጥር ይምረጡ!":"Select tickets for the next round!"); startTimer(); } 
             }
-        }
+        }, 1000);
     }
 
-    // የጌም ሁኔታዎችን ለማዳመጥ (Socket Listeners)
-    socket.on('game_status', (data) => {
-        document.getElementById('timer').innerText = data.timer;
-        document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB";
-        if(data.state === "PLAYING" && !isGameRunning) {
-            isGameRunning = true;
-            showPage('game');
-            prepareBoard();
-        }
-    });
-
-    socket.on('new_number', (num) => {
-        let L = ['B','I','N','G','O'][num<=15?0:num<=30?1:num<=45?2:num<=60?3:4];
-        document.getElementById('caller').innerText = L + "-" + num;
-        let cell = document.getElementById('c-'+num); if(cell) cell.classList.add('called', 'current');
-    });
-
-    function placeBet() { 
-        if(selected.length === 0) return alert("ቢያንስ 1 ካርቴላ ይምረጡ!"); 
-        socket.emit('buy_tickets', { name: document.getElementById('p-name').innerText, phone: registeredPhoneNumber, ticketCount: selected.length });
-        hasBetThisRound = true;
-        alert("ካርቴላዎ ተመዝግቧል!");
+    function handleHomeNav() {
+        if(isGameRunning) showPage('game'); 
+        else showPage('home');
     }
 
     function showPage(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
         document.getElementById(id + '-page').classList.add('active-page');
+        document.getElementById('global-header').style.display = (id === 'game' || id === 'auth') ? 'none' : 'flex';
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); }
     }
 
-    function toggleAuthMode() { 
-        isLoginMode = !isLoginMode;
-        document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
+    function placeBet() { 
+        if(selected.length === 0) return alert(currentLang==='am'?"ቢያንስ 1 ካርቴላ ይምረጡ!":"Select at least 1 ticket!"); 
+        let betAmount = selected.length * 10; 
+        
+        if(mainBalance < betAmount) { alert(currentLang==='am'?`በቂ ሂሳብ የሎትም! ${betAmount} ETB ያስፈልጋል።`:`Insufficient balance! Need ${betAmount} ETB.`); showPage('wallet'); return; }
+        mainBalance -= betAmount; 
+        if(playBalance >= betAmount) playBalance -= betAmount; 
+        else playBalance = 0; 
+        
+        updateBalanceDisplay();
+        
+        addHistoryRecord(currentLang==='am'?"ውርርድ (Bet)":"Bet Placed", `-${betAmount} ETB`, "var(--orange)");
+        document.getElementById('bet-btn').innerText = "REGISTERED ✅"; 
+        genTickets(); 
+    }
+
+    function genTickets() {
+        const list = document.getElementById('ticket-list'); list.innerHTML = '';
+        const miniList = document.getElementById('mini-tickets-container'); miniList.innerHTML = ''; 
+        document.getElementById('t-info').innerText = dict[currentLang]['tInfoYes'] + selected.length;
+        userTicketsData = []; 
+
+        selected.forEach(id => {
+            let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)];
+            let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
+            userTicketsData.push({ id: id, grid: cols, marks: marksObj });
+
+            let card = document.createElement('div'); card.className = 't-card';
+            let htmlMain = `<div style="text-align:center; font-size:12px; font-weight:bold; margin-bottom:5px; color:#ef4444;">#${id}</div><div class="t-grid">`;
+            
+            let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card';
+            let htmlMini = `<div style="text-align:center; font-size:9px; font-weight:bold; margin-bottom:2px; color:#ef4444;">#${id}</div><div class="mini-t-grid">`;
+
+            for(let i=0; i<5; i++) {
+                htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`;
+                htmlMini += `<div class="mini-t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`;
+            }
+
+            for(let r=0; r<5; r++) { 
+                for(let c=0; c<5; c++) {
+                    if(r==2 && c==2) {
+                        htmlMain += `<div class="t-cell marked" style="font-size:7px; color:white;">FREE</div>`;
+                        htmlMini += `<div class="mini-t-cell marked" style="font-size:5px; color:white;">FREE</div>`;
+                    } else { 
+                        let v = cols[c][r]; 
+                        htmlMain += `<div class="t-cell t-v-${v}">${v}</div>`; 
+                        htmlMini += `<div class="mini-t-cell t-v-${v}">${v}</div>`; 
+                    }
+                }
+            }
+            card.innerHTML = htmlMain + "</div>"; miniCard.innerHTML = htmlMini + "</div>";
+            list.appendChild(card); miniList.appendChild(miniCard);
+        });
+    }
+
+    function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
+
+    function checkBingoWin(ticket) {
+        let m = ticket.marks;
+        for(let c=0; c<5; c++) { if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; } 
+        for(let r=0; r<5; r++) { if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; } 
+        if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
+        if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
+        return false;
+    }
+
+    function runGame() {
+        showPage('game'); 
+        called = []; 
+        gamesPlayed++;
+        isGameRunning = true;
+        
+        document.getElementById('nav-icon-home').innerText = "🎮";
+        document.getElementById('back-home-btn').style.display = 'none';
+        document.getElementById('mini-tickets-container').style.display = 'grid';
+        document.getElementById('game-status').innerText = dict[currentLang]['gameWait'];
+        document.getElementById('game-status').style.color = "var(--faded-green)";
+
+        let simulatedBotsCount = Math.floor(Math.random() * 15) + 5; 
+        let totalLivePlayers = simulatedBotsCount + 1; 
+        let totalBotTickets = 0;
+        for(let i=0; i<simulatedBotsCount; i++) { totalBotTickets += Math.floor(Math.random() * 4) + 1; }
+        
+        let allTicketsInGame = selected.length + totalBotTickets;
+        let totalBetPool = allTicketsInGame * 10; 
+        let houseCut = totalBetPool * 0.10; 
+        let possiblePrize = totalBetPool - houseCut; 
+
+        document.getElementById('p-games-played').innerText = gamesPlayed;
+        document.getElementById('stat-players').innerText = totalLivePlayers;
+        
+        let cutText = currentLang === 'am' ? '(10% ተቆርጧል)' : '(10% Fee Applied)';
+        document.getElementById('g-prize').innerHTML = possiblePrize.toFixed(2) + ` ETB<br><span style='font-size:7px; color:var(--text-gray);'>${cutText}</span>`;
+        document.getElementById('g-bet').innerText = (selected.length * 10).toFixed(2);
+        
+        document.getElementById('g-count').innerText = "0/20";
+        document.getElementById('history-scroll').innerHTML = '';
+        document.getElementById('called-numbers-list').innerHTML = '';
+        document.getElementById('caller').innerText = "--";
+        
+        document.getElementById('ticket-history').style.display = 'flex';
+        document.getElementById('ticket-history').innerHTML = '';
+        
+        const board = document.getElementById('board'); board.innerHTML = '';
+        bHeads.forEach((h, i) => { let d = document.createElement('div'); d.className='b-cell b-head'; d.style.background=bColors[i]; d.innerText=h; board.appendChild(d); });
+        
+        for(let r=1; r<=15; r++) { 
+            for(let c=0; c<5; c++) {
+                let num = r + (c * 15);
+                let d = document.createElement('div'); 
+                d.className='b-cell'; 
+                d.id='c-'+num; 
+                d.innerText=num; 
+                board.appendChild(d);
+            }
+        }
+
+        let pool = Array.from({length: 75}, (_, i) => i + 1);
+        let gameActive = true;
+
+        let loop = setInterval(() => {
+            if(!gameActive) return;
+            
+            if(called.length >= 20) { 
+                clearInterval(loop); 
+                gameActive = false;
+                let bots = ["Dawit M.", "Sara K.", "Abel T.", "Helen B.", "Yohannes A."];
+                let botName = bots[Math.floor(Math.random()*bots.length)];
+                let botTicket = Math.floor(Math.random()*8000)+1001; 
+                triggerBingoPopup(botName, botTicket, possiblePrize, false);
+                return; 
+            }
+
+            let num = pool.splice(Math.floor(Math.random()*pool.length), 1)[0]; 
+            called.push(num);
+            document.getElementById('g-count').innerText = called.length + "/20";
+            
+            let colorIdx = num<=15?0:num<=30?1:num<=45?2:num<=60?3:4;
+            let L = bHeads[colorIdx];
+            let bgColor = bColors[colorIdx];
+
+            let hb = document.getElementById('history-scroll');
+            let b = document.createElement('div'); b.className = 'hist-ball'; b.innerText = L + "-" + num; hb.prepend(b);
+            
+            let cbList = document.getElementById('called-numbers-list');
+            let sb = document.createElement('div'); sb.className = 'small-called-ball'; sb.innerText = L + "-" + num; cbList.appendChild(sb);
+
+            let thList = document.getElementById('ticket-history');
+            let tb = document.createElement('div'); tb.className = 't-hist-ball'; tb.style.background = bgColor;
+            tb.innerHTML = `<span class="t-hist-letter">${L}</span><span>${num}</span>`;
+            thList.prepend(tb);
+
+            document.getElementById('caller').innerText = L + "-" + num; 
+            
+            document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current'));
+            
+            let calledCell = document.getElementById('c-'+num);
+            if(calledCell) { calledCell.classList.add('called', 'current'); }
+
+            document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+
+            let userWon = false;
+            let winningTicketId = null;
+
+            userTicketsData.forEach(t => {
+                for(let c=0; c<5; c++) {
+                    for(let r=0; r<5; r++) {
+                        if(t.grid[c][r] === num) t.marks[c][r] = 1;
+                    }
+                }
+                if(checkBingoWin(t)) { userWon = true; winningTicketId = t.id; }
+            });
+
+            if(userWon) {
+                clearInterval(loop);
+                gameActive = false;
+                let playerName = document.getElementById('p-name').innerText;
+                triggerBingoPopup(playerName, winningTicketId, possiblePrize, true);
+            }
+        }, 2000);
+    }
+
+    function triggerBingoPopup(winnerName, ticketId, prizeAmt, isUserWinner) {
+        document.getElementById('bingo-overlay').style.display = 'flex';
+        document.getElementById('win-name').innerText = winnerName;
+        document.getElementById('win-ticket').innerText = "#" + ticketId;
+        document.getElementById('win-prize').innerText = prizeAmt.toFixed(2) + " ETB";
+        
+        if(isUserWinner) {
+            mainBalance += prizeAmt; 
+            totalWon += prizeAmt; 
+            updateBalanceDisplay(); 
+            
+            document.getElementById('p-games-won').innerText = totalWon.toFixed(2) + " ETB";
+            addHistoryRecord(currentLang==='am'?"አሸናፊ (WIN)":"Winner (WIN)", `+${prizeAmt.toFixed(2)} ETB`, "var(--faded-green)");
+            let winTxt = currentLang==='am'?'ዙሩ ተጠናቋል!<br><span style="color:var(--faded-green); font-size:16px;">አሸንፈዋል!</span>':'Round Over!<br><span style="color:var(--faded-green); font-size:16px;">You Won!</span>';
+            document.getElementById('game-status').innerHTML = winTxt;
+        } else {
+            addHistoryRecord(currentLang==='am'?"ተሸናፊ (LOSS)":"Loss", `0 ETB`, "var(--text-gray)");
+            let loseTxt = currentLang==='am'?`ዙሩ ተጠናቋል!<br><span style="color:var(--red); font-size:16px;">${winnerName} አሸንፏል።</span>`:`Round Over!<br><span style="color:var(--red); font-size:16px;">${winnerName} Won.</span>`;
+            document.getElementById('game-status').innerHTML = loseTxt;
+        }
+
+        document.getElementById('mini-tickets-container').style.display = 'none';
+        document.getElementById('back-home-btn').style.display = 'inline-block';
+        document.getElementById('ticket-history').style.display = 'none';
+
+        isGameRunning = false;
+        document.getElementById('nav-icon-home').innerText = "🏠";
+    }
+
+    function closeBingoPopup() {
+        document.getElementById('bingo-overlay').style.display = 'none';
+        returnToHome();
+    }
+
+    function returnToHome() {
+        clearSelection();
+        document.getElementById('bet-btn').innerText = dict[currentLang]['bet-btn'];
+        showPage('home');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('nav-home').classList.add('active');
+        startTimer();
+    }
+
+    function addHistoryRecord(title, amount, color) {
+        const hc = document.getElementById('hist-content');
+        if(hc.innerHTML.includes("ታሪክ የለም") || hc.innerHTML.includes("No History")) hc.innerHTML = '';
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        let newRecord = `<div class="list-card" style="border-left-color: ${color};"><div><span>${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}">${amount}</b></div>`;
+        hc.innerHTML = newRecord + hc.innerHTML;
     }
 </script>
+</body>
+</html>
