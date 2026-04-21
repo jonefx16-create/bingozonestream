@@ -341,21 +341,19 @@
 <script>
     const socket = io();
     let selected = [], timerVal = 25, called = []; 
-    let mainBalance = 0.00, playBalance = 0.00, gamesPlayed = 0, totalWon = 0;
-    let registeredPhoneNumber = "";
-    let isGameRunning = false, hasBetThisRound = false;
+    let mainBalance = 100.00, playBalance = 100.00, gamesPlayed = 0, totalWon = 0;
+    let registeredPhoneNumber = "", isGameRunning = false, hasBetThisRound = false;
     let userTicketsData = [], isLoginMode = false, currentLang = 'am';
 
-    // የሎግ መግቢያ እና ምዝገባ
+    // 🔐 AUTHENTICATION
     async function authenticateUser() {
         let phone = document.getElementById('reg-phone').value.trim();
         let pass = document.getElementById('reg-pass').value.trim();
         let name = document.getElementById('reg-name').value.trim();
         let btn = document.getElementById('start-btn');
 
-        if (!/^(09|07)\d{8}$/.test(phone)) return alert("ትክክለኛ ስልክ ያስገቡ!");
-        if (!isLoginMode && name.length < 3) return alert("ትክክለኛ ስም ያስገቡ!");
-
+        if (!/^(09|07)\d{8}$/.test(phone)) return alert("ትክክለኛ ስልክ (09/07) ያስገቡ!");
+        
         btn.innerText = "እየገባ ነው..."; btn.disabled = true;
         let endpoint = isLoginMode ? '/api/login' : '/api/register';
         let body = isLoginMode ? { phone, password: pass } : { phone, name, password: pass };
@@ -363,7 +361,7 @@
         try {
             let res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
             let data = await res.json();
-            if (!data.success) { alert(data.message); btn.innerText = "ግባ (Login)"; btn.disabled = false; return; }
+            if (!data.success) { alert(data.message); btn.innerText = isLoginMode ? "ግባ (Login)" : "ወደ ጌም ግባ (Register)"; btn.disabled = false; return; }
 
             if (isLoginMode) {
                 let u = data.user; registeredPhoneNumber = u.phone; mainBalance = u.mainBalance;
@@ -372,10 +370,70 @@
                 document.getElementById('home-page').classList.add('active-page');
                 document.getElementById('navbar').style.display = 'flex';
                 document.getElementById('global-header').style.display = 'flex';
+                initGrid();
             } else {
                 alert(data.message); toggleAuthMode();
             }
         } catch (e) { alert("የሰርቨር ስህተት!"); btn.disabled = false; }
+    }
+
+    // 🎮 GAME LOGIC
+    function initGrid() {
+        const box = document.getElementById('grid-box'); box.innerHTML = '';
+        for(let i=1; i<=100; i++) {
+            let d = document.createElement('div'); d.className='num-btn'; d.innerText=i;
+            d.onclick = () => {
+                if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); }
+                else if(selected.length < 5) { d.classList.add('selected'); selected.push(i); }
+                document.getElementById('jp').innerText = (selected.length * 10) + " ETB";
+            };
+            box.appendChild(d);
+        }
+    }
+
+    function prepareBoard() {
+        const board = document.getElementById('board'); board.innerHTML = '';
+        ['B', 'I', 'N', 'G', 'O'].forEach((h, i) => { 
+            let d = document.createElement('div'); d.className='b-cell b-head'; 
+            d.style.background = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#ea580c'][i]; 
+            d.innerText=h; board.appendChild(d); 
+        });
+        for(let r=1; r<=15; r++) { 
+            for(let c=0; c<5; c++) {
+                let num = r + (c * 15); 
+                let d = document.createElement('div'); d.className='b-cell'; d.id='c-'+num; d.innerText=num; 
+                board.appendChild(d);
+            }
+        }
+    }
+
+    // የጌም ሁኔታዎችን ለማዳመጥ (Socket Listeners)
+    socket.on('game_status', (data) => {
+        document.getElementById('timer').innerText = data.timer;
+        document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB";
+        if(data.state === "PLAYING" && !isGameRunning) {
+            isGameRunning = true;
+            showPage('game');
+            prepareBoard();
+        }
+    });
+
+    socket.on('new_number', (num) => {
+        let L = ['B','I','N','G','O'][num<=15?0:num<=30?1:num<=45?2:num<=60?3:4];
+        document.getElementById('caller').innerText = L + "-" + num;
+        let cell = document.getElementById('c-'+num); if(cell) cell.classList.add('called', 'current');
+    });
+
+    function placeBet() { 
+        if(selected.length === 0) return alert("ቢያንስ 1 ካርቴላ ይምረጡ!"); 
+        socket.emit('buy_tickets', { name: document.getElementById('p-name').innerText, phone: registeredPhoneNumber, ticketCount: selected.length });
+        hasBetThisRound = true;
+        alert("ካርቴላዎ ተመዝግቧል!");
+    }
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        document.getElementById(id + '-page').classList.add('active-page');
     }
 
     function toggleAuthMode() { 
@@ -383,8 +441,4 @@
         document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block';
         document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
     }
-    
-    // (ሌሎች የጌም ሎጂክ ኮዶችን እዚህ መጨመር ትችላለህ)
 </script>
-</body>
-</html>
