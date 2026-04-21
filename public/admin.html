@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Admin Panel</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #050810; color: white; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: #161b22; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #30363d; }
+        input { padding: 10px; border-radius: 5px; border: 1px solid #4ade80; background: #000; color: white; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        button { background: #4ade80; color: black; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        button.btn-red { background: #ef4444; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #30363d; text-align: left; }
+        th { color: #4ade80; }
+        .badge { padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; }
+        .bg-pending { background: #ea580c; color: white; }
+        .bg-approved { background: #4ade80; color: black; }
+        .bg-rejected { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="login-sec">
+    <div class="card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+        <h2 style="color: #4ade80;">Admin Login</h2>
+        <input type="password" id="adminPass" placeholder="Enter Admin Password">
+        <button onclick="login()">Login</button>
+    </div>
+</div>
+
+<div class="container" id="dash-sec" style="display: none;">
+    <h1 style="color: #4ade80; display: flex; justify-content: space-between;">
+        Bingo Control Panel 
+        <button onclick="location.reload()" style="font-size: 12px;">🔄 Refresh Data</button>
+    </h1>
+
+    <div class="card">
+        <h3>💰 Pending Transactions (Deposit / Withdraw)</h3>
+        <table>
+            <thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="tx-body"></tbody>
+        </table>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #3b82f6;">
+        <h3 style="color: #3b82f6;">🎁 Send Bonus to User</h3>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="b-phone" placeholder="User Phone (e.g. 0911...)">
+            <input type="number" id="b-amt" placeholder="Amount (ETB)">
+            <button style="background: #3b82f6; color: white;" onclick="sendBonus()">Send Bonus</button>
+        </div>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #ef4444;">
+        <h3 style="color: #ef4444;">🔑 Reset User Password</h3>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 0;">ተጠቃሚው ስሙን ከረሳው እዚህ ፓስወርድ ይቀይሩለት።</p>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="p-phone" placeholder="User Phone (e.g. 0911...)">
+            <input type="text" id="p-new" placeholder="New Password">
+            <button class="btn-red" onclick="resetUserPassword()">Change Password</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>👥 All Users & Rank (Top Winners)</h3>
+        <table>
+            <thead><tr><th>Rank</th><th>Name</th><th>Phone</th><th>Main Bal</th><th>Play Bal</th><th>Games Won</th></tr></thead>
+            <tbody id="users-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let pass = "";
+    function login() { pass = document.getElementById('adminPass').value; loadData(); }
+
+    async function loadData() {
+        try {
+            let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            if(uRes.status === 401) { alert("Wrong Password!"); return; }
+            let users = await uRes.json();
+            
+            document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'block';
+
+            let uHtml = "";
+            users.forEach((u, i) => {
+                let rank = i===0?"🥇":i===1?"🥈":i===2?"🥉":`#${i+1}`;
+                uHtml += `<tr><td>${rank}</td><td>${u.name}</td><td>${u.phone}</td><td>${u.mainBalance.toFixed(2)}</td><td>${u.playBalance.toFixed(2)}</td><td style="color:#4ade80; font-weight:bold;">${u.won} ETB</td></tr>`;
+            });
+            document.getElementById('users-body').innerHTML = uHtml;
+
+            let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            let txs = await tRes.json();
+            
+            let tHtml = "";
+            txs.forEach(t => {
+                let d = new Date(t.date).toLocaleString(); let bClass = t.status==='Pending'?'bg-pending':t.status==='Approved'?'bg-approved':'bg-rejected';
+                let btnHtml = t.status === 'Pending' ? `<button onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button>` : 'Done';
+                tHtml += `<tr><td>${d}</td><td>${t.phone}</td><td style="text-transform:uppercase; font-weight:bold; color:${t.type==='deposit'?'#4ade80':'#ea580c'}">${t.type}</td><td>${t.method}</td><td>${t.amount} ETB</td><td><span class="badge ${bClass}">${t.status}</span></td><td>${btnHtml}</td></tr>`;
+            });
+            document.getElementById('tx-body').innerHTML = tHtml;
+        } catch (e) { alert("Error connecting to server."); }
+    }
+
+    async function actionTx(txId, action) {
+        if(!confirm(`Are you sure you want to ${action} this transaction?`)) return;
+        let res = await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})});
+        let data = await res.json(); if(data.success) { alert("Success!"); loadData(); } else { alert("Failed!"); }
+    }
+
+    async function sendBonus() {
+        let phone = document.getElementById('b-phone').value; let amount = parseFloat(document.getElementById('b-amt').value);
+        if(!phone || !amount) return alert("Fill all fields");
+        let res = await fetch('/api/admin/send-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})});
+        let data = await res.json(); if(data.success) { alert("Bonus sent!"); loadData(); } else { alert("Failed!"); }
+    }
+
+    async function resetUserPassword() {
+        let phone = document.getElementById('p-phone').value; let newPassword = document.getElementById('p-new').value;
+        if(!phone || !newPassword) return alert("Fill all fields!");
+        if(!confirm(`Change password for ${phone}?`)) return;
+        let res = await fetch('/api/admin/change-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, newPassword})});
+        let data = await res.json(); alert(data.message);
+        if(data.success) { document.getElementById('p-phone').value = ''; document.getElementById('p-new').value = ''; }
+    }
+</script>
+</body>
+</html>
