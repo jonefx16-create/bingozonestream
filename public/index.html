@@ -287,20 +287,17 @@
 </nav>
 
 <!-- የ SOCKET.IO ቤተ-መፅሐፍት -->
-<script src="/socket.io/socket.io.js"></script>
+<!-- SOCKET.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();
-
-    let selected = [], timerVal = 25, called = []; 
-    let mainBalance = 0.00; let playBalance = 0.00; 
-    let gamesPlayed = 0, totalWon = 0;
-    let registeredPhoneNumber = "";
-    let isGameRunning = false; let hasBetThisRound = false;
-    let userTicketsData = []; let isLoginMode = false; let currentLang = 'am';
-
-    const depAccounts = { 
+        let selected = [], timerVal = 25, called = []; 
+        let mainBalance = 0.00; let playBalance = 0.00; 
+        let gamesPlayed = 0, totalWon = 0;
+        let registeredPhoneNumber = "";
+        let isGameRunning = false; let hasBetThisRound = false;
+        const depAccounts = { 
         'telebirr': {num: '0933638022', name: 'Tsedey Abebe (ፀደይ አበበ)'}, 
         'cbe': {num: '0988180301', name: 'Yohannes Aberham (ዮሀንስ አብርሀም)'}, 
         'mpesa': {num: '251707896800', name: 'Yohannes Aberham (ዮሀንስ አብርሀም)'} 
