@@ -13,6 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI)
     .then(() => console.log("✅ ከ MongoDB ዳታቤዝ ጋር በትክክል ተገናኝቷል!"))
@@ -34,6 +35,7 @@ const txSchema = new mongoose.Schema({
 });
 const Transaction = mongoose.model('Transaction', txSchema);
 
+// APIs
 app.post('/api/syncUser', async (req, res) => {
     try {
         const { phone, name, password, mainBalance, playBalance, played, won } = req.body;
@@ -62,13 +64,26 @@ app.post('/api/request-tx', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { phone, name, newPassword } = req.body;
+        const user = await User.findOne({ phone });
+        if (!user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ሲስተሙ ላይ አልተገኘም!" });
+        user.password = newPassword; await user.save();
+        res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!" });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Admin APIs (ያለውን እንዳለ ትተነዋል)
 app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
+// ... (እዚህ ጋር የነበሩትን ሌሎች አድሚን APIs እንዳሉ ይቆያሉ) ...
 
 // ==========================================
-// 🟢 የ LIVE BINGO ማሽን (SERVER MASTER CLOCK)
+// 🟢 የ LIVE BINGO ማሽን (በትክክለኛ የተስተካከለ)
 // ==========================================
 let gameState = "WAITING";
-let timer = 25; 
+let timer = 30;
+let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
 let calledNumbers = [];
@@ -76,53 +91,40 @@ let pool = [];
 let gameInterval;
 
 function startCountdown() {
-    gameState = "WAITING"; 
-    timer = 25; 
-    totalPrizePool = 0; 
-    totalTickets = 0; 
-    calledNumbers = [];
-    
+    gameState = "WAITING"; timer = 30; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
     let waitInterval = setInterval(() => {
         timer--;
-        io.emit('game_status', { state: gameState, timer: timer, totalPrizePool, totalTickets, calledNumbers });
-        
+        io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
         if (timer <= 0) {
             clearInterval(waitInterval);
-            if (totalTickets > 0) startGame(); 
-            else startCountdown(); 
+            if (totalTickets > 0) startGame();
+            else startCountdown(); // ተጫዋች ከሌለ እንደገና ይቆጥራል
         }
-    }, 1000); 
+    }, 1000);
 }
 
 function startGame() {
     gameState = "PLAYING";
     pool = Array.from({length: 75}, (_, i) => i + 1);
-    
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
 
     gameInterval = setInterval(() => {
-        if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
-            clearInterval(gameInterval);
-            if (gameState === "PLAYING") {
-                gameState = "FINISHED";
-                io.emit('game_over_no_winner'); 
-                setTimeout(() => { startCountdown(); }, 5000); 
-            }
-            return; 
-        }
+        if (calledNumbers.length >= 75 || gameState !== "PLAYING") { clearInterval(gameInterval); return; }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
         calledNumbers.push(num);
-        io.emit('new_number', num); 
-    }, 3000); 
+        io.emit('new_number', num); // ለሁሉም በአንድ ጊዜ ይላካል
+    }, 3000); // በየ 3 ሰከንዱ ኳስ ይወጣል
 }
 
 io.on('connection', (socket) => {
+    // አዲስ ሰው ሲገባ አሁን ያለበትን ሁኔታ ቀጥታ ይላክለታል (Late joiner sync)
     socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
     
     socket.on('buy_tickets', (data) => {
         if (gameState === "WAITING") {
+            activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
             totalTickets += data.ticketCount;
-            totalPrizePool = (totalTickets * 10) * 0.9; 
+            totalPrizePool = (totalTickets * 10) * 0.9; // 10% ለአድሚን
             io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
         }
     });
@@ -132,7 +134,7 @@ io.on('connection', (socket) => {
             gameState = "FINISHED";
             clearInterval(gameInterval);
             io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool });
-            setTimeout(() => { startCountdown(); }, 5000); 
+            setTimeout(() => { startCountdown(); }, 10000); // ከ 10 ሰከንድ በኋላ አዲስ ይጀምራል
         }
     });
 });
