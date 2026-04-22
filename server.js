@@ -63,7 +63,6 @@ app.post('/api/request-tx', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// Admin APIs (ያሉት እንዳሉ ይቆያሉ)
 app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
 
 // ==========================================
@@ -105,13 +104,13 @@ function startGame() {
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
 
     gameInterval = setInterval(() => {
-        // 20 ኳሶች ብቻ ከተጠሩ በኋላ ጨዋታው ይቆማል (አሸናፊ ከሌለ)
+        // ልክ 20 ኳስ ሲሞላ ያቋርጣል (አሸናፊ ከሌለ)
         if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval);
             if (gameState === "PLAYING") {
                 gameState = "FINISHED";
-                io.emit('game_over_no_winner'); // አሸናፊ ሳይኖር 20 ኳስ አለቀ
-                setTimeout(() => { startCountdown(); }, 5000); // አዲስ ዙር ይጀምራል
+                io.emit('game_over_no_winner'); 
+                setTimeout(() => { startCountdown(); }, 5000); 
             }
             return; 
         }
