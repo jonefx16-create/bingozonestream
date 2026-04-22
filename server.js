@@ -34,6 +34,7 @@ const txSchema = new mongoose.Schema({
 });
 const Transaction = mongoose.model('Transaction', txSchema);
 
+// User APIs
 app.post('/api/syncUser', async (req, res) => {
     try {
         const { phone, name, password, mainBalance, playBalance, played, won } = req.body;
@@ -42,14 +43,34 @@ app.post('/api/syncUser', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// Admin APIs
+app.get('/api/getUser/:phone', async (req, res) => {
+    try {
+        const user = await User.findOne({ phone: req.params.phone });
+        if (user) res.json({ success: true, user }); else res.json({ success: false });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/request-tx', async (req, res) => {
+    try {
+        const { phone, type, amount, method } = req.body;
+        if(type === 'withdraw') {
+            let user = await User.findOne({phone});
+            if(!user || user.mainBalance < amount) return res.json({success: false, message: "በቂ ሂሳብ የሎትም!"});
+            user.mainBalance -= amount; await user.save();
+        }
+        const newTx = new Transaction({ phone, type, amount, method }); await newTx.save();
+        res.json({ success: true, message: "✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!" });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Admin APIs (ያሉት እንዳሉ ይቆያሉ)
 app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
 
 // ==========================================
 // 🟢 የ LIVE BINGO ማሽን (SERVER MASTER CLOCK)
 // ==========================================
 let gameState = "WAITING";
-let timer = 25; // 25 ሰከንድ
+let timer = 25; 
 let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
@@ -71,11 +92,8 @@ function startCountdown() {
         
         if (timer <= 0) {
             clearInterval(waitInterval);
-            if (totalTickets > 0) {
-                startGame(); 
-            } else {
-                startCountdown(); 
-            }
+            if (totalTickets > 0) startGame(); 
+            else startCountdown(); 
         }
     }, 1000); 
 }
@@ -87,8 +105,14 @@ function startGame() {
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
 
     gameInterval = setInterval(() => {
-        if (calledNumbers.length >= 75 || gameState !== "PLAYING") { 
-            clearInterval(gameInterval); 
+        // 20 ኳሶች ብቻ ከተጠሩ በኋላ ጨዋታው ይቆማል (አሸናፊ ከሌለ)
+        if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
+            clearInterval(gameInterval);
+            if (gameState === "PLAYING") {
+                gameState = "FINISHED";
+                io.emit('game_over_no_winner'); // አሸናፊ ሳይኖር 20 ኳስ አለቀ
+                setTimeout(() => { startCountdown(); }, 5000); // አዲስ ዙር ይጀምራል
+            }
             return; 
         }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
