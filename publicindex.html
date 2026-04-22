@@ -3,39 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BINGO STREAM - LIVE ULTIMATE</title>
+    <title>BINGO STREAM - ULTIMATE</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --dark-green: #14532d; --text-gray: #94a3b8; --white: #e2e8f0; --orange: #ea580c; --red: #ef4444; --blue: #3b82f6; --purple: #6366f1; --violet: #a855f7; --dark-orange: #2a1608; --dark-blue: #172033; }
-        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        :root {
+            --bg-dark: #050810; 
+            --panel: #161b22; 
+            --faded-green: #4ade80; 
+            --dark-green: #14532d;
+            --text-gray: #94a3b8;
+            --white: #e2e8f0;
+            --orange: #ea580c;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --purple: #6366f1;
+            --violet: #a855f7;
+            --dark-orange: #2a1608;
+            --dark-blue: #172033;
+        }
+
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--white); 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding-bottom: 80px; 
+            overflow-x: hidden; 
+        }
+
         .page { display: none; padding: 15px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid var(--dark-green); box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; }
-        .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; background: var(--text-gray); }
+        .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
+        .auth-btn:disabled { opacity: 0.3; cursor: not-allowed;}
         .auth-btn:active { transform: scale(0.98); }
 
         .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; margin-bottom: 15px; border-radius: 8px; }
         .bal-amt { font-weight: bold; font-size: 16px; font-family: monospace; }
 
         .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid var(--dark-green); display: flex; justify-content: space-around; margin-bottom: 20px; }
-        .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); letter-spacing: 2px; }
+        .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); letter-spacing: 2px;}
         
-        /* የሚያምር የ 200 ቁጥሮች መምረጫ ግሪድ */
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 15px auto; width: 100%; max-width: 450px; max-height: 280px; overflow-y: auto; padding: 10px; background: rgba(22, 27, 34, 0.5); border: 1px solid #30363d; border-radius: 10px; }
-        .num-grid::-webkit-scrollbar { width: 5px; }
-        .num-grid::-webkit-scrollbar-thumb { background: var(--dark-green); border-radius: 10px; }
-        .num-btn { width: 100%; aspect-ratio: 1/1; background: #161b22; border: 1px solid var(--dark-green); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 5px; cursor: pointer; transition: 0.2s; font-weight: bold;}
-        .num-btn.selected { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 10px var(--faded-green); border-color: var(--faded-green); transform: scale(1.1); }
+        /* የተስተካከለው የ 200 ቁጥሮች ግሪድ ዳር እና ዳሩ ላይ ክፍተት አለው */
+        .grid-container-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 10px;
+            width: 90%;
+            max-width: 380px;
+            margin: 15px auto;
+        }
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; max-height: 250px; overflow-y: auto; padding-right: 5px; scrollbar-width: none; }
+        .num-grid::-webkit-scrollbar { display: none; }
+        .num-btn { width: 100%; aspect-ratio: 1/1; background: #0d1117; border: 1px solid var(--dark-green); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-weight: bold;}
+        .num-btn.selected { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 5px var(--faded-green); border-color: var(--faded-green); transform: scale(1.1); }
 
         .action-btn-row { display: flex; justify-content: center; gap: 15px; margin: 0 auto 20px auto; width: fit-content; }
         .act-btn { width: 120px; background: #050810; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .act-btn:active { background: rgba(74, 222, 128, 0.2); }
 
         .history-scroll { display: flex; flex-direction: row-reverse; gap: 8px; overflow-x: auto; padding: 10px; background: rgba(22, 27, 34, 0.5); border-radius: 50px; margin-bottom: 15px; border: 1px solid #30363d; min-height: 45px; scrollbar-width: none; }
         .history-scroll::-webkit-scrollbar { display: none; }
-        .hist-ball { min-width: 35px; height: 35px; border: 2px solid var(--faded-green); color: var(--faded-green); background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; animation: popIn 0.3s ease; }
+        .hist-ball { min-width: 35px; height: 35px; border: 2px solid var(--faded-green); color: var(--faded-green); background:#000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .stat-box { background: #161b22; padding: 5px; border-radius: 5px; text-align: center; font-size: 10px; border: 1px solid #30363d; }
         
         .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; width: 100%; max-width: 250px; margin: 0 auto; }
@@ -44,6 +76,14 @@
         .b-cell.called { background: var(--orange); color: white; }
         .b-cell.current { background: #22c55e; color: white; box-shadow: 0 0 10px #22c55e; transform: scale(1.1); transition: 0.2s;}
 
+        .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
+        
+        #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; box-sizing: border-box; }
+        .t-card { background: white; color: #333; border-radius: 8px; padding: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); min-width: 0; }
+        .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
+        .t-cell { border: 1px solid #ddd; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
+        .t-cell.marked { background: #000 !important; color: white !important; }
+
         .mini-ticket-wrapper { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-top: 10px; max-height: 250px; overflow-y: auto; scrollbar-width: none; min-width: 0; }
         .mini-ticket-wrapper::-webkit-scrollbar { display: none; }
         .mini-t-card { background: white; color: #333; border-radius: 5px; padding: 2px; min-width: 0;}
@@ -51,9 +91,19 @@
         .mini-t-cell { border: 1px solid #ccc; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 8px; }
         .mini-t-cell.marked { background: #000 !important; color: white !important; }
 
-        .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
+        .called-balls-container { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .small-called-ball { width: 34px; height: 24px; border-radius: 12px; background: var(--faded-green); color: black; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; animation: popIn 0.3s ease-out; }
 
-        /* Wallet Styles */
+        .ticket-history-scroll { display: none; gap: 10px; overflow-x: auto; padding: 15px 10px; background: #161b22; border-radius: 12px; margin-bottom: 15px; border: 1px solid #30363d; scrollbar-width: none; }
+        .ticket-history-scroll::-webkit-scrollbar { display: none; }
+        .t-hist-ball { min-width: 45px; height: 45px; border-radius: 50%; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .t-hist-letter { font-size: 9px; opacity: 0.8; margin-bottom: -2px; }
+
+        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; animation: fadeIn 0.5s; }
+        .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 40px #ff9800; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .winner-card { background: var(--panel); padding: 20px 40px; border-radius: 15px; border: 2px solid var(--faded-green); margin-top: 20px; box-shadow: 0 0 20px var(--faded-green); }
+
         .w-title { text-align: center; margin-bottom: 20px; font-weight: 600; font-size: 18px; }
         .w-card-blue { background: var(--dark-blue); border-radius: 12px; padding: 25px 20px; margin-bottom: 15px; }
         .w-label-blue { color: var(--blue); font-size: 12px; }
@@ -66,10 +116,8 @@
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .pay-box { background: #0d1117; border: 1px solid #30363d; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: var(--text-gray); }
         .pay-box.active { border-color: var(--faded-green); color: var(--faded-green); background: rgba(74, 222, 128, 0.05); }
-
-        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .copy-box { background: #000; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--text-gray); margin-bottom: 15px; }
+        .copy-btn { background: var(--panel); border: 1px solid #30363d; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--panel); display: none; padding: 10px 0; border-top: 1px solid var(--dark-green); z-index: 1000; justify-content: space-around; }
         .nav-item { text-align: center; color: var(--text-gray); font-size: 10px; cursor: pointer; flex: 1; transition: 0.2s;}
@@ -81,11 +129,11 @@
 
 <div id="bingo-overlay" class="bingo-overlay">
     <h1 class="bingo-text" id="win-status-txt">BINGO!</h1>
-    <div style="background: var(--panel); padding: 20px 40px; border-radius: 15px; border: 2px solid var(--faded-green); margin-top: 20px;">
-        <h3 style="margin:0; color:var(--text-gray);" id="w-header">አሸናፊ (Winner)</h3>
-        <h2 id="win-name" style="margin:5px 0 15px 0; color:white; font-size:28px;">---</h2>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">ሽልማት: <b style="color:gold;" id="win-prize">0 ETB</b></p>
+    <div class="winner-card">
+        <h3 style="margin:0; color:var(--text-gray);" id="w-header">አሸናፊ</h3>
+        <h2 id="win-name" style="margin:5px 0 15px 0; color:white; font-size:28px;">Dawit</h2>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span>አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span>የገንዘብ ሽልማት:</span> <b style="color:gold;" id="win-prize">0 ETB</b></p>
     </div>
     <button class="auth-btn" style="width:200px; margin-top:30px;" onclick="closeBingoPopup()">ወደ መነሻ ተመለስ</button>
 </div>
@@ -95,11 +143,16 @@
     <div class="auth-card">
         <h1 style="color:var(--faded-green); margin:0; font-weight: 900;">BINGO STREAM</h1>
         <p id="auth-subtitle" style="font-size: 12px; color: var(--text-gray); margin-bottom: 20px;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
-        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም">
-        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር">
-        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል" onkeyup="v()">
-        <button id="start-btn" class="auth-btn" disabled onclick="login()" style="margin-top: 15px;">ወደ ጌም ግባ</button>
-        <p style="font-size: 12px; color: var(--faded-green); cursor: pointer; margin-top: 15px;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
+        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)">
+        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)">
+        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" onkeyup="v()">
+        
+        <div id="terms-box" style="text-align:left; font-size:12px; margin: 15px 0; color: var(--text-gray);">
+            <input type="checkbox" id="c1" onchange="v()"> <span>እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
+            <input type="checkbox" id="c2" onchange="v()"> <span>በውልና ደንቦች እስማማለሁ</span>
+        </div>
+        <button id="start-btn" class="auth-btn" disabled onclick="login()">ወደ ጌም ግባ (Register)</button>
+        <p style="font-size: 12px; color: var(--faded-green); cursor: pointer; margin-top: 15px; font-weight: bold;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
     </div>
 </div>
 
@@ -115,6 +168,7 @@
     <div style="text-align: right;">
         <div style="font-size: 10px; color: var(--text-gray); margin-bottom: 2px;">ዋና ሂሳብ</div>
         <div id="hdr-main-balance" class="bal-amt" style="color: var(--faded-green);">0.00 ETB</div>
+        
         <div style="font-size: 9px; color: var(--text-gray); margin-top: 5px; margin-bottom: 2px;">መጫወቻ ሂሳብ</div>
         <div id="hdr-play-balance" class="bal-amt" style="color: var(--white); font-size: 12px;">0.00 ETB</div>
     </div>
@@ -127,12 +181,18 @@
         <div style="text-align:center;"><small>LIVE JACKPOT</small><br><span id="jp" class="time-val">0 ETB</span></div>
     </div>
     <div style="text-align:center;">
-        <p style="font-size: 12px; color: var(--text-gray);">ከ 1 እስከ 200 የካርቴላ ቁጥሮችን ይምረጡ</p>
-        <div id="grid-box" class="num-grid"></div>
+        <p style="font-size: 12px; color: var(--text-gray); margin: 0;">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ (1 ካርቴላ = 10 ብር)</p>
+        
+        <!-- አዲሱ የግሪድ ዲዛይን -->
+        <div class="grid-container-box">
+            <div id="grid-box" class="num-grid"></div>
+        </div>
+
         <div class="action-btn-row">
             <button class="act-btn" onclick="clearSelection()">አጽዳ</button>
-            <button class="act-btn" onclick="randomSelection()">በዘፈቀደ ምረጥ</button>
+            <button class="act-btn" onclick="randomSelection()">በዘፈቀደ</button>
         </div>
+        <!-- በተኑ መጀመሪያ ላይ ተደብቋል -->
         <button onclick="placeBet()" id="bet-btn" class="auth-btn" style="width: 90%; max-width: 350px; margin: 0 auto; display: none;"></button>
     </div>
 </div>
@@ -140,8 +200,8 @@
 <!-- 3. GAME PAGE -->
 <div id="game-page" class="page">
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;">
-        <div class="stat-box"><small>Tickets</small><br><b id="stat-players">0</b></div>
-        <div class="stat-box" style="border: 1px solid var(--faded-green); background: rgba(74, 222, 128, 0.1);"><small>Prize</small><br><b id="g-prize" style="color: var(--faded-green);">0.00</b></div>
+        <div class="stat-box"><small>Total Tickets</small><br><b id="stat-players">0</b></div>
+        <div class="stat-box" style="border: 1px solid var(--faded-green); background: rgba(74, 222, 128, 0.1);"><small>Prize</small><br><b id="g-prize" style="color: var(--faded-green);">0.00 ETB</b></div>
         <div class="stat-box"><small>Balls</small><br><b id="g-count">0/20</b></div>
         <div class="stat-box"><small>Status</small><br><b style="color:var(--red);">LIVE 🔴</b></div>
     </div>
@@ -159,8 +219,11 @@
             </div>
             
             <div style="background: #161b22; border-radius: 15px; padding: 15px 10px; text-align: center; border: 1px solid #30363d;">
-                <small style="color:var(--text-gray)">የእርስዎ ካርቴላዎች 👇</small>
+                <small style="color:var(--text-gray)">የቀጥታ ጨዋታ ሁኔታ</small>
+                <div id="game-status" style="font-size: 13px; font-weight: bold; margin: 10px 0; color: var(--faded-green);">ቁጥሮችን በመጠባበቅ ላይ...</div>
+                
                 <div id="mini-tickets-container" class="mini-ticket-wrapper"></div>
+                <div id="called-numbers-list" class="called-balls-container"></div>
             </div>
         </div>
     </div>
@@ -170,12 +233,15 @@
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; margin-bottom: 5px;">የእኔ ካርቴላዎች</h3>
     <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin-top: 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
+    
+    <div id="ticket-history" class="ticket-history-scroll"></div>
     <div id="ticket-list"></div>
 </div>
 
-<!-- 5. WALLET PAGE -->
+<!-- 5. WALLET PAGE (የባንክ መረጃው በትክክል ተመልሷል) -->
 <div id="wallet-page" class="page">
     <h3 class="w-title">የእኔ ሂሳብ</h3>
+    
     <div class="w-card-orange">
         <div class="w-label-orange">ዋና ሂሳብ (Main Balance)</div>
         <div class="w-amount-txt" id="main-bal">0.00</div>
@@ -185,7 +251,7 @@
     <div id="sec-wit" class="transaction-box">
         <p style="margin:0 0 15px 0; font-size:12px; color:var(--text-gray);">ወጪ ማድረጊያ መንገድ ይምረጡ</p>
         <div class="pay-method-grid"><div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div><div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div><div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div></div>
-        <small style="color:var(--text-gray); font-size:10px; display:block; margin-bottom:5px;">ገንዘቡ የሚላክበት አካውንት/ስልክ ቁጥር:</small>
+        <small style="color:var(--text-gray); font-size:10px; display:block; margin-bottom:5px;">ገንዘቡ የሚላክበት አካውንት/ስልክ ቁጥር (ማስተካከል ይቻላል):</small>
         <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--faded-green); font-weight:bold; background:#000;">
         <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)">
         <button class="auth-btn" style="background:var(--orange); color:white;" onclick="processWithdraw()">ወጪ ጠይቅ (Withdraw)</button>
@@ -205,7 +271,20 @@
             <div class="pay-box" onclick="setDepMethod('cbe', this)">CBE Birr</div>
             <div class="pay-box" onclick="setDepMethod('mpesa', this)">M-Pesa</div>
         </div>
+        <div class="copy-box">
+            <div>
+                <small style="color:var(--text-gray); font-size:10px;">የአካውንት ስም:</small><br>
+                <b id="dep-name" style="font-size:13px; color:white;">Tsedey Abebe</b><br>
+                <small style="color:var(--text-gray); font-size:10px; margin-top:5px; display:inline-block;">ወደዚህ ቁጥር ያስገቡ:</small><br>
+                <b id="dep-acc" style="font-size:18px; color:var(--faded-green); font-family:monospace;">0933638022</b>
+            </div>
+            <button class="copy-btn" onclick="copyNumber()">Copy</button>
+        </div>
         <input type="number" id="dep-amt" class="auth-input" placeholder="መጠን (Amount)">
+        
+        <small style="color:var(--text-gray); font-size:10px; display:block; margin-bottom:5px;">ደረሰኝ ያስገቡ (Upload Receipt):</small>
+        <input type="file" id="dep-receipt" class="auth-input" accept="image/*" style="padding: 8px;">
+        
         <button class="auth-btn" style="background:var(--blue); color:white;" onclick="processDeposit()">ዲፖዚት አረጋግጥ</button>
         <button class="auth-btn" style="background:transparent; border:1px solid #30363d; color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ</button>
     </div>
@@ -229,7 +308,7 @@
 <!-- 8. PROFILE PAGE -->
 <div id="profile-page" class="page">
     <div style="text-align:center; padding: 30px 20px; background: var(--panel); border-radius: 20px; border: 1px solid #30363d; margin-bottom: 20px;">
-        <div style="width:80px; height:80px; background:var(--dark-green); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:35px; border:3px solid var(--faded-green);">👤</div>
+        <div style="width:80px; height:80px; background:var(--dark-green); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:35px; border:3px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);">👤</div>
         <h2 id="p-name" style="margin:0; color: white;">User</h2>
         <p id="p-phone" style="color:var(--text-gray); margin: 5px 0 15px 0;">09********</p>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -241,6 +320,10 @@
             </div>
         </div>
     </div>
+    <div style="background: rgba(59, 130, 246, 0.1); border-radius: 10px; padding: 15px; border: 1px dashed var(--blue); text-align: center; margin-bottom: 15px;">
+        <p style="font-size: 12px; margin: 0; color: var(--white);">ማንኛውም እገዛ ካስፈለጎት እባክዎ ያናግሩን፡</p>
+        <a href="https://t.me/bingosupport" style="color: var(--blue); font-weight: bold; text-decoration: none; font-size: 15px; display: block; margin-top: 8px;">💬 @bingosupport</a>
+    </div>
     <div style="background: var(--panel); border-radius: 15px; border: 1px solid #30363d; padding: 10px;">
         <div class="list-card" style="border-left: none; border-bottom: 1px solid #30363d; margin:0; border-radius:0; cursor:pointer;" onclick="showPage('wallet')"><span>💰 የእኔ ሂሳብ (Wallet)</span> <span>👉</span></div>
         <div class="list-card" style="border-left: none; margin:0; border-radius:0; cursor:pointer; color: var(--red);" onclick="location.reload()"><span>🚪 ዘግተህ ውጣ (Logout)</span></div>
@@ -248,7 +331,7 @@
 </div>
 
 <nav id="navbar" class="bottom-nav">
-    <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon">🏠</span><span>Home</span></div>
+    <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span>Home</span></div>
     <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span>Ticket</span></div>
     <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span><span>Wallet</span></div>
     <div class="nav-item" onclick="showPage('rank')"><span class="nav-icon">🏆</span><span>Rank</span></div>
@@ -264,7 +347,14 @@
     let isGameRunningLocally = false, userTicketsData = []; 
     let isLoginMode = false;
 
-    // 1. መግቢያ (Auth & DB Sync)
+    // የባንክ አካውንቶች መረጃ (ልክ እንደ መጀመሪያው)
+    const depAccounts = { 
+        'telebirr': {num: '0933638022', name: 'Tsedey Abebe (ፀደይ አበበ)'}, 
+        'cbe': {num: '0988180301', name: 'Yohannes Aberham (ዮሀንስ አብርሀም)'}, 
+        'mpesa': {num: '251707896800', name: 'Yohannes Aberham (ዮሀንስ አብርሀም)'} 
+    };
+
+    // 1. መግቢያ እና ዳታቤዝ
     async function syncWithMongoDBDataAPI(userData) { try { await fetch('/api/syncUser', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(userData) }); } catch (e) {} }
     async function fetchUserFromDB(phone) { try { let res = await fetch(`/api/getUser/${phone}`); let data = await res.json(); return data.success ? data.user : null; } catch (e) { return null; } }
 
@@ -319,14 +409,15 @@
         if(registeredPhoneNumber) syncWithMongoDBDataAPI({ phone: registeredPhoneNumber, name: playerName, password: document.getElementById('reg-pass').value, mainBalance, playBalance, played: gamesPlayed, won: totalWon });
     }
 
-    // Wallet Logic
+    // Wallet Logic (ኦርጅናሉ ተመልሷል)
     function toggleForm(type) { document.getElementById('sec-dep').style.display = 'none'; document.getElementById('sec-wit').style.display = 'none'; if(type === 'dep') document.getElementById('sec-dep').style.display = 'block'; if(type === 'wit') document.getElementById('sec-wit').style.display = 'block'; }
-    function setDepMethod(method, element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); }
+    function setDepMethod(method, element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); document.getElementById('dep-acc').innerText = depAccounts[method].num; document.getElementById('dep-name').innerText = depAccounts[method].name; }
     function setWitMethod(element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); }
-    async function processDeposit() { let amt = parseFloat(document.getElementById('dep-amt').value); if(!amt) return; try { await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: registeredPhoneNumber, type: 'deposit', amount: amt, method: 'Telebirr' }) }); alert("ጥያቄው ተልኳል!"); document.getElementById('dep-amt').value = ''; toggleForm('none'); } catch(e){} }
-    async function processWithdraw() { let amt = parseFloat(document.getElementById('wit-amt').value); if(!amt || amt>mainBalance) return alert("በቂ ሂሳብ የሎትም!"); try { await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: registeredPhoneNumber, type: 'withdraw', amount: amt, method: 'Telebirr' }) }); mainBalance -= amt; updateBalanceDisplay(); alert("የወጪ ጥያቄ ተልኳል!"); document.getElementById('wit-amt').value = ''; toggleForm('none'); } catch(e){} }
+    function copyNumber() { navigator.clipboard.writeText(document.getElementById('dep-acc').innerText); alert("ቁጥሩ ኮፒ ተደርጓል!"); }
+    
+    async function processDeposit() { let amt = parseFloat(document.getElementById('dep-amt').value); if(!amt) return; try { await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: registeredPhoneNumber, type: 'deposit', amount: amt, method: document.querySelector('#sec-dep .pay-box.active').innerText }) }); alert("ጥያቄው ተልኳል!"); document.getElementById('dep-amt').value = ''; toggleForm('none'); } catch(e){} }
+    async function processWithdraw() { let amt = parseFloat(document.getElementById('wit-amt').value); if(!amt || amt>mainBalance) return alert("በቂ ሂሳብ የሎትም!"); try { await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: registeredPhoneNumber, type: 'withdraw', amount: amt, method: document.querySelector('#sec-wit .pay-box.active').innerText }) }); mainBalance -= amt; updateBalanceDisplay(); alert("የወጪ ጥያቄ ተልኳል!"); document.getElementById('wit-amt').value = ''; toggleForm('none'); } catch(e){} }
 
-    // Navigation & History
     function addHistoryRecord(title, amount, color) { const hc = document.getElementById('hist-content'); if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); hc.innerHTML = `<div class="list-card" style="border-left-color: ${color};"><div><span>${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}">${amount}</b></div>` + hc.innerHTML; }
     function handleHomeNav() { if(isGameRunningLocally) showPage('game'); else showPage('home'); }
     function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); } }
@@ -357,6 +448,7 @@
         if (data.state === "WAITING") {
             document.getElementById('timer').innerText = formatTime(data.timer); 
             isGameRunningLocally = false;
+            document.getElementById('nav-icon-home').innerText = "🏠";
             
             if(document.getElementById('board').innerHTML !== "") {
                 document.getElementById('board').innerHTML = '';
@@ -364,7 +456,9 @@
                 document.getElementById('caller').innerText = "--";
                 document.getElementById('mini-tickets-container').innerHTML = '';
                 document.getElementById('ticket-list').innerHTML = '';
+                document.getElementById('called-numbers-list').innerHTML = '';
                 document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
+                document.getElementById('game-status').innerText = "ቁጥሮችን በመጠባበቅ ላይ...";
                 called = [];
                 userTicketsData = [];
             }
@@ -376,9 +470,10 @@
             document.getElementById('bet-btn').disabled = true; 
             document.getElementById('bet-btn').innerText = "ጨዋታ ላይ ነው (ይጠብቁ)";
             
-            // ተጫዋቹ ከገዛ ብቻ ወደ ጌም ገፅ እንዲገባ
-            if (userTicketsData.length > 0 && !isGameRunningLocally) { 
+            // 25 ሰከንዱ ሲያልቅ ሁሉም ሰው ወዲያውኑ ወደ Page 2 (Game Page) ይገባል
+            if (!isGameRunningLocally) { 
                 showPage('game'); 
+                document.getElementById('nav-icon-home').innerText = "🎮";
                 isGameRunningLocally = true; 
                 gamesPlayed++; updateBalanceDisplay();
                 buildBoard(); 
@@ -404,6 +499,10 @@
             let hb = document.getElementById('history-scroll'); 
             let b = document.createElement('div'); b.className = 'hist-ball'; b.style.borderColor = bColors[colorIdx]; b.style.color = bColors[colorIdx]; b.innerText = L + "-" + num; 
             hb.prepend(b); 
+            
+            let cbList = document.getElementById('called-numbers-list');
+            let sb = document.createElement('div'); sb.className = 'small-called-ball'; sb.style.background = bColors[colorIdx]; sb.innerText = L + "-" + num; cbList.appendChild(sb);
+
             document.getElementById('caller').innerText = L + "-" + num; 
         }
 
@@ -429,7 +528,7 @@
             document.getElementById('win-ticket').innerText = "---"; 
             document.getElementById('win-prize').innerText = "0 ETB";
             addHistoryRecord("ተሸናፊ (LOSS)", `0 ETB`, "var(--text-gray)");
-            isGameRunningLocally = false; clearSelection(); 
+            isGameRunningLocally = false; clearSelection(); document.getElementById('nav-icon-home').innerText = "🏠";
         }
     });
 
@@ -448,11 +547,11 @@
             } else {
                 addHistoryRecord("ተሸናፊ (LOSS)", `0 ETB`, "var(--text-gray)");
             }
-            isGameRunningLocally = false; clearSelection(); 
+            isGameRunningLocally = false; clearSelection(); document.getElementById('nav-icon-home').innerText = "🏠";
         }
     });
 
-    // 3. መግዣ እና ካርቴላ
+    // 3. መግዣ እና ካርቴላ (ግሪዱ ተስተካክሏል)
     function initGrid() { 
         const box = document.getElementById('grid-box'); box.innerHTML = ''; 
         for(let i=1; i<=200; i++) { 
@@ -479,10 +578,10 @@
         
         document.getElementById('bet-btn').innerText = "ተመዝግቧል ✅ ይጠብቁ..."; 
         document.getElementById('bet-btn').disabled = true; 
-        
+        document.getElementById('game-status').innerText = "የእርስዎ ካርቴላዎች 👇";
+
         genTickets(); 
         socket.emit('buy_tickets', { name: playerName, phone: registeredPhoneNumber, ticketCount: selected.length });
-        // ወደ ጨዋታው ገፅ አሁን አይገባም፣ 00:00 ሲል Server ራሱ ያስገባዋል።
     }
 
     function clearSelection() { selected = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected')); document.getElementById('jp').innerText = "0 ETB"; updateBuyButton(); }
@@ -510,7 +609,7 @@
             for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) htmlMini += `<div class="mini-t-cell marked" style="font-size:5px; color:white;">FREE</div>`; else htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; } } 
             miniCard.innerHTML = htmlMini + "</div>"; miniList.appendChild(miniCard); 
             
-            // Full Card (For Tickets Page)
+            // Full Card (For Tickets Page - ኦርጅናሉ ተመልሷል)
             let fullCard = document.createElement('div'); fullCard.className = 't-card'; 
             let htmlFull = `<div style="text-align:center; font-size:12px; font-weight:bold; margin-bottom:5px; color:#ef4444;">#${id}</div><div class="t-grid">`; 
             for(let i=0; i<5; i++) htmlFull += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; 
