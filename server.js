@@ -34,7 +34,6 @@ const txSchema = new mongoose.Schema({
 });
 const Transaction = mongoose.model('Transaction', txSchema);
 
-// User APIs
 app.post('/api/syncUser', async (req, res) => {
     try {
         const { phone, name, password, mainBalance, playBalance, played, won } = req.body;
@@ -70,7 +69,6 @@ app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'a
 // ==========================================
 let gameState = "WAITING";
 let timer = 25; 
-let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
 let calledNumbers = [];
@@ -80,7 +78,6 @@ let gameInterval;
 function startCountdown() {
     gameState = "WAITING"; 
     timer = 25; 
-    activePlayers = {}; 
     totalPrizePool = 0; 
     totalTickets = 0; 
     calledNumbers = [];
@@ -104,7 +101,6 @@ function startGame() {
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
 
     gameInterval = setInterval(() => {
-        // ልክ 20 ኳስ ሲሞላ ያቋርጣል (አሸናፊ ከሌለ)
         if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval);
             if (gameState === "PLAYING") {
@@ -125,7 +121,6 @@ io.on('connection', (socket) => {
     
     socket.on('buy_tickets', (data) => {
         if (gameState === "WAITING") {
-            activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
             totalTickets += data.ticketCount;
             totalPrizePool = (totalTickets * 10) * 0.9; 
             io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
@@ -137,7 +132,7 @@ io.on('connection', (socket) => {
             gameState = "FINISHED";
             clearInterval(gameInterval);
             io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool });
-            setTimeout(() => { startCountdown(); }, 10000); 
+            setTimeout(() => { startCountdown(); }, 5000); 
         }
     });
 });
