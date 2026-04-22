@@ -320,4 +320,218 @@
     }
 
     // Wallet Logic
-    function toggleForm(type) { document.getElementById('sec-
+    function toggleForm(type) { document.getElementById('sec-dep').style.display = 'none'; document.getElementById('sec-wit').style.display = 'none'; if(type === 'dep') document.getElementById('sec-dep').style.display = 'block'; if(type === 'wit') document.getElementById('sec-wit').style.display = 'block'; }
+    function setDepMethod(method, element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); }
+    function setWitMethod(element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); }
+    async function processDeposit() { let amt = parseFloat(document.getElementById('dep-amt').value); if(!amt) return; try { await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: registeredPhoneNumber, type: 'deposit', amount: amt, method: 'Telebirr' }) }); alert("ጥያቄው ተልኳል!"); document.getElementById('dep-amt').value = ''; toggleForm('none'); } catch(e){} }
+    async function processWithdraw() { let amt = parseFloat(document.getElementById('wit-amt').value); if(!amt || amt>mainBalance) return alert("በቂ ሂሳብ የሎትም!"); try { await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: registeredPhoneNumber, type: 'withdraw', amount: amt, method: 'Telebirr' }) }); mainBalance -= amt; updateBalanceDisplay(); alert("የወጪ ጥያቄ ተልኳል!"); document.getElementById('wit-amt').value = ''; toggleForm('none'); } catch(e){} }
+
+    // Navigation & History
+    function addHistoryRecord(title, amount, color) { const hc = document.getElementById('hist-content'); if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); hc.innerHTML = `<div class="list-card" style="border-left-color: ${color};"><div><span>${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}">${amount}</b></div>` + hc.innerHTML; }
+    function handleHomeNav() { if(isGameRunningLocally) showPage('game'); else showPage('home'); }
+    function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); } }
+
+    // 2. LIVE BINGO SYNC
+    function formatTime(seconds) {
+        if(seconds === "LIVE") return "LIVE 🔴";
+        let s = seconds < 10 ? "0" + seconds : seconds;
+        return "00:" + s;
+    }
+
+    function updateBuyButton() {
+        const btn = document.getElementById('bet-btn');
+        if(selected.length > 0) {
+            btn.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = `ካርቴላ ይግዙ (${selected.length * 10} ETB)`;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    socket.on('game_status', (data) => {
+        document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
+        document.getElementById('stat-players').innerText = data.totalTickets; 
+        document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
+        
+        if (data.state === "WAITING") {
+            document.getElementById('timer').innerText = formatTime(data.timer); 
+            isGameRunningLocally = false;
+            
+            if(document.getElementById('board').innerHTML !== "") {
+                document.getElementById('board').innerHTML = '';
+                document.getElementById('history-scroll').innerHTML = '';
+                document.getElementById('caller').innerText = "--";
+                document.getElementById('mini-tickets-container').innerHTML = '';
+                document.getElementById('ticket-list').innerHTML = '';
+                document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
+                called = [];
+                userTicketsData = [];
+            }
+            updateBuyButton(); 
+            
+        } else if (data.state === "PLAYING") {
+            document.getElementById('timer').innerText = "LIVE 🔴"; 
+            document.getElementById('bet-btn').style.display = 'block';
+            document.getElementById('bet-btn').disabled = true; 
+            document.getElementById('bet-btn').innerText = "ጨዋታ ላይ ነው (ይጠብቁ)";
+            
+            // ተጫዋቹ ከገዛ ብቻ ወደ ጌም ገፅ እንዲገባ
+            if (userTicketsData.length > 0 && !isGameRunningLocally) { 
+                showPage('game'); 
+                isGameRunningLocally = true; 
+                gamesPlayed++; updateBalanceDisplay();
+                buildBoard(); 
+                data.calledNumbers.forEach(num => processCalledNumber(num, false));
+            }
+        }
+    });
+
+    socket.on('new_number', (num) => {
+        if (!isGameRunningLocally) return; 
+        processCalledNumber(num, true);
+    });
+
+    function processCalledNumber(num, animate) {
+        if(!called.includes(num)) called.push(num); 
+        document.getElementById('g-count').innerText = called.length + "/20";
+        
+        let colorIdx = num<=15?0:num<=30?1:num<=45?2:num<=60?3:4; 
+        const bHeads = ['B', 'I', 'N', 'G', 'O']; const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#ea580c']; 
+        let L = bHeads[colorIdx];
+        
+        if(animate) {
+            let hb = document.getElementById('history-scroll'); 
+            let b = document.createElement('div'); b.className = 'hist-ball'; b.style.borderColor = bColors[colorIdx]; b.style.color = bColors[colorIdx]; b.innerText = L + "-" + num; 
+            hb.prepend(b); 
+            document.getElementById('caller').innerText = L + "-" + num; 
+        }
+
+        document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current')); 
+        let calledCell = document.getElementById('c-'+num); 
+        if(calledCell) calledCell.classList.add('called', 'current');
+        
+        document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+        
+        userTicketsData.forEach(t => { 
+            for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } 
+            if(checkBingoWin(t)) socket.emit('claim_bingo', { name: playerName, ticketId: t.id }); 
+        });
+    }
+
+    // 20 ኳስ ደርሶ አሸናፊ ሳይኖር ሲቋረጥ
+    socket.on('game_over_no_winner', () => {
+        if(isGameRunningLocally) {
+            document.getElementById('bingo-overlay').style.display = 'flex'; 
+            document.getElementById('win-status-txt').innerText = "GAME OVER";
+            document.getElementById('w-header').innerText = "ዙሩ ተጠናቋል";
+            document.getElementById('win-name').innerText = "አሸናፊ የለም"; 
+            document.getElementById('win-ticket').innerText = "---"; 
+            document.getElementById('win-prize').innerText = "0 ETB";
+            addHistoryRecord("ተሸናፊ (LOSS)", `0 ETB`, "var(--text-gray)");
+            isGameRunningLocally = false; clearSelection(); 
+        }
+    });
+
+    socket.on('game_winner', (data) => {
+        if(isGameRunningLocally) {
+            document.getElementById('bingo-overlay').style.display = 'flex'; 
+            document.getElementById('win-status-txt').innerText = "BINGO!";
+            document.getElementById('w-header').innerText = "አሸናፊ (Winner)";
+            document.getElementById('win-name').innerText = data.winnerName; 
+            document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
+            document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
+            
+            if(data.winnerName === playerName) { 
+                mainBalance += data.prize; totalWon += data.prize; updateBalanceDisplay(); 
+                addHistoryRecord("አሸናፊ (WIN)", `+${data.prize.toFixed(2)} ETB`, "var(--faded-green)");
+            } else {
+                addHistoryRecord("ተሸናፊ (LOSS)", `0 ETB`, "var(--text-gray)");
+            }
+            isGameRunningLocally = false; clearSelection(); 
+        }
+    });
+
+    // 3. መግዣ እና ካርቴላ
+    function initGrid() { 
+        const box = document.getElementById('grid-box'); box.innerHTML = ''; 
+        for(let i=1; i<=200; i++) { 
+            let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; 
+            d.onclick = () => { 
+                if(document.getElementById('timer').innerText.includes("LIVE")) return; 
+                if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); } 
+                else if(selected.length < 5) { d.classList.add('selected'); selected.push(i); } 
+                else { alert("ከ 5 ካርቴላ በላይ አይቻልም!"); } 
+                document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; 
+                updateBuyButton(); 
+            }; 
+            box.appendChild(d); 
+        } 
+    }
+
+    function placeBet() { 
+        if(selected.length === 0) return; 
+        let betAmount = selected.length * 10; 
+        if(mainBalance < betAmount) { alert("በቂ ሂሳብ የሎትም!"); showPage('wallet'); return; }
+        
+        mainBalance -= betAmount; updateBalanceDisplay(); 
+        addHistoryRecord("ካርቴላ ግዢ (BUY)", `-${betAmount} ETB`, "var(--orange)");
+        
+        document.getElementById('bet-btn').innerText = "ተመዝግቧል ✅ ይጠብቁ..."; 
+        document.getElementById('bet-btn').disabled = true; 
+        
+        genTickets(); 
+        socket.emit('buy_tickets', { name: playerName, phone: registeredPhoneNumber, ticketCount: selected.length });
+        // ወደ ጨዋታው ገፅ አሁን አይገባም፣ 00:00 ሲል Server ራሱ ያስገባዋል።
+    }
+
+    function clearSelection() { selected = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected')); document.getElementById('jp').innerText = "0 ETB"; updateBuyButton(); }
+    function randomSelection() { if(document.getElementById('timer').innerText.includes("LIVE")) return; clearSelection(); let r = []; while(r.length < 5) { let n = Math.floor(Math.random() * 200) + 1; if(!r.includes(n)) r.push(n); } selected = r; document.querySelectorAll('.num-btn').forEach(btn => { if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected'); }); document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; updateBuyButton(); }
+    
+    function closeBingoPopup() { document.getElementById('bingo-overlay').style.display = 'none'; showPage('home'); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById('nav-home').classList.add('active'); }
+
+    function genTickets() { 
+        const miniList = document.getElementById('mini-tickets-container'); miniList.innerHTML = ''; 
+        const fullList = document.getElementById('ticket-list'); fullList.innerHTML = '';
+        document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + selected.length;
+        
+        const bHeads = ['B', 'I', 'N', 'G', 'O']; const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#ea580c']; 
+        userTicketsData = []; 
+        
+        selected.forEach(id => { 
+            let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
+            let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
+            userTicketsData.push({ id: id, grid: cols, marks: marksObj }); 
+            
+            // Mini Card
+            let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
+            let htmlMini = `<div style="text-align:center; font-size:9px; font-weight:bold; margin-bottom:2px; color:#ef4444;">#${id}</div><div class="mini-t-grid">`; 
+            for(let i=0; i<5; i++) htmlMini += `<div class="mini-t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; 
+            for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) htmlMini += `<div class="mini-t-cell marked" style="font-size:5px; color:white;">FREE</div>`; else htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; } } 
+            miniCard.innerHTML = htmlMini + "</div>"; miniList.appendChild(miniCard); 
+            
+            // Full Card (For Tickets Page)
+            let fullCard = document.createElement('div'); fullCard.className = 't-card'; 
+            let htmlFull = `<div style="text-align:center; font-size:12px; font-weight:bold; margin-bottom:5px; color:#ef4444;">#${id}</div><div class="t-grid">`; 
+            for(let i=0; i<5; i++) htmlFull += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; 
+            for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) htmlFull += `<div class="t-cell marked" style="font-size:7px; color:white;">FREE</div>`; else htmlFull += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; } } 
+            fullCard.innerHTML = htmlFull + "</div>"; fullList.appendChild(fullCard);
+        }); 
+    }
+
+    function buildBoard() { 
+        const board = document.getElementById('board'); board.innerHTML = ''; 
+        const bHeads = ['B', 'I', 'N', 'G', 'O']; const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#ea580c']; 
+        bHeads.forEach((h, i) => { let d = document.createElement('div'); d.className='b-cell b-head'; d.style.background=bColors[i]; d.innerText=h; board.appendChild(d); }); 
+        for(let r=1; r<=15; r++) { 
+            for(let c=0; c<5; c++) { 
+                let num = r + (c * 15); let d = document.createElement('div'); d.className='b-cell'; d.id='c-'+num; d.innerText=num; board.appendChild(d); 
+            } 
+        } 
+    }
+
+    function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
+    function checkBingoWin(ticket) { let m = ticket.marks; for(let c=0; c<5; c++) { if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; } for(let r=0; r<5; r++) { if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; } if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; return false; }
+</script>
+</body>
+</html>
