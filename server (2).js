@@ -11,16 +11,15 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ⚠️ Environment Variables (እርስዎ Render ላይ የሚሞሉት)
+// የ Database ኮኔክሽን
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
-// 1. ከ Database ጋር ማገናኘት
 mongoose.connect(mongoURI)
-    .then(() => console.log("✅ ከ MongoDB ዳታቤዝ ጋር በትክክል ተገናኝቷል!"))
+    .then(() => console.log("✅ ከ MongoDB ጋር ተገናኝቷል!"))
     .catch(err => console.error("❌ ዳታቤዝ አልተገናኘም:", err));
 
-// 2. የ ዳታቤዝ ቅርፆች (Schemas)
+// Schemas
 const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     name: String,
@@ -34,7 +33,7 @@ const User = mongoose.model('User', userSchema);
 
 const txSchema = new mongoose.Schema({
     phone: String,
-    type: String, // 'deposit' or 'withdraw'
+    type: String, 
     amount: Number,
     method: String,
     status: { type: String, default: 'Pending' }, 
@@ -43,13 +42,27 @@ const txSchema = new mongoose.Schema({
 const Transaction = mongoose.model('Transaction', txSchema);
 
 // ==========================================
-// 🔵 የተጠቃሚ APIs (User Endpoints)
+// 🔵 USER APIs
 // ==========================================
-app.post('/api/syncUser', async (req, res) => {
+app.post('/api/register', async (req, res) => {
     try {
-        const { phone, name, password, mainBalance, playBalance, played, won } = req.body;
-        await User.findOneAndUpdate({ phone }, { name, password, mainBalance, playBalance, played, won }, { new: true, upsert: true });
-        res.json({ success: true });
+        const { phone, name, password } = req.body;
+        let user = await User.findOne({ phone });
+        if (user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
+        
+        // አዲስ ተጠቃሚ 100 ብር ቦነስ ያገኛል
+        user = new User({ phone, name, password, mainBalance: 100, playBalance: 100 });
+        await user.save();
+        res.json({ success: true, user });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { phone, password } = req.body;
+        let user = await User.findOne({ phone, password });
+        if (user) res.json({ success: true, user });
+        else res.json({ success: false, message: "ስልክ ቁጥር ወይም የይለፍ ቃል ተሳስቷል!" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -64,35 +77,24 @@ app.get('/api/getUser/:phone', async (req, res) => {
 app.post('/api/request-tx', async (req, res) => {
     try {
         const { phone, type, amount, method } = req.body;
+        let user = await User.findOne({phone});
+        if(!user) return res.json({success: false, message: "ተጠቃሚው አልተገኘም!"});
+
         if(type === 'withdraw') {
-            let user = await User.findOne({phone});
-            if(!user || user.mainBalance < amount) return res.json({success: false, message: "በቂ ሂሳብ የሎትም!"});
-            user.mainBalance -= amount; // Pending ስለሆነ ብሩን እናግደዋለን
+            if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ሂሳብ የሎትም!"});
+            // ወጪ ሲጠይቅ ብሩን ከ አካውንቱ ላይ እንቀንሰዋለን (Pending ስለሆነ)
+            user.mainBalance -= amount; 
             await user.save();
         }
         const newTx = new Transaction({ phone, type, amount, method });
         await newTx.save();
-        res.json({ success: true, message: "✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል! በአድሚን ሲረጋገጥ ሂሳብዎ ላይ ይገባል።" });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
-app.post('/api/reset-password', async (req, res) => {
-    try {
-        const { phone, name, newPassword } = req.body;
-        const user = await User.findOne({ phone });
-        if (!user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ሲስተሙ ላይ አልተገኘም!" });
-        if (user.name.toLowerCase().trim() !== name.toLowerCase().trim()) return res.json({ success: false, message: "ያስገቡት ስም ከስልክ ቁጥሩ ጋር አይመሳሰልም!" });
-        user.password = newPassword;
-        await user.save();
-        res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! አሁን በአዲሱ የይለፍ ቃል መግባት ይችላሉ።" });
+        res.json({ success: true, message: "✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል! በአድሚን ሲረጋገጥ ይስተካከላል።" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
-// 🔴 የአድሚን APIs (Admin Endpoints)
+// 🔴 ADMIN APIs
 // ==========================================
-app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
-
 app.post('/api/admin/users', async (req, res) => {
     if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
     const users = await User.find().sort({ won: -1 });
@@ -116,41 +118,24 @@ app.post('/api/admin/action-tx', async (req, res) => {
 
         if (action === 'Approve') {
             tx.status = 'Approved';
-            if(tx.type === 'deposit') { user.mainBalance += tx.amount; user.playBalance += tx.amount; }
+            if(tx.type === 'deposit') { 
+                user.mainBalance += tx.amount; 
+                user.playBalance += tx.amount; 
+            }
         } else if (action === 'Reject') {
             tx.status = 'Rejected';
-            if(tx.type === 'withdraw') { user.mainBalance += tx.amount; } // ብሩን እንመልስለታለን
+            if(tx.type === 'withdraw') { 
+                user.mainBalance += tx.amount; // ወጪው ከተከለከለ ብሩ ይመለስለታል
+            } 
         }
         await tx.save(); await user.save();
-        io.emit('balance_updated', tx.phone); // ለዩዘሩ ኖቲፊኬሽን
+        io.emit('balance_updated', tx.phone); // ለተጠቃሚው ኖቲፊኬሽን ይልካል
         res.json({success: true});
     } catch (e) { res.status(500).json({success: false}); }
 });
 
-app.post('/api/admin/send-bonus', async (req, res) => {
-    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
-    const { phone, amount } = req.body;
-    try {
-        await User.findOneAndUpdate({phone}, { $inc: { mainBalance: amount, playBalance: amount } });
-        io.emit('balance_updated', phone);
-        res.json({success: true});
-    } catch(e) { res.json({success: false}); }
-});
-
-app.post('/api/admin/change-password', async (req, res) => {
-    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
-    const { phone, newPassword } = req.body;
-    try {
-        const user = await User.findOne({ phone });
-        if(!user) return res.json({ success: false, message: "User not found!" });
-        user.password = newPassword;
-        await user.save();
-        res.json({ success: true, message: `Password for ${phone} updated successfully!` });
-    } catch(e) { res.json({ success: false }); }
-});
-
 // ==========================================
-// 🟢 የ LIVE BINGO ጌም ማሽን (SOCKET.IO)
+// 🟢 LIVE BINGO GAME ENGINE (SOCKET.IO)
 // ==========================================
 let gameState = "WAITING";
 let timer = 30;
@@ -163,6 +148,8 @@ let gameInterval;
 
 function startCountdown() {
     gameState = "WAITING"; timer = 30; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
+    clearInterval(gameInterval);
+    
     let waitInterval = setInterval(() => {
         timer--;
         io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets });
@@ -177,42 +164,68 @@ function startCountdown() {
 function startGame() {
     gameState = "PLAYING";
     pool = Array.from({length: 75}, (_, i) => i + 1);
-    io.emit('game_status', { state: gameState, timer: 0, totalPrizePool, totalTickets });
+    io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets });
 
     gameInterval = setInterval(() => {
-        if (calledNumbers.length >= 75 || gameState !== "PLAYING") { clearInterval(gameInterval); return; }
+        if (calledNumbers.length >= 75 || gameState !== "PLAYING") { 
+            clearInterval(gameInterval); 
+            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // አሸናፊ ከሌለ ይጀምራል
+            return; 
+        }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
         calledNumbers.push(num);
         io.emit('new_number', num);
-    }, 3000);
+    }, 3000); // በየ 3 ሰከንዱ ኳስ ይወጣል
 }
 
 io.on('connection', (socket) => {
     socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
     
-    socket.on('buy_tickets', (data) => {
+    socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
-            activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
-            totalTickets += data.ticketCount;
-            totalPrizePool = (totalTickets * 10) * 0.9; // 10% ለአድሚን ይቆረጣል
-            io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets });
+            const betAmount = data.ticketCount * 10;
+            const user = await User.findOne({phone: data.phone});
+            
+            // የ Database ሂሳብ ማረጋገጥና መቀነስ
+            if(user && user.mainBalance >= betAmount) {
+                user.mainBalance -= betAmount;
+                user.played += 1;
+                await user.save();
+                
+                activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
+                totalTickets += data.ticketCount;
+                totalPrizePool = (totalTickets * 10) * 0.9; // 10% ለአድሚን ይቆረጣል
+                
+                io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets });
+                socket.emit('balance_updated', data.phone); // ዩዘሩ አዲስ ባላንሱን እንዲያይ
+            }
         }
     });
 
-    socket.on('claim_bingo', (data) => {
+    socket.on('claim_bingo', async (data) => {
         if (gameState === "PLAYING") {
             gameState = "FINISHED";
             clearInterval(gameInterval);
-            io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool });
-            setTimeout(() => { startCountdown(); }, 10000); // አዲስ ዙር በ10 ሰከንድ ይጀምራል
+            
+            // አሸናፊውን ዳታቤዝ ላይ መመዝገብ እና ብር መጨመር
+            const user = await User.findOne({phone: data.phone});
+            if(user) {
+                user.mainBalance += totalPrizePool;
+                user.won += totalPrizePool;
+                await user.save();
+                io.emit('balance_updated', data.phone);
+            }
+            
+            io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool, phone: data.phone });
+            setTimeout(() => { startCountdown(); }, 12000); // ከ 12 ሰከንድ በኋላ አዲስ ዙር ይጀምራል
         }
     });
 });
 
 startCountdown();
 
-// ዌብሳይቱ ሲከፈት
+app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
 app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 Bingo Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
