@@ -50,7 +50,6 @@ app.post('/api/register', async (req, res) => {
         let user = await User.findOne({ phone });
         if (user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
         
-        // አዲስ ተጠቃሚ 100 ብር ቦነስ ያገኛል
         user = new User({ phone, name, password, mainBalance: 100, playBalance: 100 });
         await user.save();
         res.json({ success: true, user });
@@ -82,7 +81,6 @@ app.post('/api/request-tx', async (req, res) => {
 
         if(type === 'withdraw') {
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ሂሳብ የሎትም!"});
-            // ወጪ ሲጠይቅ ብሩን ከ አካውንቱ ላይ እንቀንሰዋለን (Pending ስለሆነ)
             user.mainBalance -= amount; 
             await user.save();
         }
@@ -118,18 +116,13 @@ app.post('/api/admin/action-tx', async (req, res) => {
 
         if (action === 'Approve') {
             tx.status = 'Approved';
-            if(tx.type === 'deposit') { 
-                user.mainBalance += tx.amount; 
-                user.playBalance += tx.amount; 
-            }
+            if(tx.type === 'deposit') { user.mainBalance += tx.amount; user.playBalance += tx.amount; }
         } else if (action === 'Reject') {
             tx.status = 'Rejected';
-            if(tx.type === 'withdraw') { 
-                user.mainBalance += tx.amount; // ወጪው ከተከለከለ ብሩ ይመለስለታል
-            } 
+            if(tx.type === 'withdraw') { user.mainBalance += tx.amount; }
         }
         await tx.save(); await user.save();
-        io.emit('balance_updated', tx.phone); // ለተጠቃሚው ኖቲፊኬሽን ይልካል
+        io.emit('balance_updated', tx.phone); 
         res.json({success: true});
     } catch (e) { res.status(500).json({success: false}); }
 });
@@ -138,7 +131,7 @@ app.post('/api/admin/action-tx', async (req, res) => {
 // 🟢 LIVE BINGO GAME ENGINE (SOCKET.IO)
 // ==========================================
 let gameState = "WAITING";
-let timer = 30;
+let timer = 25; // Timer starts at 25 seconds
 let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
@@ -147,12 +140,12 @@ let pool = [];
 let gameInterval;
 
 function startCountdown() {
-    gameState = "WAITING"; timer = 30; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
+    gameState = "WAITING"; timer = 25; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
     clearInterval(gameInterval);
     
     let waitInterval = setInterval(() => {
         timer--;
-        io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets });
+        io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
         if (timer <= 0) {
             clearInterval(waitInterval);
             if (totalTickets > 0) startGame();
@@ -164,12 +157,17 @@ function startCountdown() {
 function startGame() {
     gameState = "PLAYING";
     pool = Array.from({length: 75}, (_, i) => i + 1);
-    io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets });
+    io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
 
     gameInterval = setInterval(() => {
-        if (calledNumbers.length >= 75 || gameState !== "PLAYING") { 
+        // Max 20 balls logic (የ 20 ኳስ ገደብ)
+        if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval); 
-            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // አሸናፊ ከሌለ ይጀምራል
+            if(gameState === "PLAYING") {
+                gameState = "FINISHED";
+                io.emit('game_ended_no_winner'); // አሸናፊ የለም ማሳወቂያ
+                setTimeout(startCountdown, 6000);
+            }
             return; 
         }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
@@ -186,7 +184,6 @@ io.on('connection', (socket) => {
             const betAmount = data.ticketCount * 10;
             const user = await User.findOne({phone: data.phone});
             
-            // የ Database ሂሳብ ማረጋገጥና መቀነስ
             if(user && user.mainBalance >= betAmount) {
                 user.mainBalance -= betAmount;
                 user.played += 1;
@@ -196,8 +193,8 @@ io.on('connection', (socket) => {
                 totalTickets += data.ticketCount;
                 totalPrizePool = (totalTickets * 10) * 0.9; // 10% ለአድሚን ይቆረጣል
                 
-                io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets });
-                socket.emit('balance_updated', data.phone); // ዩዘሩ አዲስ ባላንሱን እንዲያይ
+                io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
+                socket.emit('balance_updated', data.phone); 
             }
         }
     });
@@ -207,7 +204,6 @@ io.on('connection', (socket) => {
             gameState = "FINISHED";
             clearInterval(gameInterval);
             
-            // አሸናፊውን ዳታቤዝ ላይ መመዝገብ እና ብር መጨመር
             const user = await User.findOne({phone: data.phone});
             if(user) {
                 user.mainBalance += totalPrizePool;
@@ -217,7 +213,7 @@ io.on('connection', (socket) => {
             }
             
             io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool, phone: data.phone });
-            setTimeout(() => { startCountdown(); }, 12000); // ከ 12 ሰከንድ በኋላ አዲስ ዙር ይጀምራል
+            setTimeout(() => { startCountdown(); }, 10000); 
         }
     });
 });
