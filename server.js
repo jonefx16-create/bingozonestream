@@ -50,7 +50,6 @@ app.post('/api/register', async (req, res) => {
         let user = await User.findOne({ phone });
         if (user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
         
-        // አዲስ ተጠቃሚ 100 ብር ቦነስ ያገኛል
         user = new User({ phone, name, password, mainBalance: 100, playBalance: 100 });
         await user.save();
         res.json({ success: true, user });
@@ -82,7 +81,6 @@ app.post('/api/request-tx', async (req, res) => {
 
         if(type === 'withdraw') {
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ሂሳብ የሎትም!"});
-            // ወጪ ሲጠይቅ ብሩን ከ አካውንቱ ላይ እንቀንሰዋለን (Pending ስለሆነ)
             user.mainBalance -= amount; 
             await user.save();
         }
@@ -97,7 +95,7 @@ app.post('/api/request-tx', async (req, res) => {
 // ==========================================
 app.post('/api/admin/users', async (req, res) => {
     if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
-    const users = await User.find().sort({ won: -1 });
+    const users = await User.find().sort({ _id: -1 });
     res.json(users);
 });
 
@@ -125,13 +123,51 @@ app.post('/api/admin/action-tx', async (req, res) => {
         } else if (action === 'Reject') {
             tx.status = 'Rejected';
             if(tx.type === 'withdraw') { 
-                user.mainBalance += tx.amount; // ወጪው ከተከለከለ ብሩ ይመለስለታል
+                user.mainBalance += tx.amount; 
             } 
         }
         await tx.save(); await user.save();
-        io.emit('balance_updated', tx.phone); // ለተጠቃሚው ኖቲፊኬሽን ይልካል
+        io.emit('balance_updated', tx.phone); 
         res.json({success: true});
     } catch (e) { res.status(500).json({success: false}); }
+});
+
+// New API: Send Bonus
+app.post('/api/admin/send-bonus', async (req, res) => {
+    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
+    try {
+        const user = await User.findOne({ phone: req.body.phone });
+        if(!user) return res.json({ success: false });
+        
+        user.mainBalance += req.body.amount;
+        await user.save();
+        
+        io.emit('balance_updated', user.phone);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// New API: Reset Password
+app.post('/api/admin/change-password', async (req, res) => {
+    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
+    try {
+        const user = await User.findOne({ phone: req.body.phone });
+        if(!user) return res.json({ success: false, message: "User not found!" });
+        
+        user.password = req.body.newPassword;
+        await user.save();
+        
+        res.json({ success: true, message: "Password updated successfully!" });
+    } catch (e) { res.status(500).json({ success: false, message: "Server error" }); }
+});
+
+// New API: Ban / Delete User
+app.post('/api/admin/ban-user', async (req, res) => {
+    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
+    try {
+        await User.findOneAndDelete({ phone: req.body.phone });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
@@ -152,12 +188,11 @@ function startCountdown() {
     
     let waitInterval = setInterval(() => {
         timer--;
-        // Always send full state so any late joiners get synced completely
         io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
         if (timer <= 0) {
             clearInterval(waitInterval);
             if (totalTickets > 0) startGame();
-            else startCountdown(); // ሰው ከሌለ እንደገና ይቆጥራል
+            else startCountdown();
         }
     }, 1000);
 }
@@ -168,19 +203,19 @@ function startGame() {
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
 
     gameInterval = setInterval(() => {
-        if (calledNumbers.length >= 75 || gameState !== "PLAYING") { 
+        // 20 Ball Limit
+        if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval); 
-            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // አሸናፊ ከሌለ ይጀምራል
+            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // 20 ኳስ ካለቀ በኋላ አዲስ ዙር ይጀምራል
             return; 
         }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
         calledNumbers.push(num);
         io.emit('new_number', num);
-    }, 3000); // በየ 3 ሰከንዱ ኳስ ይወጣል
+    }, 3000);
 }
 
 io.on('connection', (socket) => {
-    // Send absolute live state to the new connection
     socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
     
     socket.on('buy_tickets', async (data) => {
@@ -188,7 +223,6 @@ io.on('connection', (socket) => {
             const betAmount = data.ticketCount * 10;
             const user = await User.findOne({phone: data.phone});
             
-            // የ Database ሂሳብ ማረጋገጥና መቀነስ
             if(user && user.mainBalance >= betAmount) {
                 user.mainBalance -= betAmount;
                 user.played += 1;
@@ -196,10 +230,10 @@ io.on('connection', (socket) => {
                 
                 activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
                 totalTickets += data.ticketCount;
-                totalPrizePool = (totalTickets * 10) * 0.9; // 10% ለአድሚን ይቆረጣል
+                totalPrizePool = (totalTickets * 10) * 0.9; 
                 
                 io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
-                socket.emit('balance_updated', data.phone); // ዩዘሩ አዲስ ባላንሱን እንዲያይ
+                socket.emit('balance_updated', data.phone); 
             }
         }
     });
@@ -209,7 +243,6 @@ io.on('connection', (socket) => {
             gameState = "FINISHED";
             clearInterval(gameInterval);
             
-            // አሸናፊውን ዳታቤዝ ላይ መመዝገብ እና ብር መጨመር
             const user = await User.findOne({phone: data.phone});
             if(user) {
                 user.mainBalance += totalPrizePool;
@@ -219,7 +252,6 @@ io.on('connection', (socket) => {
             }
             
             io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool, phone: data.phone });
-            // የ 12 ሰከንድ ቆይታ በኋላ ቀጣይ ዙር ሲጀምር ተጫዋቾቹ በራሱ ወደ Home ይመለሳሉ
             setTimeout(() => { startCountdown(); }, 12000); 
         }
     });
