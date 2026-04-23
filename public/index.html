@@ -32,10 +32,11 @@
         .history-scroll::-webkit-scrollbar { display: none; }
         .hist-ball { min-width: 35px; height: 35px; border: 2px solid var(--faded-green); color: var(--faded-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes pulse { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.05); } }
         
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; width: 100%; max-width: 250px; margin: 0 auto; }
-        .b-cell { background: #1e293b; height: clamp(16px, 2.5vh, 24px); display: flex; align-items: center; justify-content: center; font-size: clamp(9px, 1.5vh, 12px); font-weight: bold; color: #94a3b8; border-radius: 2px; }
-        .b-head { color: white; margin-bottom: 2px; font-size: clamp(11px, 2vh, 14px); height: clamp(20px, 3vh, 28px); }
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 100%; max-width: 300px; margin: 0 auto; }
+        .b-cell { background: #1e293b; height: clamp(20px, 3vh, 30px); display: flex; align-items: center; justify-content: center; font-size: clamp(10px, 1.5vh, 13px); font-weight: bold; color: #94a3b8; border-radius: 4px; }
+        .b-head { color: white; margin-bottom: 2px; font-size: clamp(12px, 2vh, 15px); height: clamp(24px, 3.5vh, 32px); }
         .b-cell.called { background: var(--orange); color: white; }
         .b-cell.current { background: #22c55e; color: white; box-shadow: 0 0 10px #22c55e; }
 
@@ -58,7 +59,6 @@
 
         .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 40px #ff9800; animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
         .winner-card { background: var(--panel); padding: 20px 40px; border-radius: 15px; border: 2px solid var(--faded-green); margin-top: 20px; }
 
         .transaction-box { background: var(--panel); border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-top: 15px; display: none; }
@@ -77,12 +77,12 @@
 <body>
 
 <div id="bingo-overlay" class="bingo-overlay">
-    <h1 class="bingo-text">BINGO!</h1>
+    <h1 class="bingo-text" id="popup-title">BINGO!</h1>
     <div class="winner-card">
-        <h3 style="margin:0; color:var(--text-gray);">አሸናፊ (Winner)</h3>
+        <h3 style="margin:0; color:var(--text-gray);" id="popup-sub">አሸናፊ (Winner)</h3>
         <h2 id="win-name" style="margin:5px 0 15px 0; color:white; font-size:28px;">---</h2>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">የገንዘብ ሽልማት: <b style="color:gold;" id="win-prize">0 ETB</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);" id="win-tkt-box">አሸናፊ ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);" id="win-prz-box">የገንዘብ ሽልማት: <b style="color:gold;" id="win-prize">0 ETB</b></p>
     </div>
     <button class="auth-btn" style="width:200px; margin-top:30px;" onclick="closeBingoPopup()">ወደ መነሻ ተመለስ</button>
 </div>
@@ -121,7 +121,7 @@
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     <div class="timer-header">
-        <div style="text-align:center;"><small>ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">30</span></div>
+        <div style="text-align:center;"><small>ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">00:25</span></div>
         <div style="text-align:center;"><small>LIVE JACKPOT</small><br><span id="jp" class="time-val">0 ETB</span></div>
     </div>
     <div style="text-align:center;">
@@ -137,21 +137,29 @@
 
 <!-- 3. GAME PAGE -->
 <div id="game-page" class="page">
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;">
-        <div class="stat-box" style="border: 1px solid #30363d; background: #161b22;"><small>Total Tickets</small><br><b id="stat-players">0</b></div>
-        <div class="stat-box" style="border: 1px solid var(--faded-green); background: rgba(74, 222, 128, 0.1);"><small>Prize Pool</small><br><b id="g-prize" style="color: var(--faded-green);">0.00 ETB</b></div>
-        <div class="stat-box" style="border: 1px solid #30363d; background: #161b22;"><small>Balls</small><br><b id="g-count">0/75</b></div>
-        <div class="stat-box" style="border: 1px solid #30363d; background: #161b22;"><small>Status</small><br><b style="color:var(--red);">LIVE 🔴</b></div>
+    <!-- NEW BEAUTIFUL TOP STATS -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+        <div class="stat-box" style="border: 2px solid var(--faded-green); background: linear-gradient(145deg, #14532d, #161b22); box-shadow: 0 0 10px rgba(74, 222, 128, 0.3); border-radius: 12px; padding: 10px;">
+            <small style="color:var(--white); font-size:11px;">🏆 Prize Pool</small><br>
+            <b id="g-prize" style="color: var(--faded-green); font-size:16px;">0.00 ETB</b>
+        </div>
+        <div class="stat-box" style="border: 2px solid var(--blue); background: linear-gradient(145deg, #172033, #161b22); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 10px;">
+            <small style="color:var(--white); font-size:11px;">🎱 Balls</small><br>
+            <b id="g-count" style="color: var(--blue); font-size:16px;">0/20</b>
+        </div>
+        <div class="stat-box" style="border: 2px solid var(--red); background: linear-gradient(145deg, #2a0808, #161b22); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 10px;">
+            <small style="color:var(--white); font-size:11px;">📡 Status</small><br>
+            <b style="color:var(--red); font-size:16px; animation: pulse 1s infinite alternate;">LIVE 🔴</b>
+        </div>
     </div>
 
     <div id="history-scroll" class="history-scroll"></div>
 
-    <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px;"> 
-        <div style="flex: 0 0 45%; display: flex; justify-content: center; overflow: hidden;"> 
-            <div id="board" class="b-board"></div>
-        </div>
-
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; position: sticky; top: 10px;">
+    <!-- REORDERED LAYOUT: CALLER/TICKETS TOP, BOARD BOTTOM -->
+    <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;"> 
+        
+        <!-- CALLER AND TICKETS (NOW ON TOP) -->
+        <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="background: #161b22; height: 100px; border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid #30363d;">
                 <div id="caller" style="width: 70px; height: 70px; border-radius: 50%; background: white; color: black; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px var(--faded-green);">--</div>
             </div>
@@ -162,6 +170,12 @@
                 <div id="called-numbers-list" class="called-balls-container"></div>
             </div>
         </div>
+
+        <!-- BINGO BOARD (NOW AT THE BOTTOM) -->
+        <div style="display: flex; justify-content: center; background: #161b22; padding: 15px 5px; border-radius: 15px; border: 1px solid #30363d;"> 
+            <div id="board" class="b-board"></div>
+        </div>
+
     </div>
 </div>
 
@@ -300,11 +314,11 @@
 
     socket.on('game_status', (data) => {
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
-        document.getElementById('stat-players').innerText = data.totalTickets + " Tickets"; 
         document.getElementById('g-prize').innerHTML = data.totalPrizePool.toFixed(2) + " ETB";
         
         if (data.state === "WAITING") {
-            document.getElementById('timer').innerText = data.timer; 
+            let formatSec = data.timer < 10 ? '0' + data.timer : data.timer;
+            document.getElementById('timer').innerText = "00:" + formatSec; 
             document.getElementById('bet-btn').disabled = false; 
             isGameRunningLocally = false;
             
@@ -318,18 +332,25 @@
             document.getElementById('timer').innerText = "LIVE 🔴"; 
             document.getElementById('bet-btn').disabled = true; 
             document.getElementById('bet-btn').innerText = "ጨዋታ ተጀምሯል (ይጠብቁ)";
-            if (userTicketsData.length > 0 && !isGameRunningLocally) { 
+            
+            // Allow late joiners to watch the live game
+            if (!isGameRunningLocally) { 
                 showPage('game'); 
                 isGameRunningLocally = true; 
                 buildBoard(); 
+                called = [];
+                document.getElementById('history-scroll').innerHTML = '';
+                // Catch up on already called numbers
+                if(data.calledNumbers && data.calledNumbers.length > 0) {
+                    data.calledNumbers.forEach(n => handleNewNumber(n));
+                }
             }
         }
     });
 
-    socket.on('new_number', (num) => {
-        if (!isGameRunningLocally) return; 
+    function handleNewNumber(num) {
         called.push(num); 
-        document.getElementById('g-count').innerText = called.length + "/75";
+        document.getElementById('g-count').innerText = called.length + "/20";
         
         let colorIdx = num<=15?0:num<=30?1:num<=45?2:num<=60?3:4; 
         let L = bHeads[colorIdx];
@@ -341,6 +362,11 @@
         document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current')); 
         let calledCell = document.getElementById('c-'+num); if(calledCell) calledCell.classList.add('called', 'current');
         document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+    }
+
+    socket.on('new_number', (num) => {
+        if (!isGameRunningLocally) return; 
+        handleNewNumber(num);
         
         userTicketsData.forEach(t => { 
             for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } 
@@ -348,8 +374,31 @@
         });
     });
 
+    socket.on('game_ended_no_winner', () => {
+        document.getElementById('bingo-overlay').style.display = 'flex'; 
+        document.getElementById('popup-title').innerText = "GAME OVER!";
+        document.getElementById('popup-title').style.color = "var(--text-gray)";
+        document.getElementById('popup-sub').innerText = "አሸናፊ የለም (No Winner)";
+        document.getElementById('win-name').innerText = "የ 20 ኳስ ገደብ አልቋል።";
+        document.getElementById('win-tkt-box').style.display = "none";
+        document.getElementById('win-prz-box').style.display = "none";
+
+        isGameRunningLocally = false; userTicketsData = []; clearSelection(); 
+        document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
+        document.getElementById('bet-btn').disabled = false;
+        
+        // Auto close after 5 seconds and return to home
+        setTimeout(() => { closeBingoPopup(); }, 5000);
+    });
+
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
+        document.getElementById('popup-title').innerText = "BINGO!";
+        document.getElementById('popup-title').style.color = "#ffeb3b";
+        document.getElementById('popup-sub').innerText = "አሸናፊ (Winner)";
+        document.getElementById('win-tkt-box').style.display = "block";
+        document.getElementById('win-prz-box').style.display = "block";
+
         document.getElementById('win-name').innerText = data.winnerName; 
         document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
         document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
@@ -364,6 +413,9 @@
         isGameRunningLocally = false; userTicketsData = []; clearSelection(); 
         document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
         document.getElementById('bet-btn').disabled = false;
+
+        // Auto close after 7 seconds and return to home
+        setTimeout(() => { closeBingoPopup(); }, 7000);
     });
 
     function placeBet() { 
@@ -480,7 +532,12 @@
         document.getElementById('lbl-wit-conf').innerText = "ወጪ ጠይቅ (Withdraw)";
     }
 
-    function closeBingoPopup() { document.getElementById('bingo-overlay').style.display = 'none'; showPage('home'); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById('nav-home').classList.add('active'); }
+    function closeBingoPopup() { 
+        document.getElementById('bingo-overlay').style.display = 'none'; 
+        showPage('home'); // Automatically returns to Page 1
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
+        document.getElementById('nav-home').classList.add('active'); 
+    }
     
     function addHistoryRecord(title, amount, color) { const hc = document.getElementById('hist-content'); if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); hc.innerHTML = `<div class="list-card" style="border-left-color: ${color};"><div><span>${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}">${amount}</b></div>` + hc.innerHTML; }
 </script>
