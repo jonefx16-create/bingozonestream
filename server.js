@@ -90,7 +90,6 @@ app.post('/api/request-tx', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// አዲስ፡ User Change Password API
 app.post('/api/user/change-password', async (req, res) => {
     try {
         const { phone, oldPass, newPass } = req.body;
@@ -103,7 +102,6 @@ app.post('/api/user/change-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: "የሰርቨር ስህተት አጋጥሟል" }); }
 });
 
-// አዲስ፡ Leaderboard (Rank) API
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const topUsers = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won');
@@ -192,7 +190,7 @@ app.post('/api/admin/ban-user', async (req, res) => {
 // 🟢 LIVE BINGO GAME ENGINE (SOCKET.IO)
 // ==========================================
 let gameState = "WAITING";
-let timer = 30;
+let timer = 25; // የተቀየረ፡ ወደ 25 ሴኮንድ ዝቅ ብሏል
 let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
@@ -201,7 +199,7 @@ let pool = [];
 let gameInterval;
 
 function startCountdown() {
-    gameState = "WAITING"; timer = 30; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
+    gameState = "WAITING"; timer = 25; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
     clearInterval(gameInterval);
     
     let waitInterval = setInterval(() => {
@@ -224,7 +222,7 @@ function startGame() {
         // 20 Ball Limit
         if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval); 
-            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); 
+            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // 20 ኳስ ካለቀ በኋላ ወደ መጀመሪያ ገፅ ይመለሳል
             return; 
         }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
