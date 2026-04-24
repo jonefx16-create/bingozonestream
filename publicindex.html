@@ -30,30 +30,28 @@
         .act-btn { width: 120px; background: #050810; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         .act-btn:hover { background: rgba(74, 222, 128, 0.1); }
 
-        .history-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 12px; background: transparent; border-radius: 15px; margin-bottom: 15px; min-height: 50px; scrollbar-width: none; align-items: center; justify-content: center; width: 100%;}
+        /* Game Page Exact UI Styles */
+        .game-layout { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: flex-start; margin-top: 10px;}
+        
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; width: 100%; background: #334155; border: 1px solid #334155; border-radius: 4px; overflow: hidden;}
+        .b-cell { background: #1e293b; height: 35px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: #94a3b8; transition: 0.2s;}
+        .b-head { height: 40px; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;}
+        .b-cell.called { background: #ea580c; color: white;} /* Orange called */
+        .b-cell.current { background: #4ade80; color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 10px rgba(74,222,128,0.5);}
+        
+        .right-panel { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 300px; max-width: 500px; background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 25px;}
+        .screenshot-caller { width: 100px; height: 100px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; border: 4px solid #4ade80; box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3); margin-bottom: 20px;}
+        
+        .history-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; width: 100%;}
         .history-scroll::-webkit-scrollbar { display: none; }
-        .hist-ball { min-width: 40px; height: 40px; border: 2px solid var(--faded-green); background: #0f172a; color: var(--faded-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 0 8px rgba(74,222,128,0.2);}
+        .hist-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 1px solid #4ade80; background: transparent; color: #4ade80; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
         @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-        
-        /* Screenshot-Style Professional Bingo Board */
-        .game-layout { display: flex; gap: 20px; align-items: flex-start; justify-content: center; margin-top: 10px;}
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; width: 100%; max-width: 350px; background: #000; border: 1px solid #333; border-radius: 8px; overflow: hidden;}
-        .b-cell { background: #1e293b; aspect-ratio: 1.5/1; display: flex; align-items: center; justify-content: center; font-size: clamp(12px, 2vh, 16px); font-weight: bold; color: #64748b; transition: 0.3s;}
-        .b-head { color: white; aspect-ratio: 1.5/1; display: flex; align-items: center; justify-content: center; font-size: clamp(16px, 2.5vh, 20px); font-weight: 900;}
-        .b-cell.called { background: #334155; color: white;}
-        .b-cell.current { background: #22c55e; color: white; font-weight: 900; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); transform: scale(1.05); z-index: 10;}
-        
-        /* Screenshot Right Side Styles */
-        .right-panel { flex: 1; display: flex; flex-direction: column; align-items: center; max-width: 400px; background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 20px;}
-        .screenshot-caller { width: 120px; height: 120px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; border: 6px solid #4ade80; box-shadow: 0 0 40px rgba(74, 222, 128, 0.6), inset 0 0 20px rgba(74, 222, 128, 0.5); margin-bottom: 20px;}
-        .game-status-text { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 20px;}
 
-        /* Screenshot Mini Ticket */
-        .mini-ticket-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px;}
+        .mini-ticket-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px;}
         .mini-t-card { background: white; color: #000; width: 100%; max-width: 280px; border: 1px solid #ddd; padding: 2px;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background:#ddd;}
-        .mini-t-cell { background: #fff; aspect-ratio: 1.2/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
-        .mini-t-head { color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; padding: 8px 0;}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background:#e5e7eb; border: 1px solid #e5e7eb;}
+        .mini-t-cell { background: #fff; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+        .mini-t-head { color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; height: 35px;}
         .mini-t-cell.marked { background: #000 !important; color: white !important; }
 
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
@@ -84,12 +82,6 @@
         .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 22px; margin-bottom: 4px; display: block;}
-        
-        @media (max-width: 768px) {
-            .game-layout { flex-direction: column; align-items: center; }
-            .b-board { max-width: 100%; }
-            .right-panel { max-width: 100%; width: 100%; box-sizing: border-box;}
-        }
     </style>
 </head>
 <body>
@@ -139,7 +131,7 @@
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     <div class="timer-header">
-        <div style="text-align:center;"><small style="color:var(--text-gray);">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">30</span></div>
+        <div style="text-align:center;"><small style="color:var(--text-gray);">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">25</span></div>
         <div style="text-align:center;"><small style="color:var(--text-gray);">LIVE JACKPOT</small><br><span id="jp" class="time-val">0 ETB</span></div>
     </div>
     <div style="text-align:center;">
@@ -154,14 +146,13 @@
     </div>
 </div>
 
-<!-- 3. GAME PAGE (SCREENSHOT MATCHED) -->
+<!-- 3. GAME PAGE (SCREENSHOT MATCHED & AUTO NAV) -->
 <div id="game-page" class="page">
-    <!-- Top History (like screenshot) -->
-    <div id="history-scroll-top" class="history-scroll"></div>
+    <div id="history-scroll-top" class="history-scroll" style="justify-content: flex-start; margin-bottom: 15px;"></div>
 
     <div class="game-layout"> 
-        <!-- Left Side: Master Board (1-75) -->
-        <div style="flex: 1; display: flex; justify-content: center; width: 100%;"> 
+        <!-- Left Side: Master Board -->
+        <div style="background: #111827; padding: 15px; border-radius: 12px; border: 1px solid #1f2937;"> 
             <div id="board" class="b-board"></div>
         </div>
 
@@ -169,19 +160,16 @@
         <div class="right-panel">
             <div id="caller" class="screenshot-caller">--</div>
             
-            <div class="game-status-text">
-                <div style="margin-bottom: 5px;">የቀጣይ ጨዋታ ሁኔታ</div>
-                <div style="color: var(--faded-green); font-weight: bold;">ቁጥሮችን በመጠባበቅ ላይ...</div>
-            </div>
+            <div style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">የቀጣይ ጨዋታ ሁኔታ</div>
+            <div style="color: #4ade80; font-size: 14px; font-weight: bold; margin-bottom: 25px; text-shadow: 0 0 5px rgba(74,222,128,0.5);">ቁጥሮችን በመጠባበቅ ላይ...</div>
             
             <div id="mini-tickets-container" class="mini-ticket-wrapper"></div>
+            
+            <div id="history-scroll-bottom" class="history-scroll" style="margin-top: 20px; justify-content: center;"></div>
         </div>
     </div>
     
-    <!-- Bottom History (like screenshot) -->
-    <div id="history-scroll-bottom" class="history-scroll" style="margin-top: 20px;"></div>
-    
-    <div style="display:none;" id="g-count"></div><!-- Hidden counter for logic -->
+    <div style="display:none;" id="g-count"></div>
 </div>
 
 <!-- 4. TICKETS PAGE -->
@@ -200,7 +188,6 @@
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 10px 0; font-family: monospace; text-shadow: 0 2px 5px rgba(0,0,0,0.5);" id="main-bal">0.00</div>
         <div style="color: #dbeafe; font-size: 12px; margin-bottom: 15px;">መጫወቻ (Play Bal): <span id="play-bal">0.00</span> ETB</div>
         
-        <!-- SIDE BY SIDE BUTTONS -->
         <div style="display: flex; gap: 10px; justify-content: center;">
             <button style="flex:1; background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight:bold; transition: 0.2s;" onclick="toggleForm('dep')">Deposit</button>
             <button style="flex:1; background: var(--orange); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight:bold; transition: 0.2s;" onclick="toggleForm('wit')">Withdraw</button>
@@ -230,12 +217,11 @@
         <button class="auth-btn" style="background:transparent; border:1px solid #30363d; color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
 
-    <!-- HISTORY MOVED HERE -->
     <h4 style="color: var(--text-gray); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px;">📜 የገንዘብ ታሪክ (History)</h4>
     <div id="wallet-history"><p style="text-align:center; color:var(--text-gray); font-size:13px;">ታሪክ የለም</p></div>
 </div>
 
-<!-- 6. RANK PAGE (LEADERBOARD) -->
+<!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
     <h3 style="text-align:center; color:#3b82f6; margin-top: 0; font-size: 20px;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div style="background: #0f172a; border-radius: 12px; padding: 15px; border: 1px solid #1e293b;" id="rank-content">
@@ -273,7 +259,7 @@
     <button class="auth-btn" style="background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="location.reload()">🚪 ውጣ (Logout)</button>
 </div>
 
-<!-- BOTTOM NAV UPDATED -->
+<!-- BOTTOM NAV -->
 <nav id="navbar" class="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span>Home</span></div>
     <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span>Ticket</span></div>
@@ -401,7 +387,7 @@
         document.getElementById('play-bal').innerText = currentUser.playBalance.toFixed(2);
     }
 
-    // ================== 2. SOCKET & GAME LOGIC (LIVE SYNC) ==================
+    // ================== 2. SOCKET & GAME LOGIC (AUTO NAV & SYNC) ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
@@ -420,6 +406,13 @@
             document.getElementById('bet-btn').style.background = "var(--faded-green)"; 
             document.getElementById('bet-btn').onclick = placeBet;
             
+            // አውቶማቲክ ወደ Page 1 መመለሻ (Auto Redirect to Page 1)
+            if (isGameRunningLocally || document.getElementById('game-page').classList.contains('active-page')) {
+                showPage('home');
+                userTicketsData = [];
+                clearSelection();
+            }
+            
             isGameRunningLocally = false;
             
             if(document.getElementById('board').innerHTML !== '') { 
@@ -427,35 +420,17 @@
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('history-scroll-bottom').innerHTML = ''; 
                 document.getElementById('caller').innerText = "--"; 
-                if(document.getElementById('game-page').classList.contains('active-page')) {
-                    showPage('home');
-                    userTicketsData = [];
-                    clearSelection();
-                }
             }
         } else if (data.state === "PLAYING") {
             document.getElementById('timer').innerText = "LIVE 🔴"; 
             document.getElementById('bet-btn').disabled = false; 
             
-            if (userTicketsData.length > 0) { 
-                document.getElementById('bet-btn').innerText = "ጨዋታ ላይ ነዎት (Playing)";
-                document.getElementById('bet-btn').style.background = "var(--text-gray)";
-                document.getElementById('bet-btn').disabled = true;
-                if (!isGameRunningLocally) { 
-                    showPage('game'); 
-                    isGameRunningLocally = true; 
-                    buildBoard(); 
-                    syncLiveGame(data.calledNumbers); 
-                }
-            } else {
-                document.getElementById('bet-btn').innerText = "LIVE ጨዋታ እይ (Spectate)";
-                document.getElementById('bet-btn').style.background = "var(--blue)";
-                document.getElementById('bet-btn').onclick = () => {
-                    showPage('game');
-                    isGameRunningLocally = true;
-                    buildBoard();
-                    syncLiveGame(data.calledNumbers);
-                };
+            // አውቶማቲክ ወደ Page 2 መግቢያ (Auto Redirect to Page 2)
+            if (!isGameRunningLocally) {
+                showPage('game'); 
+                isGameRunningLocally = true;
+                buildBoard();
+                syncLiveGame(data.calledNumbers);
             }
         }
     });
@@ -671,7 +646,6 @@
         document.getElementById('lbl-wit-conf').innerText = "ወጪ ጠይቅ (Withdraw)";
     }
     
-    // History function now targets Wallet Page's history container
     function addHistoryRecord(title, amount, color) { 
         const hc = document.getElementById('wallet-history'); 
         if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; 
