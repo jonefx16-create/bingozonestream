@@ -32,7 +32,7 @@
         /* ========================================= */
         /* EXACT GAME PAGE (PAGE 2) STYLES AS IN PHOTO */
         /* ========================================= */
-        #game-page { padding: 10px; max-width: 1300px; margin: 0 auto; overflow-x: auto;}
+        #game-page { padding: 10px; max-width: 1200px; margin: 0 auto; overflow-x: auto;}
 
         /* Top Info Bar - Exact 5 Boxes */
         .top-info-wrapper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; min-width: 800px;}
@@ -45,21 +45,21 @@
         /* Top Left History Bar - Dark balls with green borders */
         .history-top-bar { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; min-width: 800px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--faded-green); background: #0a0f18; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; box-shadow: 0 0 10px rgba(74,222,128,0.2);}
+        .hist-top-ball { min-width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 0 10px rgba(74,222,128,0.2);}
 
         /* STRICT SIDE-BY-SIDE LAYOUT */
-        .game-layout-container { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; justify-content: center; min-width: 900px; padding-bottom: 30px;}
+        .game-layout-container { display: flex; flex-direction: row !important; flex-wrap: nowrap !important; gap: 30px; align-items: flex-start; justify-content: center; min-width: 850px; padding-bottom: 30px;}
 
-        /* Left Side: Master Board */
-        .master-board-wrapper { flex: 0 0 auto; background: transparent; }
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #0f172a; border: 1px solid var(--border-color); padding: 2px; border-radius: 6px;}
-        .b-head { width: 60px; height: 40px; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900;}
-        .b-cell { width: 60px; height: 42px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #cbd5e1; transition: 0.2s;}
+        /* Left Side: Master Board (1-75) - TIGHTLY PACKED */
+        .master-board-wrapper { flex: 0 0 auto; background: transparent; padding: 0;}
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4);}
+        .b-head { width: 56px; height: 38px; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;}
+        .b-cell { width: 56px; height: 38px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
         .b-cell.called { background: var(--orange); color: white; font-weight: 900;}
-        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 15px rgba(74,222,128,0.8); border-radius: 4px;}
+        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 10px rgba(74,222,128,0.8); border-radius: 4px;}
 
         /* Right Side: Stack */
-        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 450px; }
+        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 450px;}
 
         /* Caller Box (Top Right) */
         .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; }
@@ -68,21 +68,21 @@
         /* Tickets & Bottom History Box (Bottom Right) */
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px 20px; display: flex; flex-direction: column; align-items: center;}
         
-        .status-text-top { color: var(--text-gray); font-size: 15px; margin-bottom: 8px;}
-        .status-text-bottom { color: var(--faded-green); font-size: 22px; font-weight: bold; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px;}
+        .status-text-top { color: var(--text-gray); font-size: 14px; margin-bottom: 8px;}
+        .status-text-bottom { color: var(--faded-green); font-size: 16px; font-weight: bold; margin-bottom: 25px;}
 
-        /* White Tickets - NOW SIDE BY SIDE */
+        /* White Tickets - SMALLER & SIDE-BY-SIDE */
         .mini-tickets-wrapper { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; margin-bottom: 30px;}
-        .mini-t-card { background: white; flex: 1 1 200px; max-width: 260px; border-radius: 8px; overflow: hidden; }
-        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 6px; font-size: 14px; background: white;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
-        .mini-t-head { color: white; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
-        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #000;}
+        .mini-t-card { background: white; width: 100%; max-width: 180px; /* አነስ ያለ ሳይዝ */ border-radius: 6px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);}
+        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 4px; font-size: 12px; background: white;}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1; border-top: none;}
+        .mini-t-head { color: white; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px;}
+        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
         /* Bottom History Bar (Solid Green Balls) - Inside the box */
         .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; justify-content: center;}
-        .hist-bot-ball { min-width: 42px; height: 42px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; animation: popIn 0.3s ease-out;}
+        .hist-bot-ball { min-width: 40px; height: 40px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; animation: popIn 0.3s ease-out;}
 
         /* ========================================= */
         
@@ -228,10 +228,10 @@
             <div class="tickets-history-box">
                 <div style="text-align: center;">
                     <div class="status-text-top">የቀጥታ ጨዋታ ሁኔታ</div>
-                    <div class="status-text-bottom">ካርቴላዎች</div> <!-- ተስተካክሏል -->
+                    <div class="status-text-bottom">ቁጥሮችን በመጠባበቅ ላይ...</div>
                 </div>
                 
-                <!-- White Tickets (NOW SIDE BY SIDE) -->
+                <!-- White Tickets (SMALLER & SIDE-BY-SIDE) -->
                 <div id="mini-tickets-container" class="mini-tickets-wrapper"></div>
                 
                 <!-- Bottom History Bar (Solid Green Balls) - Inside the box -->
@@ -638,7 +638,7 @@
         } 
     }
     
-    // Exactly matches the white ticket layout with black marks and FREE center
+    // Exact Layout: SMALLER WHITE TICKETS, SIDE-BY-SIDE
     function genTickets() { 
         const list = document.getElementById('ticket-list'); 
         const miniList = document.getElementById('mini-tickets-container'); 
