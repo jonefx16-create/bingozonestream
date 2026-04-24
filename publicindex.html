@@ -5,95 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --dark-green: #14532d; --text-gray: #94a3b8; --white: #e2e8f0; --orange: #ea580c; --red: #ef4444; --blue: #3b82f6; --purple: #6366f1; }
-        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #f8fafc; }
+        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; }
         .page { display: none; padding: 15px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* Auth & Home Layouts */
-        .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid var(--dark-green); box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
-        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; }
-        .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.2);}
-        .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none;}
+        .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid #14532d; box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
+        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; }
+        .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
+        .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; margin-bottom: 15px; border-radius: 8px; }
-        .bal-amt { font-weight: bold; font-size: 16px; font-family: monospace; }
-
-        .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid var(--dark-green); display: flex; justify-content: space-around; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+        .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; border-radius: 8px; }
+        
+        .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid #14532d; display: flex; justify-content: space-around; margin-bottom: 20px; }
         .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.3);}
         
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 15px auto; width: fit-content; justify-content: center; }
-        .num-btn { width: 32px; height: 32px; background: #0d1117; border: 1px solid #30363d; color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
-        .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; box-shadow: 0 0 10px var(--faded-green); border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
+        .num-btn { width: 32px; height: 32px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
+        .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
         .action-btn-row { display: flex; justify-content: center; gap: 15px; margin: 0 auto 20px auto; width: fit-content; }
-        .act-btn { width: 120px; background: #050810; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        .act-btn:hover { background: rgba(74, 222, 128, 0.1); }
+        .act-btn { width: 120px; background: #0a0f18; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
 
         /* ========================================= */
-        /* EXACT GAME PAGE (PAGE 2) STYLES AS REQUESTED */
+        /* EXACT GAME PAGE (PAGE 2) STYLES AS IN PHOTO */
         /* ========================================= */
-        
-        #game-page { padding: 15px; max-width: 1200px; margin: 0 auto;}
+        #game-page { padding: 10px; max-width: 1300px; margin: 0 auto; overflow-x: auto;}
 
-        /* Top Info Bar */
-        .top-info-bar { display: flex; justify-content: space-between; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .info-box { text-align: center; border-right: 1px solid #1e293b; flex: 1; display: flex; flex-direction: column; justify-content: center;}
-        .info-box:last-child { border-right: none; }
-        .info-title { color: #94a3b8; font-size: 12px; margin-bottom: 5px; }
+        /* Top Info Bar - Exact 5 Boxes */
+        .top-info-wrapper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; min-width: 800px;}
+        .top-info-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
+        .info-title { color: var(--text-gray); font-size: 12px; margin-bottom: 5px; font-weight: bold;}
         .info-val { color: white; font-weight: bold; font-size: 16px; }
-        .info-val.highlight { color: #4ade80; }
+        .info-val.highlight { color: var(--faded-green); }
 
-        /* Top Left History Bar */
-        .history-top-bar { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; white-space: nowrap; border-bottom: 1px solid #1f2937; scrollbar-width: none;}
+        /* Top Left History Bar - Dark balls with green borders */
+        .history-top-bar { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; min-width: 800px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 50px; height: 50px; border-radius: 50%; border: 2px solid #4ade80; background: transparent; color: #4ade80; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; animation: popIn 0.3s ease-out; box-shadow: 0 0 10px rgba(74,222,128,0.2);}
-        
-        /* 100% SIDE-BY-SIDE LAYOUT */
-        .game-layout { display: flex; flex-direction: row; gap: 30px; justify-content: center; align-items: flex-start; width: 100%; }
-        
-        /* Left Side: Master Board (1-15 Table) */
-        .master-board-wrapper { flex: 0 0 auto; background: #111827; padding: 15px; border-radius: 12px; border: 1px solid #1e293b; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-        .b-head { width: 55px; height: 40px; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; border-radius: 4px;}
-        .b-cell { width: 55px; height: 35px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: #cbd5e1; border-radius: 4px; transition: 0.2s;}
-        .b-cell.called { background: #ea580c; color: white; font-weight: 900;}
-        .b-cell.current { background: #4ade80; color: black; font-weight: 900; transform: scale(1.15); z-index: 10; box-shadow: 0 0 15px rgba(74,222,128,0.8); border-radius: 4px;}
-        
+        .hist-top-ball { min-width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--faded-green); background: #0a0f18; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; box-shadow: 0 0 10px rgba(74,222,128,0.2);}
+
+        /* STRICT SIDE-BY-SIDE LAYOUT */
+        .game-layout-container { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; justify-content: center; min-width: 900px; padding-bottom: 30px;}
+
+        /* Left Side: Master Board */
+        .master-board-wrapper { flex: 0 0 auto; background: transparent; }
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #0f172a; border: 1px solid var(--border-color); padding: 2px; border-radius: 6px;}
+        .b-head { width: 60px; height: 40px; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900;}
+        .b-cell { width: 60px; height: 42px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #cbd5e1; transition: 0.2s;}
+        .b-cell.called { background: var(--orange); color: white; font-weight: 900;}
+        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 15px rgba(74,222,128,0.8); border-radius: 4px;}
+
         /* Right Side: Stack */
-        .right-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; max-width: 450px; min-width: 320px;}
+        .right-panel-stack { flex: 0 0 380px; display: flex; flex-direction: column; gap: 20px; }
+
+        /* Caller Box (Top Right) */
+        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; }
+        .caller-ball { width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; border: 6px solid var(--faded-green); box-shadow: 0 0 40px rgba(74, 222, 128, 0.5), inset 0 0 15px rgba(74, 222, 128, 0.3);}
+
+        /* Tickets & Bottom History Box (Bottom Right) */
+        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px 20px; display: flex; flex-direction: column; align-items: center;}
         
-        /* Right Top: Caller Box */
-        .caller-box { background: #111827; border: 1px solid #1e293b; border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
-        .caller-ball { width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; border: 5px solid #4ade80; box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3);}
-        
-        /* Right Bottom: Tickets Box Layout */
-        .right-tickets-area { background: #111827; display: flex; flex-direction: column; align-items: center; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
-        
-        /* Small White Tickets */
-        .mini-tickets-wrapper { display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%;}
-        .mini-t-card { background: white; width: 100%; max-width: 300px; border-radius: 6px; overflow: hidden; border: 2px solid #cbd5e1;}
-        .ticket-header-info { text-align: center; color: #ef4444; font-weight: bold; padding: 6px; font-size: 15px; background: white; border-bottom: 1px solid #cbd5e1;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1;}
-        .mini-t-head { color: white; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
-        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: #000; transition: 0.2s;}
+        .status-text-top { color: var(--text-gray); font-size: 15px; margin-bottom: 8px;}
+        .status-text-bottom { color: var(--faded-green); font-size: 18px; font-weight: bold; margin-bottom: 25px;}
+
+        /* White Tickets */
+        .mini-tickets-wrapper { display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%; margin-bottom: 30px;}
+        .mini-t-card { background: white; width: 100%; max-width: 280px; border-radius: 8px; overflow: hidden; }
+        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 6px; font-size: 14px; background: white;}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
+        .mini-t-head { color: white; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
+        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* Bottom Right History Bar */
-        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 25px; width: 100%; justify-content: center;}
-        .hist-bot-ball { min-width: 40px; height: 40px; border-radius: 50%; background: #4ade80; color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; animation: popIn 0.3s ease-out;}
-        
-        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-
-        /* Mobile View - ይሄ ስክሪኑ ሲያንስ ወደ ታች እንዲደረድር ያደርገዋል */
-        @media (max-width: 900px) {
-            .game-layout { flex-direction: column; align-items: center; gap: 20px;}
-            .master-board-wrapper { padding: 10px; width: fit-content; max-width: 100%; overflow-x: auto;}
-            .b-head { width: 50px; height: 35px; font-size: 15px;}
-            .b-cell { width: 50px; height: 30px; font-size: 14px;}
-            .right-stack { width: 100%; max-width: 100%; }
-        }
+        /* Bottom History Bar (Solid Green Balls) - Inside the box */
+        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; justify-content: center;}
+        .hist-bot-ball { min-width: 42px; height: 42px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; animation: popIn 0.3s ease-out;}
 
         /* ========================================= */
         
@@ -104,23 +93,23 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
-        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 8, 16, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
+        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
         .bingo-text { font-size: 70px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
-        .winner-card { background: #161b22; padding: 30px 50px; border-radius: 20px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); }
+        .winner-card { background: var(--panel); padding: 30px 50px; border-radius: 20px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); }
 
-        .transaction-box { background: var(--panel); border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-top: 15px; display: none; }
+        .transaction-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 15px; display: none; }
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .pay-box { background: #0d1117; border: 1px solid #30363d; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
+        .pay-box { background: #0d1117; border: 1px solid var(--border-color); padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
         .pay-box.active { border-color: var(--faded-green); color: var(--faded-green); background: rgba(74, 222, 128, 0.1); }
         .copy-box { background: #000; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--text-gray); margin-bottom: 15px; }
-        .copy-btn { background: #161b22; border: 1px solid #30363d; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;}
+        .copy-btn { background: #161b22; border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;}
 
-        .profile-stat-box { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);}
-        .rank-card { display: flex; justify-content: space-between; align-items: center; background: #111827; padding: 15px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 10px;}
-        .rank-badge { width: 30px; height: 30px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;}
+        .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px;}
+        .rank-card { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 10px;}
+        .rank-badge { width: 30px; height: 30px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;}
         
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #0d1117; display: none; padding: 12px 0; border-top: 1px solid #30363d; z-index: 1000; justify-content: space-around; box-shadow: 0 -5px 15px rgba(0,0,0,0.5);}
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #0d1117; display: none; padding: 12px 0; border-top: 1px solid var(--border-color); z-index: 1000; justify-content: space-around; }
         .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 22px; margin-bottom: 4px; display: block;}
@@ -165,7 +154,7 @@
         <div style="width: 35px; height: 35px; background: linear-gradient(45deg, var(--faded-green), var(--dark-green)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">👤</div>
         <div><div id="hdr-name" style="font-size: 15px; font-weight: bold;">User</div><div id="hdr-phone" style="font-size: 11px; color: var(--text-gray);">09...</div></div>
     </div>
-    <div style="text-align: right; background: #000; padding: 5px 10px; border-radius: 8px; border: 1px solid #30363d;">
+    <div style="text-align: right; background: #000; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
         <div style="font-size: 10px; color: var(--text-gray);">ዋና ሂሳብ</div><div id="hdr-main-balance" class="bal-amt" style="color: var(--faded-green);">0.00 ETB</div>
     </div>
 </div>
@@ -188,22 +177,39 @@
     </div>
 </div>
 
-<!-- 3. GAME PAGE (EXACT DESIGN AS REQUESTED) -->
+<!-- 3. GAME PAGE (EXACT DESIGN AS PHOTO) -->
 <div id="game-page" class="page">
     
-    <!-- Top Info Bar -->
-    <div class="top-info-bar">
-        <div class="info-box"><div class="info-title">ID</div><div class="info-val" id="g-id">#---</div></div>
-        <div class="info-box"><div class="info-title">Players</div><div class="info-val" id="g-players">0</div></div>
-        <div class="info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
-        <div class="info-box"><div class="info-title">Prize</div><div class="info-val highlight" id="g-prize">0.00 ETB</div></div>
-        <div class="info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
+    <!-- Top 5 Info Boxes -->
+    <div class="top-info-wrapper">
+        <div class="top-info-box">
+            <div class="info-title">ID</div>
+            <div class="info-val" id="g-id">#---</div>
+        </div>
+        <div class="top-info-box">
+            <div class="info-title">Players</div>
+            <div class="info-val" id="g-players">0</div>
+        </div>
+        <div class="top-info-box">
+            <div class="info-title">Bet</div>
+            <div class="info-val">10.00</div>
+        </div>
+        <div class="top-info-box prize-box">
+            <div class="info-title">Prize</div>
+            <div class="info-val highlight" id="g-prize">0.00 ETB</div>
+            <div style="font-size:10px; color:var(--text-gray); margin-top:3px;">(10% ተቆርጧል)</div>
+        </div>
+        <div class="top-info-box">
+            <div class="info-title">Balls</div>
+            <div class="info-val" id="g-balls">0/20</div>
+        </div>
     </div>
 
-    <!-- Top Left History Bar -->
+    <!-- Top Left History Bar (Dark balls, green borders) -->
     <div id="history-scroll-top" class="history-top-bar"></div>
 
-    <div class="game-layout"> 
+    <!-- MAIN SIDE-BY-SIDE LAYOUT -->
+    <div class="game-layout-container"> 
         
         <!-- Left Side: Master Board (1-15 Downwards) -->
         <div class="master-board-wrapper"> 
@@ -211,24 +217,24 @@
         </div>
 
         <!-- Right Side: Stack -->
-        <div class="right-stack">
+        <div class="right-panel-stack">
             
             <!-- Box 1: Large Caller Ball -->
             <div class="caller-box">
                 <div id="caller" class="caller-ball">--</div>
             </div>
             
-            <!-- Box 2: Status & Tickets & Bottom History -->
-            <div class="right-tickets-area">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="color: #94a3b8; font-size: 15px; margin-bottom: 8px;">የቀጥታ ጨዋታ ሁኔታ</div>
-                    <div style="color: #4ade80; font-size: 18px; font-weight: bold;">ቁጥሮችን በመጠባበቅ ላይ...</div>
+            <!-- Box 2: Status, Tickets, and Bottom History -->
+            <div class="tickets-history-box">
+                <div style="text-align: center;">
+                    <div class="status-text-top">የቀጥታ ጨዋታ ሁኔታ</div>
+                    <div class="status-text-bottom">ቁጥሮችን በመጠባበቅ ላይ...</div>
                 </div>
                 
                 <!-- Stacked White Tickets -->
                 <div id="mini-tickets-container" class="mini-tickets-wrapper"></div>
                 
-                <!-- Bottom Right History Bar -->
+                <!-- Bottom History Bar (Solid Green Balls) - Inside the box -->
                 <div id="history-scroll-bottom" class="history-bottom-bar"></div>
             </div>
 
@@ -267,7 +273,7 @@
         </div>
         <input type="number" id="dep-amt" class="auth-input" placeholder="መጠን (Amount)">
         <button class="auth-btn" style="background:linear-gradient(to right, #2563eb, #1d4ed8); color:white; font-size: 16px;" onclick="processDeposit()" id="lbl-dep-conf">ዲፖዚት አረጋግጥ</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid #30363d; color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
+        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
 
     <div id="sec-wit" class="transaction-box">
@@ -276,7 +282,7 @@
         <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;">
         <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)">
         <button class="auth-btn" style="background:linear-gradient(to right, #ea580c, #c2410c); color:white; font-size:16px;" onclick="processWithdraw()" id="lbl-wit-conf">ወጪ ጠይቅ (Withdraw)</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid #30363d; color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
+        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
 
     <h4 style="color: var(--text-gray); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px;">📜 የገንዘብ ታሪክ (History)</h4>
@@ -286,7 +292,7 @@
 <!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
     <h3 style="text-align:center; color:#3b82f6; margin-top: 0; font-size: 20px;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
-    <div style="background: #0f172a; border-radius: 12px; padding: 15px; border: 1px solid #1e293b;" id="rank-content">
+    <div style="background: var(--panel); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);" id="rank-content">
         <p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p>
     </div>
 </div>
@@ -311,7 +317,7 @@
         </div>
     </div>
 
-    <div style="background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+    <div style="background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <h4 style="margin-top: 0; color: var(--text-gray);">የይለፍ ቃል ቀይር (Change Password)</h4>
         <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል">
         <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል">
@@ -340,9 +346,9 @@
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     
-    // Exact Screenshot Colors for BINGO Headers
+    // Exactly matched BINGO colors from the screenshot
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
-    const bColors = ['#3b82f6', '#8b5cf6', '#a855f7', '#4ade80', '#ea580c']; 
+    const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
     // ================== 1. AUTHENTICATION & PROFILE ==================
     function toggleAuthMode() {
@@ -556,6 +562,7 @@
         let botH = document.getElementById('history-scroll-bottom');
         topH.innerHTML = ''; botH.innerHTML = '';
         
+        // Top history (dark balls, green border)
         let startIdx = Math.max(0, arr.length - 15); 
         for(let i = arr.length - 1; i >= startIdx; i--) {
             let n = arr[i];
@@ -567,6 +574,7 @@
             topH.appendChild(topB);
         }
 
+        // Bottom history (solid green balls)
         for(let i = 0; i < arr.length; i++) {
             let n = arr[i];
             let cIdx = n<=15?0:n<=30?1:n<=45?2:n<=60?3:4;
@@ -608,7 +616,6 @@
     function clearSelection() { selected = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected')); document.getElementById('jp').innerText = "0 ETB"; }
     function randomSelection() { if(document.getElementById('timer').innerText.includes("LIVE") && document.getElementById('bet-btn').innerText.includes("Spectate")) return; clearSelection(); let r = []; while(r.length < 5) { let n = Math.floor(Math.random() * 100) + 1; if(!r.includes(n)) r.push(n); } selected = r; document.querySelectorAll('.num-btn').forEach(btn => { if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected'); }); document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }
     
-    // Exact Screenshot Master Board Generation (1-15 downwards)
     function buildBoard() { 
         const board = document.getElementById('board'); 
         board.innerHTML = ''; 
@@ -631,7 +638,7 @@
         } 
     }
     
-    // Exact Screenshot Small White/Black Ticket Generation
+    // Exactly matches the white ticket layout with black marks and FREE center
     function genTickets() { 
         const list = document.getElementById('ticket-list'); 
         const miniList = document.getElementById('mini-tickets-container'); 
@@ -657,7 +664,7 @@
                 for(let c=0; c<5; c++) { 
                     if(r==2 && c==2) { 
                         htmlMain += `<div class="t-cell marked">F</div>`; 
-                        htmlMini += `<div class="mini-t-cell" style="background:#e2e8f0; font-size:11px;">FREE</div>`; 
+                        htmlMini += `<div class="mini-t-cell marked" style="font-size:10px;">FREE</div>`; 
                     } else { 
                         htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                         htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
