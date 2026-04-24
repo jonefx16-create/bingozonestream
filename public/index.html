@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
-        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #f8fafc; }
+        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #f8fafc; --blue: #3b82f6; --purple: #a855f7; --red: #ef4444;}
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; }
         .page { display: none; padding: 15px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
@@ -30,11 +30,11 @@
         .act-btn { width: 120px; background: #0a0f18; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
 
         /* ========================================= */
-        /* EXACT GAME PAGE (PAGE 2) STYLES AS IN PHOTO */
+        /* EXACT GAME PAGE (PAGE 2) STYLES */
         /* ========================================= */
-        #game-page { padding: 10px; max-width: 1200px; margin: 0 auto; overflow-x: auto;}
+        #game-page { padding: 10px; max-width: 1300px; margin: 0 auto; overflow-x: auto;}
 
-        /* Top Info Bar - Exact 5 Boxes */
+        /* Top 5 Info Boxes */
         .top-info-wrapper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; min-width: 800px;}
         .top-info-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;}
         .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
@@ -42,50 +42,47 @@
         .info-val { color: white; font-weight: bold; font-size: 16px; }
         .info-val.highlight { color: var(--faded-green); }
 
-        /* Top Left History Bar - Dark balls with green borders */
+        /* Top Left History Bar */
         .history-top-bar { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; min-width: 800px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 0 10px rgba(74,222,128,0.2);}
+        .hist-top-ball { min-width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;}
 
-        /* STRICT SIDE-BY-SIDE LAYOUT */
-        .game-layout-container { display: flex; flex-direction: row !important; flex-wrap: nowrap !important; gap: 30px; align-items: flex-start; justify-content: center; min-width: 850px; padding-bottom: 30px;}
+        /* SIDE-BY-SIDE LAYOUT */
+        .game-layout-container { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; justify-content: center; min-width: 900px; padding-bottom: 30px;}
 
-        /* Left Side: Master Board (1-75) - TIGHTLY PACKED */
+        /* Left Side: Master Board (1-75) */
         .master-board-wrapper { flex: 0 0 auto; background: transparent; padding: 0;}
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4);}
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden;}
         .b-head { width: 56px; height: 38px; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;}
         .b-cell { width: 56px; height: 38px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
         .b-cell.called { background: var(--orange); color: white; font-weight: 900;}
-        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 10px rgba(74,222,128,0.8); border-radius: 4px;}
+        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 10px rgba(74,222,128,0.8);}
 
         /* Right Side: Stack */
-        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 450px;}
+        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 450px; }
 
-        /* Caller Box (Top Right) */
+        /* Caller Box */
         .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; }
         .caller-ball { width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; border: 6px solid var(--faded-green); box-shadow: 0 0 40px rgba(74, 222, 128, 0.5), inset 0 0 15px rgba(74, 222, 128, 0.3);}
 
-        /* Tickets & Bottom History Box (Bottom Right) */
+        /* Tickets & Bottom History Box */
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px 20px; display: flex; flex-direction: column; align-items: center;}
-        
-        .status-text-top { color: var(--text-gray); font-size: 14px; margin-bottom: 8px;}
-        .status-text-bottom { color: var(--faded-green); font-size: 16px; font-weight: bold; margin-bottom: 25px;}
+        .status-text-bottom { color: var(--faded-green); font-size: 22px; font-weight: bold; margin-bottom: 25px;}
 
-        /* White Tickets - SMALLER & SIDE-BY-SIDE */
+        /* White Tickets - SIDE BY SIDE */
         .mini-tickets-wrapper { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; margin-bottom: 30px;}
-        .mini-t-card { background: white; width: 100%; max-width: 180px; /* አነስ ያለ ሳይዝ */ border-radius: 6px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);}
-        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 4px; font-size: 12px; background: white;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1; border-top: none;}
-        .mini-t-head { color: white; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px;}
-        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #000;}
+        .mini-t-card { background: white; flex: 1 1 200px; max-width: 260px; border-radius: 8px; overflow: hidden; }
+        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 6px; font-size: 14px; background: white;}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
+        .mini-t-head { color: white; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
+        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* Bottom History Bar (Solid Green Balls) - Inside the box */
+        /* Bottom History Bar */
         .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; justify-content: center;}
-        .hist-bot-ball { min-width: 40px; height: 40px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; animation: popIn 0.3s ease-out;}
+        .hist-bot-ball { min-width: 42px; height: 42px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px;}
 
         /* ========================================= */
-        
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
@@ -205,13 +202,13 @@
         </div>
     </div>
 
-    <!-- Top Left History Bar (Dark balls, green borders) -->
+    <!-- Top Left History Bar -->
     <div id="history-scroll-top" class="history-top-bar"></div>
 
     <!-- MAIN SIDE-BY-SIDE LAYOUT -->
     <div class="game-layout-container"> 
         
-        <!-- Left Side: Master Board (1-15 Downwards) -->
+        <!-- Left Side: Master Board -->
         <div class="master-board-wrapper"> 
             <div id="board" class="b-board"></div>
         </div>
@@ -227,14 +224,13 @@
             <!-- Box 2: Status, Tickets, and Bottom History -->
             <div class="tickets-history-box">
                 <div style="text-align: center;">
-                    <div class="status-text-top">የቀጥታ ጨዋታ ሁኔታ</div>
-                    <div class="status-text-bottom">ቁጥሮችን በመጠባበቅ ላይ...</div>
+                    <div class="status-text-bottom">ካርቴላዎች</div> 
                 </div>
                 
-                <!-- White Tickets (SMALLER & SIDE-BY-SIDE) -->
+                <!-- White Tickets (SIDE BY SIDE) -->
                 <div id="mini-tickets-container" class="mini-tickets-wrapper"></div>
                 
-                <!-- Bottom History Bar (Solid Green Balls) - Inside the box -->
+                <!-- Bottom History Bar -->
                 <div id="history-scroll-bottom" class="history-bottom-bar"></div>
             </div>
 
@@ -346,7 +342,6 @@
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     
-    // Exactly matched BINGO colors from the screenshot
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
@@ -477,33 +472,77 @@
             document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
             document.getElementById('bet-btn').style.background = "var(--faded-green)"; 
             document.getElementById('bet-btn').onclick = placeBet;
-            // አዲስ የተስተካከለ የቦርድ አሰራር (Replace this function)
-    function buildBoard() { 
-        const board = document.getElementById('board'); 
-        board.innerHTML = ''; 
-        
-        // የፊደላት ሄደር (B-I-N-G-O)
-        bHeads.forEach(h => { 
-            let d = document.createElement('div'); 
-            d.className='b-head'; 
-            d.style.background=bColors[bHeads.indexOf(h)]; 
-            d.innerText=h; 
-            board.appendChild(d); 
-        }); 
+            document.getElementById('g-balls').innerText = "0/20";
+            
+            if (currentUser && document.getElementById('game-page').classList.contains('active-page')) {
+                showPage('home');
+                userTicketsData = [];
+                clearSelection();
+            }
+            
+            isGameRunningLocally = false;
+            
+            if(document.getElementById('board').innerHTML !== '') { 
+                document.getElementById('board').innerHTML = ''; called = []; 
+                document.getElementById('history-scroll-top').innerHTML = ''; 
+                document.getElementById('history-scroll-bottom').innerHTML = ''; 
+                document.getElementById('caller').innerText = "--"; 
+            }
+        } else if (data.state === "PLAYING") {
+            document.getElementById('timer').innerText = "LIVE 🔴"; 
+            document.getElementById('bet-btn').disabled = false; 
+            
+            if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) {
+                showPage('game');
+            }
 
-        // ቁጥሮችን በ 5 አምድ (Column) መደርደር
-        // እያንዳንዱ ረድፍ 5 አምድ አለው
-        for(let r=1; r<=15; r++) { 
-            for(let c=0; c<5; c++) { 
-                let num = r + (c * 15); 
-                let d = document.createElement('div'); 
-                d.className='b-cell'; 
-                d.id='c-'+num; 
-                d.innerText=num; 
-                board.appendChild(d); 
-            } 
-        } 
+            if (!isGameRunningLocally) {
+                isGameRunningLocally = true;
+                if(document.getElementById('board').innerHTML === '') {
+                    buildBoard();
+                }
+                syncLiveGame(data.calledNumbers);
+            }
+        }
+    });
+
+    function syncLiveGame(pastNumbers) {
+        called = pastNumbers || [];
+        document.getElementById('g-balls').innerText = called.length + "/20";
+        
+        called.forEach(num => {
+            let calledCell = document.getElementById('c-'+num); 
+            if(calledCell) calledCell.classList.add('called');
+            document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+        });
+
+        if(called.length > 0) {
+            let lastNum = called[called.length - 1];
+            let colorIdx = lastNum<=15?0:lastNum<=30?1:lastNum<=45?2:lastNum<=60?3:4; 
+            let L = bHeads[colorIdx];
+            document.getElementById('caller').innerText = L + "-" + lastNum;
+            let currentCell = document.getElementById('c-'+lastNum);
+            if(currentCell) currentCell.classList.add('current');
+            
+            updateHistoryUI(called);
+        }
     }
+
+    socket.on('new_number', (num) => {
+        if (!isGameRunningLocally) return; 
+        called.push(num); 
+        document.getElementById('g-balls').innerText = called.length + "/20";
+        
+        let colorIdx = num<=15?0:num<=30?1:num<=45?2:num<=60?3:4; 
+        let L = bHeads[colorIdx];
+        
+        updateHistoryUI(called);
+        
+        document.getElementById('caller').innerText = L + "-" + num; 
+        
+        document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current')); 
+        let calledCell = document.getElementById('c-'+num); 
+        if(calledCell) calledCell.classList.add('called', 'current');
         
         document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
         
@@ -518,7 +557,6 @@
         let botH = document.getElementById('history-scroll-bottom');
         topH.innerHTML = ''; botH.innerHTML = '';
         
-        // Top history (dark balls, green border)
         let startIdx = Math.max(0, arr.length - 15); 
         for(let i = arr.length - 1; i >= startIdx; i--) {
             let n = arr[i];
@@ -530,7 +568,6 @@
             topH.appendChild(topB);
         }
 
-        // Bottom history (solid green balls)
         for(let i = 0; i < arr.length; i++) {
             let n = arr[i];
             let cIdx = n<=15?0:n<=30?1:n<=45?2:n<=60?3:4;
@@ -594,7 +631,6 @@
         } 
     }
     
-    // Exact Layout: SMALLER WHITE TICKETS, SIDE-BY-SIDE
     function genTickets() { 
         const list = document.getElementById('ticket-list'); 
         const miniList = document.getElementById('mini-tickets-container'); 
