@@ -30,76 +30,59 @@
         .act-btn { width: 120px; background: #0a0f18; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
 
         /* ========================================= */
-        /* EXACT GAME PAGE (MOBILE RESPONSIVE & BEAUTIFUL) */
+        /* EXACT GAME PAGE (LEFT/RIGHT LAYOUT LIKE PHOTO) */
         /* ========================================= */
-        #game-page { padding: 10px; max-width: 1200px; margin: 0 auto; overflow-x: hidden; }
+        #game-page { padding: 10px; max-width: 1200px; margin: 0 auto; overflow-x: auto;} /* Allow horizontal scroll on very small screens to preserve layout */
 
-        /* Top 5 Info Boxes - Responsive */
-        .top-info-wrapper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 15px; width: 100%;}
-        @media (max-width: 600px) {
-            .top-info-wrapper { grid-template-columns: repeat(3, 1fr); gap: 8px;}
-            .top-info-wrapper > :nth-child(4), .top-info-wrapper > :nth-child(5) { grid-column: span 1.5; }
-        }
-        .top-info-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 2px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;}
-        .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
-        .info-title { color: var(--text-gray); font-size: 10px; margin-bottom: 3px; font-weight: bold; text-transform: uppercase;}
-        .info-val { color: white; font-weight: bold; font-size: 14px; }
-        .info-val.highlight { color: var(--faded-green); font-size: 15px;}
-
-        /* Top Left History Bar - Clean Mobile Scroll */
-        .history-top-bar { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; width: 100%; scrollbar-width: none; border-bottom: 1px solid var(--border-color);}
+        /* Top Left History Bar */
+        .history-top-bar { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; min-width: 800px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--faded-green); background: #0a0f18; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; box-shadow: 0 0 5px rgba(74,222,128,0.2);}
+        .hist-top-ball { min-width: 45px; height: 45px; border-radius: 50%; border: 1px solid var(--faded-green); background: #0a0f18; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; box-shadow: 0 0 5px rgba(74,222,128,0.2);}
 
-        /* RESPONSIVE LAYOUT CONTAINER */
-        .game-layout-container { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-        
-        /* Desktop/Tablet View */
-        @media (min-width: 850px) {
-            .game-layout-container { flex-direction: row; align-items: flex-start; justify-content: center;}
-            .master-board-wrapper { flex: 0 0 350px; }
-            .right-panel-stack { flex: 1; max-width: 600px;}
-        }
+        /* MAIN LEFT & RIGHT CONTAINER */
+        .game-layout-container { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; justify-content: center; min-width: 850px; /* Forces side-by-side even on mobile */ }
 
-        /* Right Side Stack (Caller + Tickets) */
-        .right-panel-stack { display: flex; flex-direction: column; gap: 15px; width: 100%; }
+        /* ================= LEFT SIDE (1-75 BOARD) ================= */
+        .master-board-wrapper { flex: 0 0 auto; background: transparent;}
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden;}
+        .b-head { width: 50px; height: 35px; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}
+        .b-cell { width: 50px; height: 35px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: #475569; transition: 0.2s;}
+        /* Match photo exactly: Orange for called, Glowing Green for current */
+        .b-cell.called { background: var(--orange); color: white; font-weight: 900;}
+        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 12px rgba(74,222,128,0.9);}
 
-        /* Caller Box (Exactly like photo) */
-        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);}
-        .caller-ball { width: 90px; height: 90px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), inset 0 0 10px rgba(74, 222, 128, 0.4);}
-        .caller-status-text { margin-top: 15px; text-align: center; font-size: 12px; color: var(--text-gray); font-weight: bold; }
-        .caller-status-text span { color: var(--faded-green); display: block; margin-top: 3px; font-size: 11px;}
+        /* ================= RIGHT SIDE (CALLER & TICKETS) ================= */
+        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 15px; min-width: 400px; }
 
-        /* Master Board (1-75) */
-        .master-board-wrapper { background: transparent; width: 100%; margin: 0 auto; max-width: 400px;}
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; padding: 2px;}
-        .b-head { padding: 8px 0; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}
-        .b-cell { aspect-ratio: 1.5/1; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: #475569; transition: 0.2s; border-radius: 2px;}
-        .b-cell.called { background: #1e293b; color: var(--text-gray); font-weight: normal;}
-        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.05); z-index: 10; box-shadow: 0 0 12px rgba(74,222,128,0.9); border-radius: 4px;}
+        /* Caller Box (Top Right) */
+        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;}
+        .caller-ball { width: 100px; height: 100px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 40px rgba(74, 222, 128, 0.6), inset 0 0 10px rgba(74, 222, 128, 0.4);}
+        .caller-status-text { margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-gray); font-weight: bold; letter-spacing: 0.5px;}
+        .caller-status-text span { color: var(--faded-green); display: block; margin-top: 5px; font-size: 12px;}
 
-        /* Tickets Box */
+        /* Game Info Badges inside Caller Box */
+        .info-badges { display: flex; gap: 10px; position: absolute; top: 15px; right: 15px;}
+        .badge { background: #000; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 11px; color: var(--text-gray); font-weight: bold;}
+        .badge span { color: white; margin-left: 5px;}
+
+        /* Tickets Box (Bottom Right) */
         .tickets-history-box { background: transparent; width: 100%; display: flex; flex-direction: column; align-items: center;}
         
-        /* White Tickets - Mobile Friendly Grid */
-        .mini-tickets-wrapper { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; margin-bottom: 20px;}
-        @media (max-width: 400px) { .mini-tickets-wrapper { grid-template-columns: 1fr; } } /* Stack tickets on very small screens */
-        
+        /* 2 by 2 White Tickets Layout */
+        .mini-tickets-wrapper { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; margin-bottom: 15px;}
         .mini-t-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .ticket-header-info { text-align: center; color: #000; font-weight: 900; padding: 6px; font-size: 12px; background: white; border-bottom: 2px solid #e2e8f0;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1;}
-        .mini-t-head { color: white; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px;}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; padding: 1px;}
+        .mini-t-head { color: white; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
         .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; color: #334155;}
-        .mini-t-cell.marked { background: #0f172a !important; color: #fff !important; }
+        .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* Bottom History Bar */
+        /* Bottom History Bar (Under Tickets) */
         .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: center; background: var(--panel); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);}
-        .hist-bot-ball { min-width: 38px; height: 38px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);}
+        .hist-bot-ball { min-width: 38px; height: 38px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 1px solid #14532d;}
 
         /* ========================================= */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
-        @media (max-width: 400px) { #ticket-list { grid-template-columns: 1fr; } }
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
         .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #000;}
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
@@ -189,67 +172,48 @@
     </div>
 </div>
 
-<!-- 3. GAME PAGE (MODIFIED FOR MOBILE PERFECT MATCH) -->
+<!-- 3. GAME PAGE (EXACTLY LIKE PHOTO: LEFT 1-75, RIGHT CALLER + TICKETS) -->
 <div id="game-page" class="page">
     
-    <!-- Top 5 Info Boxes -->
-    <div class="top-info-wrapper">
-        <div class="top-info-box">
-            <div class="info-title">ID</div>
-            <div class="info-val" id="g-id">#---</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Players</div>
-            <div class="info-val" id="g-players">0</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Bet</div>
-            <div class="info-val">10.00</div>
-        </div>
-        <div class="top-info-box prize-box">
-            <div class="info-title">Prize Pool</div>
-            <div class="info-val highlight" id="g-prize">0.00 ETB</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Balls</div>
-            <div class="info-val" id="g-balls">0/20</div>
-        </div>
-    </div>
-
-    <!-- Top Left History Bar -->
+    <!-- Top Left History Bar (Like photo top bar) -->
     <div id="history-scroll-top" class="history-top-bar"></div>
 
-    <!-- MAIN RESPONSIVE LAYOUT -->
+    <!-- MAIN SIDE-BY-SIDE CONTAINER -->
     <div class="game-layout-container"> 
         
-        <!-- Right Side: Caller Box (Moves to Top on Mobile) -->
+        <!-- ================= LEFT SIDE (1-75 Master Board) ================= -->
+        <div class="master-board-wrapper"> 
+            <div id="board" class="b-board"></div>
+        </div>
+
+        <!-- ================= RIGHT SIDE (Caller + 2x2 Tickets) ================= -->
         <div class="right-panel-stack">
-            <!-- Box 1: Large Caller Ball (Like Photo) -->
+            
+            <!-- Box 1: Large Caller Ball & Game Status -->
             <div class="caller-box">
+                <div class="info-badges">
+                    <div class="badge">Prize: <span id="g-prize" style="color:gold;">0.00</span></div>
+                    <div class="badge">Balls: <span id="g-balls">0/20</span></div>
+                </div>
+                
                 <div id="caller" class="caller-ball">--</div>
+                
                 <div class="caller-status-text">
                     የቀጥታ ጨዋታ ሁኔታ
                     <span id="game-status-msg">ቁጥሮችን በመጠባበቅ ላይ...</span>
                 </div>
             </div>
             
-            <!-- White Tickets -->
+            <!-- Box 2: White Tickets (2 by 2) & History -->
             <div class="tickets-history-box">
+                <!-- Side-by-Side 2x2 Tickets -->
                 <div id="mini-tickets-container" class="mini-tickets-wrapper"></div>
-            </div>
-        </div>
-
-        <!-- Left Side: Master Board (Moves to Bottom on Mobile) -->
-        <div class="master-board-wrapper"> 
-            <div id="board" class="b-board"></div>
-            
-            <!-- Bottom History Bar under board -->
-            <div style="margin-top: 15px; text-align: center;">
-                <p style="font-size: 11px; color: var(--text-gray); margin-bottom: 5px;">የወጡ ቁጥሮች ታሪክ</p>
+                
+                <!-- Bottom History Bar -->
                 <div id="history-scroll-bottom" class="history-bottom-bar"></div>
             </div>
-        </div>
 
+        </div>
     </div>
 </div>
 
@@ -359,7 +323,7 @@
     
     // Exact colors from the photo
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
-    const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#22c55e', '#f97316']; 
+    const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#22c55e', '#ea580c']; 
 
     function toggleAuthMode() {
         isLoginMode = !isLoginMode;
@@ -472,8 +436,6 @@
     socket.on('game_status', (data) => {
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
         
-        if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
-        if(data.playersCount !== undefined) document.getElementById('g-players').innerText = data.playersCount;
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2) + " ETB";
 
         if (data.state === "WAITING") {
@@ -553,7 +515,10 @@
         
         document.getElementById('caller').innerText = L + "-" + num; 
         
+        // Remove 'current' class from all, but keep 'called' class
         document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current')); 
+        
+        // Add Orange (called) and Green (current) to new ball
         let calledCell = document.getElementById('c-'+num); 
         if(calledCell) calledCell.classList.add('called', 'current');
         
@@ -656,7 +621,8 @@
             let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
             
             let htmlMain = `<div style="text-align:center; font-size:12px; font-weight:900; margin-bottom:5px; color:#1e293b;">#${id}</div><div class="t-grid">`; 
-            let htmlMini = `<div class="ticket-header-info">ካርቴላ #${id}</div><div class="mini-t-grid">`; 
+            // no header for mini tickets to make them look cleaner like the image
+            let htmlMini = `<div class="mini-t-grid">`; 
             
             for(let i=0; i<5; i++) { 
                 htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; 
@@ -734,7 +700,7 @@
                 document.getElementById('wit-amt').value = ''; toggleForm('none'); 
             } else { alert(data.message); } 
         } catch(e) {}
-        document.getElementById('lbl-wit-conf').innerText = "ወጪ ጠይቅ (Withdraw)";
+        document.getElementById('lbl-wit-conf').innerText = "ወጪ ጠይቅ";
     }
     
     function addHistoryRecord(title, amount, color) { 
