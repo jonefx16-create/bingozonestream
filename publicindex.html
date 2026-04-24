@@ -35,45 +35,53 @@
         /* EXACT GAME PAGE (PAGE 2) STYLES AS REQUESTED */
         /* ========================================= */
         
-        .game-layout { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 40px; margin-top: 10px; width: 100%;}
-        
-        /* Master Board (Left Side) */
-        .board-container { display: flex; justify-content: center; align-items: flex-start; padding-top: 10px; }
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; width: fit-content; background: #1f2937; border: 1px solid #334155; border-radius: 6px; overflow: hidden;}
-        .b-cell { width: 45px; height: 32px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: #94a3b8; transition: 0.2s;}
-        .b-head { width: 45px; height: 38px; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;}
-        .b-cell.called { background: #111827; color: #4ade80; box-shadow: inset 0 0 8px rgba(0,0,0,0.8);} /* Darker for called */
-        .b-cell.current { background: #4ade80; color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 12px rgba(74,222,128,0.8);}
-        
-        /* Right Panel (Caller & Ticket) */
-        .right-panel { display: flex; flex-direction: column; align-items: center; background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 30px; min-width: 380px; max-width: 500px;}
-        
-        .screenshot-caller { width: 120px; height: 120px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 900; border: 5px solid #4ade80; box-shadow: 0 0 40px rgba(74, 222, 128, 0.5), inset 0 0 20px rgba(74, 222, 128, 0.4); margin-bottom: 20px;}
-        
-        .game-status-text { text-align: center; margin-bottom: 25px;}
-        .status-top { color: #94a3b8; font-size: 14px; margin-bottom: 8px;}
-        .status-bottom { color: #4ade80; font-size: 16px; font-weight: bold; text-shadow: 0 0 8px rgba(74,222,128,0.4);}
-        
-        /* EXACT Mini Ticket (White Background, Black Marked) */
-        .mini-ticket-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;}
-        .mini-t-card { background: white; width: 100%; max-width: 300px; padding: 2px;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #d1d5db; border: 1px solid #d1d5db;}
-        .mini-t-cell { background: #fff; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #000; transition: 0.2s;}
-        .mini-t-head { color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; height: 40px;}
-        .mini-t-cell.marked { background: #000 !important; color: #fff !important; } /* Exact Black Box */
+        #game-page { padding: 20px; }
 
-        /* History Balls (Top and Bottom Right) */
-        .history-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 10px 20px; width: 100%; box-sizing: border-box; scrollbar-width: none; border-bottom: 1px solid #1f2937; margin-bottom: 10px;}
-        .history-scroll::-webkit-scrollbar { display: none; }
-        .history-bottom { border-bottom: none; justify-content: flex-end; margin-top: 20px; padding: 0;}
-        .hist-ball { min-width: 42px; height: 42px; border-radius: 50%; border: 2px solid #4ade80; background: transparent; color: #4ade80; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+        /* Top Left History Bar */
+        .history-top-bar { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #1f2937; padding-bottom: 15px; width: fit-content;}
+        .hist-top-ball { min-width: 40px; height: 40px; border-radius: 50%; border: 1px solid #4ade80; background: #050810; color: #4ade80; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; box-shadow: 0 0 8px rgba(74,222,128,0.2); animation: popIn 0.3s ease-out;}
+        
+        .game-layout { display: flex; flex-direction: row; gap: 30px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+        
+        /* Left Side: Master Board */
+        .master-board-wrapper { background: transparent; padding: 0; }
+        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #000; border: 1px solid #1f2937; border-radius: 6px; padding: 1px; width: fit-content;}
+        .b-cell { width: 50px; height: 30px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: #94a3b8; transition: 0.2s;}
+        .b-head { width: 50px; height: 35px; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;}
+        .b-cell.called { background: #f97316; color: white;} /* Orange called */
+        .b-cell.current { background: #4ade80; color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 10px rgba(74,222,128,0.6);}
+        
+        /* Right Side: Two Stacked Boxes */
+        .right-stack { display: flex; flex-direction: column; gap: 20px; flex: 1; max-width: 500px; min-width: 300px;}
+        
+        /* Right Top: Caller Box */
+        .caller-box { background: #111827; border: 1px solid #1f2937; border-radius: 12px; height: 160px; display: flex; align-items: center; justify-content: center;}
+        .caller-ball { width: 90px; height: 90px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; border: 4px solid #4ade80; box-shadow: 0 0 40px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3);}
+        
+        /* Right Bottom: Tickets Box */
+        .tickets-box { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 25px; display: flex; flex-direction: column; align-items: center;}
+        .status-top { color: #94a3b8; font-size: 13px; margin-bottom: 8px;}
+        .status-bottom { color: #4ade80; font-size: 15px; font-weight: bold; margin-bottom: 25px; text-shadow: 0 0 5px rgba(74,222,128,0.3);}
+        
+        /* Small White Tickets */
+        .mini-tickets-wrapper { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; width: 100%;}
+        .mini-t-card { background: white; padding: 2px; width: 100%; max-width: 220px; /* Small Size */ border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e5e7eb;}
+        .mini-t-head { color: white; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
+        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #000; transition: 0.2s;}
+        .mini-t-cell.marked { background: #000 !important; color: #fff !important; } /* Black filled */
+
+        /* Bottom Right History Bar */
+        .history-bottom-bar { display: flex; gap: 8px; margin-top: 25px; width: 100%; justify-content: flex-end; padding-top: 15px; border-top: 1px solid #1f2937;}
+        .hist-bot-ball { min-width: 35px; height: 35px; border-radius: 50%; background: #4ade80; color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; animation: popIn 0.3s ease-out;}
+        
         @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
-        /* Media Query for mobile (Stacks them if screen is very small) */
-        @media (max-width: 800px) {
-            .game-layout { flex-direction: column; align-items: center; gap: 20px;}
-            .right-panel { min-width: 100%; box-sizing: border-box; }
-            .history-bottom { justify-content: center; }
+        @media (max-width: 768px) {
+            .game-layout { flex-direction: column; align-items: center; }
+            .right-stack { max-width: 100%; width: 100%; }
+            .history-top-bar { width: 100%; overflow-x: auto; }
+            .history-bottom-bar { justify-content: center; }
         }
 
         /* ========================================= */
@@ -97,7 +105,6 @@
         .copy-box { background: #000; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--text-gray); margin-bottom: 15px; }
         .copy-btn { background: #161b22; border: 1px solid #30363d; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;}
 
-        /* Profile & Rank Styles */
         .profile-stat-box { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);}
         .rank-card { display: flex; justify-content: space-between; align-items: center; background: #111827; padding: 15px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 10px;}
         .rank-badge { width: 30px; height: 30px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;}
@@ -170,34 +177,39 @@
     </div>
 </div>
 
-<!-- 3. GAME PAGE (PERFECTLY MATCHED TO SCREENSHOT 1) -->
+<!-- 3. GAME PAGE (PERFECTLY MATCHED TO LATEST SCREENSHOT) -->
 <div id="game-page" class="page">
-    <!-- Top Horizontal History Bar -->
-    <div id="history-scroll-top" class="history-scroll"></div>
+    
+    <!-- Top Left History Bar (Green Border, Dark Inside) -->
+    <div id="history-scroll-top" class="history-top-bar"></div>
 
     <div class="game-layout"> 
         
-        <!-- Left Side: Master Board -->
-        <div class="board-container"> 
+        <!-- Left Side: Master Board (1-15 Downwards) -->
+        <div class="master-board-wrapper"> 
             <div id="board" class="b-board"></div>
         </div>
 
-        <!-- Right Side: Dark Panel with Caller and Tickets -->
-        <div class="right-panel">
-            <!-- Large Caller Ball -->
-            <div id="caller" class="screenshot-caller">--</div>
+        <!-- Right Side: Two Stacked Boxes -->
+        <div class="right-stack">
             
-            <!-- Status Text -->
-            <div class="game-status-text">
-                <div class="status-top">የቀጣይ ጨዋታ ሁኔታ</div>
-                <div class="status-bottom">ቁጥሮችን በመጠባበቅ ላይ...</div>
+            <!-- Box 1: Large Caller Ball -->
+            <div class="caller-box">
+                <div id="caller" class="caller-ball">--</div>
             </div>
             
-            <!-- White Mini Tickets Stacked Here -->
-            <div id="mini-tickets-container" class="mini-ticket-wrapper"></div>
-            
-            <!-- Bottom Right Horizontal History Bar (Inside right panel under tickets) -->
-            <div id="history-scroll-bottom" class="history-scroll history-bottom"></div>
+            <!-- Box 2: Status, Tickets, Bottom History -->
+            <div class="tickets-box">
+                <div class="status-top">የቀጣይ ጨዋታ ሁኔታ</div>
+                <div class="status-bottom">ቁጥሮችን በመጠባበቅ ላይ...</div>
+                
+                <!-- Small White Tickets -->
+                <div id="mini-tickets-container" class="mini-tickets-wrapper"></div>
+                
+                <!-- Bottom Right History Bar (Solid Green, Black Text) -->
+                <div id="history-scroll-bottom" class="history-bottom-bar"></div>
+            </div>
+
         </div>
     </div>
     
@@ -211,7 +223,7 @@
     <div id="ticket-list"></div>
 </div>
 
-<!-- 5. WALLET PAGE (DEPOSIT/WITHDRAW & HISTORY) -->
+<!-- 5. WALLET PAGE -->
 <div id="wallet-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
     
@@ -226,7 +238,6 @@
         </div>
     </div>
     
-    <!-- Deposit Form -->
     <div id="sec-dep" class="transaction-box">
         <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;">ገንዘብ ማስገቢያ መንገድ ይምረጡ</p>
         <div class="pay-method-grid"><div class="pay-box active" onclick="setDepMethod('telebirr', this)">Telebirr</div><div class="pay-box" onclick="setDepMethod('cbe', this)">CBE Birr</div><div class="pay-box" onclick="setDepMethod('mpesa', this)">M-Pesa</div></div>
@@ -239,7 +250,6 @@
         <button class="auth-btn" style="background:transparent; border:1px solid #30363d; color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
 
-    <!-- Withdraw Form -->
     <div id="sec-wit" class="transaction-box">
         <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;">ወጪ ማድረጊያ መንገድ ይምረጡ</p>
         <div class="pay-method-grid"><div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div><div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div><div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div></div>
@@ -310,7 +320,7 @@
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     
-    // Exact Screenshot Colors
+    // Exact Screenshot Colors for BINGO Headers
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
@@ -419,7 +429,7 @@
         document.getElementById('play-bal').innerText = currentUser.playBalance.toFixed(2);
     }
 
-    // ================== 2. SOCKET & GAME LOGIC (AUTO NAV & SYNC) ==================
+    // ================== 2. SOCKET & GAME LOGIC ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
@@ -438,7 +448,7 @@
             document.getElementById('bet-btn').style.background = "var(--faded-green)"; 
             document.getElementById('bet-btn').onclick = placeBet;
             
-            // አውቶማቲክ ወደ Page 1 መመለሻ
+            // Auto Redirect to Page 1
             if (isGameRunningLocally || document.getElementById('game-page').classList.contains('active-page')) {
                 showPage('home');
                 userTicketsData = [];
@@ -457,7 +467,7 @@
             document.getElementById('timer').innerText = "LIVE 🔴"; 
             document.getElementById('bet-btn').disabled = false; 
             
-            // አውቶማቲክ ወደ Page 2 መግቢያ
+            // Auto Redirect to Page 2
             if (!isGameRunningLocally) {
                 showPage('game'); 
                 isGameRunningLocally = true;
@@ -518,14 +528,21 @@
         let botH = document.getElementById('history-scroll-bottom');
         topH.innerHTML = ''; botH.innerHTML = '';
         
-        for(let i = arr.length - 1; i >= Math.max(0, arr.length - 10); i--) {
+        // Show last 6 numbers
+        let startIdx = Math.max(0, arr.length - 6);
+        for(let i = arr.length - 1; i >= startIdx; i--) {
             let n = arr[i];
             let cIdx = n<=15?0:n<=30?1:n<=45?2:n<=60?3:4;
-            let b = document.createElement('div'); 
-            b.className = 'hist-ball'; 
-            b.innerText = bHeads[cIdx] + "-" + n; 
-            topH.appendChild(b.cloneNode(true));
-            botH.appendChild(b);
+            
+            let topB = document.createElement('div'); 
+            topB.className = 'hist-top-ball'; 
+            topB.innerText = bHeads[cIdx] + "-" + n; 
+            topH.appendChild(topB);
+            
+            let botB = document.createElement('div'); 
+            botB.className = 'hist-bot-ball'; 
+            botB.innerText = bHeads[cIdx] + "-" + n; 
+            botH.appendChild(botB);
         }
     }
 
@@ -560,7 +577,7 @@
     function clearSelection() { selected = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected')); document.getElementById('jp').innerText = "0 ETB"; }
     function randomSelection() { if(document.getElementById('timer').innerText.includes("LIVE") && document.getElementById('bet-btn').innerText.includes("Spectate")) return; clearSelection(); let r = []; while(r.length < 5) { let n = Math.floor(Math.random() * 100) + 1; if(!r.includes(n)) r.push(n); } selected = r; document.querySelectorAll('.num-btn').forEach(btn => { if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected'); }); document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }
     
-    // Exact Screenshot Master Board Generation
+    // Exact Screenshot Master Board Generation (1-15 downwards)
     function buildBoard() { 
         const board = document.getElementById('board'); 
         board.innerHTML = ''; 
@@ -583,7 +600,7 @@
         } 
     }
     
-    // Exact Screenshot White/Black Ticket Generation
+    // Exact Screenshot Small White/Black Ticket Generation
     function genTickets() { 
         const list = document.getElementById('ticket-list'); 
         const miniList = document.getElementById('mini-tickets-container'); 
