@@ -477,77 +477,33 @@
             document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
             document.getElementById('bet-btn').style.background = "var(--faded-green)"; 
             document.getElementById('bet-btn').onclick = placeBet;
-            document.getElementById('g-balls').innerText = "0/20";
-            
-            if (currentUser && document.getElementById('game-page').classList.contains('active-page')) {
-                showPage('home');
-                userTicketsData = [];
-                clearSelection();
-            }
-            
-            isGameRunningLocally = false;
-            
-            if(document.getElementById('board').innerHTML !== '') { 
-                document.getElementById('board').innerHTML = ''; called = []; 
-                document.getElementById('history-scroll-top').innerHTML = ''; 
-                document.getElementById('history-scroll-bottom').innerHTML = ''; 
-                document.getElementById('caller').innerText = "--"; 
-            }
-        } else if (data.state === "PLAYING") {
-            document.getElementById('timer').innerText = "LIVE 🔴"; 
-            document.getElementById('bet-btn').disabled = false; 
-            
-            if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) {
-                showPage('game');
-            }
-
-            if (!isGameRunningLocally) {
-                isGameRunningLocally = true;
-                if(document.getElementById('board').innerHTML === '') {
-                    buildBoard();
-                }
-                syncLiveGame(data.calledNumbers);
-            }
-        }
-    });
-
-    function syncLiveGame(pastNumbers) {
-        called = pastNumbers || [];
-        document.getElementById('g-balls').innerText = called.length + "/20";
+            // አዲስ የተስተካከለ የቦርድ አሰራር (Replace this function)
+    function buildBoard() { 
+        const board = document.getElementById('board'); 
+        board.innerHTML = ''; 
         
-        called.forEach(num => {
-            let calledCell = document.getElementById('c-'+num); 
-            if(calledCell) calledCell.classList.add('called');
-            document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
-        });
+        // የፊደላት ሄደር (B-I-N-G-O)
+        bHeads.forEach(h => { 
+            let d = document.createElement('div'); 
+            d.className='b-head'; 
+            d.style.background=bColors[bHeads.indexOf(h)]; 
+            d.innerText=h; 
+            board.appendChild(d); 
+        }); 
 
-        if(called.length > 0) {
-            let lastNum = called[called.length - 1];
-            let colorIdx = lastNum<=15?0:lastNum<=30?1:lastNum<=45?2:lastNum<=60?3:4; 
-            let L = bHeads[colorIdx];
-            document.getElementById('caller').innerText = L + "-" + lastNum;
-            let currentCell = document.getElementById('c-'+lastNum);
-            if(currentCell) currentCell.classList.add('current');
-            
-            updateHistoryUI(called);
-        }
+        // ቁጥሮችን በ 5 አምድ (Column) መደርደር
+        // እያንዳንዱ ረድፍ 5 አምድ አለው
+        for(let r=1; r<=15; r++) { 
+            for(let c=0; c<5; c++) { 
+                let num = r + (c * 15); 
+                let d = document.createElement('div'); 
+                d.className='b-cell'; 
+                d.id='c-'+num; 
+                d.innerText=num; 
+                board.appendChild(d); 
+            } 
+        } 
     }
-
-    socket.on('new_number', (num) => {
-        if (!isGameRunningLocally) return; 
-        called.push(num); 
-        document.getElementById('g-balls').innerText = called.length + "/20";
-        
-        let colorIdx = num<=15?0:num<=30?1:num<=45?2:num<=60?3:4; 
-        let L = bHeads[colorIdx];
-        
-        updateHistoryUI(called);
-        
-        document.getElementById('caller').innerText = L + "-" + num; 
-        
-        document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current')); 
-        let calledCell = document.getElementById('c-'+num); 
-        if(calledCell) calledCell.classList.add('called', 'current');
         
         document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
         
