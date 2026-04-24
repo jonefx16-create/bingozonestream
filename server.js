@@ -1,3 +1,5 @@
+--- START OF FILE server.js ---
+
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -190,21 +192,23 @@ app.post('/api/admin/ban-user', async (req, res) => {
 // 🟢 LIVE BINGO GAME ENGINE (SOCKET.IO)
 // ==========================================
 let gameState = "WAITING";
-let timer = 25; // የተቀየረ፡ ወደ 25 ሴኮንድ ዝቅ ብሏል
+let timer = 25; 
 let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
 let calledNumbers = [];
 let pool = [];
 let gameInterval;
+let gameId = Math.floor(Math.random() * 9000) + 1000;
 
 function startCountdown() {
     gameState = "WAITING"; timer = 25; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
+    gameId = Math.floor(Math.random() * 9000) + 1000;
     clearInterval(gameInterval);
     
     let waitInterval = setInterval(() => {
         timer--;
-        io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
+        io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         if (timer <= 0) {
             clearInterval(waitInterval);
             if (totalTickets > 0) startGame();
@@ -216,7 +220,7 @@ function startCountdown() {
 function startGame() {
     gameState = "PLAYING";
     pool = Array.from({length: 75}, (_, i) => i + 1);
-    io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers });
+    io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
 
     gameInterval = setInterval(() => {
         // 20 Ball Limit
@@ -232,7 +236,7 @@ function startGame() {
 }
 
 io.on('connection', (socket) => {
-    socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
+    socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
     
     socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
@@ -248,7 +252,7 @@ io.on('connection', (socket) => {
                 totalTickets += data.ticketCount;
                 totalPrizePool = (totalTickets * 10) * 0.9; 
                 
-                io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers });
+                io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
                 socket.emit('balance_updated', data.phone); 
             }
         }
@@ -268,7 +272,7 @@ io.on('connection', (socket) => {
             }
             
             io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool, phone: data.phone });
-            setTimeout(() => { startCountdown(); }, 12000); 
+            setTimeout(() => { startCountdown(); }, 8000); // 8 ሰከንድ አሸናፊውን ካሳየ በኋላ ይመለሳል
         }
     });
 });
@@ -280,3 +284,4 @@ app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+--- END OF FILE server.js ---
