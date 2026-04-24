@@ -69,13 +69,13 @@
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px 20px; display: flex; flex-direction: column; align-items: center;}
         .status-text-bottom { color: var(--faded-green); font-size: 22px; font-weight: bold; margin-bottom: 25px;}
 
-        /* White Tickets - SIDE BY SIDE */
-        .mini-tickets-wrapper { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; margin-bottom: 30px;}
-        .mini-t-card { background: white; flex: 1 1 200px; max-width: 260px; border-radius: 8px; overflow: hidden; }
-        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 6px; font-size: 14px; background: white;}
+        /* White Tickets - 2x2 SIDE BY SIDE */
+        .mini-tickets-wrapper { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; margin-bottom: 20px;}
+        .mini-t-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 4px; font-size: 12px; background: white;}
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
-        .mini-t-head { color: white; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
-        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #000;}
+        .mini-t-head { color: white; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px;}
+        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #000; min-height: 26px; max-height: 30px;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
         /* Bottom History Bar */
@@ -345,7 +345,6 @@
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
-    // ================== 1. AUTHENTICATION & PROFILE ==================
     function toggleAuthMode() {
         isLoginMode = !isLoginMode;
         document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block';
@@ -450,7 +449,6 @@
         document.getElementById('play-bal').innerText = currentUser.playBalance.toFixed(2);
     }
 
-    // ================== 2. SOCKET & GAME LOGIC ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
@@ -561,7 +559,6 @@
         for(let i = arr.length - 1; i >= startIdx; i--) {
             let n = arr[i];
             let cIdx = n<=15?0:n<=30?1:n<=45?2:n<=60?3:4;
-            
             let topB = document.createElement('div'); 
             topB.className = 'hist-top-ball'; 
             topB.innerText = bHeads[cIdx] + "-" + n; 
@@ -604,7 +601,6 @@
         socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length });
     }
 
-    // ================== 3. UI AND HELPER FUNCTIONS ==================
     function initGrid() { const box = document.getElementById('grid-box'); box.innerHTML = ''; for(let i=1; i<=100; i++) { let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; d.onclick = () => { if(document.getElementById('timer').innerText.includes("LIVE") && document.getElementById('bet-btn').innerText.includes("Spectate")) return; if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); } else if(selected.length < 5) { d.classList.add('selected'); selected.push(i); } else { alert("ከ 5 ካርቴላ በላይ አይቻልም!"); } document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }; box.appendChild(d); } }
     function clearSelection() { selected = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected')); document.getElementById('jp').innerText = "0 ETB"; }
     function randomSelection() { if(document.getElementById('timer').innerText.includes("LIVE") && document.getElementById('bet-btn').innerText.includes("Spectate")) return; clearSelection(); let r = []; while(r.length < 5) { let n = Math.floor(Math.random() * 100) + 1; if(!r.includes(n)) r.push(n); } selected = r; document.querySelectorAll('.num-btn').forEach(btn => { if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected'); }); document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }
