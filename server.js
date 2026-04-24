@@ -90,6 +90,27 @@ app.post('/api/request-tx', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// አዲስ፡ User Change Password API
+app.post('/api/user/change-password', async (req, res) => {
+    try {
+        const { phone, oldPass, newPass } = req.body;
+        let user = await User.findOne({ phone, password: oldPass });
+        if(!user) return res.json({ success: false, message: "የድሮው የይለፍ ቃል ተሳስቷል!" });
+        
+        user.password = newPass;
+        await user.save();
+        res.json({ success: true, message: "የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል!" });
+    } catch (e) { res.status(500).json({ success: false, message: "የሰርቨር ስህተት አጋጥሟል" }); }
+});
+
+// አዲስ፡ Leaderboard (Rank) API
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const topUsers = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won');
+        res.json({ success: true, leaderboard: topUsers });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
 // ==========================================
 // 🔴 ADMIN APIs
 // ==========================================
@@ -132,7 +153,6 @@ app.post('/api/admin/action-tx', async (req, res) => {
     } catch (e) { res.status(500).json({success: false}); }
 });
 
-// New API: Send Bonus
 app.post('/api/admin/send-bonus', async (req, res) => {
     if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
     try {
@@ -147,7 +167,6 @@ app.post('/api/admin/send-bonus', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// New API: Reset Password
 app.post('/api/admin/change-password', async (req, res) => {
     if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
     try {
@@ -161,7 +180,6 @@ app.post('/api/admin/change-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: "Server error" }); }
 });
 
-// New API: Ban / Delete User
 app.post('/api/admin/ban-user', async (req, res) => {
     if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
     try {
@@ -206,7 +224,7 @@ function startGame() {
         // 20 Ball Limit
         if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval); 
-            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // 20 ኳስ ካለቀ በኋላ አዲስ ዙር ይጀምራል
+            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); 
             return; 
         }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
