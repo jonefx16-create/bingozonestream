@@ -49,12 +49,12 @@
         #game-page { padding: 5px; max-width: 1200px; margin: 0 auto; overflow-x: hidden; }
 
         /* Top Info Boxes */
-        .top-info-wrapper { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 4px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none;}
+        .top-info-wrapper { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none;}
         .top-info-wrapper::-webkit-scrollbar { display: none; }
-        .top-info-box { flex: 1; min-width: 55px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 2px; text-align: center; }
+        .top-info-box { flex: 1; min-width: 60px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 4px; text-align: center; }
         .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
-        .info-title { color: var(--text-gray); font-size: 9px; margin-bottom: 2px; font-weight: bold;}
-        .info-val { color: white; font-weight: bold; font-size: 12px; }
+        .info-title { color: var(--text-gray); font-size: 10px; margin-bottom: 2px; font-weight: bold;}
+        .info-val { color: white; font-weight: bold; font-size: 14px; }
         .info-val.highlight { color: var(--faded-green); }
         
         /* Top History Bar (Used for Game and Tickets Page) */
@@ -117,6 +117,8 @@
 
         /* Profile Beautiful Buttons */
         .prof-action-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 14px; margin-bottom: 10px; cursor: pointer; border: none; transition: 0.2s; text-transform: uppercase;}
+        .btn-lang { background: linear-gradient(135deg, #10b981, #047857); color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);}
+        .btn-history { background: linear-gradient(135deg, #f59e0b, #b45309); color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);}
         .btn-change-pass { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);}
         .btn-logout { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);}
 
@@ -212,15 +214,11 @@
 <!-- 3. GAME PAGE (Live Board - Page 2) -->
 <div id="game-page" class="page">
 
-    <!-- Top 5 Info Boxes -->
+    <!-- Top 4 Info Boxes -->
     <div class="top-info-wrapper">
         <div class="top-info-box">
             <div class="info-title">ID</div>
             <div class="info-val" id="g-id">#---</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Tickets</div>
-            <div class="info-val" id="g-players">0</div>
         </div>
         <div class="top-info-box">
             <div class="info-title">Bet</div>
@@ -319,9 +317,6 @@
         <button class="auth-btn" style="background:linear-gradient(to right, #ea580c, #c2410c); color:white; font-size:16px;" onclick="processWithdraw()" id="lbl-wit-conf">ወጪ ጠይቅ (Withdraw)</button>
         <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
-
-    <h4 style="color: var(--text-gray); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px;">📜 የገንዘብ ታሪክ (History)</h4>
-    <div id="wallet-history"><p style="text-align:center; color:var(--text-gray); font-size:13px;">ታሪክ የለም</p></div>
 </div>
 
 <!-- 6. RANK PAGE -->
@@ -353,12 +348,22 @@
     </div>
 
     <!-- Beautiful Action Buttons -->
+    <button class="prof-action-btn btn-lang" onclick="alert('ቋንቋ መቀየሪያ በቅርቡ ይመጣል (Language switch coming soon)!')">🌐 ቋንቋ ቀይር (Language)</button>
+    
+    <button class="prof-action-btn btn-history" onclick="toggleHistoryBox()">📜 የገንዘብ ታሪክ (History)</button>
+
+    <!-- History Box (Hidden by default) -->
+    <div id="prof-history-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 10px; animation: fadeIn 0.3s;">
+        <p style="margin-top:0; color:var(--text-gray); font-size:12px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:8px; text-align:center;">የሂሳብ ዝውውር ታሪክ (Transaction History)</p>
+        <div id="prof-history-list"><p style="text-align:center; color:var(--text-gray); font-size:12px;">ታሪክ የለም (No History)</p></div>
+    </div>
+
     <button class="prof-action-btn btn-change-pass" onclick="togglePasswordBox()">🔐 የይለፍ ቃል ቀይር (Change Password)</button>
     
-    <div id="pass-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; animation: fadeIn 0.3s;">
+    <div id="pass-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 10px; animation: fadeIn 0.3s;">
         <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል (Old Password)">
         <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል (New Password)">
-        <button class="auth-btn" style="background: var(--blue); color: white;" onclick="changeUserPassword()">አረጋግጥ (Update)</button>
+        <button class="auth-btn" style="background: var(--blue); color: white; margin-top: 5px;" onclick="changeUserPassword()">አረጋግጥ (Update)</button>
     </div>
 
     <button class="prof-action-btn btn-logout" onclick="location.reload()">🚪 ከሲስተም ውጣ (Logout)</button>
@@ -454,6 +459,11 @@
         box.style.display = box.style.display === 'none' ? 'block' : 'none';
     }
 
+    function toggleHistoryBox() {
+        let box = document.getElementById('prof-history-box');
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
     async function changeUserPassword() {
         let oldPass = document.getElementById('old-pass').value;
         let newPass = document.getElementById('new-pass').value;
@@ -504,7 +514,7 @@
     }
 
     function formatTime(seconds) {
-        if(isNaN(seconds)) return seconds; // For "LIVE" text
+        if(isNaN(seconds)) return seconds; 
         let m = Math.floor(seconds / 60);
         let s = seconds % 60;
         return `0${m}:${s < 10 ? '0' : ''}${s}`;
@@ -523,7 +533,6 @@
         
         // Update Info Boxes
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
-        if(data.totalTickets !== undefined) document.getElementById('g-players').innerText = data.totalTickets;
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
         if (data.state === "WAITING") {
@@ -540,17 +549,22 @@
             document.getElementById('g-balls').innerText = "0/20";
             called = []; 
             
-            if (currentUser && document.getElementById('game-page').classList.contains('active-page')) {
-                showPage('home');
+            if (currentUser) {
+                // Ensure old tickets wipe out entirely when a new game is in waiting phase
                 userTicketsData = [];
                 pendingTicketsData = [];
                 selected = [];
                 document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
-                updateBetPreview(); // Refresh visual popup
+                updateBetPreview(); 
                 
                 document.getElementById('ticket-list').innerHTML = '';
                 document.getElementById('game-mini-tickets').innerHTML = '';
                 document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
+
+                // Kick user out of game page if they are spectating a finished game
+                if (document.getElementById('game-page').classList.contains('active-page')) {
+                    showPage('home');
+                }
             }
             
             // Reactivate Bet Button conditionally inside the popup
@@ -788,7 +802,7 @@
 
         if(isLatest) document.getElementById('caller-ball').innerText = ballText;
 
-        // Add to history bars (Game Page)
+        // Add to history bars (Game Page & Ticket Page)
         let topH = document.getElementById('history-scroll-top');
         let botH = document.getElementById('history-scroll-bottom');
         let tickH = document.getElementById('ticket-history-bar');
@@ -839,13 +853,17 @@
         let fileInput = document.getElementById('dep-receipt');
         
         if(!amt || amt <= 0) return alert("ትክክለኛ መጠን ያስገቡ!"); 
-        // File validation is handled visually, backend assumes image URL or blob if connected to DB
+        // File validation handled visually, backend assumes image URL or blob if connected to DB
         
         document.getElementById('lbl-dep-conf').innerText = "እየላከ ነው...";
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method }) }); 
             let data = await res.json(); 
             alert(data.message); 
+            
+            // Add to new history box
+            addHistoryRecord("ዲፖዚት ጥያቄ (Deposit Req)", `+${amt} ETB`, "var(--blue)");
+
             document.getElementById('dep-amt').value = ''; 
             document.getElementById('receipt-name').innerHTML = '';
             fileInput.value = "";
@@ -867,6 +885,10 @@
             if(data.success) { 
                 await fetchUpdatedBalance(); 
                 alert(data.message); 
+                
+                // Add to new history box
+                addHistoryRecord("ወጪ ጥያቄ (Withdraw Req)", `-${amt} ETB`, "var(--orange)");
+
                 document.getElementById('wit-amt').value = ''; toggleForm('none'); 
             } else { alert(data.message); } 
         } catch(e) {}
@@ -874,7 +896,7 @@
     }
     
     function addHistoryRecord(title, amount, color) { 
-        const hc = document.getElementById('wallet-history'); 
+        const hc = document.getElementById('prof-history-list'); 
         if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; 
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
         hc.innerHTML = `<div class="list-card" style="border-left-color: ${color};"><div><span style="font-weight:bold;">${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}; font-size:16px;">${amount}</b></div>` + hc.innerHTML; 
