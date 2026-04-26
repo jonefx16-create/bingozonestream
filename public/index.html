@@ -24,36 +24,20 @@
         .hdr-bal-row { font-size: 10px; color: var(--text-gray); display: flex; justify-content: space-between; gap: 15px; margin-bottom: 3px; border-bottom: 1px solid #1f2937; padding-bottom: 2px;}
         .hdr-bal-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; padding-top: 2px;}
         
-        .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid #14532d; display: flex; justify-content: space-around; margin-bottom: 15px; }
-        .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.3); font-family: monospace;}
+        /* FIX: COMPACT TIMER AND JACKPOT HEADER */
+        .timer-header { background: var(--panel); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: center; gap: 20px; align-items: center; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .timer-box { display: flex; align-items: center; gap: 8px; }
+        .time-label { font-size: 11px; color: var(--text-gray); font-weight: bold; text-transform: uppercase;}
+        .time-val { font-size: 16px; font-weight: 900; color: var(--faded-green); font-family: monospace; letter-spacing: 1px;}
         
         /* Number Grid */
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; padding-bottom: 320px; } /* Increased padding-bottom so popup doesn't block numbers */
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; padding-bottom: 320px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
-        /* FIXED BET SLIP POPUP (NOW BOTTOM SHEET STYLE) */
-        .bet-slip-popup { 
-            position: fixed; 
-            bottom: 60px; /* Attaches exactly above the bottom navbar */
-            left: 50%; 
-            transform: translate(-50%, 120%); /* Hide below screen */
-            width: 100%; /* Full width mobile drawer */
-            max-width: 600px; 
-            background: rgba(11, 18, 31, 0.98); 
-            backdrop-filter: blur(10px); 
-            border-top: 2px solid var(--faded-green); 
-            border-radius: 20px 20px 0 0; /* Rounded top corners only */
-            padding: 15px 15px 25px 15px; 
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.9); 
-            z-index: 2000; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); 
-            box-sizing: border-box;
-        }
-        .bet-slip-popup.show { transform: translate(-50%, 0); } /* Slides perfectly to bottom edge */
+        /* FIXED BET SLIP POPUP (BOTTOM SHEET STYLE) */
+        .bet-slip-popup { position: fixed; bottom: 60px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 20px 20px 0 0; padding: 15px 15px 25px 15px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
+        .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 10px; margin-bottom: 15px; width: 100%; justify-content: flex-start; scrollbar-width: none; padding-bottom: 5px; min-height: 90px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
@@ -208,10 +192,20 @@
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
+    
+    <!-- COMPACT TIMER AND JACKPOT HEADER -->
     <div class="timer-header">
-        <div style="text-align:center;"><small style="color:var(--text-gray);" data-lang-am="ቀሪ ሰከንድ" data-lang-en="Time Left">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">00:25</span></div>
-        <div style="text-align:center;"><small style="color:var(--text-gray);">LIVE JACKPOT</small><br><span id="jp" class="time-val" style="color:gold;">0 ETB</span></div>
+        <div class="timer-box">
+            <span class="time-label" data-lang-am="ሰከንድ:" data-lang-en="TIME:">ሰከንድ:</span>
+            <span id="timer" class="time-val">00:25</span>
+        </div>
+        <div style="width: 1px; height: 20px; background: var(--border-color);"></div> <!-- Divider Line -->
+        <div class="timer-box">
+            <span class="time-label">JACKPOT:</span>
+            <span id="jp" class="time-val" style="color:gold;">0 ETB</span>
+        </div>
     </div>
+    
     <div style="text-align:center;">
         <p style="font-size: 13px; color: var(--white); margin: 0; font-weight: bold;" data-lang-am="ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ" data-lang-en="Select numbers to buy tickets">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ</p>
         <p style="font-size: 11px; color: var(--text-gray); margin-top: 5px;" data-lang-am="(1 ካርቴላ = 10 ብር)" data-lang-en="(1 Ticket = 10 ETB)">(1 ካርቴላ = 10 ብር)</p>
@@ -405,6 +399,9 @@
     let isLoginMode = false;
     let isGameRunningLocally = false;
     let currentLang = 'am';
+    
+    // TRACK GAME STATE TO PREVENT BUG
+    let currentGameState = null;
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -520,7 +517,6 @@
         box.style.display = box.style.display === 'none' ? 'block' : 'none';
     }
 
-    // ================== RANK PAGE JS PODIUM LOGIC ==================
     async function loadLeaderboard() {
         showPage('rank');
         const content = document.getElementById('rank-content');
@@ -551,16 +547,16 @@
     }
 
     function updateUIBalance() {
-        document.getElementById('hdr-main-balance').innerText = currentUser.mainBalance.toFixed(2) + " ETB";
-        document.getElementById('hdr-play-balance').innerText = currentUser.playBalance.toFixed(2) + " ETB";
-        document.getElementById('main-bal').innerText = currentUser.mainBalance.toFixed(2);
+        document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2) + " ETB";
+        document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2) + " ETB";
+        document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         
         let playElAm = document.getElementById('play-bal-am');
         let playElEn = document.getElementById('play-bal-en');
         let playEl = document.getElementById('play-bal');
-        if(playElAm) playElAm.innerText = currentUser.playBalance.toFixed(2);
-        if(playElEn) playElEn.innerText = currentUser.playBalance.toFixed(2);
-        if(playEl) playEl.innerText = currentUser.playBalance.toFixed(2);
+        if(playElAm) playElAm.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
+        if(playElEn) playElEn.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
+        if(playEl) playEl.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
     }
 
     function formatTime(seconds) {
@@ -569,7 +565,7 @@
         return `0${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    // ================== GAME LOGIC ==================
+    // ================== GAME LOGIC (BUG FIX APPLIED HERE) ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
@@ -587,26 +583,35 @@
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
             
-            document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
-            document.getElementById('history-scroll-top').innerHTML = '';
-            document.getElementById('history-scroll-bottom').innerHTML = '';
-            document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
-            document.getElementById('caller-ball').innerText = "--";
-            document.getElementById('g-balls').innerText = "0/20";
-            called = []; 
-            
-            if (currentUser) {
-                userTicketsData = []; pendingTicketsData = []; selected = [];
-                document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
-                updateBetPreview(); 
+            // RUN THIS ONLY ONCE WHEN GAME STATE CHANGES TO WAITING (Fixes the disappearing bug)
+            if (currentGameState !== "WAITING") {
+                currentGameState = "WAITING";
                 
-                document.getElementById('ticket-list').innerHTML = '';
-                document.getElementById('game-mini-tickets').innerHTML = '';
-                document.getElementById('t-info').innerText = currentLang === 'am' ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
+                document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
+                document.getElementById('history-scroll-top').innerHTML = '';
+                document.getElementById('history-scroll-bottom').innerHTML = '';
+                document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
+                document.getElementById('caller-ball').innerText = "--";
+                document.getElementById('g-balls').innerText = "0/20";
+                called = []; 
+                
+                if (currentUser) {
+                    // Wipes old PREVIOUS game tickets only
+                    userTicketsData = []; 
+                    pendingTicketsData = []; 
+                    selected = [];
+                    document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
+                    updateBetPreview(); 
+                    
+                    document.getElementById('ticket-list').innerHTML = '';
+                    document.getElementById('game-mini-tickets').innerHTML = '';
+                    document.getElementById('t-info').innerText = currentLang === 'am' ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
 
-                if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
+                    if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
+                }
             }
             
+            // Keep bet button active during waiting if tickets are selected
             if (selected.length > 0) {
                 document.getElementById('bet-btn').disabled = false;
                 document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW";
@@ -615,9 +620,12 @@
         } else if (data.state === "PLAYING") {
             isGameRunningLocally = true;
             document.getElementById('timer').innerText = "LIVE 🔴"; 
-            document.getElementById('bet-slip-popup').classList.remove('show');
-
-            if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
+            
+            if (currentGameState !== "PLAYING") {
+                currentGameState = "PLAYING";
+                document.getElementById('bet-slip-popup').classList.remove('show');
+                if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
+            }
 
             called = data.calledNumbers || [];
             document.getElementById('g-balls').innerText = called.length + "/20";
@@ -711,7 +719,15 @@
     function placeBet() { 
         if(selected.length === 0) return alert(currentLang === 'am' ? "ቢያንስ 1 ካርቴላ ይምረጡ!" : "Select at least 1 ticket!"); 
         let betAmount = selected.length * 10; 
-        if(currentUser.mainBalance < betAmount) { alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); showPage('wallet'); return; }
+        
+        // FIX: Ensure mainBalance is parsed properly before checking
+        let currentBal = parseFloat(currentUser.mainBalance) || 0;
+        
+        if(currentBal < betAmount) { 
+            alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); 
+            showPage('wallet'); 
+            return; 
+        }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; 
         document.getElementById('bet-btn').disabled = true; 
@@ -823,7 +839,11 @@
     async function processWithdraw() {
         let amt = parseFloat(document.getElementById('wit-amt').value); let method = document.querySelector('.pay-box.active').innerText;
         if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
-        if(amt > currentUser.playBalance) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
+        
+        // FIX: Ensure playBalance is parsed properly before checking
+        let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
+        
+        if(amt > currentPlayBal) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
         
         document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
         try { 
