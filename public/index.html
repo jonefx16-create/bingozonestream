@@ -28,7 +28,8 @@
         .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid #14532d; display: flex; justify-content: space-around; margin-bottom: 15px; }
         .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.3); font-family: monospace;}
         
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; padding-bottom: 100px; }
+        /* Grid Padding added so popup doesn't hide numbers */
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; padding-bottom: 250px; }
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
@@ -115,14 +116,15 @@
         .copy-box { background: #000; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--text-gray); margin-bottom: 15px; }
         .copy-btn { background: #161b22; border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;}
 
-        /* Profile Beautiful Buttons */
-        .prof-action-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 14px; margin-bottom: 10px; cursor: pointer; border: none; transition: 0.2s; text-transform: uppercase;}
-        .btn-lang { background: linear-gradient(135deg, #10b981, #047857); color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);}
-        .btn-history { background: linear-gradient(135deg, #f59e0b, #b45309); color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);}
-        .btn-change-pass { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);}
-        .btn-logout { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);}
-
+        /* Profile Beautiful List Buttons */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px;}
+        
+        .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
+        .prof-list-btn:hover { border-color: var(--faded-green); background: #1e293b; }
+        .prof-list-btn .icon-bg { background: #1e293b; padding: 8px; border-radius: 8px; margin-right: 15px; font-size: 16px;}
+        .prof-list-btn.logout { border-color: #7f1d1d; color: #ef4444; }
+        .prof-list-btn.logout:hover { background: #7f1d1d; color: white; }
+
         .rank-card { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 10px;}
         .rank-badge { width: 30px; height: 30px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;}
         
@@ -214,7 +216,7 @@
 <!-- 3. GAME PAGE (Live Board - Page 2) -->
 <div id="game-page" class="page">
 
-    <!-- Top 4 Info Boxes -->
+    <!-- Top 4 Info Boxes (Removed Tickets based on request) -->
     <div class="top-info-wrapper">
         <div class="top-info-box">
             <div class="info-title">ID</div>
@@ -281,9 +283,11 @@
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
     
     <div style="background: linear-gradient(135deg, #172554, #1e3a8a); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-align: center;">
-        <div style="color: #dbeafe; font-size: 13px; font-weight:bold;">ዋና ሂሳብ (Main Balance)</div>
+        <div style="color: #dbeafe; font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#93c5fd;">(ያላስገቡት/Deposit)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 10px 0; font-family: monospace; text-shadow: 0 2px 5px rgba(0,0,0,0.5);" id="main-bal">0.00</div>
-        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 15px;">መጫወቻ (Play Bal): <span id="play-bal">0.00</span> ETB</div>
+        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; display: inline-block;">
+            መጫወቻ ሂሳብ <span style="font-size:9px; color:var(--faded-green);">(ማውጣት ይቻላል)</span>: <b style="color:var(--faded-green);"><span id="play-bal">0.00</span> ETB</b>
+        </div>
         
         <div style="display: flex; gap: 10px; justify-content: center;">
             <button style="flex:1; background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight:bold; transition: 0.2s;" onclick="toggleForm('dep')">Deposit</button>
@@ -314,6 +318,7 @@
         <div class="pay-method-grid"><div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div><div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div><div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div></div>
         <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;">
         <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)">
+        <p style="font-size:10px; color:var(--text-gray); text-align:center; margin-bottom:15px;">* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።</p>
         <button class="auth-btn" style="background:linear-gradient(to right, #ea580c, #c2410c); color:white; font-size:16px;" onclick="processWithdraw()" id="lbl-wit-conf">ወጪ ጠይቅ (Withdraw)</button>
         <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
@@ -347,26 +352,40 @@
         </div>
     </div>
 
-    <!-- Beautiful Action Buttons -->
-    <button class="prof-action-btn btn-lang" onclick="alert('ቋንቋ መቀየሪያ በቅርቡ ይመጣል (Language switch coming soon)!')">🌐 ቋንቋ ቀይር (Language)</button>
-    
-    <button class="prof-action-btn btn-history" onclick="toggleHistoryBox()">📜 የገንዘብ ታሪክ (History)</button>
+    <!-- Beautiful Settings List Buttons -->
+    <div style="display:flex; flex-direction:column; gap:0px;">
+        <button class="prof-list-btn" onclick="alert('ቋንቋ መቀየሪያ በቅርቡ ይመጣል (Language switch coming soon)!')">
+            <div style="display:flex; align-items:center;"><span class="icon-bg">🌍</span> ቋንቋ ቀይር (Language)</div>
+            <span style="color:var(--text-gray)">></span>
+        </button>
+        
+        <button class="prof-list-btn" onclick="toggleHistoryBox()">
+            <div style="display:flex; align-items:center;"><span class="icon-bg">📜</span> የገንዘብ ታሪክ (History)</div>
+            <span style="color:var(--text-gray)">></span>
+        </button>
 
-    <!-- History Box (Hidden by default) -->
-    <div id="prof-history-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 10px; animation: fadeIn 0.3s;">
-        <p style="margin-top:0; color:var(--text-gray); font-size:12px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:8px; text-align:center;">የሂሳብ ዝውውር ታሪክ (Transaction History)</p>
-        <div id="prof-history-list"><p style="text-align:center; color:var(--text-gray); font-size:12px;">ታሪክ የለም (No History)</p></div>
+        <!-- History Box (Hidden by default) -->
+        <div id="prof-history-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 10px; animation: fadeIn 0.3s;">
+            <p style="margin-top:0; color:var(--text-gray); font-size:12px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:8px; text-align:center;">የሂሳብ ዝውውር ታሪክ (Transaction History)</p>
+            <div id="prof-history-list"><p style="text-align:center; color:var(--text-gray); font-size:12px;">ታሪክ የለም (No History)</p></div>
+        </div>
+
+        <button class="prof-list-btn" onclick="togglePasswordBox()">
+            <div style="display:flex; align-items:center;"><span class="icon-bg">🔐</span> የይለፍ ቃል (Password)</div>
+            <span style="color:var(--text-gray)">></span>
+        </button>
+        
+        <!-- Password Box (Hidden by default) -->
+        <div id="pass-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 10px; animation: fadeIn 0.3s;">
+            <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል (Old Password)">
+            <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል (New Password)">
+            <button class="auth-btn" style="background: var(--blue); color: white; margin-top: 5px;" onclick="changeUserPassword()">አረጋግጥ (Update)</button>
+        </div>
+
+        <button class="prof-list-btn logout" onclick="location.reload()">
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent;">🚪</span> ከሲስተም ውጣ (Logout)</div>
+        </button>
     </div>
-
-    <button class="prof-action-btn btn-change-pass" onclick="togglePasswordBox()">🔐 የይለፍ ቃል ቀይር (Change Password)</button>
-    
-    <div id="pass-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 10px; animation: fadeIn 0.3s;">
-        <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል (Old Password)">
-        <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል (New Password)">
-        <button class="auth-btn" style="background: var(--blue); color: white; margin-top: 5px;" onclick="changeUserPassword()">አረጋግጥ (Update)</button>
-    </div>
-
-    <button class="prof-action-btn btn-logout" onclick="location.reload()">🚪 ከሲስተም ውጣ (Logout)</button>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -696,7 +715,13 @@
     function placeBet() { 
         if(selected.length === 0) return alert("ቢያንስ 1 ካርቴላ ይምረጡ!"); 
         let betAmount = selected.length * 10; 
-        if(currentUser.mainBalance < betAmount) { alert("በቂ ሂሳብ የሎትም!"); showPage('wallet'); return; }
+        
+        // Deduction normally happens server side. Client side simulation to check if main balance has enough:
+        if(currentUser.mainBalance < betAmount) { 
+            alert("በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።"); 
+            showPage('wallet'); 
+            return; 
+        }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; 
         document.getElementById('bet-btn').disabled = true; 
@@ -875,8 +900,9 @@
     async function processWithdraw() {
         let amt = parseFloat(document.getElementById('wit-amt').value); 
         let method = document.querySelector('.pay-box.active').innerText;
+        
         if(!amt || amt <= 0) return alert("ትክክለኛ መጠን ያስገቡ!"); 
-        if(amt > currentUser.mainBalance) return alert("በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); 
+        if(amt > currentUser.playBalance) return alert("በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።"); 
         
         document.getElementById('lbl-wit-conf').innerText = "እየላከ ነው...";
         try { 
