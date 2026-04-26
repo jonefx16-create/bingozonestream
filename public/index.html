@@ -6,8 +6,8 @@
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
         :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #f8fafc; --blue: #3b82f6; --purple: #a855f7; --red: #ef4444;}
-        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; }
-        .page { display: none; padding: 15px; animation: fadeIn 0.3s; }
+        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -19,71 +19,81 @@
         
         .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; border-radius: 8px; }
         
-        .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid #14532d; display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid #14532d; display: flex; justify-content: space-around; margin-bottom: 15px; }
         .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.3);}
         
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 15px auto; width: fit-content; justify-content: center; }
-        .num-btn { width: 32px; height: 32px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; }
+        .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
-        .action-btn-row { display: flex; justify-content: center; gap: 15px; margin: 0 auto 20px auto; width: fit-content; }
-        .act-btn { width: 120px; background: #0a0f18; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .action-btn-row { display: flex; justify-content: center; gap: 15px; margin: 0 auto 15px auto; width: fit-content; }
+        .act-btn { width: 110px; background: #0a0f18; border: 1px solid var(--faded-green); color: var(--faded-green); padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
         /* ========================================= */
-        /* EXACT GAME PAGE (PAGE 2) STYLES */
+        /* EXACT GAME PAGE (PAGE 2) - SIDE BY SIDE FORCED */
         /* ========================================= */
-        #game-page { padding: 10px; max-width: 1400px; margin: 0 auto; overflow-x: hidden; }
+        #game-page { padding: 5px; max-width: 1200px; margin: 0 auto; overflow-x: hidden; }
+
+        /* Top Info Boxes */
+        .top-info-wrapper { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 4px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none;}
+        .top-info-wrapper::-webkit-scrollbar { display: none; }
+        .top-info-box { flex: 1; min-width: 55px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 2px; text-align: center; }
+        .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
+        .info-title { color: var(--text-gray); font-size: 9px; margin-bottom: 2px; font-weight: bold;}
+        .info-val { color: white; font-weight: bold; font-size: 12px; }
+        .info-val.highlight { color: var(--faded-green); }
         
         /* Top History Bar */
-        .history-top-bar { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; }
+        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; }
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;}
+        .hist-top-ball { min-width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px;}
 
-        /* Game Layout container */
-        .game-layout-container { display: flex; flex-direction: row; flex-wrap: wrap; gap: 40px; align-items: flex-start; justify-content: center; }
+        /* Game Layout container (FORCED SIDE-BY-SIDE) */
+        .game-layout-container { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 3%; align-items: flex-start; justify-content: space-between; width: 100%; }
 
         /* Left Side: Master Board (1-75) */
-        .master-board-wrapper { flex: 0 0 auto; background: transparent; }
-        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #1e293b; border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; }
-        .mb-head { width: 55px; height: 35px; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;}
-        .mb-cell { width: 55px; height: 32px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
+        .master-board-wrapper { width: 55%; flex: 0 0 55%; background: transparent; }
+        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; overflow: hidden; width: 100%;}
+        .mb-head { aspect-ratio: 1.5/1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;}
+        .mb-cell { aspect-ratio: 1.5/1; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
         .mb-cell.called { background: var(--orange); color: white; font-weight: 900;}
-        .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 10px rgba(74,222,128,0.8); position: relative; z-index: 2;}
+        .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 5px rgba(74,222,128,0.8); position: relative; z-index: 2; transform: scale(1.05);}
 
         /* Right Side: Stack */
-        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 320px; max-width: 700px; }
+        .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; gap: 10px; }
 
         /* Caller Box */
-        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; }
-        .caller-ball { width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; border: 6px solid var(--faded-green); box-shadow: 0 0 40px rgba(74, 222, 128, 0.5), inset 0 0 15px rgba(74, 222, 128, 0.3);}
+        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 90px; display: flex; align-items: center; justify-content: center; }
+        .caller-ball { width: 60px; height: 60px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.3);}
 
         /* Tickets Box */
-        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center;}
+        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; align-items: center;}
         
-        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; margin-top: 15px; margin-bottom: 20px;}
-        .mini-t-card { background: white; width: 100%; max-width: 250px; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
+        /* 2 by 2 Tickets Grid for Game Page (Extremely Compact) */
+        .game-mini-tickets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; width: 100%; margin-top: 5px; margin-bottom: 10px;}
+        .mini-t-card { background: white; width: 100%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
-        .mini-t-head { color: white; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
-        .mini-t-cell { background: #fff; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; color: #000;}
+        .mini-t-head { color: white; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px;}
+        .mini-t-cell { background: #fff; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: center;}
-        .hist-bot-ball { min-width: 35px; height: 35px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px;}
+        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; justify-content: center;}
+        .hist-bot-ball { min-width: 20px; height: 20px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px;}
 
         /* ========================================= */
-        /* Tickets Wallet Page */
+        /* Tickets Wallet Page (Small 2x2 Grid) */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
-        .t-card { background: #fff; color: #000; border-radius: 8px; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
+        .t-card { background: #fff; color: #000; border-radius: 8px; padding: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
         .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #000;}
-        .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; }
+        .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
         /* Bingo Win Overlay */
         .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
-        .bingo-text { font-size: 70px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px;}
+        .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 3px;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
-        .winner-card { background: var(--panel); padding: 30px 50px; border-radius: 20px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); }
+        .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
 
         .transaction-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 15px; display: none; }
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
@@ -108,10 +118,10 @@
     <h1 class="bingo-text">BINGO!</h1>
     <div class="winner-card">
         <h3 style="margin:0; color:var(--text-gray);">አሸናፊ (Winner)</h3>
-        <h2 id="win-name" style="margin:10px 0 15px 0; color:white; font-size:32px;">---</h2>
-        <p style="margin:5px 0; font-size:16px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
-        <p style="margin:5px 0; font-size:16px; color:var(--text-gray);">የገንዘብ ሽልማት: <b style="color:gold; font-size: 20px;" id="win-prize">0 ETB</b></p>
-        <p style="margin-top:20px; font-size:12px; color:var(--text-gray); animation: fadeIn 1s infinite alternate;" id="next-game-timer">ወደ መነሻ ገፅ እየመለሰ ነው...</p>
+        <h2 id="win-name" style="margin:10px 0 15px 0; color:white; font-size:26px;">---</h2>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">የገንዘብ ሽልማት: <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
+        <p style="margin-top:20px; font-size:11px; color:var(--text-gray); animation: fadeIn 1s infinite alternate;" id="next-game-timer">ወደ መነሻ ገፅ እየመለሰ ነው...</p>
     </div>
 </div>
 
@@ -166,10 +176,35 @@
 
 <!-- 3. GAME PAGE (Live Board - Page 2) -->
 <div id="game-page" class="page">
+
+    <!-- Top 5 Info Boxes (Scrollable on small screens) -->
+    <div class="top-info-wrapper">
+        <div class="top-info-box">
+            <div class="info-title">ID</div>
+            <div class="info-val" id="g-id">#---</div>
+        </div>
+        <div class="top-info-box">
+            <div class="info-title">Tickets</div>
+            <div class="info-val" id="g-players">0</div>
+        </div>
+        <div class="top-info-box">
+            <div class="info-title">Bet</div>
+            <div class="info-val">10.00</div>
+        </div>
+        <div class="top-info-box prize-box">
+            <div class="info-title">Prize Pool</div>
+            <div class="info-val highlight" id="g-prize">0.00</div>
+        </div>
+        <div class="top-info-box">
+            <div class="info-title">Balls</div>
+            <div class="info-val" id="g-balls">0/20</div>
+        </div>
+    </div>
+
     <!-- Top Left History Bar -->
     <div id="history-scroll-top" class="history-top-bar"></div>
 
-    <!-- MAIN SIDE-BY-SIDE LAYOUT -->
+    <!-- MAIN SIDE-BY-SIDE LAYOUT (Forced Side-by-Side even on mobile) -->
     <div class="game-layout-container"> 
         
         <!-- Left Side: Master Board (1-75) -->
@@ -180,17 +215,16 @@
         <!-- Right Side: Stack -->
         <div class="right-panel-stack">
             
-            <!-- Large Caller Ball -->
+            <!-- Caller Ball -->
             <div class="caller-box">
                 <div id="caller-ball" class="caller-ball">--</div>
             </div>
             
             <!-- Game Status & Tickets -->
             <div class="tickets-history-box">
-                <p style="color: var(--text-gray); font-size: 14px; margin:0 0 10px 0;">የጨዋታው ሁኔታ</p>
-                <div style="color: var(--faded-green); font-size: 16px; font-weight: bold; margin-bottom: 10px;">ቁጥሮችን በመጠበቅ ላይ...</div>
+                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">LIVE BINGO</div>
                 
-                <!-- White Tickets Container -->
+                <!-- 2 by 2 White Tickets Container -->
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
                 
                 <!-- Bottom History Bar -->
@@ -204,6 +238,7 @@
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;">የእኔ ካርቴላዎች</h3>
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
+    <!-- 2x2 grid is applied here via CSS #ticket-list -->
     <div id="ticket-list"></div>
 </div>
 
@@ -426,6 +461,11 @@
 
     socket.on('game_status', (data) => {
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
+        
+        // Update Info Boxes
+        if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
+        if(data.totalTickets !== undefined) document.getElementById('g-players').innerText = data.totalTickets;
+        document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
@@ -441,6 +481,7 @@
             document.getElementById('history-scroll-top').innerHTML = '';
             document.getElementById('history-scroll-bottom').innerHTML = '';
             document.getElementById('caller-ball').innerText = "--";
+            document.getElementById('g-balls').innerText = "0/20";
             called = []; 
             
             if (currentUser && document.getElementById('game-page').classList.contains('active-page')) {
@@ -464,6 +505,7 @@
             }
 
             called = data.calledNumbers || [];
+            document.getElementById('g-balls').innerText = called.length + "/20";
             
             // Sync UI if joined late
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
@@ -479,6 +521,7 @@
     socket.on('new_number', (num) => {
         if (!isGameRunningLocally) return;
         called.push(num); 
+        document.getElementById('g-balls').innerText = called.length + "/20";
         updateLiveUI(num, true);
         
         userTicketsData.forEach(t => { 
@@ -584,7 +627,7 @@
             let card = document.createElement('div'); card.className = 't-card'; 
             let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
             
-            let htmlMain = `<div style="text-align:center; font-size:13px; font-weight:900; margin-bottom:5px; color:#1e293b;">#${id}</div><div class="t-grid">`; 
+            let htmlMain = `<div style="text-align:center; font-size:11px; font-weight:900; margin-bottom:3px; color:#1e293b;">#${id}</div><div class="t-grid">`; 
             let htmlMini = `<div class="mini-t-grid">`;
             
             for(let i=0; i<5; i++) { 
