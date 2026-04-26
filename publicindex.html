@@ -37,7 +37,8 @@
         .bet-slip-popup { position: fixed; bottom: 70px; left: 50%; transform: translate(-50%, 150%); width: 92%; max-width: 400px; background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(8px); border: 2px solid var(--faded-green); border-radius: 15px; padding: 15px; box-shadow: 0 -10px 30px rgba(0,0,0,0.8); z-index: 100; display: none; flex-direction: column; align-items: center; transition: transform 0.3s ease-out; box-sizing: border-box;}
         .bet-slip-popup.show { display: flex; transform: translate(-50%, 0); }
         
-        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 10px; margin-bottom: 15px; width: 100%; justify-content: flex-start; scrollbar-width: none; padding-bottom: 5px; }
+        /* min-height added below to fix popup flickering when selected numbers change */
+        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 10px; margin-bottom: 15px; width: 100%; justify-content: flex-start; scrollbar-width: none; padding-bottom: 5px; min-height: 90px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 75px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; padding: 2px;}
         .preview-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
@@ -139,11 +140,10 @@
 <div id="bingo-overlay" class="bingo-overlay">
     <h1 class="bingo-text">BINGO!</h1>
     <div class="winner-card">
-        <h3 style="margin:0; color:var(--text-gray);">አሸናፊ (Winner)</h3>
+        <h3 style="margin:0; color:var(--text-gray);" data-lang-am="አሸናፊ (Winner)" data-lang-en="Winner">አሸናፊ (Winner)</h3>
         <h2 id="win-name" style="margin:10px 0 15px 0; color:white; font-size:26px;">---</h2>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">የገንዘብ ሽልማት: <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
-        <p style="margin-top:20px; font-size:11px; color:var(--text-gray); animation: fadeIn 1s infinite alternate;" id="next-game-timer">ወደ መነሻ ገፅ እየመለሰ ነው...</p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="የገንዘብ ሽልማት:" data-lang-en="Cash Prize:">የገንዘብ ሽልማት:</span> <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
     </div>
 </div>
 
@@ -153,13 +153,13 @@
         <h1 style="color:var(--faded-green); margin:0; font-weight: 900; letter-spacing: 1px;">BINGO STREAM</h1>
         <p id="auth-subtitle" style="font-size: 13px; color: var(--text-gray); margin-bottom: 25px;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
         
-        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)">
-        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)">
-        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" onkeyup="v()">
+        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" data-lang-am="ሙሉ ስም (Full Name)" data-lang-en="Full Name">
+        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)" data-lang-am="ስልክ ቁጥር (Phone Number)" data-lang-en="Phone Number">
+        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" data-lang-am="የይለፍ ቃል (Password)" data-lang-en="Password" onkeyup="v()">
         
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 15px 0; color: var(--text-gray); line-height: 1.8;">
-            <input type="checkbox" id="c1" onchange="v()"> <span>እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
-            <input type="checkbox" id="c2" onchange="v()"> <span>በውልና ደንቦች እስማማለሁ</span>
+            <input type="checkbox" id="c1" onchange="v()"> <span data-lang-am="እድሜዬ 21+ መሆኑን አረጋግጣለሁ" data-lang-en="I confirm I am 21+">እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
+            <input type="checkbox" id="c2" onchange="v()"> <span data-lang-am="በውልና ደንቦች እስማማለሁ" data-lang-en="I agree to Terms & Conditions">በውልና ደንቦች እስማማለሁ</span>
         </div>
         
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (Register)</button>
@@ -175,11 +175,11 @@
     </div>
     <div class="hdr-wallet-box">
         <div class="hdr-bal-row">
-            <span>ዋና ሂሳብ:</span>
+            <span data-lang-am="ዋና ሂሳብ:" data-lang-en="Main Bal:">ዋና ሂሳብ:</span>
             <span id="hdr-main-balance" style="color: var(--faded-green); font-weight:bold;">0.00 ETB</span>
         </div>
         <div class="hdr-bal-row">
-            <span>መጫወቻ:</span>
+            <span data-lang-am="መጫወቻ:" data-lang-en="Play Bal:">መጫወቻ:</span>
             <span id="hdr-play-balance" style="color: var(--blue); font-weight:bold;">0.00 ETB</span>
         </div>
     </div>
@@ -188,12 +188,12 @@
 <!-- 2. HOME PAGE (Number Selection up to 200) -->
 <div id="home-page" class="page">
     <div class="timer-header">
-        <div style="text-align:center;"><small style="color:var(--text-gray);">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">00:25</span></div>
+        <div style="text-align:center;"><small style="color:var(--text-gray);" data-lang-am="ቀሪ ሰከንድ" data-lang-en="Time Left">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">00:25</span></div>
         <div style="text-align:center;"><small style="color:var(--text-gray);">LIVE JACKPOT</small><br><span id="jp" class="time-val" style="color:gold;">0 ETB</span></div>
     </div>
     <div style="text-align:center;">
-        <p style="font-size: 13px; color: var(--white); margin: 0; font-weight: bold;">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ</p>
-        <p style="font-size: 11px; color: var(--text-gray); margin-top: 5px;">(1 ካርቴላ = 10 ብር)</p>
+        <p style="font-size: 13px; color: var(--white); margin: 0; font-weight: bold;" data-lang-am="ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ" data-lang-en="Select numbers to buy tickets">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ</p>
+        <p style="font-size: 11px; color: var(--text-gray); margin-top: 5px;" data-lang-am="(1 ካርቴላ = 10 ብር)" data-lang-en="(1 Ticket = 10 ETB)">(1 ካርቴላ = 10 ብር)</p>
         
         <!-- 1 to 200 grid -->
         <div id="grid-box" class="num-grid"></div>
@@ -203,20 +203,19 @@
 <!-- FIXED BET SLIP (Appears above bottom nav when numbers are clicked) -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:8px;">
-        <span style="color:white; font-size:12px; font-weight:bold;">የመረጧቸው ካርቴላዎች: <span id="slip-count" style="color:var(--faded-green);">0</span></span>
+        <span style="color:white; font-size:12px; font-weight:bold;"><span id="lbl-sel-tickets" data-lang-am="የመረጧቸው ካርቴላዎች: " data-lang-en="Selected Tickets: ">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:14px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
     
     <!-- Ticket Previews Box -->
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
 
-    <button onclick="placeBet()" id="bet-btn" class="auth-btn" style="width: 100%; font-size: 15px;">BET NOW (ወራረድ)</button>
+    <button onclick="placeBet()" id="bet-btn" class="auth-btn" style="width: 100%; font-size: 15px;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
 </div>
 
 <!-- 3. GAME PAGE (Live Board - Page 2) -->
 <div id="game-page" class="page">
-
-    <!-- Top 4 Info Boxes (Removed Tickets based on request) -->
+    <!-- Top 4 Info Boxes -->
     <div class="top-info-wrapper">
         <div class="top-info-box">
             <div class="info-title">ID</div>
@@ -265,10 +264,10 @@
 
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
-    <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;">የእኔ ካርቴላዎች</h3>
+    <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
     
     <!-- Tickets Page Called Numbers History Bar -->
-    <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;">የወጡ ኳሶች (Called Numbers)</div>
+    <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     <div id="ticket-history-bar" class="history-top-bar" style="background:var(--panel); border-radius:8px; padding:10px; margin-bottom:20px;">
         <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
     </div>
@@ -280,12 +279,12 @@
 
 <!-- 5. WALLET PAGE -->
 <div id="wallet-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
+    <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ሂሳብ (Wallet)" data-lang-en="My Wallet">የእኔ ሂሳብ (Wallet)</h3>
     
     <div style="background: linear-gradient(135deg, #172554, #1e3a8a); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-align: center;">
-        <div style="color: #dbeafe; font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#93c5fd;">(ያላስገቡት/Deposit)</span></div>
+        <div style="color: #dbeafe; font-size: 13px; font-weight:bold;" data-lang-am="ዋና ሂሳብ <span style='font-size:9px; color:#93c5fd;'>(ያላስገቡት/Deposit)</span>" data-lang-en="Main Balance <span style='font-size:9px; color:#93c5fd;'>(Deposit)</span>">ዋና ሂሳብ <span style="font-size:9px; color:#93c5fd;">(ያላስገቡት/Deposit)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 10px 0; font-family: monospace; text-shadow: 0 2px 5px rgba(0,0,0,0.5);" id="main-bal">0.00</div>
-        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; display: inline-block;">
+        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; display: inline-block;" data-lang-am="መጫወቻ ሂሳብ <span style='font-size:9px; color:var(--faded-green);'>(ማውጣት ይቻላል)</span>: <b style='color:var(--faded-green);'><span id='play-bal-am'>0.00</span> ETB</b>" data-lang-en="Play Balance <span style='font-size:9px; color:var(--faded-green);'>(Withdrawable)</span>: <b style='color:var(--faded-green);'><span id='play-bal-en'>0.00</span> ETB</b>">
             መጫወቻ ሂሳብ <span style="font-size:9px; color:var(--faded-green);">(ማውጣት ይቻላል)</span>: <b style="color:var(--faded-green);"><span id="play-bal">0.00</span> ETB</b>
         </div>
         
@@ -296,37 +295,36 @@
     </div>
     
     <div id="sec-dep" class="transaction-box">
-        <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;">ገንዘብ ማስገቢያ መንገድ ይምረጡ</p>
+        <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;" data-lang-am="ገንዘብ ማስገቢያ መንገድ ይምረጡ" data-lang-en="Choose deposit method">ገንዘብ ማስገቢያ መንገድ ይምረጡ</p>
         <div class="pay-method-grid"><div class="pay-box active" onclick="setDepMethod('telebirr', this)">Telebirr</div><div class="pay-box" onclick="setDepMethod('cbe', this)">CBE Birr</div><div class="pay-box" onclick="setDepMethod('mpesa', this)">M-Pesa</div></div>
         <div class="copy-box">
-            <div><small style="color:var(--text-gray); font-size:11px;">የአካውንት ስም:</small><br><b id="dep-name" style="font-size:14px; color:white;">Tsedey Abebe</b><br><small style="color:var(--text-gray); font-size:11px; margin-top:8px; display:inline-block;">ወደዚህ ቁጥር ያስገቡ:</small><br><b id="dep-acc" style="font-size:20px; color:var(--blue); font-family:monospace; letter-spacing: 1px;">0933638022</b></div>
+            <div><small style="color:var(--text-gray); font-size:11px;" data-lang-am="የአካውንት ስም:" data-lang-en="Account Name:">የአካውንት ስም:</small><br><b id="dep-name" style="font-size:14px; color:white;">Tsedey Abebe</b><br><small style="color:var(--text-gray); font-size:11px; margin-top:8px; display:inline-block;" data-lang-am="ወደዚህ ቁጥር ያስገቡ:" data-lang-en="Send to this number:">ወደዚህ ቁጥር ያስገቡ:</small><br><b id="dep-acc" style="font-size:20px; color:var(--blue); font-family:monospace; letter-spacing: 1px;">0933638022</b></div>
             <button class="copy-btn" onclick="copyNumber()">Copy</button>
         </div>
-        <input type="number" id="dep-amt" class="auth-input" placeholder="መጠን (Amount)">
+        <input type="number" id="dep-amt" class="auth-input" placeholder="መጠን (Amount)" data-lang-am="መጠን (Amount)" data-lang-en="Amount">
         
-        <!-- Upload Receipt Beautiful Button -->
-        <label for="dep-receipt" class="upload-btn">📸 የባንክ ደረሰኝ አስገባ (Upload Receipt)</label>
+        <label for="dep-receipt" class="upload-btn" data-lang-am="📸 የባንክ ደረሰኝ አስገባ (Upload Receipt)" data-lang-en="📸 Upload Receipt">📸 የባንክ ደረሰኝ አስገባ (Upload Receipt)</label>
         <input type="file" id="dep-receipt" accept="image/*" onchange="document.getElementById('receipt-name').innerHTML = '✅ ' + this.files[0].name" style="display:none;">
         <div id="receipt-name" style="color:var(--faded-green); font-size:11px; margin-bottom:10px; font-weight:bold; text-align:center;"></div>
 
-        <button class="auth-btn" style="background:linear-gradient(to right, #2563eb, #1d4ed8); color:white; font-size: 16px;" onclick="processDeposit()" id="lbl-dep-conf">ዲፖዚት አረጋግጥ</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
+        <button class="auth-btn" style="background:linear-gradient(to right, #2563eb, #1d4ed8); color:white; font-size: 16px;" onclick="processDeposit()" id="lbl-dep-conf" data-lang-am="ዲፖዚት አረጋግጥ" data-lang-en="Confirm Deposit">ዲፖዚት አረጋግጥ</button>
+        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
     </div>
 
     <div id="sec-wit" class="transaction-box">
-        <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;">ወጪ ማድረጊያ መንገድ ይምረጡ</p>
+        <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;" data-lang-am="ወጪ ማድረጊያ መንገድ ይምረጡ" data-lang-en="Choose withdraw method">ወጪ ማድረጊያ መንገድ ይምረጡ</p>
         <div class="pay-method-grid"><div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div><div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div><div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div></div>
-        <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;">
-        <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)">
-        <p style="font-size:10px; color:var(--text-gray); text-align:center; margin-bottom:15px;">* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።</p>
-        <button class="auth-btn" style="background:linear-gradient(to right, #ea580c, #c2410c); color:white; font-size:16px;" onclick="processWithdraw()" id="lbl-wit-conf">ወጪ ጠይቅ (Withdraw)</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
+        <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;" readonly>
+        <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)" data-lang-am="የሚወጣው መጠን (Amount)" data-lang-en="Withdraw Amount">
+        <p style="font-size:10px; color:var(--text-gray); text-align:center; margin-bottom:15px;" data-lang-am="* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።" data-lang-en="* Withdrawals allowed only from play balance.">* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።</p>
+        <button class="auth-btn" style="background:linear-gradient(to right, #ea580c, #c2410c); color:white; font-size:16px;" onclick="processWithdraw()" id="lbl-wit-conf" data-lang-am="ወጪ ጠይቅ (Withdraw)" data-lang-en="Request Withdraw">ወጪ ጠይቅ (Withdraw)</button>
+        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
     </div>
 </div>
 
 <!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
-    <h3 style="text-align:center; color:#3b82f6; margin-top: 0; font-size: 20px;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
+    <h3 style="text-align:center; color:#3b82f6; margin-top: 0; font-size: 20px;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div style="background: var(--panel); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);" id="rank-content">
         <p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p>
     </div>
@@ -334,7 +332,7 @@
 
 <!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 20px;">👤 የእኔ ፕሮፋይል</h3>
+    <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="👤 የእኔ ፕሮፋይል" data-lang-en="👤 My Profile">👤 የእኔ ፕሮፋይል</h3>
     
     <div class="profile-stat-box">
         <h2 id="prof-name" style="margin: 0; color: white;">User Name</h2>
@@ -343,47 +341,39 @@
 
     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue);">
-            <div style="font-size: 12px; color: var(--text-gray);">የተጫወቱት (Played)</div>
+            <div style="font-size: 12px; color: var(--text-gray);" data-lang-am="የተጫወቱት (Played)" data-lang-en="Played">የተጫወቱት (Played)</div>
             <div style="font-size: 24px; font-weight: bold; color: var(--blue);" id="prof-played">0</div>
         </div>
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green);">
-            <div style="font-size: 12px; color: var(--text-gray);">ያሸነፉት (Won)</div>
+            <div style="font-size: 12px; color: var(--text-gray);" data-lang-am="ያሸነፉት (Won)" data-lang-en="Won">ያሸነፉት (Won)</div>
             <div style="font-size: 24px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div>
         </div>
     </div>
 
-    <!-- Beautiful Settings List Buttons -->
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <button class="prof-list-btn" onclick="alert('ቋንቋ መቀየሪያ በቅርቡ ይመጣል (Language switch coming soon)!')">
-            <div style="display:flex; align-items:center;"><span class="icon-bg">🌍</span> ቋንቋ ቀይር (Language)</div>
+        <button class="prof-list-btn" onclick="toggleLanguage()">
+            <div style="display:flex; align-items:center;"><span class="icon-bg">🌍</span> <span data-lang-am="ቋንቋ ቀይር (Language)" data-lang-en="Switch Language">ቋንቋ ቀይር (Language)</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
         
         <button class="prof-list-btn" onclick="toggleHistoryBox()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg">📜</span> የገንዘብ ታሪክ (History)</div>
+            <div style="display:flex; align-items:center;"><span class="icon-bg">📜</span> <span data-lang-am="የገንዘብ ታሪክ (History)" data-lang-en="Transaction History">የገንዘብ ታሪክ (History)</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
 
-        <!-- History Box (Hidden by default) -->
         <div id="prof-history-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 10px; animation: fadeIn 0.3s;">
-            <p style="margin-top:0; color:var(--text-gray); font-size:12px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:8px; text-align:center;">የሂሳብ ዝውውር ታሪክ (Transaction History)</p>
-            <div id="prof-history-list"><p style="text-align:center; color:var(--text-gray); font-size:12px;">ታሪክ የለም (No History)</p></div>
+            <p style="margin-top:0; color:var(--text-gray); font-size:12px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:8px; text-align:center;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Transaction History)" data-lang-en="Transaction History">የሂሳብ ዝውውር ታሪክ (Transaction History)</p>
+            <div id="prof-history-list"><p style="text-align:center; color:var(--text-gray); font-size:12px;">ታሪክ የለም</p></div>
         </div>
 
-        <button class="prof-list-btn" onclick="togglePasswordBox()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg">🔐</span> የይለፍ ቃል (Password)</div>
+        <!-- NEW FORGOT PASSWORD ALERT BUTTON -->
+        <button class="prof-list-btn" onclick="alert(currentLang === 'am' ? 'የይለፍ ቃል ለመቀየር የደንበኞች አገልግሎትን ያነጋግሩ: @Bingohabesha' : 'To change your password, contact support: @Bingohabesha')">
+            <div style="display:flex; align-items:center;"><span class="icon-bg">🔐</span> <span data-lang-am="የይለፍ ቃል (Password)" data-lang-en="Password">የይለፍ ቃል (Password)</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
-        
-        <!-- Password Box (Hidden by default) -->
-        <div id="pass-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 10px; animation: fadeIn 0.3s;">
-            <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል (Old Password)">
-            <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል (New Password)">
-            <button class="auth-btn" style="background: var(--blue); color: white; margin-top: 5px;" onclick="changeUserPassword()">አረጋግጥ (Update)</button>
-        </div>
 
         <button class="prof-list-btn logout" onclick="location.reload()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent;">🚪</span> ከሲስተም ውጣ (Logout)</div>
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent;">🚪</span> <span data-lang-am="ከሲስተም ውጣ (Logout)" data-lang-en="Logout">ከሲስተም ውጣ (Logout)</span></div>
         </button>
     </div>
 </div>
@@ -406,23 +396,75 @@
     let userTicketsData = []; 
     let isLoginMode = false;
     let isGameRunningLocally = false;
+    let currentLang = 'am';
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
-    // Initial builds
     buildMasterBoard();
 
-    // ================== 1. AUTHENTICATION & PROFILE ==================
+    // ================== LANGUAGE SWITCHER ==================
+    function toggleLanguage() {
+        currentLang = currentLang === 'am' ? 'en' : 'am';
+        
+        document.querySelectorAll('[data-lang-am]').forEach(el => {
+            if(el.tagName === 'INPUT') {
+                el.placeholder = el.getAttribute(`data-lang-${currentLang}`);
+            } else {
+                el.innerHTML = el.getAttribute(`data-lang-${currentLang}`);
+            }
+        });
+
+        if(isLoginMode) {
+            document.getElementById('start-btn').innerText = currentLang === 'am' ? "ግባ (Login)" : "Login";
+            document.getElementById('auth-subtitle').innerText = currentLang === 'am' ? "ወደ አካውንትዎ ይግቡ" : "Login to your account";
+            document.getElementById('toggle-auth-text').innerText = currentLang === 'am' ? "አዲስ አካውንት ይክፈቱ (Register)" : "Create a new account (Register)";
+        } else {
+            document.getElementById('start-btn').innerText = currentLang === 'am' ? "ወደ ጌም ግባ (Register)" : "Register";
+            document.getElementById('auth-subtitle').innerText = currentLang === 'am' ? "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)" : "Register (100 ETB Bonus)";
+            document.getElementById('toggle-auth-text').innerText = currentLang === 'am' ? "አካውንት አለዎት? ይግቡ (Login)" : "Already have an account? Login";
+        }
+
+        // Play Balance format fixing based on lang
+        if(document.getElementById('play-bal')) {
+            let bal = currentUser ? currentUser.playBalance.toFixed(2) : "0.00";
+            if (currentLang === 'am') {
+                document.getElementById('play-bal-am').innerText = bal;
+            } else {
+                document.getElementById('play-bal-en').innerText = bal;
+            }
+        }
+
+        if(document.getElementById('t-info')) {
+            if(userTicketsData.length === 0) {
+                document.getElementById('t-info').innerText = currentLang === 'am' ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
+            } else {
+                document.getElementById('t-info').innerText = (currentLang === 'am' ? "የገዙት ካርቴላ ብዛት: " : "Tickets bought: ") + userTicketsData.length;
+            }
+        }
+        
+        if(document.getElementById('ticket-history-bar').innerText.includes("ገና") || document.getElementById('ticket-history-bar').innerText.includes("Not started")) {
+            document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
+        }
+    }
+
+    // ================== AUTHENTICATION & PROFILE ==================
     function toggleAuthMode() {
         isLoginMode = !isLoginMode;
         document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block';
         document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('auth-subtitle').innerText = isLoginMode ? "ወደ አካውንትዎ ይግቡ" : "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
-        document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (Login)" : "መዝገብ (Register)";
-        document.getElementById('toggle-auth-text').innerText = isLoginMode ? "አዲስ አካውንት ይክፈቱ (Register)" : "አካውንት አለዎት? ይግቡ (Login)";
+        
+        if (currentLang === 'am') {
+            document.getElementById('auth-subtitle').innerText = isLoginMode ? "ወደ አካውንትዎ ይግቡ" : "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
+            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (Login)" : "መዝገብ (Register)";
+            document.getElementById('toggle-auth-text').innerText = isLoginMode ? "አዲስ አካውንት ይክፈቱ (Register)" : "አካውንት አለዎት? ይግቡ (Login)";
+        } else {
+            document.getElementById('auth-subtitle').innerText = isLoginMode ? "Login to your account" : "Register (100 ETB Bonus)";
+            document.getElementById('start-btn').innerText = isLoginMode ? "Login" : "Register";
+            document.getElementById('toggle-auth-text').innerText = isLoginMode ? "Create a new account (Register)" : "Already have an account? Login";
+        }
         v();
     }
 
@@ -430,7 +472,8 @@
 
     async function authAction() {
         let phone = document.getElementById('reg-phone').value, pass = document.getElementById('reg-pass').value, name = document.getElementById('reg-name').value;
-        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').innerText = currentLang === 'am' ? "እባክዎ ይጠብቁ..." : "Please wait..."; 
+        document.getElementById('start-btn').disabled = true;
         
         let endpoint = isLoginMode ? '/api/login' : '/api/register';
         let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name}) });
@@ -456,7 +499,7 @@
             handleHomeNav();
         } else {
             alert(data.message);
-            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (Login)" : "መዝገብ (Register)";
+            document.getElementById('start-btn').innerText = isLoginMode ? (currentLang === 'am' ? "ግባ (Login)" : "Login") : (currentLang === 'am' ? "መዝገብ (Register)" : "Register");
             document.getElementById('start-btn').disabled = false;
         }
     }
@@ -473,42 +516,22 @@
         }
     }
 
-    function togglePasswordBox() {
-        let box = document.getElementById('pass-box');
-        box.style.display = box.style.display === 'none' ? 'block' : 'none';
-    }
-
     function toggleHistoryBox() {
         let box = document.getElementById('prof-history-box');
         box.style.display = box.style.display === 'none' ? 'block' : 'none';
     }
 
-    async function changeUserPassword() {
-        let oldPass = document.getElementById('old-pass').value;
-        let newPass = document.getElementById('new-pass').value;
-        if(!oldPass || !newPass) return alert("እባክዎ ሁለቱንም ያስገቡ!");
-        
-        let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
-        let data = await res.json();
-        alert(data.message);
-        if(data.success) {
-            document.getElementById('old-pass').value = '';
-            document.getElementById('new-pass').value = '';
-            togglePasswordBox();
-        }
-    }
-
     async function loadLeaderboard() {
         showPage('rank');
         const content = document.getElementById('rank-content');
-        content.innerHTML = '<p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p>';
+        content.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:13px;">${currentLang === 'am' ? 'እየጫነ ነው...' : 'Loading...'}</p>`;
         try {
             let res = await fetch('/api/leaderboard');
             let data = await res.json();
             if(data.success) {
                 content.innerHTML = '';
                 if(data.leaderboard.length === 0) {
-                    content.innerHTML = '<p style="text-align:center; color:var(--text-gray); font-size:13px;">እስካሁን አሸናፊ የለም</p>';
+                    content.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:13px;">${currentLang === 'am' ? 'እስካሁን አሸናፊ የለም' : 'No winners yet'}</p>`;
                 } else {
                     data.leaderboard.forEach((u, i) => {
                         content.innerHTML += `
@@ -522,14 +545,20 @@
                     });
                 }
             }
-        } catch(e) { content.innerHTML = '<p style="text-align:center; color:var(--red);">ስህተት አጋጥሟል</p>'; }
+        } catch(e) { content.innerHTML = `<p style="text-align:center; color:var(--red);">${currentLang === 'am' ? 'ስህተት አጋጥሟል' : 'Error occurred'}</p>`; }
     }
 
     function updateUIBalance() {
         document.getElementById('hdr-main-balance').innerText = currentUser.mainBalance.toFixed(2) + " ETB";
         document.getElementById('hdr-play-balance').innerText = currentUser.playBalance.toFixed(2) + " ETB";
         document.getElementById('main-bal').innerText = currentUser.mainBalance.toFixed(2);
-        document.getElementById('play-bal').innerText = currentUser.playBalance.toFixed(2);
+        
+        let playElAm = document.getElementById('play-bal-am');
+        let playElEn = document.getElementById('play-bal-en');
+        let playEl = document.getElementById('play-bal');
+        if(playElAm) playElAm.innerText = currentUser.playBalance.toFixed(2);
+        if(playElEn) playElEn.innerText = currentUser.playBalance.toFixed(2);
+        if(playEl) playEl.innerText = currentUser.playBalance.toFixed(2);
     }
 
     function formatTime(seconds) {
@@ -539,7 +568,7 @@
         return `0${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    // ================== 2. SOCKET & GAME LOGIC ==================
+    // ================== GAME LOGIC ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
@@ -550,7 +579,6 @@
     socket.on('game_status', (data) => {
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
         
-        // Update Info Boxes
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
@@ -559,17 +587,15 @@
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
             
-            // Clear Master board and history
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = '';
             document.getElementById('history-scroll-bottom').innerHTML = '';
-            document.getElementById('ticket-history-bar').innerHTML = '<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>';
+            document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
             document.getElementById('caller-ball').innerText = "--";
             document.getElementById('g-balls').innerText = "0/20";
             called = []; 
             
             if (currentUser) {
-                // Ensure old tickets wipe out entirely when a new game is in waiting phase
                 userTicketsData = [];
                 pendingTicketsData = [];
                 selected = [];
@@ -578,18 +604,16 @@
                 
                 document.getElementById('ticket-list').innerHTML = '';
                 document.getElementById('game-mini-tickets').innerHTML = '';
-                document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
+                document.getElementById('t-info').innerText = currentLang === 'am' ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
 
-                // Kick user out of game page if they are spectating a finished game
                 if (document.getElementById('game-page').classList.contains('active-page')) {
                     showPage('home');
                 }
             }
             
-            // Reactivate Bet Button conditionally inside the popup
             if (selected.length > 0) {
                 document.getElementById('bet-btn').disabled = false;
-                document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
+                document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW";
                 document.getElementById('bet-btn').style.background = "var(--faded-green)";
             }
             
@@ -597,7 +621,6 @@
             isGameRunningLocally = true;
             document.getElementById('timer').innerText = "LIVE 🔴"; 
             
-            // Close popup forcefully if it's open
             document.getElementById('bet-slip-popup').classList.remove('show');
 
             if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) {
@@ -607,7 +630,6 @@
             called = data.calledNumbers || [];
             document.getElementById('g-balls').innerText = called.length + "/20";
             
-            // Sync UI if joined late
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = '';
             document.getElementById('history-scroll-bottom').innerHTML = '';
@@ -645,11 +667,9 @@
         }
     });
 
-    // ================== 3. UI AND HELPER FUNCTIONS ==================
     function initGrid() { 
         const box = document.getElementById('grid-box'); 
         box.innerHTML = ''; 
-        // Generates 200 buttons
         for(let i=1; i<=200; i++) { 
             let d = document.createElement('div'); 
             d.className='num-btn'; 
@@ -664,14 +684,13 @@
                 } else if(selected.length < 5) { 
                     d.classList.add('selected'); 
                     selected.push(i); 
-                    // Generate ticket immediately for preview
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
                 } else { 
-                    alert("ከ 5 ካርቴላ በላይ አይቻልም!"); 
+                    alert(currentLang === 'am' ? "ከ 5 ካርቴላ በላይ አይቻልም!" : "Max 5 tickets allowed!"); 
                 } 
-                updateBetPreview(); // Refresh the visual popup
+                updateBetPreview(); 
             }; 
             box.appendChild(d); 
         } 
@@ -713,12 +732,11 @@
     }
 
     function placeBet() { 
-        if(selected.length === 0) return alert("ቢያንስ 1 ካርቴላ ይምረጡ!"); 
+        if(selected.length === 0) return alert(currentLang === 'am' ? "ቢያንስ 1 ካርቴላ ይምረጡ!" : "Select at least 1 ticket!"); 
         let betAmount = selected.length * 10; 
         
-        // Deduction normally happens server side. Client side simulation to check if main balance has enough:
         if(currentUser.mainBalance < betAmount) { 
-            alert("በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።"); 
+            alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); 
             showPage('wallet'); 
             return; 
         }
@@ -726,21 +744,19 @@
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; 
         document.getElementById('bet-btn').disabled = true; 
         
-        // Push pending tickets to Confirmed user tickets
         pendingTicketsData.forEach(t => userTicketsData.push(t));
         renderConfirmedTickets(); 
         
         addHistoryRecord("ውርርድ (Bet)", `-${betAmount} ETB`, "var(--orange)");
         socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length });
         
-        // Hide the popup and clear selection after short delay
         setTimeout(() => {
             selected = [];
             pendingTicketsData = [];
             document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('bet-slip-popup').classList.remove('show');
             
-            document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
+            document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW";
             document.getElementById('bet-btn').disabled = false;
         }, 1200);
     }
@@ -782,7 +798,7 @@
             list.appendChild(card); 
             gameList.appendChild(miniCard);
         }); 
-        document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + userTicketsData.length;
+        document.getElementById('t-info').innerText = (currentLang === 'am' ? "የገዙት ካርቴላ ብዛት: " : "Tickets bought: ") + userTicketsData.length;
     }
 
     function buildMasterBoard() {
@@ -808,32 +824,27 @@
     }
 
     function updateLiveUI(num, isLatest) {
-        // Remove current highlight from all
         if(isLatest) document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('current'));
 
-        // Mark Master Board
         let cell = document.getElementById('mb-' + num);
         if(cell) {
             cell.classList.add('called');
             if(isLatest) cell.classList.add('current');
         }
 
-        // Mark Tickets
         document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
 
-        // Caller Ball & History
         let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
         let ballText = bHeads[colIdx] + "-" + num;
 
         if(isLatest) document.getElementById('caller-ball').innerText = ballText;
 
-        // Add to history bars (Game Page & Ticket Page)
         let topH = document.getElementById('history-scroll-top');
         let botH = document.getElementById('history-scroll-bottom');
         let tickH = document.getElementById('ticket-history-bar');
         
-        if (called.length === 1 && document.getElementById('ticket-history-bar').innerText.includes("ገና")) {
-            document.getElementById('ticket-history-bar').innerHTML = ''; // Clear empty state
+        if (called.length === 1 && (document.getElementById('ticket-history-bar').innerText.includes("ገና") || document.getElementById('ticket-history-bar').innerText.includes("Not started"))) {
+            document.getElementById('ticket-history-bar').innerHTML = ''; 
         }
         
         let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
@@ -842,7 +853,7 @@
 
         topH.insertBefore(topDiv, topH.firstChild);
         botH.appendChild(botDiv);
-        tickH.insertBefore(tickDiv, tickH.firstChild); // Sync on Ticket page as well
+        tickH.insertBefore(tickDiv, tickH.firstChild); 
     }
 
     function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
@@ -858,7 +869,6 @@
         document.getElementById(id + '-page').classList.add('active-page'); 
         document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         
-        // Hide Bet Slip popup if not on home
         if(id !== 'home') document.getElementById('bet-slip-popup').classList.remove('show');
         else if(selected.length > 0) document.getElementById('bet-slip-popup').classList.add('show');
 
@@ -877,16 +887,14 @@
         let method = document.querySelector('.pay-box.active').innerText;
         let fileInput = document.getElementById('dep-receipt');
         
-        if(!amt || amt <= 0) return alert("ትክክለኛ መጠን ያስገቡ!"); 
-        // File validation handled visually, backend assumes image URL or blob if connected to DB
+        if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
         
-        document.getElementById('lbl-dep-conf').innerText = "እየላከ ነው...";
+        document.getElementById('lbl-dep-conf').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method }) }); 
             let data = await res.json(); 
             alert(data.message); 
             
-            // Add to new history box
             addHistoryRecord("ዲፖዚት ጥያቄ (Deposit Req)", `+${amt} ETB`, "var(--blue)");
 
             document.getElementById('dep-amt').value = ''; 
@@ -894,17 +902,17 @@
             fileInput.value = "";
             toggleForm('none'); 
         } catch(e) {}
-        document.getElementById('lbl-dep-conf').innerText = "ዲፖዚት አረጋግጥ";
+        document.getElementById('lbl-dep-conf').innerText = currentLang === 'am' ? "ዲፖዚት አረጋግጥ" : "Confirm Deposit";
     }
 
     async function processWithdraw() {
         let amt = parseFloat(document.getElementById('wit-amt').value); 
         let method = document.querySelector('.pay-box.active').innerText;
         
-        if(!amt || amt <= 0) return alert("ትክክለኛ መጠን ያስገቡ!"); 
-        if(amt > currentUser.playBalance) return alert("በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።"); 
+        if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
+        if(amt > currentUser.playBalance) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
         
-        document.getElementById('lbl-wit-conf').innerText = "እየላከ ነው...";
+        document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method }) }); 
             let data = await res.json(); 
@@ -912,18 +920,17 @@
                 await fetchUpdatedBalance(); 
                 alert(data.message); 
                 
-                // Add to new history box
                 addHistoryRecord("ወጪ ጥያቄ (Withdraw Req)", `-${amt} ETB`, "var(--orange)");
 
                 document.getElementById('wit-amt').value = ''; toggleForm('none'); 
             } else { alert(data.message); } 
         } catch(e) {}
-        document.getElementById('lbl-wit-conf').innerText = "ወጪ ጠይቅ (Withdraw)";
+        document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "ወጪ ጠይቅ (Withdraw)" : "Request Withdraw";
     }
     
     function addHistoryRecord(title, amount, color) { 
         const hc = document.getElementById('prof-history-list'); 
-        if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; 
+        if(hc.innerHTML.includes("ታሪክ የለም") || hc.innerHTML.includes("No History")) hc.innerHTML = ''; 
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
         hc.innerHTML = `<div class="list-card" style="border-left-color: ${color};"><div><span style="font-weight:bold;">${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}; font-size:16px;">${amount}</b></div>` + hc.innerHTML; 
     }
