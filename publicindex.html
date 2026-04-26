@@ -13,14 +13,20 @@
 
         /* Auth & Home Layouts */
         .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid #14532d; box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
-        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; }
+        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; font-family: inherit;}
         .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; border-radius: 8px; }
+        .upload-btn { display: inline-block; width: 100%; padding: 12px; background: #1e293b; border: 1px dashed var(--blue); color: var(--blue); border-radius: 8px; font-size: 12px; font-weight: bold; margin-bottom: 5px; cursor: pointer; box-sizing: border-box; text-align: center;}
+        
+        /* Top Header (Main & Play Balances Stacked) */
+        .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);}
+        .hdr-wallet-box { text-align: right; background: #0d1117; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .hdr-bal-row { font-size: 10px; color: var(--text-gray); display: flex; justify-content: space-between; gap: 15px; margin-bottom: 3px; border-bottom: 1px solid #1f2937; padding-bottom: 2px;}
+        .hdr-bal-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; padding-top: 2px;}
         
         .timer-header { background: var(--panel); padding: 15px; border-radius: 15px; border: 1px solid #14532d; display: flex; justify-content: space-around; margin-bottom: 15px; }
-        .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.3);}
+        .time-val { font-size: 26px; font-weight: 900; color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.3); font-family: monospace;}
         
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; padding-bottom: 100px; }
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
@@ -51,8 +57,8 @@
         .info-val { color: white; font-weight: bold; font-size: 12px; }
         .info-val.highlight { color: var(--faded-green); }
         
-        /* Top History Bar */
-        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; }
+        /* Top History Bar (Used for Game and Tickets Page) */
+        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; align-items: center;}
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px;}
 
@@ -77,7 +83,6 @@
         /* Tickets Box */
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; align-items: center;}
         
-        /* 2 by 2 Tickets Grid for Game Page (Extremely Compact) */
         .game-mini-tickets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; width: 100%; margin-top: 5px; margin-bottom: 10px;}
         .mini-t-card { background: white; width: 100%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
@@ -109,6 +114,11 @@
         .pay-box.active { border-color: var(--faded-green); color: var(--faded-green); background: rgba(74, 222, 128, 0.1); }
         .copy-box { background: #000; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--text-gray); margin-bottom: 15px; }
         .copy-btn { background: #161b22; border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;}
+
+        /* Profile Beautiful Buttons */
+        .prof-action-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 14px; margin-bottom: 10px; cursor: pointer; border: none; transition: 0.2s; text-transform: uppercase;}
+        .btn-change-pass { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);}
+        .btn-logout { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);}
 
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px;}
         .rank-card { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 10px;}
@@ -153,22 +163,29 @@
     </div>
 </div>
 
-<!-- TOP HEADER -->
+<!-- TOP HEADER (Main & Play Stacked) -->
 <div id="global-header" class="top-balance" style="display:none;">
     <div style="display: flex; align-items: center; gap: 10px;">
         <div style="width: 35px; height: 35px; background: linear-gradient(45deg, var(--faded-green), var(--dark-green)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">👤</div>
         <div><div id="hdr-name" style="font-size: 15px; font-weight: bold;">User</div><div id="hdr-phone" style="font-size: 11px; color: var(--text-gray);">09...</div></div>
     </div>
-    <div style="text-align: right; background: #000; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 10px; color: var(--text-gray);">ዋና ሂሳብ</div><div id="hdr-main-balance" class="bal-amt" style="color: var(--faded-green);">0.00 ETB</div>
+    <div class="hdr-wallet-box">
+        <div class="hdr-bal-row">
+            <span>ዋና ሂሳብ:</span>
+            <span id="hdr-main-balance" style="color: var(--faded-green); font-weight:bold;">0.00 ETB</span>
+        </div>
+        <div class="hdr-bal-row">
+            <span>መጫወቻ:</span>
+            <span id="hdr-play-balance" style="color: var(--blue); font-weight:bold;">0.00 ETB</span>
+        </div>
     </div>
 </div>
 
 <!-- 2. HOME PAGE (Number Selection up to 200) -->
 <div id="home-page" class="page">
     <div class="timer-header">
-        <div style="text-align:center;"><small style="color:var(--text-gray);">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">25</span></div>
-        <div style="text-align:center;"><small style="color:var(--text-gray);">LIVE JACKPOT</small><br><span id="jp" class="time-val">0 ETB</span></div>
+        <div style="text-align:center;"><small style="color:var(--text-gray);">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">00:25</span></div>
+        <div style="text-align:center;"><small style="color:var(--text-gray);">LIVE JACKPOT</small><br><span id="jp" class="time-val" style="color:gold;">0 ETB</span></div>
     </div>
     <div style="text-align:center;">
         <p style="font-size: 13px; color: var(--white); margin: 0; font-weight: bold;">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ</p>
@@ -224,27 +241,21 @@
 
     <!-- MAIN SIDE-BY-SIDE LAYOUT -->
     <div class="game-layout-container"> 
-        
         <!-- Left Side: Master Board (1-75) -->
         <div class="master-board-wrapper"> 
             <div id="master-board" class="mb-board"></div>
         </div>
-
         <!-- Right Side: Stack -->
         <div class="right-panel-stack">
-            
             <!-- Caller Ball -->
             <div class="caller-box">
                 <div id="caller-ball" class="caller-ball">--</div>
             </div>
-            
             <!-- Game Status & Tickets -->
             <div class="tickets-history-box">
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">LIVE BINGO</div>
-                
                 <!-- 2 by 2 White Tickets Container -->
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
-                
                 <!-- Bottom History Bar -->
                 <div id="history-scroll-bottom" class="history-bottom-bar"></div>
             </div>
@@ -255,6 +266,13 @@
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;">የእኔ ካርቴላዎች</h3>
+    
+    <!-- Tickets Page Called Numbers History Bar -->
+    <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;">የወጡ ኳሶች (Called Numbers)</div>
+    <div id="ticket-history-bar" class="history-top-bar" style="background:var(--panel); border-radius:8px; padding:10px; margin-bottom:20px;">
+        <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
+    </div>
+
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     <!-- 2x2 grid is applied here via CSS #ticket-list -->
     <div id="ticket-list"></div>
@@ -283,6 +301,12 @@
             <button class="copy-btn" onclick="copyNumber()">Copy</button>
         </div>
         <input type="number" id="dep-amt" class="auth-input" placeholder="መጠን (Amount)">
+        
+        <!-- Upload Receipt Beautiful Button -->
+        <label for="dep-receipt" class="upload-btn">📸 የባንክ ደረሰኝ አስገባ (Upload Receipt)</label>
+        <input type="file" id="dep-receipt" accept="image/*" onchange="document.getElementById('receipt-name').innerHTML = '✅ ' + this.files[0].name" style="display:none;">
+        <div id="receipt-name" style="color:var(--faded-green); font-size:11px; margin-bottom:10px; font-weight:bold; text-align:center;"></div>
+
         <button class="auth-btn" style="background:linear-gradient(to right, #2563eb, #1d4ed8); color:white; font-size: 16px;" onclick="processDeposit()" id="lbl-dep-conf">ዲፖዚት አረጋግጥ</button>
         <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')">ዝጋ (Close)</button>
     </div>
@@ -328,14 +352,16 @@
         </div>
     </div>
 
-    <div style="background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <h4 style="margin-top: 0; color: var(--text-gray);">የይለፍ ቃል ቀይር (Change Password)</h4>
-        <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል">
-        <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል">
-        <button class="auth-btn" style="background: var(--text-gray); color: white;" onclick="changeUserPassword()">ቀይር (Update)</button>
+    <!-- Beautiful Action Buttons -->
+    <button class="prof-action-btn btn-change-pass" onclick="togglePasswordBox()">🔐 የይለፍ ቃል ቀይር (Change Password)</button>
+    
+    <div id="pass-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; animation: fadeIn 0.3s;">
+        <input type="password" id="old-pass" class="auth-input" placeholder="የድሮ የይለፍ ቃል (Old Password)">
+        <input type="password" id="new-pass" class="auth-input" placeholder="አዲስ የይለፍ ቃል (New Password)">
+        <button class="auth-btn" style="background: var(--blue); color: white;" onclick="changeUserPassword()">አረጋግጥ (Update)</button>
     </div>
 
-    <button class="auth-btn" style="background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="location.reload()">🚪 ውጣ (Logout)</button>
+    <button class="prof-action-btn btn-logout" onclick="location.reload()">🚪 ከሲስተም ውጣ (Logout)</button>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -352,8 +378,8 @@
     const socket = io();
     let selected = [], called = []; 
     let currentUser = null;
-    let pendingTicketsData = []; // Store unconfirmed tickets
-    let userTicketsData = []; // Store confirmed tickets
+    let pendingTicketsData = []; 
+    let userTicketsData = []; 
     let isLoginMode = false;
     let isGameRunningLocally = false;
 
@@ -423,6 +449,11 @@
         }
     }
 
+    function togglePasswordBox() {
+        let box = document.getElementById('pass-box');
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
     async function changeUserPassword() {
         let oldPass = document.getElementById('old-pass').value;
         let newPass = document.getElementById('new-pass').value;
@@ -434,6 +465,7 @@
         if(data.success) {
             document.getElementById('old-pass').value = '';
             document.getElementById('new-pass').value = '';
+            togglePasswordBox();
         }
     }
 
@@ -466,8 +498,16 @@
 
     function updateUIBalance() {
         document.getElementById('hdr-main-balance').innerText = currentUser.mainBalance.toFixed(2) + " ETB";
+        document.getElementById('hdr-play-balance').innerText = currentUser.playBalance.toFixed(2) + " ETB";
         document.getElementById('main-bal').innerText = currentUser.mainBalance.toFixed(2);
         document.getElementById('play-bal').innerText = currentUser.playBalance.toFixed(2);
+    }
+
+    function formatTime(seconds) {
+        if(isNaN(seconds)) return seconds; // For "LIVE" text
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        return `0${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
     // ================== 2. SOCKET & GAME LOGIC ==================
@@ -489,12 +529,13 @@
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
-            document.getElementById('timer').innerText = data.timer; 
+            document.getElementById('timer').innerText = formatTime(data.timer); 
             
             // Clear Master board and history
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = '';
             document.getElementById('history-scroll-bottom').innerHTML = '';
+            document.getElementById('ticket-history-bar').innerHTML = '<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>';
             document.getElementById('caller-ball').innerText = "--";
             document.getElementById('g-balls').innerText = "0/20";
             called = []; 
@@ -537,6 +578,7 @@
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = '';
             document.getElementById('history-scroll-bottom').innerHTML = '';
+            document.getElementById('ticket-history-bar').innerHTML = '';
             
             called.forEach((num, idx) => {
                 updateLiveUI(num, idx === called.length - 1);
@@ -746,15 +788,22 @@
 
         if(isLatest) document.getElementById('caller-ball').innerText = ballText;
 
-        // Add to history bars (Prepend to top, append to bottom)
+        // Add to history bars (Game Page)
         let topH = document.getElementById('history-scroll-top');
         let botH = document.getElementById('history-scroll-bottom');
+        let tickH = document.getElementById('ticket-history-bar');
+        
+        if (called.length === 1 && document.getElementById('ticket-history-bar').innerText.includes("ገና")) {
+            document.getElementById('ticket-history-bar').innerHTML = ''; // Clear empty state
+        }
         
         let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
         let botDiv = document.createElement('div'); botDiv.className = 'hist-bot-ball'; botDiv.innerText = ballText;
+        let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
 
         topH.insertBefore(topDiv, topH.firstChild);
         botH.appendChild(botDiv);
+        tickH.insertBefore(tickDiv, tickH.firstChild); // Sync on Ticket page as well
     }
 
     function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
@@ -787,14 +836,20 @@
     async function processDeposit() {
         let amt = parseFloat(document.getElementById('dep-amt').value); 
         let method = document.querySelector('.pay-box.active').innerText;
+        let fileInput = document.getElementById('dep-receipt');
+        
         if(!amt || amt <= 0) return alert("ትክክለኛ መጠን ያስገቡ!"); 
+        // File validation is handled visually, backend assumes image URL or blob if connected to DB
         
         document.getElementById('lbl-dep-conf').innerText = "እየላከ ነው...";
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method }) }); 
             let data = await res.json(); 
             alert(data.message); 
-            document.getElementById('dep-amt').value = ''; toggleForm('none'); 
+            document.getElementById('dep-amt').value = ''; 
+            document.getElementById('receipt-name').innerHTML = '';
+            fileInput.value = "";
+            toggleForm('none'); 
         } catch(e) {}
         document.getElementById('lbl-dep-conf').innerText = "ዲፖዚት አረጋግጥ";
     }
