@@ -32,56 +32,46 @@
         /* ========================================= */
         /* EXACT GAME PAGE (PAGE 2) STYLES */
         /* ========================================= */
-        #game-page { padding: 10px; max-width: 1300px; margin: 0 auto; overflow-x: auto;}
-
-        /* Top 5 Info Boxes */
-        .top-info-wrapper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; min-width: 800px;}
-        .top-info-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;}
-        .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
-        .info-title { color: var(--text-gray); font-size: 12px; margin-bottom: 5px; font-weight: bold;}
-        .info-val { color: white; font-weight: bold; font-size: 16px; }
-        .info-val.highlight { color: var(--faded-green); }
-
-        /* Top Left History Bar */
-        .history-top-bar { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; min-width: 800px;}
+        #game-page { padding: 10px; max-width: 1400px; margin: 0 auto; overflow-x: hidden; }
+        
+        /* Top History Bar */
+        .history-top-bar { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; }
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;}
+        .hist-top-ball { min-width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;}
 
-        /* SIDE-BY-SIDE LAYOUT */
-        .game-layout-container { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; justify-content: center; min-width: 900px; padding-bottom: 30px;}
+        /* Game Layout container */
+        .game-layout-container { display: flex; flex-direction: row; flex-wrap: wrap; gap: 40px; align-items: flex-start; justify-content: center; }
 
         /* Left Side: Master Board (1-75) */
-        .master-board-wrapper { flex: 0 0 auto; background: transparent; padding: 0;}
-        .b-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden;}
-        .b-head { width: 56px; height: 38px; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;}
-        .b-cell { width: 56px; height: 38px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
-        .b-cell.called { background: var(--orange); color: white; font-weight: 900;}
-        .b-cell.current { background: var(--faded-green); color: black; font-weight: 900; transform: scale(1.1); z-index: 10; box-shadow: 0 0 10px rgba(74,222,128,0.8);}
+        .master-board-wrapper { flex: 0 0 auto; background: transparent; }
+        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #1e293b; border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; }
+        .mb-head { width: 55px; height: 35px; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;}
+        .mb-cell { width: 55px; height: 32px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
+        .mb-cell.called { background: var(--orange); color: white; font-weight: 900;}
+        .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 10px rgba(74,222,128,0.8); position: relative; z-index: 2;}
 
         /* Right Side: Stack */
-        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 450px; }
+        .right-panel-stack { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 320px; max-width: 700px; }
 
         /* Caller Box */
         .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; }
-        .caller-ball { width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; border: 6px solid var(--faded-green); box-shadow: 0 0 50px rgba(74, 222, 128, 0.8), inset 0 0 15px rgba(74, 222, 128, 0.3);}
+        .caller-ball { width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; border: 6px solid var(--faded-green); box-shadow: 0 0 40px rgba(74, 222, 128, 0.5), inset 0 0 15px rgba(74, 222, 128, 0.3);}
 
-        /* Tickets & Bottom History Box */
-        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px 20px; display: flex; flex-direction: column; align-items: center;}
+        /* Tickets Box */
+        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center;}
         
-        /* White Tickets - 2x2 SIDE BY SIDE */
-        .mini-tickets-wrapper { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; margin-bottom: 20px;}
-        .mini-t-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-        .ticket-header-info { text-align: center; color: #ef4444; font-weight: 900; padding: 4px; font-size: 12px; background: white;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
-        .mini-t-head { color: white; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px;}
-        .mini-t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #000; min-height: 26px; max-height: 30px;}
+        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; margin-top: 15px; margin-bottom: 20px;}
+        .mini-t-card { background: white; width: 100%; max-width: 250px; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
+        .mini-t-head { color: white; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;}
+        .mini-t-cell { background: #fff; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* Bottom History Bar */
-        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; justify-content: center;}
-        .hist-bot-ball { min-width: 42px; height: 42px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px;}
+        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: center;}
+        .hist-bot-ball { min-width: 35px; height: 35px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px;}
 
         /* ========================================= */
+        /* Tickets Wallet Page */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
@@ -89,6 +79,7 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
+        /* Bingo Win Overlay */
         .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
         .bingo-text { font-size: 70px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
@@ -124,6 +115,7 @@
     </div>
 </div>
 
+<!-- 1. AUTH PAGE -->
 <div id="auth-page" class="page active-page">
     <div class="auth-card">
         <h1 style="color:var(--faded-green); margin:0; font-weight: 900; letter-spacing: 1px;">BINGO STREAM</h1>
@@ -143,6 +135,7 @@
     </div>
 </div>
 
+<!-- TOP HEADER -->
 <div id="global-header" class="top-balance" style="display:none;">
     <div style="display: flex; align-items: center; gap: 10px;">
         <div style="width: 35px; height: 35px; background: linear-gradient(45deg, var(--faded-green), var(--dark-green)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">👤</div>
@@ -153,6 +146,7 @@
     </div>
 </div>
 
+<!-- 2. HOME PAGE (Number Selection) -->
 <div id="home-page" class="page">
     <div class="timer-header">
         <div style="text-align:center;"><small style="color:var(--text-gray);">ቀሪ ሰከንድ</small><br><span id="timer" class="time-val">25</span></div>
@@ -170,68 +164,50 @@
     </div>
 </div>
 
+<!-- 3. GAME PAGE (Live Board - Page 2) -->
 <div id="game-page" class="page">
-    
-    <div class="top-info-wrapper">
-        <div class="top-info-box">
-            <div class="info-title">ID</div>
-            <div class="info-val" id="g-id">#---</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Players</div>
-            <div class="info-val" id="g-players">0</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Bet</div>
-            <div class="info-val">10.00</div>
-        </div>
-        <div class="top-info-box prize-box">
-            <div class="info-title">Prize</div>
-            <div class="info-val highlight" id="g-prize">0.00 ETB</div>
-            <div style="font-size:10px; color:var(--text-gray); margin-top:3px;">(10% ተቆርጧል)</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Balls</div>
-            <div class="info-val" id="g-balls">0/20</div>
-        </div>
-    </div>
-
+    <!-- Top Left History Bar -->
     <div id="history-scroll-top" class="history-top-bar"></div>
 
+    <!-- MAIN SIDE-BY-SIDE LAYOUT -->
     <div class="game-layout-container"> 
         
+        <!-- Left Side: Master Board (1-75) -->
         <div class="master-board-wrapper"> 
-            <div id="board" class="b-board"></div>
+            <div id="master-board" class="mb-board"></div>
         </div>
 
+        <!-- Right Side: Stack -->
         <div class="right-panel-stack">
             
+            <!-- Large Caller Ball -->
             <div class="caller-box">
-                <div id="caller" class="caller-ball">--</div>
+                <div id="caller-ball" class="caller-ball">--</div>
             </div>
             
+            <!-- Game Status & Tickets -->
             <div class="tickets-history-box">
+                <p style="color: var(--text-gray); font-size: 14px; margin:0 0 10px 0;">የጨዋታው ሁኔታ</p>
+                <div style="color: var(--faded-green); font-size: 16px; font-weight: bold; margin-bottom: 10px;">ቁጥሮችን በመጠበቅ ላይ...</div>
                 
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="color: var(--text-gray); font-size: 13px; margin-bottom: 8px;">የካርቴላ ጨዋታ ሁኔታ</div>
-                    <div style="color: var(--faded-green); font-size: 14px; font-weight: bold;">ቁጥሮችን በመጠባበቅ ላይ...</div>
-                </div>
+                <!-- White Tickets Container -->
+                <div id="game-mini-tickets" class="game-mini-tickets"></div>
                 
-                <div id="mini-tickets-container" class="mini-tickets-wrapper"></div>
-                
+                <!-- Bottom History Bar -->
                 <div id="history-scroll-bottom" class="history-bottom-bar"></div>
             </div>
-
         </div>
     </div>
 </div>
 
+<!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;">የእኔ ካርቴላዎች</h3>
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     <div id="ticket-list"></div>
 </div>
 
+<!-- 5. WALLET PAGE -->
 <div id="wallet-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
     
@@ -271,6 +247,7 @@
     <div id="wallet-history"><p style="text-align:center; color:var(--text-gray); font-size:13px;">ታሪክ የለም</p></div>
 </div>
 
+<!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
     <h3 style="text-align:center; color:#3b82f6; margin-top: 0; font-size: 20px;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div style="background: var(--panel); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);" id="rank-content">
@@ -278,6 +255,7 @@
     </div>
 </div>
 
+<!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;">👤 የእኔ ፕሮፋይል</h3>
     
@@ -307,6 +285,7 @@
     <button class="auth-btn" style="background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="location.reload()">🚪 ውጣ (Logout)</button>
 </div>
 
+<!-- BOTTOM NAV -->
 <nav id="navbar" class="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span>Home</span></div>
     <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span>Ticket</span></div>
@@ -320,14 +299,19 @@
     const socket = io();
     let selected = [], called = []; 
     let currentUser = null;
-    let isGameRunningLocally = false, userTicketsData = []; 
+    let userTicketsData = []; 
     let isLoginMode = false;
+    let isGameRunningLocally = false;
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
+    // Initial builds
+    buildMasterBoard();
+
+    // ================== 1. AUTHENTICATION & PROFILE ==================
     function toggleAuthMode() {
         isLoginMode = !isLoginMode;
         document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block';
@@ -362,10 +346,10 @@
             if(!isLoginMode) addHistoryRecord("ቦነስ (Registration Bonus)", "+100 ETB", "var(--faded-green)");
             
             document.getElementById('auth-page').classList.remove('active-page');
-            document.getElementById('home-page').classList.add('active-page');
             document.getElementById('navbar').style.display = 'flex';
             document.getElementById('global-header').style.display = 'flex';
             initGrid();
+            handleHomeNav();
         } else {
             alert(data.message);
             document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (Login)" : "መዝገብ (Register)";
@@ -432,6 +416,7 @@
         document.getElementById('play-bal').innerText = currentUser.playBalance.toFixed(2);
     }
 
+    // ================== 2. SOCKET & GAME LOGIC ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
@@ -441,122 +426,66 @@
 
     socket.on('game_status', (data) => {
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
-        
-        if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
-        if(data.playersCount !== undefined) document.getElementById('g-players').innerText = data.playersCount;
-        document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2) + " ETB";
 
         if (data.state === "WAITING") {
+            isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = data.timer; 
             document.getElementById('bet-btn').disabled = false;
             document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
             document.getElementById('bet-btn').style.background = "var(--faded-green)"; 
             document.getElementById('bet-btn').onclick = placeBet;
-            document.getElementById('g-balls').innerText = "0/20";
+            
+            // Clear Master board and history
+            document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
+            document.getElementById('history-scroll-top').innerHTML = '';
+            document.getElementById('history-scroll-bottom').innerHTML = '';
+            document.getElementById('caller-ball').innerText = "--";
+            called = []; 
             
             if (currentUser && document.getElementById('game-page').classList.contains('active-page')) {
                 showPage('home');
                 userTicketsData = [];
                 clearSelection();
+                document.getElementById('ticket-list').innerHTML = '';
+                document.getElementById('game-mini-tickets').innerHTML = '';
+                document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
             }
             
-            isGameRunningLocally = false;
-            
-            if(document.getElementById('board').innerHTML !== '') { 
-                document.getElementById('board').innerHTML = ''; called = []; 
-                document.getElementById('history-scroll-top').innerHTML = ''; 
-                document.getElementById('history-scroll-bottom').innerHTML = ''; 
-                document.getElementById('caller').innerText = "--"; 
-            }
         } else if (data.state === "PLAYING") {
+            isGameRunningLocally = true;
             document.getElementById('timer').innerText = "LIVE 🔴"; 
-            document.getElementById('bet-btn').disabled = false; 
+            document.getElementById('bet-btn').disabled = true; 
+            document.getElementById('bet-btn').innerText = "ጨዋታው እየተካሄደ ነው...";
+            document.getElementById('bet-btn').style.background = "var(--text-gray)"; 
             
             if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) {
                 showPage('game');
             }
 
-            if (!isGameRunningLocally) {
-                isGameRunningLocally = true;
-                if(document.getElementById('board').innerHTML === '') {
-                    buildBoard();
-                }
-                syncLiveGame(data.calledNumbers);
-            }
+            called = data.calledNumbers || [];
+            
+            // Sync UI if joined late
+            document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
+            document.getElementById('history-scroll-top').innerHTML = '';
+            document.getElementById('history-scroll-bottom').innerHTML = '';
+            
+            called.forEach((num, idx) => {
+                updateLiveUI(num, idx === called.length - 1);
+            });
         }
     });
 
-    function syncLiveGame(pastNumbers) {
-        called = pastNumbers || [];
-        document.getElementById('g-balls').innerText = called.length + "/20";
-        
-        called.forEach(num => {
-            let calledCell = document.getElementById('c-'+num); 
-            if(calledCell) calledCell.classList.add('called');
-            document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
-        });
-
-        if(called.length > 0) {
-            let lastNum = called[called.length - 1];
-            let colorIdx = lastNum<=15?0:lastNum<=30?1:lastNum<=45?2:lastNum<=60?3:4; 
-            let L = bHeads[colorIdx];
-            document.getElementById('caller').innerText = L + "-" + lastNum;
-            let currentCell = document.getElementById('c-'+lastNum);
-            if(currentCell) currentCell.classList.add('current');
-            
-            updateHistoryUI(called);
-        }
-    }
-
     socket.on('new_number', (num) => {
-        if (!isGameRunningLocally) return; 
+        if (!isGameRunningLocally) return;
         called.push(num); 
-        document.getElementById('g-balls').innerText = called.length + "/20";
-        
-        let colorIdx = num<=15?0:num<=30?1:num<=45?2:num<=60?3:4; 
-        let L = bHeads[colorIdx];
-        
-        updateHistoryUI(called);
-        
-        document.getElementById('caller').innerText = L + "-" + num; 
-        
-        document.querySelectorAll('.b-cell').forEach(c=>c.classList.remove('current')); 
-        let calledCell = document.getElementById('c-'+num); 
-        if(calledCell) calledCell.classList.add('called', 'current');
-        
-        document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+        updateLiveUI(num, true);
         
         userTicketsData.forEach(t => { 
             for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } 
             if(checkBingoWin(t)) socket.emit('claim_bingo', { name: currentUser.name, phone: currentUser.phone, ticketId: t.id }); 
         });
     });
-
-    function updateHistoryUI(arr) {
-        let topH = document.getElementById('history-scroll-top');
-        let botH = document.getElementById('history-scroll-bottom');
-        topH.innerHTML = ''; botH.innerHTML = '';
-        
-        let startIdx = Math.max(0, arr.length - 15); 
-        for(let i = arr.length - 1; i >= startIdx; i--) {
-            let n = arr[i];
-            let cIdx = n<=15?0:n<=30?1:n<=45?2:n<=60?3:4;
-            let topB = document.createElement('div'); 
-            topB.className = 'hist-top-ball'; 
-            topB.innerText = bHeads[cIdx] + "-" + n; 
-            topH.appendChild(topB);
-        }
-
-        for(let i = 0; i < arr.length; i++) {
-            let n = arr[i];
-            let cIdx = n<=15?0:n<=30?1:n<=45?2:n<=60?3:4;
-            let botB = document.createElement('div'); 
-            botB.className = 'hist-bot-ball'; 
-            botB.innerText = bHeads[cIdx] + "-" + n; 
-            botH.appendChild(botB);
-        }
-    }
 
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
@@ -584,36 +513,68 @@
         socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length });
     }
 
-    function initGrid() { const box = document.getElementById('grid-box'); box.innerHTML = ''; for(let i=1; i<=100; i++) { let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; d.onclick = () => { if(document.getElementById('timer').innerText.includes("LIVE") && document.getElementById('bet-btn').innerText.includes("Spectate")) return; if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); } else if(selected.length < 5) { d.classList.add('selected'); selected.push(i); } else { alert("ከ 5 ካርቴላ በላይ አይቻልም!"); } document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }; box.appendChild(d); } }
+    // ================== 3. UI AND HELPER FUNCTIONS ==================
+    function initGrid() { const box = document.getElementById('grid-box'); box.innerHTML = ''; for(let i=1; i<=100; i++) { let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; d.onclick = () => { if(document.getElementById('timer').innerText.includes("LIVE")) return; if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); } else if(selected.length < 5) { d.classList.add('selected'); selected.push(i); } else { alert("ከ 5 ካርቴላ በላይ አይቻልም!"); } document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }; box.appendChild(d); } }
     function clearSelection() { selected = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected')); document.getElementById('jp').innerText = "0 ETB"; }
-    function randomSelection() { if(document.getElementById('timer').innerText.includes("LIVE") && document.getElementById('bet-btn').innerText.includes("Spectate")) return; clearSelection(); let r = []; while(r.length < 5) { let n = Math.floor(Math.random() * 100) + 1; if(!r.includes(n)) r.push(n); } selected = r; document.querySelectorAll('.num-btn').forEach(btn => { if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected'); }); document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }
+    function randomSelection() { if(document.getElementById('timer').innerText.includes("LIVE")) return; clearSelection(); let r = []; while(r.length < 5) { let n = Math.floor(Math.random() * 100) + 1; if(!r.includes(n)) r.push(n); } selected = r; document.querySelectorAll('.num-btn').forEach(btn => { if(selected.includes(parseInt(btn.innerText))) btn.classList.add('selected'); }); document.getElementById('jp').innerText = (selected.length * 10) + " ETB"; }
     
-    function buildBoard() { 
-        const board = document.getElementById('board'); 
-        board.innerHTML = ''; 
-        for(let c=0; c<5; c++) { 
-            let d = document.createElement('div'); 
-            d.className='b-head'; 
-            d.style.background=bColors[c]; 
-            d.innerText=bHeads[c]; 
-            board.appendChild(d); 
-        } 
-        for(let r=1; r<=15; r++) { 
-            for(let c=0; c<5; c++) { 
-                let num = r + (c * 15); 
-                let d = document.createElement('div'); 
-                d.className='b-cell'; 
-                d.id='c-'+num; 
-                d.innerText=num; 
-                board.appendChild(d); 
-            } 
-        } 
+    function buildMasterBoard() {
+        const board = document.getElementById('master-board');
+        board.innerHTML = '';
+        for(let c=0; c<5; c++) {
+            let h = document.createElement('div');
+            h.className = 'mb-head';
+            h.style.background = bColors[c];
+            h.innerText = bHeads[c];
+            board.appendChild(h);
+        }
+        for(let r=1; r<=15; r++) {
+            for(let c=0; c<5; c++) {
+                let num = r + (c * 15);
+                let d = document.createElement('div');
+                d.className = 'mb-cell';
+                d.id = 'mb-' + num;
+                d.innerText = num;
+                board.appendChild(d);
+            }
+        }
     }
-    
+
+    function updateLiveUI(num, isLatest) {
+        // Remove current highlight from all
+        if(isLatest) document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('current'));
+
+        // Mark Master Board
+        let cell = document.getElementById('mb-' + num);
+        if(cell) {
+            cell.classList.add('called');
+            if(isLatest) cell.classList.add('current');
+        }
+
+        // Mark Tickets
+        document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+
+        // Caller Ball & History
+        let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
+        let ballText = bHeads[colIdx] + "-" + num;
+
+        if(isLatest) document.getElementById('caller-ball').innerText = ballText;
+
+        // Add to history bars (Prepend to top, append to bottom)
+        let topH = document.getElementById('history-scroll-top');
+        let botH = document.getElementById('history-scroll-bottom');
+        
+        let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
+        let botDiv = document.createElement('div'); botDiv.className = 'hist-bot-ball'; botDiv.innerText = ballText;
+
+        topH.insertBefore(topDiv, topH.firstChild);
+        botH.appendChild(botDiv);
+    }
+
     function genTickets() { 
         const list = document.getElementById('ticket-list'); 
-        const miniList = document.getElementById('mini-tickets-container'); 
-        list.innerHTML = ''; miniList.innerHTML = ''; userTicketsData = []; 
+        const gameList = document.getElementById('game-mini-tickets');
+        list.innerHTML = ''; gameList.innerHTML = ''; userTicketsData = []; 
         
         selected.forEach(id => { 
             let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
@@ -624,18 +585,18 @@
             let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
             
             let htmlMain = `<div style="text-align:center; font-size:13px; font-weight:900; margin-bottom:5px; color:#1e293b;">#${id}</div><div class="t-grid">`; 
-            let htmlMini = `<div class="ticket-header-info">ካርቴላ #${id}</div><div class="mini-t-grid">`; 
+            let htmlMini = `<div class="mini-t-grid">`;
             
             for(let i=0; i<5; i++) { 
                 htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; 
-                htmlMini += `<div class="mini-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`; 
+                htmlMini += `<div class="mini-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`;
             } 
             
             for(let r=0; r<5; r++) { 
                 for(let c=0; c<5; c++) { 
                     if(r==2 && c==2) { 
                         htmlMain += `<div class="t-cell marked">F</div>`; 
-                        htmlMini += `<div class="mini-t-cell marked" style="font-size:10px;">FREE</div>`; 
+                        htmlMini += `<div class="mini-t-cell marked"></div>`; 
                     } else { 
                         htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                         htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
@@ -643,8 +604,10 @@
                 } 
             } 
             
-            card.innerHTML = htmlMain + "</div>"; miniCard.innerHTML = htmlMini + "</div>"; 
-            list.appendChild(card); miniList.appendChild(miniCard); 
+            card.innerHTML = htmlMain + "</div>"; 
+            miniCard.innerHTML = htmlMini + "</div>";
+            list.appendChild(card); 
+            gameList.appendChild(miniCard);
         }); 
         document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + selected.length;
     }
@@ -653,14 +616,18 @@
     
     function checkBingoWin(ticket) { let m = ticket.marks; for(let c=0; c<5; c++) { if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; } for(let r=0; r<5; r++) { if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; } if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; return false; }
     
-    function handleHomeNav() { if(isGameRunningLocally) showPage('game'); else showPage('home'); }
+    function handleHomeNav() { 
+        if(isGameRunningLocally) showPage('game'); 
+        else showPage('home'); 
+    }
     
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); 
         document.getElementById(id + '-page').classList.add('active-page'); 
-        document.getElementById('global-header').style.display = (id === 'game' || id === 'auth') ? 'none' : 'flex'; 
+        document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
         if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); } 
+        else { document.getElementById('nav-home').classList.add('active'); }
     }
     
     function toggleForm(type) { document.getElementById('sec-dep').style.display = 'none'; document.getElementById('sec-wit').style.display = 'none'; if(type === 'dep') document.getElementById('sec-dep').style.display = 'block'; if(type === 'wit') document.getElementById('sec-wit').style.display = 'block'; }
