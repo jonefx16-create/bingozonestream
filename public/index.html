@@ -18,63 +18,68 @@
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
         /* TOP HEADER */
-        .top-balance { background: transparent; padding: 12px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-        .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+        .top-balance { position: relative; background: transparent; padding: 15px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+        
+        /* Language Toggle Switch (AM | EN) - MOVED TO TOP RIGHT EDGE */
+        .lang-switch-pill { position: absolute; top: 0px; right: 10px; display: inline-flex; align-items: center; background: #0b111a; border: 1px solid #1e293b; border-radius: 20px; padding: 4px 12px; cursor: pointer; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); z-index: 10;}
+        .lang-switch-pill span { font-size: 11px; font-weight: 900; transition: 0.2s; letter-spacing: 1px;}
+        .lang-active { color: var(--blue); text-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+        .lang-inactive { color: var(--white); }
+        .lang-div { color: #475569; margin: 0 8px; font-weight: normal !important; }
+
+        .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 15px; /* Pushed down */ }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
         .hdr-user-sec .phone { font-size: 9px; color: var(--text-gray); }
         
         /* Wallets Design */
-        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: 15px; /* Pushed down */ }
         .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 15px; padding: 4px 12px; display: flex; justify-content: space-between; align-items: center; min-width: 145px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
         .pill-wallet span.title { font-size: 9px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
         .pill-wallet span.title.play { color: var(--cyan); }
         .pill-wallet span.title.main { color: var(--gold); }
         .pill-wallet span.amt { color: white; font-size: 13px; font-weight: 900; font-family: monospace;}
 
-        /* Language Toggle Switch */
-        .lang-switch-pill { display: inline-flex; align-items: center; background: #0b111a; border: 1px solid #1e293b; border-radius: 20px; padding: 4px 12px; cursor: pointer; margin-top: 2px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);}
-        .lang-switch-pill span { font-size: 11px; font-weight: 900; transition: 0.2s; letter-spacing: 1px;}
-        .lang-active { color: var(--blue); text-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
-        .lang-inactive { color: var(--white); }
-        .lang-div { color: #475569; margin: 0 8px; font-weight: normal !important; }
-
         /* ======================================================== */
-        /* EXACT SCREENSHOT MATCH: TIMER & JACKPOT HEADER (REDUCED SIZE) */
+        /* EXACT SCREENSHOT MATCH: TIMER & JACKPOT HEADER           */
         /* ======================================================== */
         .new-timer-box { 
             background: #111521; 
             border: 1px solid rgba(74, 222, 128, 0.4); 
-            border-radius: 15px; /* Smaller radius */
-            padding: 10px 15px; /* REDUCED PADDING */
+            border-radius: 15px; 
+            padding: 10px 15px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            margin-bottom: 10px; /* Reduced margin */
+            margin-bottom: 10px; 
             box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); 
         }
         .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
         .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         
+        /* NEW FADED GLOWING GREEN BADGE */
         .nt-badge { 
-            background: #2a2211; 
-            color: var(--gold); 
+            background: rgba(74, 222, 128, 0.15); 
+            color: var(--faded-green); 
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3), inset 0 0 5px rgba(74, 222, 128, 0.2);
             border-radius: 4px; 
             padding: 2px 8px; 
             font-size: 10px; 
             font-weight: 900; 
             letter-spacing: 0.5px; 
+            text-shadow: 0 0 5px rgba(74, 222, 128, 0.6);
         }
         
         .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
         
-        .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;} /* Reduced Font Size */
+        .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
         /* SELECTION ROW (ካርቴላ ይምረጡ | 0 / 5) */
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
-        .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } /* CHANGED TO FADED GREEN */
+        .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } /* GREEN SELECTION TEXT */
         .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
         /* Number Grid */
@@ -86,6 +91,7 @@
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 15px 15px 0 0; padding: 10px 15px 15px 15px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
+        /* Smaller Ticket Preview inside popup */
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin-bottom: 10px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 60px; padding-bottom: 2px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 55px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; padding: 2px;}
@@ -350,6 +356,14 @@
 
 <!-- TOP HEADER -->
 <div id="global-header" class="top-balance" style="display:none;">
+    
+    <!-- LANGUAGE TOGGLE AT THE VERY TOP RIGHT EDGE -->
+    <div class="lang-switch-pill" onclick="toggleLanguage()">
+        <span id="lang-am" class="lang-active">AM</span>
+        <span class="lang-div">|</span>
+        <span id="lang-en" class="lang-inactive">EN</span>
+    </div>
+
     <div class="hdr-user-sec">
         <div class="icon">👤</div>
         <div>
@@ -369,19 +383,13 @@
             <span class="title main">MAIN WALLET</span>
             <span class="amt" id="hdr-main-balance">0.00</span>
         </div>
-        <!-- Language Toggle -->
-        <div class="lang-switch-pill" onclick="toggleLanguage()">
-            <span id="lang-am" class="lang-active">AM</span>
-            <span class="lang-div">|</span>
-            <span id="lang-en" class="lang-inactive">EN</span>
-        </div>
     </div>
 </div>
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     
-    <!-- NEW EXACT SCREENSHOT TIMER/JACKPOT HEADER -->
+    <!-- EXACT SCREENSHOT TIMER/JACKPOT HEADER -->
     <div class="new-timer-box">
         <div class="nt-left">
             <div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div>
@@ -389,7 +397,8 @@
         </div>
         <div class="nt-right">
             <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
-            <div class="nt-value" id="timer">00:35</div> <!-- CHANGED FROM 00:25 TO 00:35 -->
+            <!-- TIMER SET TO 00:35 -->
+            <div class="nt-value" id="timer">00:35</div> 
         </div>
     </div>
     
@@ -475,7 +484,7 @@
     </div>
 </div>
 
-<!-- 6. RANK PAGE -->
+<!-- 6. REDESIGNED RANK PAGE -->
 <div id="rank-page" class="page">
     <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div id="rank-content">
@@ -778,6 +787,7 @@
     function updateUIBalance() {
         document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
+        document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         
         let playElAm = document.getElementById('play-bal-am'); let playElEn = document.getElementById('play-bal-en'); let playEl = document.getElementById('play-bal');
         if(playElAm) playElAm.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
@@ -870,7 +880,7 @@
 
     function updateBetPreview() {
         document.getElementById('jp').innerText = (selected.length * 10);
-        document.getElementById('grid-sel-count').innerText = selected.length; // Update the new subtitle 0/5 count
+        document.getElementById('grid-sel-count').innerText = selected.length;
         
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
@@ -898,7 +908,7 @@
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('bet-slip-popup').classList.remove('show');
-            document.getElementById('grid-sel-count').innerText = "0"; // Reset subtitle counter
+            document.getElementById('grid-sel-count').innerText = "0"; 
             document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW"; document.getElementById('bet-btn').disabled = false;
         }, 800);
     }
