@@ -50,7 +50,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
         .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s; letter-spacing: 0.5px;}
-        .lang-active { color: white; text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); } /* WHITE TEXT WHEN SELECTED */
+        .lang-active { color: white; text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); } 
         .lang-inactive { color: #64748b; }
         .lang-div { color: #334155; margin: 0 6px; font-weight: normal !important; font-size: 10px; }
 
@@ -83,7 +83,6 @@
         }
         
         .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
-        
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
@@ -102,7 +101,7 @@
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
-        /* Ticket Preview inside popup (Wider cards for horizontal stretch) */
+        /* Ticket Preview inside popup */
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 85px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
@@ -125,7 +124,23 @@
         
         .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; align-items: center;}
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--faded-green); background: transparent; color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px;}
+        
+        /* BEAUTIFUL OVAL CALLED NUMBERS */
+        .hist-top-ball { 
+            min-width: 42px; 
+            height: 26px; 
+            border-radius: 13px; 
+            border: 1px solid rgba(74, 222, 128, 0.5); 
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(0,0,0,0.5)); 
+            color: var(--faded-green); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 900; 
+            font-size: 11px;
+            padding: 0 8px;
+            box-shadow: inset 0 0 5px rgba(74, 222, 128, 0.2);
+        }
 
         .game-layout-container { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 3%; align-items: flex-start; justify-content: space-between; width: 100%; }
         .master-board-wrapper { width: 55%; flex: 0 0 55%; background: transparent; }
@@ -141,15 +156,69 @@
 
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; align-items: center;}
         
-        .game-mini-tickets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; width: 100%; margin-top: 5px; margin-bottom: 10px;}
+        .game-mini-tickets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; width: 100%; margin-top: 5px; margin-bottom: 5px;}
         .mini-t-card { background: white; width: 100%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
         .mini-t-head { color: white; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px;}
         .mini-t-cell { background: #fff; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; justify-content: center;}
-        .hist-bot-ball { min-width: 20px; height: 20px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px;}
+        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; justify-content: center; margin-bottom: 10px;}
+        
+        /* SMALLER OVAL FOR BOTTOM TICKETS CALLED NUMBERS */
+        .hist-bot-ball { 
+            min-width: 32px; 
+            height: 20px; 
+            border-radius: 10px; 
+            background: var(--faded-green); 
+            color: #000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 900; 
+            font-size: 9px;
+            padding: 0 6px;
+        }
+
+        /* NEW FADED BLUE LIVE JACKPOT BOX (PAGE 2 BOTTOM CORNER) */
+        .live-jp-box {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.2));
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 20px; /* Circular/Oval Shape */
+            padding: 8px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 5px;
+            box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.1), 0 4px 10px rgba(0,0,0,0.3);
+            width: 85%;
+        }
+        .live-indicator {
+            color: #ef4444; /* Red for LIVE */
+            font-size: 11px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+        .live-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulseRed 1.2s infinite;
+        }
+        .jp-amount {
+            color: #38bdf8; /* Cyan/Blue */
+            font-size: 15px;
+            font-weight: 900;
+            font-family: 'Arial Black', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         /* Tickets Page */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
@@ -393,10 +462,10 @@
     </div>
 </div>
 
-<!-- 2. HOME PAGE -->
+<!-- 2. HOME PAGE (UNTOUCHED FROM PREVIOUS ACCURATE VERSION) -->
 <div id="home-page" class="page">
     
-    <!-- LANGUAGE TOGGLE OUTSIDE & ABOVE THE BOX -->
+    <!-- LANGUAGE TOGGLE OUTSIDE -->
     <div class="lang-switch-wrapper">
         <div class="lang-switch-pill" onclick="toggleLanguage()">
             <span id="lang-am" class="lang-active">AM</span>
@@ -437,10 +506,10 @@
     <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
 </div>
 
-<!-- 3. GAME PAGE -->
+<!-- 3. GAME PAGE (PAGE 2 - EDITED AS REQUESTED) -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
-        <div class="top-info-box"><div class="info-title">ID</div><div class="info-val" id="g-id">#---</div></div>
+        <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
@@ -455,9 +524,16 @@
                 <div id="caller-ball" class="caller-ball">--</div>
             </div>
             <div class="tickets-history-box">
-                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">LIVE BINGO</div>
+                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;" data-lang-am="የእኔ ካርቴላ (My Ticket)" data-lang-en="My Ticket">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
                 <div id="history-scroll-bottom" class="history-bottom-bar"></div>
+                
+                <!-- NEW FADED BLUE LIVE JACKPOT BOX (BOTTOM CORNER) -->
+                <div class="live-jp-box">
+                    <div class="live-indicator"><span class="dot"></span> LIVE</div>
+                    <div class="jp-amount"><span id="g-jp-amt">0</span> ETB</div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -821,7 +897,12 @@
     });
 
     socket.on('game_status', (data) => {
+        // Update Home Page Jackpot
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
+        // Update Game Page Jackpot (NEW BOTTOM BOX)
+        let jpAmtBox = document.getElementById('g-jp-amt');
+        if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
+
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
