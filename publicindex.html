@@ -87,6 +87,44 @@
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
+        /* NEW FADED BLUE LIVE JACKPOT BOX (OVAL SHAPE) */
+        .live-jp-box {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 25px; /* Circular/Pill Shape */
+            padding: 8px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .live-indicator {
+            color: #ef4444; /* Red for LIVE */
+            font-size: 10px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+        .live-indicator .dot {
+            width: 7px;
+            height: 7px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulseRed 1.2s infinite;
+        }
+        .jp-amount {
+            color: #38bdf8; /* Faded Cyan/Blue */
+            font-size: 14px;
+            font-weight: 900;
+            font-family: 'Arial Black', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
         /* SELECTION ROW (ካርቴላ ይምረጡ | 0 / 5) */
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
@@ -99,7 +137,7 @@
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
         
         /* TICKET BLUR (Taken by others) */
-        .num-btn.taken { opacity: 0.35; filter: blur(1.5px); pointer-events: none; background: rgba(255,255,255,0.05); color: #475569; border-color: #1e293b; }
+        .num-btn.taken { opacity: 0.3; filter: blur(1.5px); pointer-events: none; background: rgba(255,255,255,0.05); color: #475569; border-color: #1e293b; }
 
         /* COMPACT FIXED BET SLIP POPUP */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
@@ -170,59 +208,6 @@
         .mini-t-head { color: white; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px;}
         .mini-t-cell { background: #fff; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
-
-        .history-bottom-bar { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; justify-content: center; margin-bottom: 5px;}
-        
-        /* PERFECT CIRCLES FOR BOTTOM TICKETS CALLED NUMBERS */
-        .hist-bot-ball { 
-            min-width: 22px; height: 22px; 
-            border-radius: 50%; /* Perfect Circle */
-            background: var(--faded-green); 
-            color: #000; 
-            display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        /* NEW FADED BLUE LIVE JACKPOT BOX (PAGE 2 BOTTOM CORNER ALONE) */
-        .live-jp-box {
-            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(15, 23, 42, 0.8));
-            border: 1px solid rgba(56, 189, 248, 0.4);
-            border-radius: 25px; /* Circular/Pill Shape */
-            padding: 8px 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-top: 5px;
-            align-self: flex-end; /* Puts it in the right corner beautifully */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-        }
-        .live-indicator {
-            color: #ef4444; /* Red for LIVE */
-            font-size: 10px;
-            font-weight: 900;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-bottom: 2px;
-            letter-spacing: 1px;
-        }
-        .live-indicator .dot {
-            width: 7px;
-            height: 7px;
-            background: #ef4444;
-            border-radius: 50%;
-            animation: pulseRed 1.2s infinite;
-        }
-        .jp-amount {
-            color: #38bdf8; /* Faded Cyan/Blue */
-            font-size: 14px;
-            font-weight: 900;
-            font-family: 'Arial Black', sans-serif;
-            letter-spacing: 0.5px;
-        }
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         /* Tickets Page */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
@@ -310,7 +295,7 @@
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
         .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px;}
         .pw-btn.cancel { background: #1e293b; color: #94a3b8; }
-        .pw-btn.save { background: var(--faded-green); color: #000; } /* CHANGED TO FADED GREEN */
+        .pw-btn.save { background: var(--faded-green); color: #000; } 
     </style>
 </head>
 <body>
@@ -470,7 +455,6 @@
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     
-    <!-- LANGUAGE TOGGLE OUTSIDE -->
     <div class="lang-switch-wrapper">
         <div class="lang-switch-pill" onclick="toggleLanguage()">
             <span id="lang-am" class="lang-active">AM</span>
@@ -487,12 +471,21 @@
         </div>
         <div class="nt-right">
             <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
-            <!-- TIMER SET TO 00:35 -->
+            <!-- EXACT PAGE 1 TIMER -->
             <div class="nt-value" id="timer">00:35</div> 
         </div>
     </div>
+
+    <!-- BEAUTIFUL LIVE JACKPOT CIRCLE CENTERED ON PAGE 1 -->
+    <div style="display: flex; justify-content: center; margin: 15px 0 20px 0;">
+        <div class="live-jp-box" style="width: auto; min-width: 160px; padding: 12px 30px; border-radius: 30px; background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(56, 189, 248, 0.5); box-shadow: 0 8px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(56, 189, 248, 0.2);">
+            <div class="live-indicator" style="font-size: 12px;"><span class="dot" style="width:9px; height:9px;"></span> LIVE</div>
+            <div style="font-size:11px; color:#94a3b8; font-weight:bold; margin-top:4px;" data-lang-am="ደራሽ" data-lang-en="Jackpot">ደራሽ</div>
+            <div class="jp-amount" style="font-size: 18px;"><span id="h-jp-amt-2">0</span> <span style="font-size:11px; font-weight:normal;">ETB</span></div>
+        </div>
+    </div>
     
-    <!-- EXACT SCREENSHOT SUBTITLE (Selection Counter) -->
+    <!-- SELECTION ROW (ካርቴላ ይምረጡ | 0 / 5) -->
     <div class="grid-subtitle-row">
         <div class="gs-left" data-lang-am="ካርቴላ ይምረጡ (10 ብር)" data-lang-en="Select Tickets (10 ETB)">ካርቴላ ይምረጡ (10 ብር)</div>
         <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 5</span></div>
@@ -531,7 +524,7 @@
             <div class="tickets-history-box">
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;" data-lang-am="የእኔ ካርቴላ (My Ticket)" data-lang-en="My Ticket">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
-                <div id="history-scroll-bottom" class="history-bottom-bar"></div>
+                <!-- BOTTOM HISTORY BALLS REMOVED -->
             </div>
             
             <!-- NEW FADED BLUE LIVE JACKPOT BOX (BOTTOM CORNER ALONE) -->
@@ -598,6 +591,7 @@
         <div id="prof-avatar" class="prof-avatar-circle">U</div>
         <h2 id="prof-name" style="margin: 0; color: white; font-size: 16px;">User Name</h2>
         <p id="prof-phone" style="color: var(--text-gray); margin-top: 4px; font-size: 11px;">09...</p>
+        <!-- SYSTEM/ADMIN GENERATED UNIQUE ID -->
         <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
 
@@ -837,7 +831,7 @@
             document.getElementById('prof-phone').innerText = currentUser.phone;
             document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
             
-            // Registration unique ID logic display
+            // Registration unique ID logic display (Matches Backend User ID)
             let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5);
             document.getElementById('prof-id-display').innerText = "ID: #" + displayId;
             
@@ -941,7 +935,10 @@
     socket.on('game_status', (data) => {
         // Update Home Page Jackpot
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
-        // Update Game Page Jackpot (NEW BOTTOM BOX)
+        let jpAmtBox2 = document.getElementById('h-jp-amt-2');
+        if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
+
+        // Update Game Page Jackpot (BOTTOM BOX)
         let jpAmtBox = document.getElementById('g-jp-amt');
         if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
 
@@ -952,11 +949,15 @@
             isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
+            document.querySelector('.nt-status').innerText = currentLang === 'am' ? "ጨዋታው ሊጀምር ነው" : "Game starting soon";
             
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
+                globalTakenTickets = []; // Clear blurs for new game
+                renderGridTakenStates(); 
+
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
-                document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('history-scroll-bottom').innerHTML = '';
+                document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
                 document.getElementById('caller-ball').innerText = "--"; document.getElementById('g-balls').innerText = "0/20"; called = []; 
                 
@@ -972,14 +973,19 @@
             if (selected.length > 0) { document.getElementById('bet-btn').disabled = false; document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW"; }
             
         } else if (data.state === "PLAYING") {
-            isGameRunningLocally = true; document.getElementById('timer').innerText = "LIVE 🔴"; 
+            isGameRunningLocally = true; 
+            
+            // Reverted Home Page LIVE status text exactly to what it was
+            document.getElementById('timer').innerText = "LIVE 🔴"; 
+            document.querySelector('.nt-status').innerText = currentLang === 'am' ? "ጨዋታው በመካሄድ ላይ ነው" : "Game in progress";
+
             if (currentGameState !== "PLAYING") {
                 currentGameState = "PLAYING"; document.getElementById('bet-slip-popup').classList.remove('show');
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
             called = data.calledNumbers || []; document.getElementById('g-balls').innerText = called.length + "/20";
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
-            document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('history-scroll-bottom').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
+            document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
             called.forEach((num, idx) => { updateLiveUI(num, idx === called.length - 1); });
         }
     });
@@ -1012,13 +1018,17 @@
                 // Ignore click if ticket is globally taken by someone else
                 if(d.classList.contains('taken')) return;
 
-                if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); } 
-                else if(selected.length < 5) { 
+                if(d.classList.contains('selected')) { 
+                    d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); 
+                } 
+                else if((selected.length + userTicketsData.length) < 5) {  // Total MAX limit fixed to 5 per round
                     d.classList.add('selected'); selected.push(i); 
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
-                } else { alert(currentLang === 'am' ? "ከ 5 ካርቴላ በላይ አይቻልም!" : "Max 5 tickets allowed!"); } 
+                } else { 
+                    alert(currentLang === 'am' ? "በአጠቃላይ ከ 5 ካርቴላ በላይ መግዛት አይቻልም!" : "Max 5 tickets total allowed per round!"); 
+                } 
                 updateBetPreview(); 
             }; box.appendChild(d); 
         } 
@@ -1102,12 +1112,11 @@
         let ballText = bHeads[colIdx] + "-" + num;
         if(isLatest) document.getElementById('caller-ball').innerText = ballText;
 
-        let topH = document.getElementById('history-scroll-top'); let botH = document.getElementById('history-scroll-bottom'); let tickH = document.getElementById('ticket-history-bar');
+        let topH = document.getElementById('history-scroll-top'); let tickH = document.getElementById('ticket-history-bar');
         if (called.length === 1 && (tickH.innerText.includes("ገና") || tickH.innerText.includes("Not started"))) { tickH.innerHTML = ''; }
         let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
-        let botDiv = document.createElement('div'); botDiv.className = 'hist-bot-ball'; botDiv.innerText = ballText;
         let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
-        topH.insertBefore(topDiv, topH.firstChild); botH.appendChild(botDiv); tickH.insertBefore(tickDiv, tickH.firstChild); 
+        topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
     }
 
     function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
