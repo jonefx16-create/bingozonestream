@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
-        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
+        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444; --faded-red: #f87171;}
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
@@ -114,9 +114,6 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
         .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
 
-        /* Wallet Base */
-        .transaction-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 15px; display: none; }
-
         /* Profile */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px;}
         .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
@@ -149,42 +146,46 @@
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
 
-        /* EXACT SCREENSHOT: DEPOSIT MODAL WITH LOGOS & BLUE BUTTON */
-        .dep-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
-        .dep-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
-        .dep-modal.show { transform: translateY(0); }
-        .dep-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .dep-title { color: white; font-size: 18px; font-weight: 900; margin: 0; }
-        .dep-close { color: #64748b; font-size: 14px; cursor: pointer; font-weight: bold; background: none; border: none; }
+        /* SHARED MODAL STYLES (Deposit & Withdraw) */
+        .trx-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
+        .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
+        .trx-modal.show { transform: translateY(0); }
+        .trx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .trx-title { color: white; font-size: 18px; font-weight: 900; margin: 0; }
+        .trx-close { color: #64748b; font-size: 14px; cursor: pointer; font-weight: bold; background: none; border: none; padding: 5px;}
         
-        .dep-banner { background: linear-gradient(90deg, rgba(6, 78, 59, 0.3), rgba(2, 44, 34, 0.3)); border: 1px solid #065f46; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        /* Faded Gold Banner */
+        .dep-banner { background: linear-gradient(90deg, rgba(217, 119, 6, 0.15), rgba(180, 83, 9, 0.15)); border: 1px solid rgba(217, 119, 6, 0.4); border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
         .dep-banner-icon { font-size: 20px; }
-        .dep-banner-text { color: white; font-size: 13px; font-weight: bold; line-height: 1.4; }
+        .dep-banner-text { color: var(--gold); font-size: 13px; font-weight: bold; line-height: 1.4; text-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
 
-        .dep-label { color: #94a3b8; font-size: 12px; margin-bottom: 8px; display: block; font-weight: bold; }
+        .trx-label { color: #94a3b8; font-size: 12px; margin-bottom: 8px; display: block; font-weight: bold; }
         
-        /* Bank Grid with Inline CSS Logos */
+        /* Bank Grid with Logos */
         .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; text-align: center; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; text-align: center; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         .bank-btn.active { background: white; color: black; border-color: white; }
         .bank-btn.mpesa { grid-column: span 2; }
         
-        /* The CSS Logos inside buttons */
-        .bank-logo { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: white; }
-        .logo-tb { background: linear-gradient(to right, #0ea5e9, #0284c7); font-style: italic; }
-        .logo-cbe { background: linear-gradient(to right, #7e22ce, #581c87); color: #fbbf24; font-size: 8px; }
-        .logo-mp { background: linear-gradient(to right, #10b981, #059669); }
+        /* Accurate CSS Logos */
+        .bank-logo { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
+        .logo-tb { background: #00b0f0; color: white; font-family: Arial, sans-serif; font-style: italic; font-weight: bold; }
+        .logo-cbe { background: #502179; color: #fdb913; font-family: serif; font-size: 9px; letter-spacing: 0.5px;}
+        .logo-mp { background: #00a859; color: white; font-family: sans-serif; }
 
-        .dep-copy-box { background: #020617; border: 1px solid #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; justify-content: space-between; align-items: center;}
-        .dep-copy-box.show { display: flex; animation: fadeIn 0.3s; }
+        .trx-copy-box { background: #020617; border: 1px solid #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; justify-content: space-between; align-items: center;}
+        .trx-copy-box.show { display: flex; animation: fadeIn 0.3s; }
         
-        .dep-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 15px; font-family: inherit;}
-        .dep-input:focus { outline: none; border-color: var(--blue); }
-        .dep-hint { color: #475569; font-size: 10px; text-align: right; display: block; margin-bottom: 20px; }
+        .trx-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 15px; font-family: inherit;}
+        .trx-input:focus { outline: none; border-color: var(--blue); }
+        .trx-hint { color: #475569; font-size: 10px; text-align: right; display: block; margin-bottom: 20px; }
 
-        /* BLUE SUBMIT BUTTON */
-        .dep-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; margin-top: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: 0.2s; letter-spacing: 1px;}
-        .dep-submit-btn:active { transform: scale(0.98); }
+        /* BLUE BUTTON */
+        .trx-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: 0.2s; letter-spacing: 1px;}
+        .trx-submit-btn:active { transform: scale(0.98); }
+        
+        /* Red Button specifically for Withdraw */
+        .trx-submit-btn.red-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
 
         /* Password Modal */
         .pw-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: center; }
@@ -193,7 +194,7 @@
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
         .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px;}
         .pw-btn.cancel { background: #1e293b; color: #94a3b8; }
-        .pw-btn.save { background: #fbbf24; color: #000; }
+        .pw-btn.save { background: var(--gold); color: #000; }
     </style>
 </head>
 <body>
@@ -208,54 +209,90 @@
     </div>
 </div>
 
-<!-- EXACT DEPOSIT MODAL WITH LOGOS AND BLUE BUTTON -->
-<div id="dep-modal-overlay" class="dep-modal-overlay" onclick="closeDepositModal(event)">
-    <div id="dep-modal" class="dep-modal" onclick="event.stopPropagation()">
-        <div class="dep-header">
-            <span class="dep-close" onclick="closeDepositModal()">Close</span>
-            <h3 class="dep-title" data-lang-am="Deposit Funds" data-lang-en="Deposit Funds">Deposit Funds</h3>
-            <span style="width:35px;"></span>
+<!-- DEPOSIT MODAL -->
+<div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
+    <div id="dep-modal" class="trx-modal" onclick="event.stopPropagation()">
+        <div class="trx-header">
+            <button class="trx-close" onclick="closeDepositModal()">Close</button>
+            <h3 class="trx-title" data-lang-am="Deposit Funds" data-lang-en="Deposit Funds">Deposit Funds</h3>
+            <span style="width:40px;"></span>
         </div>
 
+        <!-- FADED GOLD BANNER -->
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
-            <!-- CHANGED TO 25% -->
             <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Get 25% extra bonus on all deposits!">ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!</div>
         </div>
 
-        <span class="dep-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
+        <span class="trx-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
         
         <!-- BANK BUTTONS WITH CSS LOGOS -->
-        <div class="bank-grid">
-            <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this)">
+        <div class="bank-grid" id="dep-bank-grid">
+            <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')">
                 <div class="bank-logo logo-tb">t</div> TeleBirr
             </div>
-            <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this)">
+            <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'dep')">
                 <div class="bank-logo logo-cbe">CBE</div> CBE Birr
             </div>
-            <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this)">
-                <div class="bank-logo logo-mp">M</div> MPesa
+            <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this, 'dep')">
+                <div class="bank-logo logo-mp">m</div> MPesa
             </div>
         </div>
 
-        <div id="dep-copy-box" class="dep-copy-box show">
+        <div id="dep-copy-box" class="trx-copy-box show">
             <div>
                 <small style="color:#64748b; font-size:10px;">Account Name:</small><br>
                 <b id="m-dep-name" style="font-size:13px; color:white;">Tsedey Abebe</b><br>
                 <b id="m-dep-acc" style="font-size:18px; color:var(--cyan); font-family:monospace; letter-spacing: 1px; margin-top:3px; display:block;">0933638022</b>
             </div>
-            <button style="background: #1e293b; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="copyModalNumber()" data-lang-am="Copy" data-lang-en="Copy">Copy</button>
+            <button style="background: #1e293b; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="copyModalNumber('m-dep-acc')" data-lang-am="Copy" data-lang-en="Copy">Copy</button>
         </div>
 
-        <span class="dep-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
-        <input type="number" id="m-dep-amt" class="dep-input" placeholder="">
-        <span class="dep-hint">Min: 50 ETB | Max: 100,000 ETB</span>
+        <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
+        <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
+        <span class="trx-hint">Min: 50 ETB | Max: 100,000 ETB</span>
 
-        <span class="dep-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS)" data-lang-en="Payment Confirmation (SMS)">የከፈሉበት ማረጋገጫ (SMS)</span>
-        <textarea id="m-dep-sms" class="dep-input" style="height: 80px; resize: none; font-size: 13px;" placeholder="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="For speed: Copy and paste the bank SMS receipt here"></textarea>
+        <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS)" data-lang-en="Payment Confirmation (SMS)">የከፈሉበት ማረጋገጫ (SMS)</span>
+        <textarea id="m-dep-sms" class="trx-input" style="height: 80px; resize: none; font-size: 13px;" placeholder="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="For speed: Copy and paste the bank SMS receipt here"></textarea>
 
-        <!-- BLUE SUBMIT BUTTON -->
-        <button class="dep-submit-btn" onclick="processNewDeposit()" id="m-dep-btn" data-lang-am="ጨርስ" data-lang-en="Submit">ጨርስ</button>
+        <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn" data-lang-am="ጨርስ" data-lang-en="Submit">ጨርስ</button>
+    </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div id="wit-modal-overlay" class="trx-modal-overlay" onclick="closeWithdrawModal(event)">
+    <div id="wit-modal" class="trx-modal" onclick="event.stopPropagation()">
+        <div class="trx-header">
+            <button class="trx-close" onclick="closeWithdrawModal()">Close</button>
+            <h3 class="trx-title" data-lang-am="Withdraw Funds" data-lang-en="Withdraw Funds">Withdraw Funds</h3>
+            <span style="width:40px;"></span>
+        </div>
+
+        <span class="trx-label" data-lang-am="ወጪ ማድረጊያ ባንክ" data-lang-en="Select Withdrawal Bank">ወጪ ማድረጊያ ባንክ</span>
+        
+        <div class="bank-grid" id="wit-bank-grid">
+            <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'wit')">
+                <div class="bank-logo logo-tb">t</div> TeleBirr
+            </div>
+            <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'wit')">
+                <div class="bank-logo logo-cbe">CBE</div> CBE Birr
+            </div>
+            <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this, 'wit')">
+                <div class="bank-logo logo-mp">m</div> MPesa
+            </div>
+        </div>
+
+        <span class="trx-label" data-lang-am="የእርስዎ ስልክ ቁጥር/አካውንት" data-lang-en="Your Phone/Account Number">የእርስዎ ስልክ ቁጥር/አካውንት</span>
+        <!-- EMPTY AND EDITABLE -->
+        <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
+        <span class="trx-hint" style="margin-bottom: 10px;">&nbsp;</span>
+
+        <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
+        <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
+        <!-- MIN 50, MAX 300,000 -->
+        <span class="trx-hint" style="margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
+
+        <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn" data-lang-am="ወጪ ጠይቅ" data-lang-en="Request Withdraw">ወጪ ጠይቅ</button>
     </div>
 </div>
 
@@ -397,23 +434,8 @@
         
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
             <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="openDepositModal()">➕ Deposit</button>
-            <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="toggleForm('wit')">💸 Withdraw</button>
+            <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
         </div>
-    </div>
-
-    <!-- Withdraw Section -->
-    <div id="sec-wit" class="transaction-box">
-        <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;" data-lang-am="ወጪ ማድረጊያ መንገድ ይምረጡ" data-lang-en="Choose withdraw method">ወጪ ማድረጊያ መንገድ ይምረጡ</p>
-        <div class="pay-method-grid" id="wit-methods">
-            <div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div>
-            <div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div>
-            <div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div>
-        </div>
-        <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;" readonly>
-        <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)" data-lang-am="የሚወጣው መጠን (Amount)" data-lang-en="Withdraw Amount">
-        <p style="font-size:10px; color:var(--text-gray); text-align:center; margin-bottom:15px;" data-lang-am="* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።" data-lang-en="* Withdrawals allowed only from play balance.">* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።</p>
-        <button class="auth-btn" style="background:linear-gradient(to right, #e11d48, #be123c); color:white; font-size:14px; border-radius: 10px;" onclick="processWithdraw()" id="lbl-wit-conf" data-lang-am="ወጪ ጠይቅ (Withdraw)" data-lang-en="Request Withdraw">ወጪ ጠይቅ (Withdraw)</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px; padding:10px; font-size:12px; border-radius: 10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
     </div>
 
     <!-- TRANSACTION HISTORY -->
@@ -425,7 +447,7 @@
     </div>
 </div>
 
-<!-- 6. REDESIGNED RANK PAGE -->
+<!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
     <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div id="rank-content">
@@ -492,37 +514,48 @@
 
     buildMasterBoard();
 
-    // ================== NEW DEPOSIT MODAL LOGIC ==================
+    // ================== NEW MODAL LOGIC (DEPOSIT & WITHDRAW) ==================
     function openDepositModal() {
-        document.getElementById('sec-wit').style.display = 'none';
         document.getElementById('dep-modal-overlay').style.display = 'flex';
         setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10);
     }
-    
     function closeDepositModal(e) {
         if(e && e.target.id !== 'dep-modal-overlay') return;
         document.getElementById('dep-modal').classList.remove('show');
         setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300);
     }
 
-    function selectBank(method, element) {
-        let buttons = document.querySelectorAll('.bank-btn');
+    function openWithdrawModal() {
+        document.getElementById('wit-modal-overlay').style.display = 'flex';
+        setTimeout(() => { document.getElementById('wit-modal').classList.add('show'); }, 10);
+    }
+    function closeWithdrawModal(e) {
+        if(e && e.target.id !== 'wit-modal-overlay') return;
+        document.getElementById('wit-modal').classList.remove('show');
+        setTimeout(() => { document.getElementById('wit-modal-overlay').style.display = 'none'; }, 300);
+    }
+
+    function selectBank(method, element, type) {
+        let gridId = type === 'dep' ? 'dep-bank-grid' : 'wit-bank-grid';
+        let buttons = document.querySelectorAll(`#${gridId} .bank-btn`);
         buttons.forEach(btn => btn.classList.remove('active'));
         element.classList.add('active');
 
-        document.getElementById('dep-copy-box').classList.add('show');
-        document.getElementById('m-dep-acc').innerText = depAccounts[method].num;
-        document.getElementById('m-dep-name').innerText = depAccounts[method].name;
+        if(type === 'dep') {
+            document.getElementById('dep-copy-box').classList.add('show');
+            document.getElementById('m-dep-acc').innerText = depAccounts[method].num;
+            document.getElementById('m-dep-name').innerText = depAccounts[method].name;
+        }
     }
 
-    function copyModalNumber() {
-        navigator.clipboard.writeText(document.getElementById('m-dep-acc').innerText);
+    function copyModalNumber(id) {
+        navigator.clipboard.writeText(document.getElementById(id).innerText);
         alert(currentLang === 'am' ? "ቁጥሩ ኮፒ ተደርጓል!" : "Account Number Copied!");
     }
 
     async function processNewDeposit() {
         let amt = parseFloat(document.getElementById('m-dep-amt').value);
-        let activeBtn = document.querySelector('.bank-btn.active');
+        let activeBtn = document.querySelector('#dep-bank-grid .bank-btn.active');
         let method = activeBtn ? activeBtn.getAttribute('data-bankname') : '';
         let smsText = document.getElementById('m-dep-sms').value.trim();
 
@@ -550,6 +583,43 @@
             console.error(e);
         }
         btn.innerText = currentLang === 'am' ? "ጨርስ" : "Submit";
+    }
+
+    async function processNewWithdraw() {
+        let amt = parseFloat(document.getElementById('m-wit-amt').value);
+        let activeBtn = document.querySelector('#wit-bank-grid .bank-btn.active');
+        let method = activeBtn ? activeBtn.getAttribute('data-bankname') : '';
+        let phone = document.getElementById('m-wit-phone').value.trim();
+
+        if(!method) return alert(currentLang === 'am' ? "እባክዎ ባንክ ይምረጡ!" : "Please select a bank!");
+        if(!phone) return alert(currentLang === 'am' ? "እባክዎ ስልክ ቁጥር ያስገቡ!" : "Please enter a phone number!");
+        if(!amt || amt < 50 || amt > 300000) return alert(currentLang === 'am' ? "መጠን በ 50 እና 300,000 መሃል መሆን አለበት!" : "Amount must be between 50 and 300,000 ETB!");
+        
+        let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
+        if(amt > currentPlayBal) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
+        
+        let btn = document.getElementById('m-wit-btn');
+        btn.innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
+        
+        try { 
+            let res = await fetch('/api/request-tx', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method, destinationPhone: phone }) 
+            }); 
+            let data = await res.json(); 
+            if(data.success) { 
+                await fetchUpdatedBalance(); 
+                alert(data.message); 
+                addHistoryRecord("Withdraw Req (" + method + ")", `-${amt} ETB`, "#ef4444");
+                document.getElementById('m-wit-amt').value = ''; 
+                document.getElementById('m-wit-phone').value = '';
+                closeWithdrawModal(); 
+            } else { 
+                alert(data.message); 
+            } 
+        } catch(e) {}
+        btn.innerText = currentLang === 'am' ? "ወጪ ጠይቅ" : "Request Withdraw";
     }
 
     // ================== PASSWORD MODAL FUNCTIONS ==================
@@ -627,7 +697,6 @@
             document.getElementById('prof-phone').innerText = currentUser.phone;
             document.getElementById('prof-played').innerText = currentUser.played || 0;
             document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
-            document.getElementById('wit-phone').value = currentUser.phone;
             updateUIBalance();
             
             document.getElementById('auth-page').classList.remove('active-page');
@@ -854,29 +923,6 @@
         else if(selected.length > 0) document.getElementById('bet-slip-popup').classList.add('show');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
         if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); } else { document.getElementById('nav-home').classList.add('active'); }
-    }
-    
-    function toggleForm(type) { document.getElementById('sec-wit').style.display = 'none'; if(type === 'wit') document.getElementById('sec-wit').style.display = 'block'; }
-    function setWitMethod(element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); }
-    
-    async function processWithdraw() {
-        let amt = parseFloat(document.getElementById('wit-amt').value); let method = document.querySelector('#wit-methods .pay-box.active').innerText;
-        if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
-        
-        let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
-        if(amt > currentPlayBal) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
-        
-        document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
-        try { 
-            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method }) }); 
-            let data = await res.json(); 
-            if(data.success) { 
-                await fetchUpdatedBalance(); alert(data.message); 
-                addHistoryRecord("ወጪ (Withdraw Req)", `-${amt} ETB`, "#e11d48");
-                document.getElementById('wit-amt').value = ''; toggleForm('none'); 
-            } else { alert(data.message); } 
-        } catch(e) {}
-        document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "ወጪ ጠይቅ (Withdraw)" : "Request Withdraw";
     }
     
     function addHistoryRecord(title, amount, color) { 
