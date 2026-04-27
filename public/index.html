@@ -39,14 +39,46 @@
         .lang-inactive { color: var(--white); }
         .lang-div { color: #475569; margin: 0 8px; font-weight: normal !important; }
 
-        /* Timer Header */
-        .timer-header { background: var(--panel); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: center; gap: 20px; align-items: center; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-        .timer-box { display: flex; align-items: center; gap: 8px; }
-        .time-label { font-size: 11px; color: var(--text-gray); font-weight: bold;}
-        .time-val { font-size: 16px; font-weight: 900; color: var(--faded-green); font-family: monospace; letter-spacing: 1px;}
+        /* ======================================================== */
+        /* EXACT SCREENSHOT MATCH: TIMER & JACKPOT HEADER (REDUCED SIZE) */
+        /* ======================================================== */
+        .new-timer-box { 
+            background: #111521; 
+            border: 1px solid rgba(74, 222, 128, 0.4); 
+            border-radius: 15px; /* Smaller radius */
+            padding: 10px 15px; /* REDUCED PADDING */
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px; /* Reduced margin */
+            box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); 
+        }
+        .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+        .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        
+        .nt-badge { 
+            background: #2a2211; 
+            color: var(--gold); 
+            border-radius: 4px; 
+            padding: 2px 8px; 
+            font-size: 10px; 
+            font-weight: 900; 
+            letter-spacing: 0.5px; 
+        }
+        
+        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
+        
+        .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;} /* Reduced Font Size */
+        .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
+
+        /* SELECTION ROW (ካርቴላ ይምረጡ | 0 / 5) */
+        .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
+        .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
+        .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } /* CHANGED TO FADED GREEN */
+        .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
         /* Number Grid */
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 15px auto; width: fit-content; justify-content: center; padding-bottom: 220px; } 
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 220px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
@@ -54,7 +86,6 @@
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 15px 15px 0 0; padding: 10px 15px 15px 15px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
-        /* Smaller Ticket Preview inside popup */
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin-bottom: 10px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 60px; padding-bottom: 2px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 55px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; padding: 2px;}
@@ -128,16 +159,13 @@
         .podium-1 { border-color: #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); transform: scale(1.1); z-index: 2; height: 90px; justify-content: flex-end;}
         .podium-2 { border-color: #C0C0C0; height: 75px; justify-content: flex-end;}
         .podium-3 { border-color: #CD7F32; height: 65px; justify-content: flex-end;}
-        
         .podium-avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 900; margin-bottom: 5px; color: #000; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.5); position: absolute; top: -18px;}
         .p-1-ava { background: linear-gradient(135deg, #FFDF00, #DAA520); width: 45px; height: 45px; font-size: 18px; top: -25px;}
         .p-2-ava { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); }
         .p-3-ava { background: linear-gradient(135deg, #E6A15C, #8B4513); }
-        
         .podium-name { font-size: 9px; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 3px; }
         .podium-prize { font-size: 9px; color: var(--gold); font-weight: 900; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px;}
         .crown-icon { position: absolute; top: -45px; font-size: 22px; animation: floatCrown 2s infinite ease-in-out; text-shadow: 0 4px 8px rgba(255,215,0,0.5);}
-        
         .rank-card { display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); padding: 12px; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 8px; backdrop-filter: blur(5px);}
         .rank-badge { width: 24px; height: 24px; border-radius: 50%; background: #0f172a; color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; margin-right: 12px; border: 1px solid #334155;}
         
@@ -154,20 +182,17 @@
         .trx-title { color: white; font-size: 18px; font-weight: 900; margin: 0; }
         .trx-close { color: #64748b; font-size: 14px; cursor: pointer; font-weight: bold; background: none; border: none; padding: 5px;}
         
-        /* Faded Gold Banner */
         .dep-banner { background: linear-gradient(90deg, rgba(217, 119, 6, 0.15), rgba(180, 83, 9, 0.15)); border: 1px solid rgba(217, 119, 6, 0.4); border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
         .dep-banner-icon { font-size: 20px; }
         .dep-banner-text { color: var(--gold); font-size: 13px; font-weight: bold; line-height: 1.4; text-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
 
         .trx-label { color: #94a3b8; font-size: 12px; margin-bottom: 8px; display: block; font-weight: bold; }
         
-        /* Bank Grid with Logos */
         .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; text-align: center; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         .bank-btn.active { background: white; color: black; border-color: white; }
         .bank-btn.mpesa { grid-column: span 2; }
         
-        /* Accurate CSS Logos */
         .bank-logo { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
         .logo-tb { background: #00b0f0; color: white; font-family: Arial, sans-serif; font-style: italic; font-weight: bold; }
         .logo-cbe { background: #502179; color: #fdb913; font-family: serif; font-size: 9px; letter-spacing: 0.5px;}
@@ -180,11 +205,8 @@
         .trx-input:focus { outline: none; border-color: var(--blue); }
         .trx-hint { color: #475569; font-size: 10px; text-align: right; display: block; margin-bottom: 20px; }
 
-        /* BLUE BUTTON */
         .trx-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: 0.2s; letter-spacing: 1px;}
         .trx-submit-btn:active { transform: scale(0.98); }
-        
-        /* Red Button specifically for Withdraw */
         .trx-submit-btn.red-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
 
         /* Password Modal */
@@ -218,7 +240,6 @@
             <span style="width:40px;"></span>
         </div>
 
-        <!-- FADED GOLD BANNER -->
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
             <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Get 25% extra bonus on all deposits!">ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!</div>
@@ -226,7 +247,6 @@
 
         <span class="trx-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
         
-        <!-- BANK BUTTONS WITH CSS LOGOS -->
         <div class="bank-grid" id="dep-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')">
                 <div class="bank-logo logo-tb">t</div> TeleBirr
@@ -283,13 +303,11 @@
         </div>
 
         <span class="trx-label" data-lang-am="የእርስዎ ስልክ ቁጥር/አካውንት" data-lang-en="Your Phone/Account Number">የእርስዎ ስልክ ቁጥር/አካውንት</span>
-        <!-- EMPTY AND EDITABLE -->
         <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
         <span class="trx-hint" style="margin-bottom: 10px;">&nbsp;</span>
 
         <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
-        <!-- MIN 50, MAX 300,000 -->
         <span class="trx-hint" style="margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
 
         <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn" data-lang-am="ወጪ ጠይቅ" data-lang-en="Request Withdraw">ወጪ ጠይቅ</button>
@@ -362,19 +380,29 @@
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
-    <div class="timer-header">
-        <div class="timer-box"><span class="time-label" data-lang-am="ሰከንድ:" data-lang-en="TIME:">ሰከንድ:</span><span id="timer" class="time-val">00:25</span></div>
-        <div style="width: 1px; height: 20px; background: var(--border-color);"></div> 
-        <div class="timer-box"><span class="time-label">JACKPOT:</span><span id="jp" class="time-val" style="color:gold;">0 ETB</span></div>
+    
+    <!-- NEW EXACT SCREENSHOT TIMER/JACKPOT HEADER -->
+    <div class="new-timer-box">
+        <div class="nt-left">
+            <div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div>
+            <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
+        </div>
+        <div class="nt-right">
+            <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
+            <div class="nt-value" id="timer">00:35</div> <!-- CHANGED FROM 00:25 TO 00:35 -->
+        </div>
     </div>
-    <div style="text-align:center;">
-        <p style="font-size: 13px; color: var(--white); margin: 0; font-weight: bold;" data-lang-am="ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ" data-lang-en="Select numbers to buy tickets">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ</p>
-        <p style="font-size: 11px; color: var(--text-gray); margin-top: 5px;" data-lang-am="(1 ካርቴላ = 10 ብር)" data-lang-en="(1 Ticket = 10 ETB)">(1 ካርቴላ = 10 ብር)</p>
-        <div id="grid-box" class="num-grid"></div>
+    
+    <!-- EXACT SCREENSHOT SUBTITLE (Selection Counter) -->
+    <div class="grid-subtitle-row">
+        <div class="gs-left" data-lang-am="ካርቴላ ይምረጡ (10 ብር)" data-lang-en="Select Tickets (10 ETB)">ካርቴላ ይምረጡ (10 ብር)</div>
+        <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 5</span></div>
     </div>
+
+    <div id="grid-box" class="num-grid"></div>
 </div>
 
-<!-- FIXED BET SLIP POPUP -->
+<!-- COMPACT FIXED BET SLIP POPUP -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
         <span style="color:white; font-size:11px; font-weight:bold;"><span id="lbl-sel-tickets" data-lang-am="የመረጧቸው ካርቴላዎች: " data-lang-en="Selected Tickets: ">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
@@ -750,7 +778,6 @@
     function updateUIBalance() {
         document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
-        document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         
         let playElAm = document.getElementById('play-bal-am'); let playElEn = document.getElementById('play-bal-en'); let playEl = document.getElementById('play-bal');
         if(playElAm) playElAm.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
@@ -768,7 +795,7 @@
     });
 
     socket.on('game_status', (data) => {
-        document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2) + " ETB"; 
+        document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
@@ -842,7 +869,9 @@
     }
 
     function updateBetPreview() {
-        document.getElementById('jp').innerText = (selected.length * 10) + " ETB";
+        document.getElementById('jp').innerText = (selected.length * 10);
+        document.getElementById('grid-sel-count').innerText = selected.length; // Update the new subtitle 0/5 count
+        
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
@@ -860,7 +889,7 @@
     function placeBet() { 
         if(selected.length === 0) return alert(currentLang === 'am' ? "ቢያንስ 1 ካርቴላ ይምረጡ!" : "Select at least 1 ticket!"); 
         let betAmount = selected.length * 10; let currentBal = parseFloat(currentUser.mainBalance) || 0;
-        if(currentBal < betAmount) { alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); showPage('wallet'); return; }
+        if(currentBal < betAmount) { alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); return; }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
@@ -869,6 +898,7 @@
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('bet-slip-popup').classList.remove('show');
+            document.getElementById('grid-sel-count').innerText = "0"; // Reset subtitle counter
             document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW"; document.getElementById('bet-btn').disabled = false;
         }, 800);
     }
