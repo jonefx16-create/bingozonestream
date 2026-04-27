@@ -36,8 +36,25 @@
         /* ======================================================== */
         /* EXACT SCREENSHOT MATCH: TIMER & JACKPOT HEADER           */
         /* ======================================================== */
+        
+        /* Language Toggle Switch - OUTSIDE THE BOX */
+        .lang-switch-wrapper { display: flex; justify-content: flex-end; margin-bottom: 8px; padding-right: 5px; }
+        .lang-switch-pill { 
+            display: inline-flex; 
+            align-items: center; 
+            background: #0f172a; 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 8px; 
+            padding: 4px 10px; 
+            cursor: pointer; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s; letter-spacing: 0.5px;}
+        .lang-active { color: white; text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); } /* WHITE TEXT WHEN SELECTED */
+        .lang-inactive { color: #64748b; }
+        .lang-div { color: #334155; margin: 0 6px; font-weight: normal !important; font-size: 10px; }
+
         .new-timer-box { 
-            position: relative; 
             background: #111521; 
             border: 1px solid rgba(74, 222, 128, 0.4); 
             border-radius: 12px; 
@@ -45,30 +62,9 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            margin-top: 18px; /* Space added for the AM/EN pill to sit on top */
             margin-bottom: 10px; 
             box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); 
         }
-
-        /* Language Toggle Switch - OUTSIDE ON THE BORDER LINE */
-        .lang-switch-pill { 
-            position: absolute; 
-            top: -11px; /* Pulls it up exactly onto the border line */
-            right: 15px; 
-            display: inline-flex; 
-            align-items: center; 
-            background: var(--bg-dark); /* Blends with body background to cut the line cleanly */
-            border: 1px solid rgba(74, 222, 128, 0.6); 
-            border-radius: 10px; 
-            padding: 2px 8px; 
-            cursor: pointer; 
-            z-index: 10; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        .lang-switch-pill span { font-size: 9px; font-weight: 900; transition: 0.2s; letter-spacing: 0.5px;}
-        .lang-active { color: var(--faded-green); text-shadow: 0 0 5px rgba(74, 222, 128, 0.5); }
-        .lang-inactive { color: var(--text-gray); }
-        .lang-div { color: #475569; margin: 0 4px; font-weight: normal !important; font-size: 9px; }
 
         .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
         .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
@@ -106,13 +102,13 @@
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
-        /* Ticket Preview inside popup (Clear detailed numbers, smaller container) */
-        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 5px; margin-bottom: 8px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 48px; padding-bottom: 2px; }
+        /* Ticket Preview inside popup (Wider cards for horizontal stretch) */
+        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
-        .preview-t-card { background: white; min-width: 52px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
+        .preview-t-card { background: white; min-width: 85px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
         .preview-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #94a3b8; border: 1px solid #94a3b8;}
-        .preview-t-head { color: white; height: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
-        .preview-t-cell { background: #fff; height: 11px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
+        .preview-t-head { color: white; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px;}
+        .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
         .preview-t-cell.marked { background: #000; color: white; font-size: 7px; }
 
         .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
@@ -400,16 +396,17 @@
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     
-    <!-- EXACT SCREENSHOT TIMER/JACKPOT HEADER -->
-    <div class="new-timer-box">
-        
-        <!-- LANGUAGE TOGGLE ON THE EDGE/BORDER -->
+    <!-- LANGUAGE TOGGLE OUTSIDE & ABOVE THE BOX -->
+    <div class="lang-switch-wrapper">
         <div class="lang-switch-pill" onclick="toggleLanguage()">
             <span id="lang-am" class="lang-active">AM</span>
             <span class="lang-div">|</span>
             <span id="lang-en" class="lang-inactive">EN</span>
         </div>
+    </div>
 
+    <!-- EXACT SCREENSHOT TIMER/JACKPOT HEADER -->
+    <div class="new-timer-box">
         <div class="nt-left">
             <div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div>
             <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
