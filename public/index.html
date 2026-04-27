@@ -97,6 +97,9 @@
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
+        
+        /* TICKET BLUR (Taken by others) */
+        .num-btn.taken { opacity: 0.35; filter: blur(1.5px); pointer-events: none; background: rgba(255,255,255,0.05); color: #475569; border-color: #1e293b; }
 
         /* COMPACT FIXED BET SLIP POPUP */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
@@ -235,11 +238,12 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
         .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
 
-        /* Profile */
-        .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px;}
-        .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
+        /* COMPACT PROFILE PAGE REDESIGN */
+        .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
+        .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4); text-transform: uppercase;}
+        .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
         .prof-list-btn:hover { border-color: var(--faded-green); background: #1e293b; }
-        .prof-list-btn .icon-bg { background: #1e293b; padding: 8px; border-radius: 8px; margin-right: 15px; font-size: 16px;}
+        .prof-list-btn .icon-bg { background: #1e293b; padding: 6px; border-radius: 8px; margin-right: 12px; font-size: 14px;}
         .prof-list-btn.logout { border-color: #7f1d1d; color: #ef4444; }
         .prof-list-btn.logout:hover { background: #7f1d1d; color: white; }
 
@@ -306,7 +310,7 @@
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
         .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px;}
         .pw-btn.cancel { background: #1e293b; color: #94a3b8; }
-        .pw-btn.save { background: var(--gold); color: #000; }
+        .pw-btn.save { background: var(--faded-green); color: #000; } /* CHANGED TO FADED GREEN */
     </style>
 </head>
 <body>
@@ -463,7 +467,7 @@
     </div>
 </div>
 
-<!-- 2. HOME PAGE (UNTOUCHED FROM PREVIOUS ACCURATE VERSION) -->
+<!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     
     <!-- LANGUAGE TOGGLE OUTSIDE -->
@@ -507,7 +511,7 @@
     <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
 </div>
 
-<!-- 3. GAME PAGE (PAGE 2 - EDITED AS REQUESTED) -->
+<!-- 3. GAME PAGE (PAGE 2) -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
@@ -586,34 +590,36 @@
     </div>
 </div>
 
-<!-- 7. PROFILE PAGE -->
+<!-- 7. COMPACT PROFILE PAGE REDESIGN -->
 <div id="profile-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="👤 የእኔ ፕሮፋይል" data-lang-en="👤 My Profile">👤 የእኔ ፕሮፋይል</h3>
+    <h3 style="text-align:center; margin-top: 0; font-size: 16px;" data-lang-am="👤 የእኔ ፕሮፋይል" data-lang-en="👤 My Profile">👤 የእኔ ፕሮፋይል</h3>
     
-    <div class="profile-stat-box">
-        <h2 id="prof-name" style="margin: 0; color: white;">User Name</h2>
-        <p id="prof-phone" style="color: var(--text-gray); margin-top: 5px;">09...</p>
+    <div class="profile-stat-box" style="padding: 15px; margin-bottom: 10px;">
+        <div id="prof-avatar" class="prof-avatar-circle">U</div>
+        <h2 id="prof-name" style="margin: 0; color: white; font-size: 16px;">User Name</h2>
+        <p id="prof-phone" style="color: var(--text-gray); margin-top: 4px; font-size: 11px;">09...</p>
+        <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
 
-    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue);">
-            <div style="font-size: 12px; color: var(--text-gray);" data-lang-am="የተጫወቱት (Played)" data-lang-en="Played">የተጫወቱት (Played)</div>
-            <div style="font-size: 24px; font-weight: bold; color: var(--blue);" id="prof-played">0</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue); padding: 12px;">
+            <div style="font-size: 10px; color: var(--text-gray);" data-lang-am="የተጫወቱት (Played)" data-lang-en="Played">የተጫወቱት (Played)</div>
+            <div style="font-size: 18px; font-weight: bold; color: var(--blue);" id="prof-played">0</div>
         </div>
-        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green);">
-            <div style="font-size: 12px; color: var(--text-gray);" data-lang-am="ያሸነፉት (Won)" data-lang-en="Won">ያሸነፉት (Won)</div>
-            <div style="font-size: 24px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div>
+        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green); padding: 12px;">
+            <div style="font-size: 10px; color: var(--text-gray);" data-lang-am="ያሸነፉት (Won)" data-lang-en="Won">ያሸነፉት (Won)</div>
+            <div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div>
         </div>
     </div>
 
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <button class="prof-list-btn" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
-            <div style="display:flex; align-items:center;"><span class="icon-bg">🔐</span> <span data-lang-am="የይለፍ ቃል ቀይር (Change Password)" data-lang-en="Change Password">የይለፍ ቃል ቀይር (Change Password)</span></div>
+        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🔐</span> <span data-lang-am="የይለፍ ቃል ቀይር" data-lang-en="Change Password">የይለፍ ቃል ቀይር</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
 
-        <button class="prof-list-btn logout" onclick="location.reload()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent;">🚪</span> <span data-lang-am="ከሲስተም ውጣ (Logout)" data-lang-en="Logout">ከሲስተም ውጣ (Logout)</span></div>
+        <button class="prof-list-btn logout" style="padding: 12px 15px; font-size: 12px;" onclick="location.reload()">
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent; padding: 6px; font-size: 14px; margin-right: 10px;">🚪</span> <span data-lang-am="ከሲስተም ውጣ" data-lang-en="Logout">ከሲስተም ውጣ</span></div>
         </button>
     </div>
 </div>
@@ -638,6 +644,7 @@
     let isGameRunningLocally = false;
     let currentLang = 'am';
     let currentGameState = null;
+    let globalTakenTickets = []; // Tracks tickets bought by others
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -824,8 +831,16 @@
             currentUser = data.user;
             document.getElementById('hdr-name').innerText = currentUser.name;
             document.getElementById('hdr-phone').innerText = currentUser.phone;
+            
+            // PROFILE PAGE UPDATES
             document.getElementById('prof-name').innerText = currentUser.name;
             document.getElementById('prof-phone').innerText = currentUser.phone;
+            document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
+            
+            // Registration unique ID logic display
+            let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5);
+            document.getElementById('prof-id-display').innerText = "ID: #" + displayId;
+            
             document.getElementById('prof-played').innerText = currentUser.played || 0;
             document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
             updateUIBalance();
@@ -898,6 +913,31 @@
         }
     });
 
+    // LISTEN FOR TICKETS TAKEN BY OTHERS SO THEY GET BLURRED
+    socket.on('update_taken_tickets', (ticketsArr) => {
+        globalTakenTickets = ticketsArr;
+        renderGridTakenStates();
+    });
+
+    function renderGridTakenStates() {
+        document.querySelectorAll('.num-btn').forEach(btn => {
+            let num = parseInt(btn.innerText);
+            if(globalTakenTickets.includes(num)) {
+                btn.classList.add('taken');
+                btn.classList.remove('selected');
+                
+                // Automatically deselect if user had it pending and someone bought it before them
+                if(selected.includes(num)) {
+                    selected = selected.filter(x => x !== num);
+                    pendingTicketsData = pendingTicketsData.filter(t => t.id !== num);
+                    updateBetPreview();
+                }
+            } else {
+                btn.classList.remove('taken');
+            }
+        });
+    }
+
     socket.on('game_status', (data) => {
         // Update Home Page Jackpot
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
@@ -963,8 +1003,15 @@
         const box = document.getElementById('grid-box'); box.innerHTML = ''; 
         for(let i=1; i<=200; i++) { 
             let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; 
+            
+            // Pre-blur if already taken globally
+            if(globalTakenTickets.includes(i)) { d.classList.add('taken'); }
+
             d.onclick = () => { 
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
+                // Ignore click if ticket is globally taken by someone else
+                if(d.classList.contains('taken')) return;
+
                 if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); } 
                 else if(selected.length < 5) { 
                     d.classList.add('selected'); selected.push(i); 
@@ -997,13 +1044,24 @@
 
     function placeBet() { 
         if(selected.length === 0) return alert(currentLang === 'am' ? "ቢያንስ 1 ካርቴላ ይምረጡ!" : "Select at least 1 ticket!"); 
+        
+        // Double check just in case one of the selected tickets got globally taken
+        let stolenTickets = selected.filter(x => globalTakenTickets.includes(x));
+        if (stolenTickets.length > 0) {
+            alert(currentLang === 'am' ? "የመረጧቸው አንዳንድ ካርቴላዎች በሌላ ሰው ተገዝተዋል!" : "Some of your selected tickets were just bought by someone else!");
+            renderGridTakenStates(); // refresh grid UI
+            return;
+        }
+
         let betAmount = selected.length * 10; let currentBal = parseFloat(currentUser.mainBalance) || 0;
         if(currentBal < betAmount) { alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); return; }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
         
-        socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length });
+        // Also inform the server what tickets were bought so it broadcasts to others
+        socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length, ticketIds: selected });
+
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('bet-slip-popup').classList.remove('show');
