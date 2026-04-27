@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
-        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --faded-red: #f87171; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --purple: #a855f7; --red: #ef4444;}
+        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
@@ -16,28 +16,27 @@
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; font-family: inherit;}
         .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .upload-btn { display: inline-block; width: 100%; padding: 12px; background: #1e293b; border: 1px dashed var(--blue); color: var(--blue); border-radius: 8px; font-size: 12px; font-weight: bold; margin-bottom: 5px; cursor: pointer; box-sizing: border-box; text-align: center;}
         
-        /* TOP HEADER (Small profile, Black Wallets, Colored Texts) */
+        /* TOP HEADER */
         .top-balance { background: transparent; padding: 12px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
         .hdr-user-sec .phone { font-size: 9px; color: var(--text-gray); }
         
-        /* Wallets Design (Black background, Colored Text) */
+        /* Wallets Design */
         .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
         .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 15px; padding: 4px 12px; display: flex; justify-content: space-between; align-items: center; min-width: 145px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
         .pill-wallet span.title { font-size: 9px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
-        .pill-wallet span.title.play { color: var(--faded-red); } /* Faded Red */
-        .pill-wallet span.title.main { color: var(--faded-green); } /* Faded Green */
+        .pill-wallet span.title.play { color: var(--cyan); }
+        .pill-wallet span.title.main { color: var(--gold); }
         .pill-wallet span.amt { color: white; font-size: 13px; font-weight: 900; font-family: monospace;}
 
-        /* Language Toggle Switch (AM | EN) */
+        /* Language Toggle Switch */
         .lang-switch-pill { display: inline-flex; align-items: center; background: #0b111a; border: 1px solid #1e293b; border-radius: 20px; padding: 4px 12px; cursor: pointer; margin-top: 2px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);}
         .lang-switch-pill span { font-size: 11px; font-weight: 900; transition: 0.2s; letter-spacing: 1px;}
-        .lang-active { color: var(--blue); text-shadow: 0 0 5px rgba(59, 130, 246, 0.5); } /* Blue */
-        .lang-inactive { color: var(--white); } /* White */
+        .lang-active { color: var(--blue); text-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+        .lang-inactive { color: var(--white); }
         .lang-div { color: #475569; margin: 0 8px; font-weight: normal !important; }
 
         /* Timer Header */
@@ -115,13 +114,8 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
         .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
 
-        /* Wallet */
+        /* Wallet Base */
         .transaction-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 15px; display: none; }
-        .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .pay-box { background: #0d1117; border: 1px solid var(--border-color); padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
-        .pay-box.active { border-color: var(--faded-green); color: var(--faded-green); background: rgba(74, 222, 128, 0.1); }
-        .copy-box { background: #000; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--text-gray); margin-bottom: 15px; }
-        .copy-btn { background: #161b22; border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;}
 
         /* Profile */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px;}
@@ -132,39 +126,74 @@
         .prof-list-btn.logout:hover { background: #7f1d1d; color: white; }
 
         /* RANK PAGE PODIUM DESIGN */
-        .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 30px; padding-top: 35px; }
-        .podium-box { display: flex; flex-direction: column; align-items: center; background: var(--panel); border-radius: 12px; padding: 15px 5px; width: 30%; text-align: center; position: relative; border: 2px solid var(--border-color); box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: 0.3s;}
-        .podium-1 { border-color: #FFD700; box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); transform: scale(1.15); z-index: 2; height: 120px; justify-content: flex-end;}
-        .podium-2 { border-color: #C0C0C0; height: 100px; justify-content: flex-end;}
-        .podium-3 { border-color: #CD7F32; height: 90px; justify-content: flex-end;}
-        .podium-avatar { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; margin-bottom: 8px; color: #000; box-shadow: inset 0 -3px 5px rgba(0,0,0,0.3), 0 5px 10px rgba(0,0,0,0.5); position: absolute; top: -22px;}
-        .p-1-ava { background: linear-gradient(135deg, #FFDF00, #DAA520); width: 55px; height: 55px; font-size: 26px; top: -30px;}
+        .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 20px; padding-top: 30px; }
+        .podium-box { display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, #1e293b, #0f172a); border-radius: 8px; padding: 10px 4px; width: 28%; text-align: center; position: relative; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s;}
+        .podium-1 { border-color: #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); transform: scale(1.1); z-index: 2; height: 90px; justify-content: flex-end;}
+        .podium-2 { border-color: #C0C0C0; height: 75px; justify-content: flex-end;}
+        .podium-3 { border-color: #CD7F32; height: 65px; justify-content: flex-end;}
+        
+        .podium-avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 900; margin-bottom: 5px; color: #000; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.5); position: absolute; top: -18px;}
+        .p-1-ava { background: linear-gradient(135deg, #FFDF00, #DAA520); width: 45px; height: 45px; font-size: 18px; top: -25px;}
         .p-2-ava { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); }
         .p-3-ava { background: linear-gradient(135deg, #E6A15C, #8B4513); }
-        .podium-name { font-size: 11px; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 4px; }
-        .podium-prize { font-size: 11px; color: var(--faded-green); font-weight: 900; background: rgba(0,0,0,0.4); padding: 3px 6px; border-radius: 4px;}
-        .crown-icon { position: absolute; top: -55px; font-size: 28px; animation: floatCrown 2s infinite ease-in-out; text-shadow: 0 5px 10px rgba(255,215,0,0.5);}
-        @keyframes floatCrown { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(5deg); } }
-
-        .rank-card { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 10px;}
-        .rank-badge { width: 30px; height: 30px; border-radius: 50%; background: #1e293b; color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;}
+        
+        .podium-name { font-size: 9px; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 3px; }
+        .podium-prize { font-size: 9px; color: var(--gold); font-weight: 900; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px;}
+        .crown-icon { position: absolute; top: -45px; font-size: 22px; animation: floatCrown 2s infinite ease-in-out; text-shadow: 0 4px 8px rgba(255,215,0,0.5);}
+        
+        .rank-card { display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); padding: 12px; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 8px; backdrop-filter: blur(5px);}
+        .rank-badge { width: 24px; height: 24px; border-radius: 50%; background: #0f172a; color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; margin-right: 12px; border: 1px solid #334155;}
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: none; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
         .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
 
-        /* PASSWORD MODAL */
+        /* EXACT SCREENSHOT: DEPOSIT MODAL WITH LOGOS & BLUE BUTTON */
+        .dep-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
+        .dep-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
+        .dep-modal.show { transform: translateY(0); }
+        .dep-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .dep-title { color: white; font-size: 18px; font-weight: 900; margin: 0; }
+        .dep-close { color: #64748b; font-size: 14px; cursor: pointer; font-weight: bold; background: none; border: none; }
+        
+        .dep-banner { background: linear-gradient(90deg, rgba(6, 78, 59, 0.3), rgba(2, 44, 34, 0.3)); border: 1px solid #065f46; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        .dep-banner-icon { font-size: 20px; }
+        .dep-banner-text { color: white; font-size: 13px; font-weight: bold; line-height: 1.4; }
+
+        .dep-label { color: #94a3b8; font-size: 12px; margin-bottom: 8px; display: block; font-weight: bold; }
+        
+        /* Bank Grid with Inline CSS Logos */
+        .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; text-align: center; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .bank-btn.active { background: white; color: black; border-color: white; }
+        .bank-btn.mpesa { grid-column: span 2; }
+        
+        /* The CSS Logos inside buttons */
+        .bank-logo { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: white; }
+        .logo-tb { background: linear-gradient(to right, #0ea5e9, #0284c7); font-style: italic; }
+        .logo-cbe { background: linear-gradient(to right, #7e22ce, #581c87); color: #fbbf24; font-size: 8px; }
+        .logo-mp { background: linear-gradient(to right, #10b981, #059669); }
+
+        .dep-copy-box { background: #020617; border: 1px solid #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; justify-content: space-between; align-items: center;}
+        .dep-copy-box.show { display: flex; animation: fadeIn 0.3s; }
+        
+        .dep-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 15px; font-family: inherit;}
+        .dep-input:focus { outline: none; border-color: var(--blue); }
+        .dep-hint { color: #475569; font-size: 10px; text-align: right; display: block; margin-bottom: 20px; }
+
+        /* BLUE SUBMIT BUTTON */
+        .dep-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; margin-top: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: 0.2s; letter-spacing: 1px;}
+        .dep-submit-btn:active { transform: scale(0.98); }
+
+        /* Password Modal */
         .pw-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: center; }
         .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); box-sizing: border-box; animation: fadeIn 0.3s; border: 1px solid #1e293b;}
-        .pw-title { color: white; font-size: 18px; font-weight: 900; font-style: italic; margin: 0 0 25px 0; text-transform: uppercase; letter-spacing: 1px;}
-        .pw-input { background: #0b101e; border: 1px solid #1e293b; color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-size: 14px; font-family: inherit; transition: 0.2s;}
-        .pw-input:focus { border-color: var(--faded-green); outline: none; }
+        .pw-input { background: #0b101e; border: 1px solid #1e293b; color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-size: 14px; font-family: inherit;}
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
-        .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px; transition: 0.2s;}
+        .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px;}
         .pw-btn.cancel { background: #1e293b; color: #94a3b8; }
-        .pw-btn.save { background: #fbbf24; color: #000; box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);}
-        .pw-btn:active { transform: scale(0.95); }
+        .pw-btn.save { background: #fbbf24; color: #000; }
     </style>
 </head>
 <body>
@@ -179,16 +208,67 @@
     </div>
 </div>
 
+<!-- EXACT DEPOSIT MODAL WITH LOGOS AND BLUE BUTTON -->
+<div id="dep-modal-overlay" class="dep-modal-overlay" onclick="closeDepositModal(event)">
+    <div id="dep-modal" class="dep-modal" onclick="event.stopPropagation()">
+        <div class="dep-header">
+            <span class="dep-close" onclick="closeDepositModal()">Close</span>
+            <h3 class="dep-title" data-lang-am="Deposit Funds" data-lang-en="Deposit Funds">Deposit Funds</h3>
+            <span style="width:35px;"></span>
+        </div>
+
+        <div class="dep-banner">
+            <div class="dep-banner-icon">🔥</div>
+            <!-- CHANGED TO 25% -->
+            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Get 25% extra bonus on all deposits!">ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!</div>
+        </div>
+
+        <span class="dep-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
+        
+        <!-- BANK BUTTONS WITH CSS LOGOS -->
+        <div class="bank-grid">
+            <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this)">
+                <div class="bank-logo logo-tb">t</div> TeleBirr
+            </div>
+            <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this)">
+                <div class="bank-logo logo-cbe">CBE</div> CBE Birr
+            </div>
+            <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this)">
+                <div class="bank-logo logo-mp">M</div> MPesa
+            </div>
+        </div>
+
+        <div id="dep-copy-box" class="dep-copy-box show">
+            <div>
+                <small style="color:#64748b; font-size:10px;">Account Name:</small><br>
+                <b id="m-dep-name" style="font-size:13px; color:white;">Tsedey Abebe</b><br>
+                <b id="m-dep-acc" style="font-size:18px; color:var(--cyan); font-family:monospace; letter-spacing: 1px; margin-top:3px; display:block;">0933638022</b>
+            </div>
+            <button style="background: #1e293b; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="copyModalNumber()" data-lang-am="Copy" data-lang-en="Copy">Copy</button>
+        </div>
+
+        <span class="dep-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
+        <input type="number" id="m-dep-amt" class="dep-input" placeholder="">
+        <span class="dep-hint">Min: 50 ETB | Max: 100,000 ETB</span>
+
+        <span class="dep-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS)" data-lang-en="Payment Confirmation (SMS)">የከፈሉበት ማረጋገጫ (SMS)</span>
+        <textarea id="m-dep-sms" class="dep-input" style="height: 80px; resize: none; font-size: 13px;" placeholder="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="For speed: Copy and paste the bank SMS receipt here"></textarea>
+
+        <!-- BLUE SUBMIT BUTTON -->
+        <button class="dep-submit-btn" onclick="processNewDeposit()" id="m-dep-btn" data-lang-am="ጨርስ" data-lang-en="Submit">ጨርስ</button>
+    </div>
+</div>
+
 <!-- PASSWORD MODAL -->
 <div id="pw-modal-overlay" class="pw-modal-overlay">
     <div class="pw-modal">
-        <h3 class="pw-title">CHANGE PASSWORD</h3>
-        <input type="password" id="pw-old" class="pw-input" placeholder="Old Password" data-lang-am="የድሮ የይለፍ ቃል (Old Password)" data-lang-en="Old Password">
-        <input type="password" id="pw-new" class="pw-input" placeholder="New Password (min 4)" data-lang-am="አዲስ የይለፍ ቃል (New Password)" data-lang-en="New Password (min 4)">
-        <input type="password" id="pw-conf" class="pw-input" placeholder="Confirm New Password" data-lang-am="ማረጋገጫ (Confirm Password)" data-lang-en="Confirm New Password">
+        <h3 style="color: white; font-size: 18px; font-weight: 900; margin: 0 0 25px 0;">CHANGE PASSWORD</h3>
+        <input type="password" id="pw-old" class="pw-input" placeholder="Old Password">
+        <input type="password" id="pw-new" class="pw-input" placeholder="New Password (min 4)">
+        <input type="password" id="pw-conf" class="pw-input" placeholder="Confirm New Password">
         <div class="pw-btn-row">
-            <button class="pw-btn cancel" onclick="closePasswordModal()" data-lang-am="ሰርዝ (CANCEL)" data-lang-en="CANCEL">CANCEL</button>
-            <button class="pw-btn save" onclick="savePassword()" data-lang-am="አስቀምጥ (SAVE)" data-lang-en="SAVE">SAVE</button>
+            <button class="pw-btn cancel" onclick="document.getElementById('pw-modal-overlay').style.display='none'">CANCEL</button>
+            <button class="pw-btn save" onclick="savePassword()">SAVE</button>
         </div>
     </div>
 </div>
@@ -199,13 +279,13 @@
         <h1 style="color:var(--faded-green); margin:0; font-weight: 900; letter-spacing: 1px;">BINGO STREAM</h1>
         <p id="auth-subtitle" style="font-size: 13px; color: var(--text-gray); margin-bottom: 25px;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
         
-        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" data-lang-am="ሙሉ ስም (Full Name)" data-lang-en="Full Name">
-        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)" data-lang-am="ስልክ ቁጥር (Phone Number)" data-lang-en="Phone Number">
-        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" data-lang-am="የይለፍ ቃል (Password)" data-lang-en="Password" onkeyup="v()">
+        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)">
+        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)">
+        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" onkeyup="v()">
         
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 15px 0; color: var(--text-gray); line-height: 1.8;">
-            <input type="checkbox" id="c1" onchange="v()"> <span data-lang-am="እድሜዬ 21+ መሆኑን አረጋግጣለሁ" data-lang-en="I confirm I am 21+">እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
-            <input type="checkbox" id="c2" onchange="v()"> <span data-lang-am="በውልና ደንቦች እስማማለሁ" data-lang-en="I agree to Terms & Conditions">በውልና ደንቦች እስማማለሁ</span>
+            <input type="checkbox" id="c1" onchange="v()"> <span>እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
+            <input type="checkbox" id="c2" onchange="v()"> <span>በውልና ደንቦች እስማማለሁ</span>
         </div>
         
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (Register)</button>
@@ -224,17 +304,17 @@
     </div>
     
     <div class="hdr-wallets-right">
-        <!-- Play Wallet -->
+        <!-- Play Wallet (CYAN) -->
         <div class="pill-wallet">
             <span class="title play">PLAY WALLET</span>
             <span class="amt" id="hdr-play-balance">0.00</span>
         </div>
-        <!-- Main Wallet -->
+        <!-- Main Wallet (GOLD) -->
         <div class="pill-wallet">
             <span class="title main">MAIN WALLET</span>
             <span class="amt" id="hdr-main-balance">0.00</span>
         </div>
-        <!-- Language Toggle Switch (AM | EN) -->
+        <!-- Language Toggle -->
         <div class="lang-switch-pill" onclick="toggleLanguage()">
             <span id="lang-am" class="lang-active">AM</span>
             <span class="lang-div">|</span>
@@ -316,31 +396,19 @@
         </div>
         
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
-            <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="toggleForm('dep')">➕ Deposit</button>
+            <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="openDepositModal()">➕ Deposit</button>
             <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="toggleForm('wit')">💸 Withdraw</button>
         </div>
     </div>
-    
-    <div id="sec-dep" class="transaction-box">
-        <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;" data-lang-am="ገንዘብ ማስገቢያ መንገድ ይምረጡ" data-lang-en="Choose deposit method">ገንዘብ ማስገቢያ መንገድ ይምረጡ</p>
-        <div class="pay-method-grid"><div class="pay-box active" onclick="setDepMethod('telebirr', this)">Telebirr</div><div class="pay-box" onclick="setDepMethod('cbe', this)">CBE Birr</div><div class="pay-box" onclick="setDepMethod('mpesa', this)">M-Pesa</div></div>
-        <div class="copy-box">
-            <div><small style="color:var(--text-gray); font-size:11px;" data-lang-am="የአካውንት ስም:" data-lang-en="Account Name:">የአካውንት ስም:</small><br><b id="dep-name" style="font-size:14px; color:white;">Tsedey Abebe</b><br><small style="color:var(--text-gray); font-size:11px; margin-top:8px; display:inline-block;" data-lang-am="ወደዚህ ቁጥር ያስገቡ:" data-lang-en="Send to this number:">ወደዚህ ቁጥር ያስገቡ:</small><br><b id="dep-acc" style="font-size:20px; color:var(--blue); font-family:monospace; letter-spacing: 1px;">0933638022</b></div>
-            <button class="copy-btn" onclick="copyNumber()">Copy</button>
-        </div>
-        <input type="number" id="dep-amt" class="auth-input" placeholder="መጠን (Amount)" data-lang-am="መጠን (Amount)" data-lang-en="Amount">
-        
-        <label for="dep-receipt" class="upload-btn" data-lang-am="📸 የባንክ ደረሰኝ አስገባ (Upload Receipt)" data-lang-en="📸 Upload Receipt">📸 የባንክ ደረሰኝ አስገባ (Upload Receipt)</label>
-        <input type="file" id="dep-receipt" accept="image/*" onchange="document.getElementById('receipt-name').innerHTML = '✅ ' + this.files[0].name" style="display:none;">
-        <div id="receipt-name" style="color:var(--faded-green); font-size:11px; margin-bottom:10px; font-weight:bold; text-align:center;"></div>
 
-        <button class="auth-btn" style="background:linear-gradient(to right, #0d9488, #0f766e); color:white; font-size: 14px; border-radius: 10px;" onclick="processDeposit()" id="lbl-dep-conf" data-lang-am="ዲፖዚት አረጋግጥ" data-lang-en="Confirm Deposit">ዲፖዚት አረጋግጥ</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px; padding:10px; font-size:12px; border-radius: 10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
-    </div>
-
+    <!-- Withdraw Section -->
     <div id="sec-wit" class="transaction-box">
         <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-gray); text-align:center;" data-lang-am="ወጪ ማድረጊያ መንገድ ይምረጡ" data-lang-en="Choose withdraw method">ወጪ ማድረጊያ መንገድ ይምረጡ</p>
-        <div class="pay-method-grid"><div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div><div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div><div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div></div>
+        <div class="pay-method-grid" id="wit-methods">
+            <div class="pay-box active" onclick="setWitMethod(this)">Telebirr</div>
+            <div class="pay-box" onclick="setWitMethod(this)">CBE Birr</div>
+            <div class="pay-box" onclick="setWitMethod(this)">M-Pesa</div>
+        </div>
         <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;" readonly>
         <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)" data-lang-am="የሚወጣው መጠን (Amount)" data-lang-en="Withdraw Amount">
         <p style="font-size:10px; color:var(--text-gray); text-align:center; margin-bottom:15px;" data-lang-am="* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።" data-lang-en="* Withdrawals allowed only from play balance.">* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።</p>
@@ -357,9 +425,9 @@
     </div>
 </div>
 
-<!-- 6. RANK PAGE -->
+<!-- 6. REDESIGNED RANK PAGE -->
 <div id="rank-page" class="page">
-    <h3 style="text-align:center; color:#3b82f6; margin-top: 0; font-size: 20px;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
+    <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div id="rank-content">
         <p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p>
     </div>
@@ -386,7 +454,7 @@
     </div>
 
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <button class="prof-list-btn" onclick="showPasswordModal()">
+        <button class="prof-list-btn" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
             <div style="display:flex; align-items:center;"><span class="icon-bg">🔐</span> <span data-lang-am="የይለፍ ቃል ቀይር (Change Password)" data-lang-en="Change Password">የይለፍ ቃል ቀይር (Change Password)</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
@@ -424,27 +492,81 @@
 
     buildMasterBoard();
 
-    // ================== PASSWORD MODAL FUNCTIONS ==================
-    function showPasswordModal() { document.getElementById('pw-modal-overlay').style.display = 'flex'; }
-    function closePasswordModal() { document.getElementById('pw-modal-overlay').style.display = 'none'; }
+    // ================== NEW DEPOSIT MODAL LOGIC ==================
+    function openDepositModal() {
+        document.getElementById('sec-wit').style.display = 'none';
+        document.getElementById('dep-modal-overlay').style.display = 'flex';
+        setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10);
+    }
     
+    function closeDepositModal(e) {
+        if(e && e.target.id !== 'dep-modal-overlay') return;
+        document.getElementById('dep-modal').classList.remove('show');
+        setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300);
+    }
+
+    function selectBank(method, element) {
+        let buttons = document.querySelectorAll('.bank-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+
+        document.getElementById('dep-copy-box').classList.add('show');
+        document.getElementById('m-dep-acc').innerText = depAccounts[method].num;
+        document.getElementById('m-dep-name').innerText = depAccounts[method].name;
+    }
+
+    function copyModalNumber() {
+        navigator.clipboard.writeText(document.getElementById('m-dep-acc').innerText);
+        alert(currentLang === 'am' ? "ቁጥሩ ኮፒ ተደርጓል!" : "Account Number Copied!");
+    }
+
+    async function processNewDeposit() {
+        let amt = parseFloat(document.getElementById('m-dep-amt').value);
+        let activeBtn = document.querySelector('.bank-btn.active');
+        let method = activeBtn ? activeBtn.getAttribute('data-bankname') : '';
+        let smsText = document.getElementById('m-dep-sms').value.trim();
+
+        if(!method) return alert(currentLang === 'am' ? "እባክዎ ባንክ ይምረጡ!" : "Please select a bank!");
+        if(!amt || amt < 50) return alert(currentLang === 'am' ? "ዝቅተኛው መጠን 50 ብር ነው!" : "Minimum amount is 50 ETB!");
+        if(!smsText) return alert(currentLang === 'am' ? "እባክዎ የSMS ማረጋገጫ ያስገቡ!" : "Please paste the SMS confirmation!");
+
+        let btn = document.getElementById('m-dep-btn');
+        btn.innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
+        
+        try { 
+            let res = await fetch('/api/request-tx', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) 
+            }); 
+            let data = await res.json(); 
+            alert(data.message); 
+            addHistoryRecord("Deposit Req (" + method + ")", `+${amt} ETB`, "#0d9488");
+            
+            document.getElementById('m-dep-amt').value = ''; 
+            document.getElementById('m-dep-sms').value = ''; 
+            closeDepositModal();
+        } catch(e) {
+            console.error(e);
+        }
+        btn.innerText = currentLang === 'am' ? "ጨርስ" : "Submit";
+    }
+
+    // ================== PASSWORD MODAL FUNCTIONS ==================
     async function savePassword() {
         let oldPass = document.getElementById('pw-old').value;
         let newPass = document.getElementById('pw-new').value;
         let confPass = document.getElementById('pw-conf').value;
         
-        let msgFill = currentLang === 'am' ? "እባክዎ ሁሉንም ያስገቡ!" : "Please fill all fields!";
-        let msgMatch = currentLang === 'am' ? "አዲሱ የይለፍ ቃል አይመሳሰልም!" : "New passwords do not match!";
-        
-        if(!oldPass || !newPass || !confPass) return alert(msgFill);
-        if(newPass !== confPass) return alert(msgMatch);
+        if(!oldPass || !newPass || !confPass) return alert(currentLang === 'am' ? "እባክዎ ሁሉንም ያስገቡ!" : "Please fill all fields!");
+        if(newPass !== confPass) return alert(currentLang === 'am' ? "አዲሱ የይለፍ ቃል አይመሳሰልም!" : "New passwords do not match!");
         
         try {
             let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
             let data = await res.json();
             alert(data.message);
-            if(data.success) { document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; closePasswordModal(); }
-        } catch(e) { console.log("Password change error"); }
+            if(data.success) { document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; }
+        } catch(e) {}
     }
 
     // ================== LANGUAGE SWITCHER ==================
@@ -462,7 +584,7 @@
         }
 
         document.querySelectorAll('[data-lang-am]').forEach(el => {
-            if(el.tagName === 'INPUT') el.placeholder = el.getAttribute(`data-lang-${currentLang}`);
+            if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = el.getAttribute(`data-lang-${currentLang}`);
             else el.innerHTML = el.getAttribute(`data-lang-${currentLang}`);
         });
 
@@ -475,17 +597,6 @@
             document.getElementById('auth-subtitle').innerText = currentLang === 'am' ? "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)" : "Register (100 ETB Bonus)";
             document.getElementById('toggle-auth-text').innerText = currentLang === 'am' ? "አካውንት አለዎት? ይግቡ (Login)" : "Already have an account? Login";
         }
-
-        if(document.getElementById('play-bal')) {
-            let bal = currentUser ? currentUser.playBalance.toFixed(2) : "0.00";
-            if (currentLang === 'am' && document.getElementById('play-bal-am')) document.getElementById('play-bal-am').innerText = bal;
-            if (currentLang === 'en' && document.getElementById('play-bal-en')) document.getElementById('play-bal-en').innerText = bal;
-        }
-
-        if(document.getElementById('t-info')) {
-            if(userTicketsData.length === 0) document.getElementById('t-info').innerText = currentLang === 'am' ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
-            else document.getElementById('t-info').innerText = (currentLang === 'am' ? "የገዙት ካርቴላ ብዛት: " : "Tickets bought: ") + userTicketsData.length;
-        }
     }
 
     // ================== AUTHENTICATION & PROFILE ==================
@@ -493,16 +604,7 @@
         isLoginMode = !isLoginMode;
         document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block';
         document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
-        
-        if (currentLang === 'am') {
-            document.getElementById('auth-subtitle').innerText = isLoginMode ? "ወደ አካውንትዎ ይግቡ" : "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
-            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (Login)" : "መዝገብ (Register)";
-            document.getElementById('toggle-auth-text').innerText = isLoginMode ? "አዲስ አካውንት ይክፈቱ (Register)" : "አካውንት አለዎት? ይግቡ (Login)";
-        } else {
-            document.getElementById('auth-subtitle').innerText = isLoginMode ? "Login to your account" : "Register (100 ETB Bonus)";
-            document.getElementById('start-btn').innerText = isLoginMode ? "Login" : "Register";
-            document.getElementById('toggle-auth-text').innerText = isLoginMode ? "Create a new account (Register)" : "Already have an account? Login";
-        }
+        toggleLanguage(); toggleLanguage(); 
         v();
     }
 
@@ -535,8 +637,8 @@
             handleHomeNav();
         } else {
             alert(data.message);
-            document.getElementById('start-btn').innerText = isLoginMode ? (currentLang === 'am' ? "ግባ (Login)" : "Login") : (currentLang === 'am' ? "መዝገብ (Register)" : "Register");
             document.getElementById('start-btn').disabled = false;
+            toggleLanguage(); toggleLanguage();
         }
     }
 
@@ -561,7 +663,7 @@
             let data = await res.json();
             if(data.success) {
                 if(data.leaderboard.length === 0) {
-                    content.innerHTML = `<div style="background:var(--panel); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">${currentLang === 'am' ? 'እስካሁን አሸናፊ የለም' : 'No winners yet'}</div>`;
+                    content.innerHTML = `<div style="background:rgba(15,23,42,0.5); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">${currentLang === 'am' ? 'እስካሁን አሸናፊ የለም' : 'No winners yet'}</div>`;
                 } else {
                     let top3 = data.leaderboard.slice(0, 3); let others = data.leaderboard.slice(3);
                     let html = '<div class="podium-container">';
@@ -569,7 +671,7 @@
                     if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${top3[0].won} ETB</div></div>`;
                     if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${top3[2].won} ETB</div></div>`;
                     html += '</div>';
-                    others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold;">${u.won} ETB</div></div>`; });
+                    others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; });
                     content.innerHTML = html;
                 }
             }
@@ -754,27 +856,11 @@
         if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); } else { document.getElementById('nav-home').classList.add('active'); }
     }
     
-    function toggleForm(type) { document.getElementById('sec-dep').style.display = 'none'; document.getElementById('sec-wit').style.display = 'none'; if(type === 'dep') document.getElementById('sec-dep').style.display = 'block'; if(type === 'wit') document.getElementById('sec-wit').style.display = 'block'; }
-    function setDepMethod(method, element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); document.getElementById('dep-acc').innerText = depAccounts[method].num; document.getElementById('dep-name').innerText = depAccounts[method].name; }
+    function toggleForm(type) { document.getElementById('sec-wit').style.display = 'none'; if(type === 'wit') document.getElementById('sec-wit').style.display = 'block'; }
     function setWitMethod(element) { let s = element.parentNode.children; for(let e of s) e.classList.remove('active'); element.classList.add('active'); }
-    function copyNumber() { navigator.clipboard.writeText(document.getElementById('dep-acc').innerText); alert("Copied!"); }
     
-    async function processDeposit() {
-        let amt = parseFloat(document.getElementById('dep-amt').value); let method = document.querySelector('.pay-box.active').innerText; let fileInput = document.getElementById('dep-receipt');
-        if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
-        
-        document.getElementById('lbl-dep-conf').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
-        try { 
-            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method }) }); 
-            let data = await res.json(); alert(data.message); 
-            addHistoryRecord("ዲፖዚት (Deposit Req)", `+${amt} ETB`, "#0d9488");
-            document.getElementById('dep-amt').value = ''; document.getElementById('receipt-name').innerHTML = ''; fileInput.value = ""; toggleForm('none'); 
-        } catch(e) {}
-        document.getElementById('lbl-dep-conf').innerText = currentLang === 'am' ? "ዲፖዚት አረጋግጥ" : "Confirm Deposit";
-    }
-
     async function processWithdraw() {
-        let amt = parseFloat(document.getElementById('wit-amt').value); let method = document.querySelector('.pay-box.active').innerText;
+        let amt = parseFloat(document.getElementById('wit-amt').value); let method = document.querySelector('#wit-methods .pay-box.active').innerText;
         if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
         
         let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
