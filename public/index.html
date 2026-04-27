@@ -18,13 +18,21 @@
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .upload-btn { display: inline-block; width: 100%; padding: 12px; background: #1e293b; border: 1px dashed var(--blue); color: var(--blue); border-radius: 8px; font-size: 12px; font-weight: bold; margin-bottom: 5px; cursor: pointer; box-sizing: border-box; text-align: center;}
         
-        /* Top Header */
-        .top-balance { background: var(--panel); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);}
-        .hdr-wallet-box { text-align: right; background: #0d1117; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .hdr-bal-row { font-size: 10px; color: var(--text-gray); display: flex; justify-content: space-between; gap: 15px; margin-bottom: 3px; border-bottom: 1px solid #1f2937; padding-bottom: 2px;}
-        .hdr-bal-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; padding-top: 2px;}
+        /* NEW TOP HEADER (Based on Screenshot 2) */
+        .top-balance { background: transparent; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .hdr-user-sec { display: flex; align-items: center; gap: 10px; }
+        .hdr-user-sec .icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+        .hdr-user-sec .name { font-size: 14px; font-weight: bold; }
+        .hdr-user-sec .phone { font-size: 11px; color: var(--text-gray); }
         
-        /* FIX: COMPACT TIMER AND JACKPOT HEADER */
+        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 20px; padding: 4px 12px; display: flex; justify-content: space-between; align-items: center; min-width: 140px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
+        .pill-wallet span.title { font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
+        .pill-wallet span.title.play { color: #38bdf8; }
+        .pill-wallet span.title.main { color: #fbbf24; }
+        .pill-wallet span.amt { color: white; font-size: 14px; font-weight: 900; }
+
+        /* Timer Header */
         .timer-header { background: var(--panel); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: center; gap: 20px; align-items: center; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .timer-box { display: flex; align-items: center; gap: 8px; }
         .time-label { font-size: 11px; color: var(--text-gray); font-weight: bold; text-transform: uppercase;}
@@ -35,7 +43,7 @@
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
-        /* FIXED BET SLIP POPUP (BOTTOM SHEET STYLE) */
+        /* FIXED BET SLIP POPUP */
         .bet-slip-popup { position: fixed; bottom: 60px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 20px 20px 0 0; padding: 15px 15px 25px 15px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
@@ -85,7 +93,7 @@
         .hist-bot-ball { min-width: 20px; height: 20px; border-radius: 50%; background: var(--faded-green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px;}
 
         /* Tickets Page */
-        .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--faded-green); display: flex; justify-content: space-between; align-items: center; }
+        .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
         .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #000;}
@@ -120,12 +128,10 @@
         .podium-1 { border-color: #FFD700; box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); transform: scale(1.15); z-index: 2; height: 120px; justify-content: flex-end;}
         .podium-2 { border-color: #C0C0C0; height: 100px; justify-content: flex-end;}
         .podium-3 { border-color: #CD7F32; height: 90px; justify-content: flex-end;}
-        
         .podium-avatar { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; margin-bottom: 8px; color: #000; box-shadow: inset 0 -3px 5px rgba(0,0,0,0.3), 0 5px 10px rgba(0,0,0,0.5); position: absolute; top: -22px;}
         .p-1-ava { background: linear-gradient(135deg, #FFDF00, #DAA520); width: 55px; height: 55px; font-size: 26px; top: -30px;}
         .p-2-ava { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); }
         .p-3-ava { background: linear-gradient(135deg, #E6A15C, #8B4513); }
-        
         .podium-name { font-size: 11px; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 4px; }
         .podium-prize { font-size: 11px; color: var(--faded-green); font-weight: 900; background: rgba(0,0,0,0.4); padding: 3px 6px; border-radius: 4px;}
         .crown-icon { position: absolute; top: -55px; font-size: 28px; animation: floatCrown 2s infinite ease-in-out; text-shadow: 0 5px 10px rgba(255,215,0,0.5);}
@@ -138,6 +144,18 @@
         .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 22px; margin-bottom: 2px; display: block;}
+
+        /* NEW PASSWORD MODAL (Based on Screenshot 1) */
+        .pw-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: center; }
+        .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); box-sizing: border-box; animation: fadeIn 0.3s; border: 1px solid #1e293b;}
+        .pw-title { color: white; font-size: 18px; font-weight: 900; font-style: italic; margin: 0 0 25px 0; text-transform: uppercase; letter-spacing: 1px;}
+        .pw-input { background: #0b101e; border: 1px solid #1e293b; color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-size: 14px; font-family: inherit; transition: 0.2s;}
+        .pw-input:focus { border-color: var(--faded-green); outline: none; }
+        .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
+        .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px; transition: 0.2s;}
+        .pw-btn.cancel { background: #1e293b; color: #94a3b8; }
+        .pw-btn.save { background: #fbbf24; color: #000; box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);}
+        .pw-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -149,6 +167,20 @@
         <h2 id="win-name" style="margin:10px 0 15px 0; color:white; font-size:26px;">---</h2>
         <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
         <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="የገንዘብ ሽልማት:" data-lang-en="Cash Prize:">የገንዘብ ሽልማት:</span> <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
+    </div>
+</div>
+
+<!-- NEW PASSWORD MODAL -->
+<div id="pw-modal-overlay" class="pw-modal-overlay">
+    <div class="pw-modal">
+        <h3 class="pw-title">CHANGE PASSWORD</h3>
+        <input type="password" id="pw-old" class="pw-input" placeholder="Old Password" data-lang-am="የድሮ የይለፍ ቃል (Old Password)" data-lang-en="Old Password">
+        <input type="password" id="pw-new" class="pw-input" placeholder="New Password (min 4)" data-lang-am="አዲስ የይለፍ ቃል (New Password)" data-lang-en="New Password (min 4)">
+        <input type="password" id="pw-conf" class="pw-input" placeholder="Confirm New Password" data-lang-am="ማረጋገጫ (Confirm Password)" data-lang-en="Confirm New Password">
+        <div class="pw-btn-row">
+            <button class="pw-btn cancel" onclick="closePasswordModal()" data-lang-am="ሰርዝ (CANCEL)" data-lang-en="CANCEL">CANCEL</button>
+            <button class="pw-btn save" onclick="savePassword()" data-lang-am="አስቀምጥ (SAVE)" data-lang-en="SAVE">SAVE</button>
+        </div>
     </div>
 </div>
 
@@ -172,45 +204,37 @@
     </div>
 </div>
 
-<!-- TOP HEADER -->
+<!-- NEW TOP HEADER (Pill style matching screenshot) -->
 <div id="global-header" class="top-balance" style="display:none;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 35px; height: 35px; background: linear-gradient(45deg, var(--faded-green), var(--dark-green)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">👤</div>
-        <div><div id="hdr-name" style="font-size: 15px; font-weight: bold;">User</div><div id="hdr-phone" style="font-size: 11px; color: var(--text-gray);">09...</div></div>
-    </div>
-    <div class="hdr-wallet-box">
-        <div class="hdr-bal-row">
-            <span data-lang-am="ዋና ሂሳብ:" data-lang-en="Main Bal:">ዋና ሂሳብ:</span>
-            <span id="hdr-main-balance" style="color: var(--faded-green); font-weight:bold;">0.00 ETB</span>
+    <div class="hdr-user-sec">
+        <div class="icon">👤</div>
+        <div>
+            <div id="hdr-name" class="name">User</div>
+            <div id="hdr-phone" class="phone">09...</div>
         </div>
-        <div class="hdr-bal-row">
-            <span data-lang-am="መጫወቻ:" data-lang-en="Play Bal:">መጫወቻ:</span>
-            <span id="hdr-play-balance" style="color: var(--blue); font-weight:bold;">0.00 ETB</span>
+    </div>
+    <div class="hdr-wallets-right">
+        <div class="pill-wallet">
+            <span class="title play">PLAY WALLET</span>
+            <span class="amt" id="hdr-play-balance">0.00</span>
+        </div>
+        <div class="pill-wallet">
+            <span class="title main">MAIN WALLET</span>
+            <span class="amt" id="hdr-main-balance">0.00</span>
         </div>
     </div>
 </div>
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
-    
-    <!-- COMPACT TIMER AND JACKPOT HEADER -->
     <div class="timer-header">
-        <div class="timer-box">
-            <span class="time-label" data-lang-am="ሰከንድ:" data-lang-en="TIME:">ሰከንድ:</span>
-            <span id="timer" class="time-val">00:25</span>
-        </div>
-        <div style="width: 1px; height: 20px; background: var(--border-color);"></div> <!-- Divider Line -->
-        <div class="timer-box">
-            <span class="time-label">JACKPOT:</span>
-            <span id="jp" class="time-val" style="color:gold;">0 ETB</span>
-        </div>
+        <div class="timer-box"><span class="time-label" data-lang-am="ሰከንድ:" data-lang-en="TIME:">ሰከንድ:</span><span id="timer" class="time-val">00:25</span></div>
+        <div style="width: 1px; height: 20px; background: var(--border-color);"></div> 
+        <div class="timer-box"><span class="time-label">JACKPOT:</span><span id="jp" class="time-val" style="color:gold;">0 ETB</span></div>
     </div>
-    
     <div style="text-align:center;">
         <p style="font-size: 13px; color: var(--white); margin: 0; font-weight: bold;" data-lang-am="ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ" data-lang-en="Select numbers to buy tickets">ካርቴላ ለመግዛት ቁጥሮችን ይምረጡ</p>
         <p style="font-size: 11px; color: var(--text-gray); margin-top: 5px;" data-lang-am="(1 ካርቴላ = 10 ብር)" data-lang-en="(1 Ticket = 10 ETB)">(1 ካርቴላ = 10 ብር)</p>
-        
-        <!-- Grid -->
         <div id="grid-box" class="num-grid"></div>
     </div>
 </div>
@@ -221,35 +245,19 @@
         <span style="color:white; font-size:12px; font-weight:bold;"><span id="lbl-sel-tickets" data-lang-am="የመረጧቸው ካርቴላዎች: " data-lang-en="Selected Tickets: ">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:14px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
-    
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
-
     <button onclick="placeBet()" id="bet-btn" class="auth-btn" style="width: 100%; font-size: 16px; padding: 15px;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
 </div>
 
 <!-- 3. GAME PAGE -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
-        <div class="top-info-box">
-            <div class="info-title">ID</div>
-            <div class="info-val" id="g-id">#---</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Bet</div>
-            <div class="info-val">10.00</div>
-        </div>
-        <div class="top-info-box prize-box">
-            <div class="info-title">Prize Pool</div>
-            <div class="info-val highlight" id="g-prize">0.00</div>
-        </div>
-        <div class="top-info-box">
-            <div class="info-title">Balls</div>
-            <div class="info-val" id="g-balls">0/20</div>
-        </div>
+        <div class="top-info-box"><div class="info-title">ID</div><div class="info-val" id="g-id">#---</div></div>
+        <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
+        <div class="top-info-box prize-box"><div class="info-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
+        <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
-
     <div id="history-scroll-top" class="history-top-bar"></div>
-
     <div class="game-layout-container"> 
         <div class="master-board-wrapper"> 
             <div id="master-board" class="mb-board"></div>
@@ -270,30 +278,29 @@
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
-    
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     <div id="ticket-history-bar" class="history-top-bar" style="background:var(--panel); border-radius:8px; padding:10px; margin-bottom:20px;">
         <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
     </div>
-
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     <div id="ticket-list"></div>
 </div>
 
-<!-- 5. WALLET PAGE -->
+<!-- 5. WALLET PAGE (Redesigned Buttons & History Added) -->
 <div id="wallet-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ሂሳብ (Wallet)" data-lang-en="My Wallet">የእኔ ሂሳብ (Wallet)</h3>
     
-    <div style="background: linear-gradient(135deg, #172554, #1e3a8a); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-align: center;">
-        <div style="color: #dbeafe; font-size: 13px; font-weight:bold;" data-lang-am="ዋና ሂሳብ <span style='font-size:9px; color:#93c5fd;'>(ያላስገቡት/Deposit)</span>" data-lang-en="Main Balance <span style='font-size:9px; color:#93c5fd;'>(Deposit)</span>">ዋና ሂሳብ <span style="font-size:9px; color:#93c5fd;">(ያላስገቡት/Deposit)</span></div>
-        <div style="font-size: 36px; font-weight: 900; color: white; margin: 10px 0; font-family: monospace; text-shadow: 0 2px 5px rgba(0,0,0,0.5);" id="main-bal">0.00</div>
-        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; display: inline-block;" data-lang-am="መጫወቻ ሂሳብ <span style='font-size:9px; color:var(--faded-green);'>(ማውጣት ይቻላል)</span>: <b style='color:var(--faded-green);'><span id='play-bal-am'>0.00</span> ETB</b>" data-lang-en="Play Balance <span style='font-size:9px; color:var(--faded-green);'>(Withdrawable)</span>: <b style='color:var(--faded-green);'><span id='play-bal-en'>0.00</span> ETB</b>">
-            መጫወቻ ሂሳብ <span style="font-size:9px; color:var(--faded-green);">(ማውጣት ይቻላል)</span>: <b style="color:var(--faded-green);"><span id="play-bal">0.00</span> ETB</b>
+    <div style="background: linear-gradient(135deg, #0b111a, #131b2f); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; border: 1px solid var(--border-color); text-align: center;">
+        <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;" data-lang-am="ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያላስገቡት/Deposit)</span>" data-lang-en="Main Balance <span style='font-size:9px; color:#fbbf24;'>(Deposit)</span>">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያላስገቡት/Deposit)</span></div>
+        <div style="font-size: 36px; font-weight: 900; color: white; margin: 5px 0; font-family: monospace;" id="main-bal">0.00</div>
+        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px; display: inline-block;" data-lang-am="መጫወቻ ሂሳብ: <b style='color:#38bdf8;'><span id='play-bal-am'>0.00</span> ETB</b>" data-lang-en="Play Balance: <b style='color:#38bdf8;'><span id='play-bal-en'>0.00</span> ETB</b>">
+            መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b>
         </div>
         
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <button style="flex:1; background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight:bold; transition: 0.2s;" onclick="toggleForm('dep')">Deposit</button>
-            <button style="flex:1; background: var(--orange); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight:bold; transition: 0.2s;" onclick="toggleForm('wit')">Withdraw</button>
+        <!-- NEW SMALLER MODERN BUTTONS -->
+        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
+            <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="toggleForm('dep')">➕ Deposit</button>
+            <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="toggleForm('wit')">💸 Withdraw</button>
         </div>
     </div>
     
@@ -310,8 +317,8 @@
         <input type="file" id="dep-receipt" accept="image/*" onchange="document.getElementById('receipt-name').innerHTML = '✅ ' + this.files[0].name" style="display:none;">
         <div id="receipt-name" style="color:var(--faded-green); font-size:11px; margin-bottom:10px; font-weight:bold; text-align:center;"></div>
 
-        <button class="auth-btn" style="background:linear-gradient(to right, #2563eb, #1d4ed8); color:white; font-size: 16px;" onclick="processDeposit()" id="lbl-dep-conf" data-lang-am="ዲፖዚት አረጋግጥ" data-lang-en="Confirm Deposit">ዲፖዚት አረጋግጥ</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
+        <button class="auth-btn" style="background:linear-gradient(to right, #0d9488, #0f766e); color:white; font-size: 14px; border-radius: 10px;" onclick="processDeposit()" id="lbl-dep-conf" data-lang-am="ዲፖዚት አረጋግጥ" data-lang-en="Confirm Deposit">ዲፖዚት አረጋግጥ</button>
+        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px; padding:10px; font-size:12px; border-radius: 10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
     </div>
 
     <div id="sec-wit" class="transaction-box">
@@ -320,8 +327,16 @@
         <input type="text" id="wit-phone" class="auth-input" placeholder="09********" style="color:var(--orange); font-weight:bold; background:#000;" readonly>
         <input type="number" id="wit-amt" class="auth-input" placeholder="የሚወጣው መጠን (Amount)" data-lang-am="የሚወጣው መጠን (Amount)" data-lang-en="Withdraw Amount">
         <p style="font-size:10px; color:var(--text-gray); text-align:center; margin-bottom:15px;" data-lang-am="* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።" data-lang-en="* Withdrawals allowed only from play balance.">* ማውጣት የሚቻለው ከመጫወቻ (ያሸነፉት) ሂሳብ ላይ ብቻ ነው።</p>
-        <button class="auth-btn" style="background:linear-gradient(to right, #ea580c, #c2410c); color:white; font-size:16px;" onclick="processWithdraw()" id="lbl-wit-conf" data-lang-am="ወጪ ጠይቅ (Withdraw)" data-lang-en="Request Withdraw">ወጪ ጠይቅ (Withdraw)</button>
-        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
+        <button class="auth-btn" style="background:linear-gradient(to right, #e11d48, #be123c); color:white; font-size:14px; border-radius: 10px;" onclick="processWithdraw()" id="lbl-wit-conf" data-lang-am="ወጪ ጠይቅ (Withdraw)" data-lang-en="Request Withdraw">ወጪ ጠይቅ (Withdraw)</button>
+        <button class="auth-btn" style="background:transparent; border:1px solid var(--border-color); color:white; margin-top:10px; padding:10px; font-size:12px; border-radius: 10px;" onclick="toggleForm('none')" data-lang-am="ዝጋ (Close)" data-lang-en="Close">ዝጋ (Close)</button>
+    </div>
+
+    <!-- NEW TRANSACTION HISTORY UNDER WALLET -->
+    <div style="margin-top: 30px; padding: 0 10px;">
+        <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Transaction History)" data-lang-en="Transaction History">የሂሳብ ዝውውር ታሪክ (Transaction History)</h4>
+        <div id="wallet-history-list">
+            <p style="text-align:center; color:var(--text-gray); font-size:11px;" data-lang-am="ታሪክ የለም / No History" data-lang-en="No History">ታሪክ የለም / No History</p>
+        </div>
     </div>
 </div>
 
@@ -333,7 +348,7 @@
     </div>
 </div>
 
-<!-- 7. PROFILE PAGE -->
+<!-- 7. PROFILE PAGE (History Removed, Password changed to function) -->
 <div id="profile-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="👤 የእኔ ፕሮፋይል" data-lang-en="👤 My Profile">👤 የእኔ ፕሮፋይል</h3>
     
@@ -358,18 +373,9 @@
             <div style="display:flex; align-items:center;"><span class="icon-bg">🌍</span> <span data-lang-am="ቋንቋ ቀይር (Language)" data-lang-en="Switch Language">ቋንቋ ቀይር (Language)</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
-        
-        <button class="prof-list-btn" onclick="toggleHistoryBox()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg">📜</span> <span data-lang-am="የገንዘብ ታሪክ (History)" data-lang-en="Transaction History">የገንዘብ ታሪክ (History)</span></div>
-            <span style="color:var(--text-gray)">></span>
-        </button>
 
-        <div id="prof-history-box" style="display:none; background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 10px; animation: fadeIn 0.3s;">
-            <p style="margin-top:0; color:var(--text-gray); font-size:12px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:8px; text-align:center;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Transaction History)" data-lang-en="Transaction History">የሂሳብ ዝውውር ታሪክ (Transaction History)</p>
-            <div id="prof-history-list"><p style="text-align:center; color:var(--text-gray); font-size:12px;">ታሪክ የለም</p></div>
-        </div>
-
-        <button class="prof-list-btn" onclick="alert(currentLang === 'am' ? 'የይለፍ ቃል ለመቀየር የደንበኞች አገልግሎትን ያነጋግሩ: @Bingohabesha' : 'To change your password, contact support: @Bingohabesha')">
+        <!-- PASSWORD BUTTON NOW OPENS MODAL -->
+        <button class="prof-list-btn" onclick="showPasswordModal()">
             <div style="display:flex; align-items:center;"><span class="icon-bg">🔐</span> <span data-lang-am="የይለፍ ቃል (Password)" data-lang-en="Password">የይለፍ ቃል (Password)</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
@@ -399,8 +405,6 @@
     let isLoginMode = false;
     let isGameRunningLocally = false;
     let currentLang = 'am';
-    
-    // TRACK GAME STATE TO PREVENT BUG
     let currentGameState = null;
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
@@ -408,6 +412,45 @@
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
     buildMasterBoard();
+
+    // ================== PASSWORD MODAL FUNCTIONS ==================
+    function showPasswordModal() {
+        document.getElementById('pw-modal-overlay').style.display = 'flex';
+    }
+    
+    function closePasswordModal() {
+        document.getElementById('pw-modal-overlay').style.display = 'none';
+    }
+    
+    async function savePassword() {
+        let oldPass = document.getElementById('pw-old').value;
+        let newPass = document.getElementById('pw-new').value;
+        let confPass = document.getElementById('pw-conf').value;
+        
+        let msgFill = currentLang === 'am' ? "እባክዎ ሁሉንም ያስገቡ!" : "Please fill all fields!";
+        let msgMatch = currentLang === 'am' ? "አዲሱ የይለፍ ቃል አይመሳሰልም!" : "New passwords do not match!";
+        
+        if(!oldPass || !newPass || !confPass) return alert(msgFill);
+        if(newPass !== confPass) return alert(msgMatch);
+        
+        try {
+            let res = await fetch('/api/user/change-password', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) 
+            });
+            let data = await res.json();
+            alert(data.message);
+            if(data.success) {
+                document.getElementById('pw-old').value = '';
+                document.getElementById('pw-new').value = '';
+                document.getElementById('pw-conf').value = '';
+                closePasswordModal();
+            }
+        } catch(e) {
+            console.log("Password change error");
+        }
+    }
 
     // ================== LANGUAGE SWITCHER ==================
     function toggleLanguage() {
@@ -486,7 +529,7 @@
             document.getElementById('wit-phone').value = currentUser.phone;
             updateUIBalance();
             
-            if(!isLoginMode) addHistoryRecord("ቦነስ (Registration Bonus)", "+100 ETB", "var(--faded-green)");
+            if(!isLoginMode) addHistoryRecord("ቦነስ (Registration Bonus)", "+100 ETB", "#10b981");
             
             document.getElementById('auth-page').classList.remove('active-page');
             document.getElementById('navbar').style.display = 'flex';
@@ -510,11 +553,6 @@
             document.getElementById('prof-played').innerText = currentUser.played || 0;
             document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
         }
-    }
-
-    function toggleHistoryBox() {
-        let box = document.getElementById('prof-history-box');
-        box.style.display = box.style.display === 'none' ? 'block' : 'none';
     }
 
     async function loadLeaderboard() {
@@ -547,8 +585,8 @@
     }
 
     function updateUIBalance() {
-        document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2) + " ETB";
-        document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2) + " ETB";
+        document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
+        document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
         document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         
         let playElAm = document.getElementById('play-bal-am');
@@ -565,11 +603,11 @@
         return `0${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    // ================== GAME LOGIC (BUG FIX APPLIED HERE) ==================
+    // ================== GAME LOGIC ==================
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
-            addHistoryRecord("✅ ሂሳብ ተስተካክሏል (Update)", "Admin Update", "var(--blue)"); 
+            addHistoryRecord("✅ ሂሳብ ተስተካክሏል (Update)", "Admin Update", "#0ea5e9"); 
         }
     });
 
@@ -583,7 +621,6 @@
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
             
-            // RUN THIS ONLY ONCE WHEN GAME STATE CHANGES TO WAITING (Fixes the disappearing bug)
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
                 
@@ -596,10 +633,7 @@
                 called = []; 
                 
                 if (currentUser) {
-                    // Wipes old PREVIOUS game tickets only
-                    userTicketsData = []; 
-                    pendingTicketsData = []; 
-                    selected = [];
+                    userTicketsData = []; pendingTicketsData = []; selected = [];
                     document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
                     updateBetPreview(); 
                     
@@ -611,7 +645,6 @@
                 }
             }
             
-            // Keep bet button active during waiting if tickets are selected
             if (selected.length > 0) {
                 document.getElementById('bet-btn').disabled = false;
                 document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW";
@@ -658,16 +691,15 @@
         document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         
         if(currentUser && data.phone === currentUser.phone) { 
-            addHistoryRecord("🏆 አሸናፊ (WIN)", `+${data.prize.toFixed(2)} ETB`, "var(--faded-green)"); 
+            addHistoryRecord("🏆 አሸናፊ (WIN)", `+${data.prize.toFixed(2)} ETB`, "#4ade80"); 
             fetchUpdatedBalance(); 
         } else if (userTicketsData.length > 0) { 
-            addHistoryRecord("ተሸናፊ (LOSS)", `0 ETB`, "var(--text-gray)"); 
+            addHistoryRecord("ተሸናፊ (LOSS)", `0 ETB`, "#94a3b8"); 
         }
     });
 
     function initGrid() { 
-        const box = document.getElementById('grid-box'); 
-        box.innerHTML = ''; 
+        const box = document.getElementById('grid-box'); box.innerHTML = ''; 
         for(let i=1; i<=200; i++) { 
             let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; 
             d.onclick = () => { 
@@ -683,8 +715,7 @@
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
                 } else { alert(currentLang === 'am' ? "ከ 5 ካርቴላ በላይ አይቻልም!" : "Max 5 tickets allowed!"); } 
                 updateBetPreview(); 
-            }; 
-            box.appendChild(d); 
+            }; box.appendChild(d); 
         } 
     }
 
@@ -704,13 +735,7 @@
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
                 let html = `<div style="text-align:center; font-size:10px; font-weight:bold; color:#1e293b; padding:1px;">#${t.id}</div><div class="preview-t-grid">`;
                 for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`; }
-                
-                for(let r=0; r<5; r++) { 
-                    for(let c=0; c<5; c++) { 
-                        if(r==2 && c==2) html += `<div class="preview-t-cell marked">F</div>`; 
-                        else html += `<div class="preview-t-cell">${t.grid[c][r]}</div>`; 
-                    } 
-                }
+                for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) html += `<div class="preview-t-cell marked">F</div>`; else html += `<div class="preview-t-cell">${t.grid[c][r]}</div>`; } }
                 card.innerHTML = html + "</div>"; previewBox.appendChild(card);
             });
         } else { popup.classList.remove('show'); }
@@ -720,13 +745,10 @@
         if(selected.length === 0) return alert(currentLang === 'am' ? "ቢያንስ 1 ካርቴላ ይምረጡ!" : "Select at least 1 ticket!"); 
         let betAmount = selected.length * 10; 
         
-        // FIX: Ensure mainBalance is parsed properly before checking
         let currentBal = parseFloat(currentUser.mainBalance) || 0;
-        
         if(currentBal < betAmount) { 
             alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); 
-            showPage('wallet'); 
-            return; 
+            showPage('wallet'); return; 
         }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; 
@@ -735,7 +757,7 @@
         pendingTicketsData.forEach(t => userTicketsData.push(t));
         renderConfirmedTickets(); 
         
-        addHistoryRecord("ውርርድ (Bet)", `-${betAmount} ETB`, "var(--orange)");
+        addHistoryRecord("ውርርድ (Bet)", `-${betAmount} ETB`, "#fbbf24");
         socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length });
         
         setTimeout(() => {
@@ -830,7 +852,7 @@
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method }) }); 
             let data = await res.json(); alert(data.message); 
-            addHistoryRecord("ዲፖዚት ጥያቄ (Deposit Req)", `+${amt} ETB`, "var(--blue)");
+            addHistoryRecord("ዲፖዚት (Deposit Req)", `+${amt} ETB`, "#0d9488");
             document.getElementById('dep-amt').value = ''; document.getElementById('receipt-name').innerHTML = ''; fileInput.value = ""; toggleForm('none'); 
         } catch(e) {}
         document.getElementById('lbl-dep-conf').innerText = currentLang === 'am' ? "ዲፖዚት አረጋግጥ" : "Confirm Deposit";
@@ -840,9 +862,7 @@
         let amt = parseFloat(document.getElementById('wit-amt').value); let method = document.querySelector('.pay-box.active').innerText;
         if(!amt || amt <= 0) return alert(currentLang === 'am' ? "ትክክለኛ መጠን ያስገቡ!" : "Enter a valid amount!"); 
         
-        // FIX: Ensure playBalance is parsed properly before checking
         let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
-        
         if(amt > currentPlayBal) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
         
         document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
@@ -851,15 +871,16 @@
             let data = await res.json(); 
             if(data.success) { 
                 await fetchUpdatedBalance(); alert(data.message); 
-                addHistoryRecord("ወጪ ጥያቄ (Withdraw Req)", `-${amt} ETB`, "var(--orange)");
+                addHistoryRecord("ወጪ (Withdraw Req)", `-${amt} ETB`, "#e11d48");
                 document.getElementById('wit-amt').value = ''; toggleForm('none'); 
             } else { alert(data.message); } 
         } catch(e) {}
         document.getElementById('lbl-wit-conf').innerText = currentLang === 'am' ? "ወጪ ጠይቅ (Withdraw)" : "Request Withdraw";
     }
     
+    // HISTORY NOW GOES TO WALLET PAGE
     function addHistoryRecord(title, amount, color) { 
-        const hc = document.getElementById('prof-history-list'); 
+        const hc = document.getElementById('wallet-history-list'); 
         if(hc.innerHTML.includes("ታሪክ የለም") || hc.innerHTML.includes("No History")) hc.innerHTML = ''; 
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
         hc.innerHTML = `<div class="list-card" style="border-left-color: ${color};"><div><span style="font-weight:bold;">${title}</span><br><small style="color:var(--text-gray)">${time}</small></div><b style="color:${color}; font-size:16px;">${amount}</b></div>` + hc.innerHTML; 
