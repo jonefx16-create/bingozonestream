@@ -25,7 +25,7 @@
         .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
         .hdr-user-sec .phone { font-size: 9px; color: var(--text-gray); }
         
-        /* Wallets Design (Made Smaller) */
+        /* Wallets Design */
         .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; margin-top: 0; }
         .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 12px; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; min-width: 125px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
         .pill-wallet span.title { font-size: 8px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
@@ -40,24 +40,24 @@
             position: relative; 
             background: #111521; 
             border: 1px solid rgba(74, 222, 128, 0.4); 
-            border-radius: 15px; 
-            padding: 12px 15px 10px 15px; 
+            border-radius: 12px; 
+            padding: 12px 15px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            margin-top: 15px; /* Added space so the pill doesn't hit the header */
+            margin-top: 18px; /* Space added for the AM/EN pill to sit on top */
             margin-bottom: 10px; 
             box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); 
         }
 
-        /* Language Toggle Switch - EXACTLY ON THE LINE */
+        /* Language Toggle Switch - OUTSIDE ON THE BORDER LINE */
         .lang-switch-pill { 
             position: absolute; 
-            top: -11px; /* Sits exactly on the green border line */
+            top: -11px; /* Pulls it up exactly onto the border line */
             right: 15px; 
             display: inline-flex; 
             align-items: center; 
-            background: var(--bg-dark); /* Blends with the background outside to break the line */
+            background: var(--bg-dark); /* Blends with body background to cut the line cleanly */
             border: 1px solid rgba(74, 222, 128, 0.6); 
             border-radius: 10px; 
             padding: 2px 8px; 
@@ -73,7 +73,6 @@
         .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
         .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         
-        /* NEW FADED GLOWING GREEN BADGE */
         .nt-badge { 
             background: rgba(74, 222, 128, 0.15); 
             color: var(--faded-green); 
@@ -95,25 +94,28 @@
         /* SELECTION ROW (ካርቴላ ይምረጡ | 0 / 5) */
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
-        .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } /* GREEN SELECTION TEXT */
+        .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
         .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
         /* Number Grid */
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 220px; } 
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
 
-        /* COMPACT FIXED BET SLIP POPUP */
-        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 15px 15px 0 0; padding: 10px 15px 15px 15px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
+        /* COMPACT FIXED BET SLIP POPUP (Shorter height) */
+        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
-        /* Smaller Ticket Preview inside popup */
-        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin-bottom: 10px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 60px; padding-bottom: 2px; }
+        /* Ticket Preview inside popup (Clear detailed numbers, smaller container) */
+        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 5px; margin-bottom: 8px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 48px; padding-bottom: 2px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
-        .preview-t-card { background: white; min-width: 55px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; padding: 2px;}
-        .preview-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #cbd5e1; border: 1px solid #cbd5e1;}
-        .preview-t-head { color: white; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
-        .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
+        .preview-t-card { background: white; min-width: 52px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
+        .preview-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #94a3b8; border: 1px solid #94a3b8;}
+        .preview-t-head { color: white; height: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
+        .preview-t-cell { background: #fff; height: 11px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
+        .preview-t-cell.marked { background: #000; color: white; font-size: 7px; }
+
+        .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
 
         /* Exact Game Page */
         #game-page { padding: 5px; max-width: 1200px; margin: 0 auto; overflow-x: hidden; }
@@ -401,7 +403,7 @@
     <!-- EXACT SCREENSHOT TIMER/JACKPOT HEADER -->
     <div class="new-timer-box">
         
-        <!-- LANGUAGE TOGGLE ON THE GREEN LINE -->
+        <!-- LANGUAGE TOGGLE ON THE EDGE/BORDER -->
         <div class="lang-switch-pill" onclick="toggleLanguage()">
             <span id="lang-am" class="lang-active">AM</span>
             <span class="lang-div">|</span>
@@ -431,11 +433,11 @@
 <!-- COMPACT FIXED BET SLIP POPUP -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
-        <span style="color:white; font-size:11px; font-weight:bold;"><span id="lbl-sel-tickets" data-lang-am="የመረጧቸው ካርቴላዎች: " data-lang-en="Selected Tickets: ">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
+        <span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets" data-lang-am="የመረጧቸው ካርቴላዎች: " data-lang-en="Selected Tickets: ">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
-    <button onclick="placeBet()" id="bet-btn" class="auth-btn" style="width: 100%; font-size: 14px; padding: 12px;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
+    <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
 </div>
 
 <!-- 3. GAME PAGE -->
