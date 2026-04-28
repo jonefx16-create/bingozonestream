@@ -129,7 +129,7 @@
 
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; flex: 1; min-height: 0;}
         
-        /* MINI TICKETS (No Scroll, Fit 5 inside perfectly) */
+        /* MINI TICKETS (No Scroll, Wrap perfectly) */
         .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-between; align-content: flex-start; gap: 2%; width: 100%; margin-top: 2px; flex: 1;}
         .mini-t-card { background: white; width: 48%; height: 32%; border-radius: 2px; overflow: hidden; border: 1px solid #ddd; display: flex; flex-direction: column; margin-bottom: 2px;}
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; flex: 1;}
@@ -162,7 +162,7 @@
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
 
-        /* RESTORED MODALS & DEPOSIT/WITHDRAW CSS */
+        /* Modals & Inputs */
         .trx-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
         .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s; max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
         .trx-modal.show { transform: translateY(0); }
@@ -220,24 +220,24 @@
     <div class="winner-card">
         <h3 style="margin:0; color:var(--text-gray);" data-lang-am="አሸናፊ (Winner)" data-lang-en="Winner">አሸናፊ (Winner)</h3>
         <h2 id="win-name" style="margin:10px 0 15px 0; color:white; font-size:26px;">---</h2>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);">የገንዘብ ሽልማት: <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="የገንዘብ ሽልማት:" data-lang-en="Cash Prize:">የገንዘብ ሽልማት:</span> <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
     </div>
 </div>
 
-<!-- DEPOSIT MODAL RESTORED FULLY -->
+<!-- DEPOSIT MODAL -->
 <div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
     <div id="dep-modal" class="trx-modal" onclick="event.stopPropagation()">
         <div class="trx-header">
             <button class="trx-close" onclick="closeDepositModal()">Close</button>
-            <h3 class="trx-title" data-lang-am="Deposit Funds">Deposit Funds</h3>
+            <h3 class="trx-title" data-lang-am="Deposit Funds" data-lang-en="Deposit Funds">Deposit Funds</h3>
             <span style="width:40px;"></span>
         </div>
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
-            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!">ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!</div>
+            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Get 25% extra bonus on all deposits!">ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!</div>
         </div>
-        <span class="trx-label" data-lang-am="ባንክ ይምረጡ">ባንክ ይምረጡ</span>
+        <span class="trx-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
         
         <div class="bank-grid" id="dep-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')">
@@ -260,27 +260,27 @@
             <button style="background: #1e293b; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="copyModalNumber('m-dep-acc')">Copy</button>
         </div>
 
-        <span class="trx-label" data-lang-am="መጠን (ብር)">መጠን (ብር)</span>
+        <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
         <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
         <span class="trx-hint">Min: 50 ETB | Max: 100,000 ETB</span>
 
-        <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS)">የከፈሉበት ማረጋገጫ (SMS)</span>
-        <textarea id="m-dep-sms" class="trx-input" style="height: 80px; resize: none; font-size: 13px;" placeholder="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ"></textarea>
+        <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS)" data-lang-en="Payment Confirmation (SMS)">የከፈሉበት ማረጋገጫ (SMS)</span>
+        <textarea id="m-dep-sms" class="trx-input" style="height: 80px; resize: none; font-size: 13px;" data-lang-am="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="Paste SMS receipt here" placeholder="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ"></textarea>
 
-        <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn" data-lang-am="ጨርስ">ጨርስ</button>
+        <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn" data-lang-am="ጨርስ" data-lang-en="Submit">ጨርስ</button>
     </div>
 </div>
 
-<!-- WITHDRAW MODAL RESTORED FULLY -->
+<!-- WITHDRAW MODAL -->
 <div id="wit-modal-overlay" class="trx-modal-overlay" onclick="closeWithdrawModal(event)">
     <div id="wit-modal" class="trx-modal" onclick="event.stopPropagation()">
         <div class="trx-header">
             <button class="trx-close" onclick="closeWithdrawModal()">Close</button>
-            <h3 class="trx-title" data-lang-am="Withdraw Funds">Withdraw Funds</h3>
+            <h3 class="trx-title" data-lang-am="Withdraw Funds" data-lang-en="Withdraw Funds">Withdraw Funds</h3>
             <span style="width:40px;"></span>
         </div>
 
-        <span class="trx-label" data-lang-am="ወጪ ማድረጊያ ባንክ">ወጪ ማድረጊያ ባንክ</span>
+        <span class="trx-label" data-lang-am="ወጪ ማድረጊያ ባንክ" data-lang-en="Select Withdrawal Bank">ወጪ ማድረጊያ ባንክ</span>
         
         <div class="bank-grid" id="wit-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'wit')">
@@ -294,28 +294,28 @@
             </div>
         </div>
 
-        <span class="trx-label" data-lang-am="የእርስዎ ስልክ ቁጥር/አካውንት">የእርስዎ ስልክ ቁጥር/አካውንት</span>
+        <span class="trx-label" data-lang-am="የእርስዎ ስልክ ቁጥር/አካውንት" data-lang-en="Your Phone/Account Number">የእርስዎ ስልክ ቁጥር/አካውንት</span>
         <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
         <span class="trx-hint" style="margin-bottom: 10px;">&nbsp;</span>
 
-        <span class="trx-label" data-lang-am="መጠን (ብር)">መጠን (ብር)</span>
+        <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
         <span class="trx-hint" style="margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
 
-        <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn" data-lang-am="ወጪ ጠይቅ">ወጪ ጠይቅ</button>
+        <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn" data-lang-am="ወጪ ጠይቅ" data-lang-en="Request Withdraw">ወጪ ጠይቅ</button>
     </div>
 </div>
 
 <!-- PASSWORD MODAL -->
 <div id="pw-modal-overlay" class="pw-modal-overlay">
     <div class="pw-modal">
-        <h3 style="color: white; margin: 0 0 25px 0;">CHANGE PASSWORD</h3>
-        <input type="password" id="pw-old" class="pw-input" placeholder="Old Password">
-        <input type="password" id="pw-new" class="pw-input" placeholder="New Password">
-        <input type="password" id="pw-conf" class="pw-input" placeholder="Confirm Password">
+        <h3 style="color: white; margin: 0 0 25px 0;" data-lang-am="የይለፍ ቃል ይቀይሩ" data-lang-en="CHANGE PASSWORD">CHANGE PASSWORD</h3>
+        <input type="password" id="pw-old" class="pw-input" placeholder="Old Password" data-lang-am="የድሮ ይለፍ ቃል" data-lang-en="Old Password">
+        <input type="password" id="pw-new" class="pw-input" placeholder="New Password" data-lang-am="አዲስ ይለፍ ቃል" data-lang-en="New Password">
+        <input type="password" id="pw-conf" class="pw-input" placeholder="Confirm Password" data-lang-am="አዲሱን ይለፍ ቃል ያረጋግጡ" data-lang-en="Confirm Password">
         <div style="display:flex; gap:15px;">
-            <button style="flex:1; padding:14px; background:#1e293b; color:#94a3b8; border:none; border-radius:10px;" onclick="document.getElementById('pw-modal-overlay').style.display='none'">CANCEL</button>
-            <button style="flex:1; padding:14px; background:var(--faded-green); border:none; border-radius:10px; font-weight:bold;" onclick="savePassword()">SAVE</button>
+            <button style="flex:1; padding:14px; background:#1e293b; color:#94a3b8; border:none; border-radius:10px;" onclick="document.getElementById('pw-modal-overlay').style.display='none'" data-lang-am="ተመለስ" data-lang-en="CANCEL">CANCEL</button>
+            <button style="flex:1; padding:14px; background:var(--faded-green); border:none; border-radius:10px; font-weight:bold;" onclick="savePassword()" data-lang-am="አስቀምጥ" data-lang-en="SAVE">SAVE</button>
         </div>
     </div>
 </div>
@@ -324,19 +324,19 @@
 <div id="auth-page" class="page active-page" style="height:100vh; overflow-y:auto;">
     <div class="auth-card">
         <h1 style="color:var(--faded-green); margin:0; font-weight: 900; letter-spacing: 1px;">BINGO STREAM</h1>
-        <p id="auth-subtitle" style="font-size: 13px; color: var(--text-gray); margin-bottom: 25px;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
+        <p id="auth-subtitle" style="font-size: 13px; color: var(--text-gray); margin-bottom: 25px;" data-lang-am="ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)" data-lang-en="Register (100 ETB Bonus)">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
         
-        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)">
-        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)">
-        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" onkeyup="v()">
+        <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" data-lang-am="ሙሉ ስም (Full Name)" data-lang-en="Full Name">
+        <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)" data-lang-am="ስልክ ቁጥር (Phone Number)" data-lang-en="Phone Number">
+        <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" data-lang-am="የይለፍ ቃል (Password)" data-lang-en="Password" onkeyup="v()">
         
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 15px 0; color: var(--text-gray);">
-            <input type="checkbox" id="c1" onchange="v()"> <span>እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
-            <input type="checkbox" id="c2" onchange="v()"> <span>በውልና ደንቦች እስማማለሁ</span>
+            <input type="checkbox" id="c1" onchange="v()"> <span data-lang-am="እድሜዬ 21+ መሆኑን አረጋግጣለሁ" data-lang-en="I am 21+ years old">እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
+            <input type="checkbox" id="c2" onchange="v()"> <span data-lang-am="በውልና ደንቦች እስማማለሁ" data-lang-en="I agree to the Terms & Conditions">በውልና ደንቦች እስማማለሁ</span>
         </div>
         
-        <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (Register)</button>
-        <p style="font-size: 13px; color: var(--faded-green); cursor: pointer; margin-top: 20px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
+        <button id="start-btn" class="auth-btn" disabled onclick="authAction()" data-lang-am="ወደ ጌም ግባ (Register)" data-lang-en="Register">ወደ ጌም ግባ (Register)</button>
+        <p style="font-size: 13px; color: var(--faded-green); cursor: pointer; margin-top: 20px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text" data-lang-am="አካውንት አለዎት? ይግቡ (Login)" data-lang-en="Already have an account? Login">አካውንት አለዎት? ይግቡ (Login)</p>
     </div>
 </div>
 
@@ -361,20 +361,20 @@
         <div class="lang-switch-pill" onclick="toggleLanguage()"><span id="lang-am" class="lang-active">AM</span><span class="lang-div">|</span><span id="lang-en" class="lang-inactive">EN</span></div>
     </div>
     <div class="new-timer-box">
-        <div class="nt-left"><div class="nt-badge">ደራሽ</div><div class="nt-value"><span id="jp">0</span><span class="nt-currency">ETB</span></div></div>
-        <div class="nt-right"><div class="nt-status">ጨዋታው ሊጀምር ነው</div><div class="nt-value" id="timer">00:35</div></div>
+        <div class="nt-left"><div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div><div class="nt-value"><span id="jp">0</span><span class="nt-currency">ETB</span></div></div>
+        <div class="nt-right"><div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div><div class="nt-value" id="timer">00:35</div></div>
     </div>
 
     <!-- LIVE CIRCLE PAGE 1 -->
     <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px;">
         <div class="live-indicator"><span class="dot"></span> LIVE</div>
-        <div style="font-size:8px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
+        <div style="font-size:8px; color:#94a3b8; font-weight:bold;" data-lang-am="ደራሽ" data-lang-en="Jackpot">ደራሽ</div>
         <div class="jp-amount"><span id="h-jp-amt-2">0</span></div>
         <div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
     </div>
     
     <div class="grid-subtitle-row" style="margin-top: 15px;">
-        <div class="gs-left">ካርቴላ ይምረጡ (10 ብር)</div>
+        <div class="gs-left" data-lang-am="ካርቴላ ይምረጡ (10 ብር)" data-lang-en="Select Tickets (10 ETB)">ካርቴላ ይምረጡ (10 ብር)</div>
         <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 5</span></div>
     </div>
     <div id="grid-box" class="num-grid"></div>
@@ -383,11 +383,11 @@
 <!-- COMPACT FIXED BET SLIP POPUP -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
-        <span style="color:white; font-size:10px; font-weight:bold;">የመረጧቸው ካርቴላዎች: <span id="slip-count" style="color:var(--faded-green);">0</span></span>
+        <span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets" data-lang-am="የመረጧቸው ካርቴላዎች: " data-lang-en="Selected Tickets: ">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
-    <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;">BET NOW (ወራረድ)</button>
+    <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;" data-lang-am="BET NOW (ወራረድ)" data-lang-en="BET NOW">BET NOW (ወራረድ)</button>
 </div>
 
 <!-- 3. GAME PAGE (STRICTLY NO SCROLL, FIT TO SCREEN) -->
@@ -411,13 +411,13 @@
             <div class="caller-box"><div id="caller-ball" class="caller-ball">--</div></div>
             
             <div class="tickets-history-box">
-                <div style="color: var(--faded-green); font-size: 10px; font-weight: bold; margin-bottom: 1px; flex-shrink:0;">የእኔ ካርቴላ</div>
+                <div style="color: var(--faded-green); font-size: 10px; font-weight: bold; margin-bottom: 1px; flex-shrink:0;" data-lang-am="የእኔ ካርቴላ" data-lang-en="My Ticket">የእኔ ካርቴላ</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
             
             <div class="live-circle-badge-small">
                 <div class="live-indicator" style="font-size: 8px; margin-bottom: 0;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div>
-                <div style="font-size:7px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
+                <div style="font-size:7px; color:#94a3b8; font-weight:bold;" data-lang-am="ደራሽ" data-lang-en="Jackpot">ደራሽ</div>
                 <div class="jp-amount" style="font-size: 10px; margin: 0;"><span id="g-jp-amt">0</span></div>
             </div>
         </div>
@@ -426,40 +426,40 @@
 
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
-    <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;">የእኔ ካርቴላዎች</h3>
-    <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;">የወጡ ኳሶች</div>
+    <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
+    <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች" data-lang-en="Called Numbers">የወጡ ኳሶች</div>
     <div id="ticket-history-bar" class="history-top-bar" style="background:var(--panel); border-radius:8px; padding:10px; margin-bottom:20px; height: 50px;"></div>
-    <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
+    <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info" data-lang-am="እስካሁን ካርቴላ አልገዙም" data-lang-en="You haven't bought tickets yet">እስካሁን ካርቴላ አልገዙም</p>
     <div id="ticket-list"></div>
 </div>
 
 <!-- 5. WALLET PAGE (RESTORED BEAUTIFUL BUTTONS) -->
 <div id="wallet-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
+    <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ሂሳብ (Wallet)" data-lang-en="My Wallet">የእኔ ሂሳብ (Wallet)</h3>
     <div style="background: linear-gradient(135deg, #0b111a, #131b2f); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; border: 1px solid var(--border-color); text-align: center;">
-        <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(Deposit)</span></div>
+        <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;" data-lang-am="ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(Deposit)</span>" data-lang-en="Main Balance <span style='font-size:9px; color:#fbbf24;'>(Deposit)</span>">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(Deposit)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 5px 0; font-family: monospace;" id="main-bal">0.00</div>
-        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px;">መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b></div>
+        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px;" data-lang-am="መጫወቻ ሂሳብ: <b style='color:#38bdf8;'><span id='play-bal'>0.00</span> ETB</b>" data-lang-en="Play Balance: <b style='color:#38bdf8;'><span id='play-bal'>0.00</span> ETB</b>">መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b></div>
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
             <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="openDepositModal()">➕ Deposit</button>
             <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
         </div>
     </div>
     <div style="margin-top: 30px; padding: 0 10px;">
-        <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">የሂሳብ ዝውውር ታሪክ</h4>
-        <div id="wallet-history-list"><p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም</p></div>
+        <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ" data-lang-en="Transaction History">የሂሳብ ዝውውር ታሪክ</h4>
+        <div id="wallet-history-list"><p style="text-align:center; color:var(--text-gray); font-size:11px;" data-lang-am="ታሪክ የለም" data-lang-en="No History">ታሪክ የለም</p></div>
     </div>
 </div>
 
 <!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
-    <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
-    <div id="rank-content"><p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p></div>
+    <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
+    <div id="rank-content"><p style="text-align:center; color:var(--text-gray); font-size:13px;" data-lang-am="እየጫነ ነው..." data-lang-en="Loading...">እየጫነ ነው...</p></div>
 </div>
 
 <!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 16px;">👤 የእኔ ፕሮፋይል</h3>
+    <h3 style="text-align:center; margin-top: 0; font-size: 16px;" data-lang-am="👤 የእኔ ፕሮፋይል" data-lang-en="👤 My Profile">👤 የእኔ ፕሮፋይል</h3>
     <div class="profile-stat-box" style="padding: 15px; margin-bottom: 10px;">
         <div id="prof-avatar" class="prof-avatar-circle">U</div>
         <h2 id="prof-name" style="margin: 0; color: white; font-size: 16px;">User Name</h2>
@@ -468,21 +468,21 @@
     </div>
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue); padding: 12px;">
-            <div style="font-size: 10px; color: var(--text-gray);">የተጫወቱት</div>
+            <div style="font-size: 10px; color: var(--text-gray);" data-lang-am="የተጫወቱት" data-lang-en="Played">የተጫወቱት</div>
             <div style="font-size: 18px; font-weight: bold; color: var(--blue);" id="prof-played">0</div>
         </div>
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green); padding: 12px;">
-            <div style="font-size: 10px; color: var(--text-gray);">ያሸነፉት</div>
+            <div style="font-size: 10px; color: var(--text-gray);" data-lang-am="ያሸነፉት" data-lang-en="Won">ያሸነፉት</div>
             <div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div>
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🔐</span> የይለፍ ቃል ቀይር</div>
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🔐</span> <span data-lang-am="የይለፍ ቃል ቀይር" data-lang-en="Change Password">የይለፍ ቃል ቀይር</span></div>
             <span style="color:var(--text-gray)">></span>
         </button>
         <button class="prof-list-btn logout" style="padding: 12px 15px; font-size: 12px;" onclick="location.reload()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent; padding: 6px; font-size: 14px; margin-right: 10px;">🚪</span> ከሲስተም ውጣ</div>
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent; padding: 6px; font-size: 14px; margin-right: 10px;">🚪</span> <span data-lang-am="ከሲስተም ውጣ" data-lang-en="Logout">ከሲስተም ውጣ</span></div>
         </button>
     </div>
 </div>
@@ -538,48 +538,77 @@
     
     function copyModalNumber(id) { 
         navigator.clipboard.writeText(document.getElementById(id).innerText); 
-        alert("የባንክ አካውንት ቁጥር ኮፒ ተደርጓል!"); 
+        alert(currentLang === 'am' ? "የባንክ አካውንት ቁጥር ኮፒ ተደርጓል!" : "Account number copied!"); 
     }
 
     async function processNewDeposit() {
         let amt = parseFloat(document.getElementById('m-dep-amt').value); let method = document.querySelector('#dep-bank-grid .bank-btn.active')?.getAttribute('data-bankname'); let smsText = document.getElementById('m-dep-sms').value.trim();
-        if(!method || !amt || amt < 50 || !smsText) return alert("እባክዎ ሙሉ መረጃ ያስገቡ (ዝቅተኛው 50 ብር ነው)");
-        document.getElementById('m-dep-btn').innerText = "እየላከ ነው...";
+        if(!method || !amt || amt < 50 || !smsText) return alert(currentLang === 'am' ? "እባክዎ ሙሉ መረጃ ያስገቡ (ዝቅተኛው 50 ብር ነው)" : "Please enter valid data (Min: 50)");
+        document.getElementById('m-dep-btn').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); alert(data.message); addHistoryRecord("Deposit Req (" + method + ")", `+${amt} ETB`, "#0d9488"); closeDepositModal();
         } catch(e) {}
-        document.getElementById('m-dep-btn').innerText = "ጨርስ (Submit)";
+        document.getElementById('m-dep-btn').innerText = currentLang === 'am' ? "ጨርስ" : "Submit";
     }
 
     async function processNewWithdraw() {
         let amt = parseFloat(document.getElementById('m-wit-amt').value); let method = document.querySelector('#wit-bank-grid .bank-btn.active')?.getAttribute('data-bankname'); let phone = document.getElementById('m-wit-phone').value.trim();
-        if(!method || !phone || !amt || amt < 50) return alert("እባክዎ ሙሉ መረጃ ያስገቡ (ዝቅተኛው 50 ብር ነው)");
-        if(amt > (parseFloat(currentUser.playBalance)||0)) return alert("በመጫወቻ ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); 
-        document.getElementById('m-wit-btn').innerText = "እየላከ ነው...";
+        if(!method || !phone || !amt || amt < 50) return alert(currentLang === 'am' ? "እባክዎ ሙሉ መረጃ ያስገቡ (ዝቅተኛው 50 ብር ነው)" : "Please enter valid data (Min: 50)");
+        if(amt > (parseFloat(currentUser.playBalance)||0)) return alert(currentLang === 'am' ? "በመጫወቻ ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!" : "Insufficient play balance!"); 
+        document.getElementById('m-wit-btn').innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method, destinationPhone: phone }) }); 
             let data = await res.json(); alert(data.message); if(data.success) { await fetchUpdatedBalance(); addHistoryRecord("Withdraw Req", `-${amt} ETB`, "#ef4444"); closeWithdrawModal(); }
         } catch(e) {}
-        document.getElementById('m-wit-btn').innerText = "ወጪ ጠይቅ";
+        document.getElementById('m-wit-btn').innerText = currentLang === 'am' ? "ወጪ ጠይቅ" : "Request Withdraw";
     }
 
     async function savePassword() {
         let oldPass = document.getElementById('pw-old').value; let newPass = document.getElementById('pw-new').value; let confPass = document.getElementById('pw-conf').value;
-        if(!oldPass || !newPass || newPass !== confPass) return alert("እባክዎ መረጃውን በትክክል ያስገቡ!");
+        if(!oldPass || !newPass || newPass !== confPass) return alert(currentLang === 'am' ? "እባክዎ መረጃውን በትክክል ያስገቡ!" : "Please fill the form correctly!");
         try {
             let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
             let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('pw-modal-overlay').style.display='none'; }
         } catch(e) {}
     }
 
+    // LANGUAGE TOGGLE FUNCTION RESTORED FULLY
     function toggleLanguage() {
         currentLang = currentLang === 'am' ? 'en' : 'am';
-        document.getElementById('lang-am').className = currentLang === 'am' ? 'lang-active' : 'lang-inactive';
-        document.getElementById('lang-en').className = currentLang === 'en' ? 'lang-active' : 'lang-inactive';
+        
+        let amEl = document.getElementById('lang-am');
+        let enEl = document.getElementById('lang-en');
+        if (currentLang === 'am') {
+            amEl.className = 'lang-active';
+            enEl.className = 'lang-inactive';
+        } else {
+            enEl.className = 'lang-active';
+            amEl.className = 'lang-inactive';
+        }
+
+        // Translation logic using data attributes
+        document.querySelectorAll('[data-lang-am]').forEach(el => {
+            if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = el.getAttribute(`data-lang-${currentLang}`);
+            } else {
+                el.innerHTML = el.getAttribute(`data-lang-${currentLang}`);
+            }
+        });
+
+        // Special handling for auth buttons
+        if(isLoginMode) {
+            document.getElementById('start-btn').innerText = currentLang === 'am' ? "ግባ (Login)" : "Login";
+            document.getElementById('auth-subtitle').innerText = currentLang === 'am' ? "ወደ አካውንትዎ ይግቡ" : "Login to your account";
+            document.getElementById('toggle-auth-text').innerText = currentLang === 'am' ? "አዲስ አካውንት ይክፈቱ (Register)" : "Create a new account (Register)";
+        } else {
+            document.getElementById('start-btn').innerText = currentLang === 'am' ? "ወደ ጌም ግባ (Register)" : "Register";
+            document.getElementById('auth-subtitle').innerText = currentLang === 'am' ? "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)" : "Register (100 ETB Bonus)";
+            document.getElementById('toggle-auth-text').innerText = currentLang === 'am' ? "አካውንት አለዎት? ይግቡ (Login)" : "Already have an account? Login";
+        }
     }
 
-    function toggleAuthMode() { isLoginMode = !isLoginMode; document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block'; document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block'; v(); }
+    function toggleAuthMode() { isLoginMode = !isLoginMode; document.getElementById('reg-name').style.display = isLoginMode ? 'none' : 'block'; document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block'; toggleLanguage(); toggleLanguage(); v(); }
     function v() { document.getElementById('start-btn').disabled = isLoginMode ? !(document.getElementById('reg-phone').value && document.getElementById('reg-pass').value) : !(document.getElementById('c1').checked && document.getElementById('c2').checked && document.getElementById('reg-pass').value && document.getElementById('reg-phone').value); }
 
     async function authAction() {
@@ -620,7 +649,7 @@
                 html += '</div>';
                 others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; });
                 document.getElementById('rank-content').innerHTML = html;
-            } else { document.getElementById('rank-content').innerHTML = `<p style="text-align:center; color:var(--text-gray);">እስካሁን አሸናፊ የለም</p>`; }
+            } else { document.getElementById('rank-content').innerHTML = `<p style="text-align:center; color:var(--text-gray);">${currentLang === 'am' ? 'እስካሁን አሸናፊ የለም' : 'No Winners Yet'}</p>`; }
         } catch(e) {}
     }
 
@@ -648,7 +677,7 @@
             let isTakenGlobally = globalTakenTickets.includes(num);
 
             if (isMine) {
-                // Owned by me (Dark Green, Unclickable)
+                // Owned by me
                 btn.classList.add('bought-by-me');
                 btn.classList.remove('taken');
                 btn.classList.remove('selected');
@@ -692,6 +721,7 @@
 
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
+                document.getElementById('ticket-history-bar').innerHTML = '';
                 document.getElementById('caller-ball').innerText = "--"; document.getElementById('g-balls').innerText = "0/20"; called = []; 
                 
                 if (currentUser) {
@@ -702,7 +732,7 @@
                     if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
-            if (selected.length > 0) { document.getElementById('bet-btn').disabled = false; document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; }
+            if (selected.length > 0) { document.getElementById('bet-btn').disabled = false; document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW"; }
             
         } else if (data.state === "PLAYING") {
             isGameRunningLocally = true; 
@@ -749,7 +779,7 @@
                 
                 // DOUBLE PROTECTION: Block clicks if already bought by ANYONE
                 if(globalTakenTickets.includes(i) || d.classList.contains('taken') || d.classList.contains('bought-by-me')) {
-                    alert("ይህ ካርቴላ ተገዝቷል! እባክዎ ሌላ ነፃ ካርቴላ ይምረጡ።");
+                    alert(currentLang === 'am' ? "ይህ ካርቴላ ተገዝቷል! እባክዎ ሌላ ነፃ ካርቴላ ይምረጡ።" : "Ticket already bought! Select another.");
                     return; 
                 }
 
@@ -762,7 +792,7 @@
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
                 } else { 
-                    alert("በአጠቃላይ ከ 5 ካርቴላ በላይ መግዛት አይቻልም!"); 
+                    alert(currentLang === 'am' ? "በአጠቃላይ ከ 5 ካርቴላ በላይ መግዛት አይቻልም!" : "Max 5 tickets allowed!"); 
                 } 
                 updateBetPreview(); 
             }; box.appendChild(d); 
@@ -787,16 +817,16 @@
     }
 
     function placeBet() { 
-        if(selected.length === 0) return alert("ቢያንስ 1 ካርቴላ ይምረጡ!"); 
+        if(selected.length === 0) return alert(currentLang === 'am' ? "ቢያንስ 1 ካርቴላ ይምረጡ!" : "Select 1 ticket at least!"); 
         
         let stolenTickets = selected.filter(x => globalTakenTickets.includes(x));
         if (stolenTickets.length > 0) {
-            alert("ይቅርታ! የመረጧቸው አንዳንድ ካርቴላዎች አሁን በሌላ ሰው ተገዝተዋል! ግዢው ተሰርዟል።");
+            alert(currentLang === 'am' ? "ይቅርታ! የመረጧቸው አንዳንድ ካርቴላዎች አሁን በሌላ ሰው ተገዝተዋል!" : "Sorry! Some selected tickets were just bought by others!");
             renderGridTakenStates(); return;
         }
 
         let betAmount = selected.length * 10; let currentBal = parseFloat(currentUser.mainBalance) || 0;
-        if(currentBal < betAmount) { alert("በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።"); return; }
+        if(currentBal < betAmount) { alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance!"); return; }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
@@ -809,7 +839,7 @@
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.getElementById('bet-slip-popup').classList.remove('show');
             document.getElementById('grid-sel-count').innerText = "0"; 
-            document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; document.getElementById('bet-btn').disabled = false;
+            document.getElementById('bet-btn').innerText = currentLang === 'am' ? "BET NOW (ወራረድ)" : "BET NOW"; document.getElementById('bet-btn').disabled = false;
             renderGridTakenStates();
         }, 500);
     }
@@ -835,7 +865,7 @@
             card.innerHTML = htmlMain + "</div>"; miniCard.innerHTML = htmlMini + "</div>";
             list.appendChild(card); gameList.appendChild(miniCard);
         }); 
-        document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + userTicketsData.length;
+        document.getElementById('t-info').innerText = (currentLang === 'am' ? "የገዙት ካርቴላ ብዛት: " : "Bought Tickets: ") + userTicketsData.length;
     }
 
     function buildMasterBoard() {
@@ -881,7 +911,7 @@
     
     function addHistoryRecord(title, amount, color) { 
         const hc = document.getElementById('wallet-history-list'); 
-        if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; 
+        if(hc.innerHTML.includes("ታሪክ የለም") || hc.innerHTML.includes("No History")) hc.innerHTML = ''; 
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
         hc.innerHTML = `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: #0b111a;"><div><span style="font-weight:bold; font-size: 11px;">${title}</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px;">${amount}</b></div>` + hc.innerHTML; 
     }
