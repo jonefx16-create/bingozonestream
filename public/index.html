@@ -11,13 +11,11 @@
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Auth Layouts */
         .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid #14532d; box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; font-family: inherit;}
         .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        /* TOP HEADER */
         .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 0; }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
@@ -31,7 +29,6 @@
         .pill-wallet span.title.main { color: var(--gold); }
         .pill-wallet span.amt { color: white; font-size: 11px; font-weight: 900; font-family: monospace;}
 
-        /* Language Switch */
         .lang-switch-wrapper { display: flex; justify-content: flex-end; margin-bottom: 8px; padding-right: 5px; }
         .lang-switch-pill { display: inline-flex; align-items: center; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 4px 10px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s; letter-spacing: 0.5px;}
@@ -47,20 +44,17 @@
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
-        /* LIVE JACKPOT INDICATOR */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; letter-spacing: 1px; }
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
         .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 0.5px; margin-top: 1px;}
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* SELECTION ROW */
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
         .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
         .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
-        /* Number Grid */
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         
@@ -89,9 +83,14 @@
         .info-val { color: white; font-weight: bold; font-size: 14px; }
         .info-val.highlight { color: var(--faded-green); }
         
-        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px; margin-bottom: 12px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); scrollbar-width: none; align-items: center; }
-        .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+        /* 🟢 NEW CALLER & HISTORY LAYOUT 🟢 */
+        .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(74, 222, 128, 0.1); gap: 10px; overflow: hidden;}
+        .main-caller-area { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 55px; height: 55px; }
+        .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.6), inset 0 0 8px rgba(74, 222, 128, 0.4); z-index: 2; letter-spacing: -0.5px;}
+        
+        .history-top-bar.new-history-layout { display: flex; gap: 6px; overflow-x: auto; background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; flex-grow: 1; align-items: center; scrollbar-width: none; }
+        .history-top-bar.new-history-layout::-webkit-scrollbar { display: none; }
+        .hist-top-ball { min-width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
 
         .game-layout-container { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 3%; align-items: stretch; justify-content: space-between; width: 100%; }
         .master-board-wrapper { width: 55%; flex: 0 0 55%; background: transparent; }
@@ -102,9 +101,6 @@
         .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 5px rgba(74,222,128,0.8); position: relative; z-index: 2; transform: scale(1.05);}
 
         .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; gap: 10px; }
-        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 80px; display: flex; align-items: center; justify-content: center; }
-        .caller-ball { width: 55px; height: 55px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.3);}
-
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; flex: 1;}
         .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; width: 100%; margin: 5px 0; }
         .mini-t-card { background: white; flex: 1 1 31%; max-width: 48%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
@@ -113,17 +109,18 @@
         .mini-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* 🟢 አዲስ: GAME PAGE SCROLL እንዳያደርግና ልክ እንዲሆን የተጨመረ CSS */
+        /* SCROLL PREVENTION FOR GAME PAGE */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100vh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .top-info-wrapper { flex-shrink: 0; margin-bottom: 5px; }
-        #game-page .history-top-bar { flex-shrink: 0; margin-bottom: 5px; padding: 5px; min-height: 40px; }
+        #game-page .live-caller-history-wrapper { flex-shrink: 0; margin-bottom: 5px; padding: 5px 8px; height: 50px;}
+        #game-page .main-caller-area { width: 40px; height: 40px; }
+        #game-page .main-caller-ball { font-size: 13px; border-width: 3px;}
+        #game-page .hist-top-ball { min-width: 30px; height: 30px; font-size: 9px; }
         #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; margin-bottom: 0; gap: 2%; }
         #game-page .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; }
         #game-page .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); gap: 1px; width: 100%; }
         #game-page .mb-head, #game-page .mb-cell { aspect-ratio: unset; height: 100%; font-size: 2vh; }
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
-        #game-page .caller-box { height: 12%; min-height: 45px; flex-shrink: 0; margin-bottom: 0;}
-        #game-page .caller-ball { width: 5.5vh; height: 5.5vh; font-size: 2.2vh; }
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; margin-bottom: 0; }
         #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; align-content: flex-start; scrollbar-width: none; }
         #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
@@ -143,7 +140,7 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
         .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
 
-        /* Profile & Ranks & Modals (No change) */
+        /* Profile & Ranks & Modals */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4); text-transform: uppercase;}
         .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
@@ -341,19 +338,18 @@
         </div>
     </div>
 
-    <!-- TIMER/JACKPOT HEADER -->
+    <!-- 🟢 አዲስ: ቦታ የተለዋወጠ TIMER/JACKPOT HEADER 🟢 -->
     <div class="new-timer-box">
         <div class="nt-left">
+            <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
+            <div class="nt-value" id="timer" style="color: var(--faded-green);">00:35</div> 
+        </div>
+        <div class="nt-right">
             <div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div>
             <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
         </div>
-        <div class="nt-right">
-            <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
-            <div class="nt-value" id="timer">00:35</div> 
-        </div>
     </div>
 
-    <!-- FLOATING LIVE JACKPOT CIRCLE PAGE 1 -->
     <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px; z-index: 1000;">
         <div class="live-indicator"><span class="dot"></span> LIVE</div>
         <div style="font-size:8px; color:#94a3b8; font-weight:bold;" data-lang-am="ደራሽ" data-lang-en="Jackpot">ደራሽ</div>
@@ -386,9 +382,16 @@
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
-        <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
+        <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0</div></div>
     </div>
-    <div id="history-scroll-top" class="history-top-bar"></div>
+    
+    <!-- 🟢 አዲስ: አብሮ የተዋሃደው የመጥሪያ ኳስ እና ታሪክ 🟢 -->
+    <div class="live-caller-history-wrapper">
+        <div class="main-caller-area">
+            <div id="caller-ball" class="main-caller-ball">--</div>
+        </div>
+        <div id="history-scroll-top" class="history-top-bar new-history-layout"></div>
+    </div>
     
     <div class="game-layout-container"> 
         <div class="master-board-wrapper"> 
@@ -396,10 +399,6 @@
         </div>
         
         <div class="right-panel-stack">
-            <div class="caller-box">
-                <div id="caller-ball" class="caller-ball">--</div>
-            </div>
-            
             <div class="tickets-history-box">
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;" data-lang-am="የእኔ ካርቴላ (My Ticket)" data-lang-en="My Ticket">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
@@ -817,7 +816,7 @@
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
-                document.getElementById('caller-ball').innerText = "--"; document.getElementById('g-balls').innerText = "0/20"; called = []; 
+                document.getElementById('caller-ball').innerText = "--"; document.getElementById('g-balls').innerText = "0"; called = []; 
                 
                 if (currentUser) {
                     userTicketsData = []; pendingTicketsData = []; selected = [];
@@ -839,7 +838,7 @@
                 currentGameState = "PLAYING"; document.getElementById('bet-slip-popup').classList.remove('show');
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
-            called = data.calledNumbers || []; document.getElementById('g-balls').innerText = called.length + "/20";
+            called = data.calledNumbers || []; document.getElementById('g-balls').innerText = called.length;
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
             called.forEach((num, idx) => { updateLiveUI(num, idx === called.length - 1); });
@@ -848,13 +847,17 @@
 
     socket.on('new_number', (num) => {
         if (!isGameRunningLocally) return;
-        called.push(num); document.getElementById('g-balls').innerText = called.length + "/20"; updateLiveUI(num, true);
+        called.push(num); 
+        document.getElementById('g-balls').innerText = called.length; // የወጣውን ኳስ ብዛት ብቻ ያሳያል
+        updateLiveUI(num, true);
         
+        // ዩአይ (UI) ላይ ምልክት ማድረግ ብቻ
         userTicketsData.forEach(t => { 
-            for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } 
-            if(checkBingoWin(t)) {
-                socket.emit('claim_bingo', { name: currentUser.name, phone: currentUser.phone, ticketId: t.id }); 
-            }
+            for(let c=0; c<5; c++) { 
+                for(let r=0; r<5; r++) { 
+                    if(t.grid[c][r] === num) t.marks[c][r] = 1; 
+                } 
+            } 
         });
     });
 
@@ -936,7 +939,13 @@
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
         
-        socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length, ticketIds: selected });
+        socket.emit('buy_tickets', { 
+            name: currentUser.name, 
+            phone: currentUser.phone, 
+            ticketCount: selected.length, 
+            ticketIds: selected,
+            ticketsData: pendingTicketsData 
+        });
 
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
@@ -996,15 +1005,6 @@
     }
 
     function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
-    
-    function checkBingoWin(ticket) { 
-        let m = ticket.marks; 
-        for(let c=0; c<5; c++) { if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; } 
-        for(let r=0; r<5; r++) { if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; } 
-        if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
-        if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
-        return false; 
-    }
     
     function handleHomeNav() { if(isGameRunningLocally) showPage('game'); else showPage('home'); }
     function showPage(id) { 
