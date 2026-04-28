@@ -178,14 +178,6 @@ app.post('/api/admin/change-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: "Server error" }); }
 });
 
-app.post('/api/admin/ban-user', async (req, res) => {
-    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
-    try {
-        await User.findOneAndDelete({ phone: req.body.phone });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
 // ==========================================
 // 🟢 LIVE BINGO GAME ENGINE (SOCKET.IO)
 // ==========================================
@@ -195,37 +187,104 @@ let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
 let calledNumbers = [];
-let pool = [];
+let currentDrawSequence = []; // በ20 ኳስ ውስጥ አሸናፊ የሚወጣበት የተዘጋጀ ሊስት
 let gameInterval;
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
-// 🟢 ሰርቨር የቢንጎ ህግን የሚያረጋግጥበት ፈንክሽን
-function checkServerBingo(ticket, calledNums) {
-    let m = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; // መሃሉ Free (1) ነው
-    
-    // የወጡ ኳሶችን ካርቴላው ላይ ማመልከት
-    for(let c=0; c<5; c++) {
-        for(let r=0; r<5; r++) {
-            if(calledNums.includes(ticket.grid[c][r])) {
-                m[c][r] = 1;
-            }
+// የቢንጎ ህግ ማረጋገጫ (Server-side)
+function serverCheckBingo(grid, called) {
+    let m = Array(5).fill().map(() => Array(5).fill(false));
+    for(let c=0; c<5; c++){
+        for(let r=0; r<5; r++){
+            if(c===2 && r===2) m[c][r] = true; // Free space
+            else if(called.includes(grid[c][r])) m[c][r] = true;
         }
     }
-    
-    // 1. ወደ ታች (Columns) ማረጋገጥ
-    for(let c=0; c<5; c++) { if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; } 
-    // 2. ወደ ጎን (Rows) ማረጋገጥ
-    for(let r=0; r<5; r++) { if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; } 
-    // 3. ማዕዘን (Diagonals) ማረጋገጥ
-    if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
-    if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
-    
+    for(let c=0; c<5; c++) if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; // ወደ ታች
+    for(let r=0; r<5; r++) if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; // ወደ ጎን
+    if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; // ማዕዘን 1
+    if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; // ማዕዘን 2
     return false;
+}
+
+// 🟢 20 ኳስ ውስጥ አሸናፊ የሚገኝበትን ሊስት ማዘጋጀት 
+function generateRiggedDrawSequence() {
+    let pool = Array.from({length: 75}, (_, i) => i + 1);
+    let allTickets = [];
+    
+    for (let socketId in activePlayers) {
+        let p = activePlayers[socketId];
+        p.ticketsData.forEach(t => allTickets.push({ phone: p.phone, name: p.name, socketId: socketId, ticket: t }));
+    }
+
+    // ተጫዋች ከሌለ ዝም ብሎ 20 ኳስ ያወጣል
+    if (allTickets.length === 0) {
+        let seq = [];
+        for(let i=0; i<20; i++) seq.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        return seq;
+    }
+
+    // 1. አንዱን ካርቴላ በዘፈቀደ ለአሸናፊነት መምረጥ
+    let targetInfo = allTickets[Math.floor(Math.random() * allTickets.length)];
+    let tg = targetInfo.ticket.grid;
+    
+    // 2. የሚያሸንፍበትን መስመር መምረጥ (ለምሳሌ: መሃለኛው መስመር ወደ ጎን - Row 2)
+    // Row 2: 4 ቁጥሮች ብቻ ነው የሚፈልገው (መሃሉ Free ስለሆነ)
+    let requiredNumbers = [tg[0][2], tg[1][2], tg[3][2], tg[4][2]];
+    
+    // 3. እነዚህን ቁጥሮች ከገንዳው ማውጣት
+    requiredNumbers.forEach(n => {
+        let idx = pool.indexOf(n);
+        if(idx > -1) pool.splice(idx, 1);
+    });
+
+    // 4. ለ 20 ኳስ የሚሞላ 16 ተጨማሪ የዘፈቀደ ቁጥሮችን ማውጣት
+    let fillers = [];
+    for(let i=0; i<16; i++) fillers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+
+    // 5. የመጨረሻዋን አሸናፊ ኳስ ነጥሎ ማውጣት
+    let winningBall = requiredNumbers.pop(); 
+    
+    // 6. የቀሩትን 19 ኳሶች መደባለቅ
+    let mixed = [...requiredNumbers, ...fillers];
+    mixed.sort(() => Math.random() - 0.5); 
+    
+    // 7. የመጨረሻዋን አሸናፊ ኳስ ከ 15 እስከ 19 ባለው ተራ ቁጥር ውስጥ ማስገባት (ቶሎ እንዳያሸንፍ)
+    let winIndex = Math.floor(Math.random() * 5) + 15; 
+    mixed.splice(winIndex, 0, winningBall);
+
+    return mixed;
+}
+
+async function declareWinner(player, ticket) {
+    gameState = "FINISHED";
+    clearInterval(gameInterval);
+    
+    const user = await User.findOne({phone: player.phone});
+    if(user) {
+        user.mainBalance += totalPrizePool;
+        user.won += totalPrizePool;
+        await user.save();
+        io.emit('balance_updated', player.phone);
+    }
+    
+    // ካርቴላውን ከነ ኮከቡ ለማሳየት ኔትወርክ ላይ መላክ
+    io.emit('game_winner', { 
+        winnerName: player.name, 
+        ticketId: ticket.id, 
+        prize: totalPrizePool, 
+        phone: player.phone,
+        ticketGrid: ticket.grid,
+        calledNumbers: calledNumbers
+    });
+    
+    setTimeout(() => { startCountdown(); }, 10000); // 10 ሰከንድ አሸናፊውን ያሳያል
 }
 
 function startCountdown() {
     gameState = "WAITING"; timer = 25; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
+    currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000;
     globalTakenTickets = []; 
     io.emit('update_taken_tickets', globalTakenTickets); 
@@ -238,65 +297,40 @@ function startCountdown() {
         if (timer <= 0) {
             clearInterval(waitInterval);
             if (totalTickets > 0) startGame();
-            else startCountdown(); // ሰው ካልገባ ዳግም ይቆጥራል
+            else startCountdown();
         }
     }, 1000);
 }
 
 function startGame() {
     gameState = "PLAYING";
-    pool = Array.from({length: 75}, (_, i) => i + 1);
+    currentDrawSequence = generateRiggedDrawSequence(); // 20 ኳሶችን ማዘጋጀት
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
 
-    gameInterval = setInterval(async () => {
-        if (gameState !== "PLAYING") {
+    gameInterval = setInterval(() => {
+        if (gameState !== "PLAYING" || currentDrawSequence.length === 0) {
             clearInterval(gameInterval);
+            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // Failsafe
             return;
         }
 
-        let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+        let num = currentDrawSequence.shift(); // ከተዘጋጀው ሊስት ማውጣት
         calledNumbers.push(num);
         io.emit('new_number', num);
 
-        // 🔴 አዲስ: አውቶማቲክ አሸናፊ ማረጋገጫ (Auto Winner Check)
-        let winnerFound = null;
+        // ሲስተሙ አሸናፊ መኖሩን ቼክ ያደርጋል
+        let winnerFound = false;
         for (let socketId in activePlayers) {
             let player = activePlayers[socketId];
-            for (let t of player.fullTickets) {
-                if (checkServerBingo(t, calledNumbers)) {
-                    winnerFound = { name: player.name, phone: player.phone, ticketId: t.id };
+            for (let i = 0; i < player.ticketsData.length; i++) {
+                let ticket = player.ticketsData[i];
+                if (serverCheckBingo(ticket.grid, calledNumbers)) {
+                    winnerFound = true;
+                    declareWinner(player, ticket);
                     break;
                 }
             }
-            if (winnerFound) break; // አንድ አሸናፊ ሲገኝ ፍለጋው ይቆማል
-        }
-
-        // አሸናፊ ከተገኘ ጌሙ ይቆማል
-        if (winnerFound) {
-            gameState = "FINISHED";
-            clearInterval(gameInterval);
-            
-            // የገንዘብ ሽልማቱን ለአሸናፊው መስጠት
-            const user = await User.findOne({phone: winnerFound.phone});
-            if(user) {
-                user.mainBalance += totalPrizePool;
-                user.won += totalPrizePool;
-                await user.save();
-                io.emit('balance_updated', user.phone);
-            }
-            
-            // ለሁሉም ሰው አሸናፊውን ማሳወቅ
-            io.emit('game_winner', { winnerName: winnerFound.name, ticketId: winnerFound.ticketId, prize: totalPrizePool, phone: winnerFound.phone });
-            
-            // ከ 8 ሰከንድ በኋላ አዲስ ጌም መጀመር
-            setTimeout(() => { startCountdown(); }, 8000);
-            return;
-        }
-
-        // ሁሉም 75 ኳስ ካለቀ እና (እንዳጋጣሚ) ማንም ካላሸነፈ ይመለሳል
-        if (calledNumbers.length >= 75) { 
-            clearInterval(gameInterval); 
-            setTimeout(startCountdown, 5000); 
+            if(winnerFound) break;
         }
 
     }, 3000);
@@ -316,18 +350,15 @@ io.on('connection', (socket) => {
                 user.played += 1;
                 await user.save();
                 
-                // የገዛቸውን ሙሉ ካርቴላዎች (Grid ጭምር) ወደ ሰርቨር መመዝገብ
                 activePlayers[socket.id] = { 
                     name: data.name, 
                     phone: data.phone, 
                     tickets: data.ticketCount, 
-                    ticketIds: data.ticketIds,
-                    fullTickets: data.fullTickets // አውቶማቲክ ለሚያነበው ሲስተም
+                    ticketsData: data.ticketsData 
                 };
-                
                 totalTickets += data.ticketCount;
                 
-                // 15% ለአድሚን ይቆረጣል (85% ለአሸናፊው ይቀራል)
+                // 15% አድሚን ይቆርጣል (85% ለአሸናፊ)
                 totalPrizePool = (totalTickets * 10) * 0.85; 
                 
                 if(data.ticketIds) {
@@ -336,14 +367,11 @@ io.on('connection', (socket) => {
                     });
                 }
                 io.emit('update_taken_tickets', globalTakenTickets); 
-                
                 io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
                 socket.emit('balance_updated', data.phone); 
             }
         }
     });
-
-    // ማሳሰቢያ: ተጠቃሚዎች 'claim_bingo' መላክ አይጠበቅባቸውም። ሲስተሙ ራሱ ያውቀዋል!
 });
 
 startCountdown();
