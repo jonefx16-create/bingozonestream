@@ -83,14 +83,17 @@
         .info-val { color: white; font-weight: bold; font-size: 14px; }
         .info-val.highlight { color: var(--faded-green); }
         
-        /* 🟢 NEW CALLER & HISTORY LAYOUT 🟢 */
-        .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(74, 222, 128, 0.1); gap: 10px; overflow: hidden;}
-        .main-caller-area { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 55px; height: 55px; }
-        .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.6), inset 0 0 8px rgba(74, 222, 128, 0.4); z-index: 2; letter-spacing: -0.5px;}
-        
+        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px; margin-bottom: 12px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); scrollbar-width: none; align-items: center; }
+        .history-top-bar::-webkit-scrollbar { display: none; }
+        .hist-top-ball { min-width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+
+        /* TICKET PAGE CALLER AND HISTORY */
+        .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(74, 222, 128, 0.1); gap: 10px; overflow: hidden; height: 50px; box-sizing: border-box;}
+        .main-caller-area { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
+        .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border: 3px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.6), inset 0 0 8px rgba(74, 222, 128, 0.4); z-index: 2;}
         .history-top-bar.new-history-layout { display: flex; gap: 6px; overflow-x: auto; background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; flex-grow: 1; align-items: center; scrollbar-width: none; }
         .history-top-bar.new-history-layout::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
+        .history-top-bar.new-history-layout .hist-top-ball { min-width: 30px; height: 30px; font-size: 9px;}
 
         .game-layout-container { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 3%; align-items: stretch; justify-content: space-between; width: 100%; }
         .master-board-wrapper { width: 55%; flex: 0 0 55%; background: transparent; }
@@ -101,6 +104,9 @@
         .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 5px rgba(74,222,128,0.8); position: relative; z-index: 2; transform: scale(1.05);}
 
         .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; gap: 10px; }
+        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .caller-ball { width: 55px; height: 55px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.3);}
+
         .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; flex: 1;}
         .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; width: 100%; margin: 5px 0; }
         .mini-t-card { background: white; flex: 1 1 31%; max-width: 48%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
@@ -112,15 +118,14 @@
         /* SCROLL PREVENTION FOR GAME PAGE */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100vh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .top-info-wrapper { flex-shrink: 0; margin-bottom: 5px; }
-        #game-page .live-caller-history-wrapper { flex-shrink: 0; margin-bottom: 5px; padding: 5px 8px; height: 50px;}
-        #game-page .main-caller-area { width: 40px; height: 40px; }
-        #game-page .main-caller-ball { font-size: 13px; border-width: 3px;}
-        #game-page .hist-top-ball { min-width: 30px; height: 30px; font-size: 9px; }
+        #game-page .history-top-bar { flex-shrink: 0; margin-bottom: 5px; padding: 5px; min-height: 40px; }
         #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; margin-bottom: 0; gap: 2%; }
         #game-page .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; }
         #game-page .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); gap: 1px; width: 100%; }
         #game-page .mb-head, #game-page .mb-cell { aspect-ratio: unset; height: 100%; font-size: 2vh; }
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
+        #game-page .caller-box { height: 12%; min-height: 45px; flex-shrink: 0; margin-bottom: 0;}
+        #game-page .caller-ball { width: 5.5vh; height: 5.5vh; font-size: 2.2vh; }
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; margin-bottom: 0; }
         #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; align-content: flex-start; scrollbar-width: none; }
         #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
@@ -134,11 +139,12 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
-        /* Bingo Win Overlay */
+        /* Bingo Win Overlay with Ticket */
         .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
         .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 3px;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
         .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
+        #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
 
         /* Profile & Ranks & Modals */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
@@ -206,12 +212,17 @@
 </head>
 <body>
 
+<!-- የቢንጎ አሸናፊ ማሳወቂያ እና ካርቴላ -->
 <div id="bingo-overlay" class="bingo-overlay">
     <h1 class="bingo-text">BINGO!</h1>
     <div class="winner-card">
         <h3 style="margin:0; color:var(--text-gray);" data-lang-am="አሸናፊ (Winner)" data-lang-en="Winner">አሸናፊ (Winner)</h3>
-        <h2 id="win-name" style="margin:10px 0 15px 0; color:white; font-size:26px;">---</h2>
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <h2 id="win-name" style="margin:10px 0 5px 0; color:white; font-size:26px;">---</h2>
+        <p style="margin:0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        
+        <!-- አሸናፊው ካርቴላ እዚህ ላይ ይታያል -->
+        <div id="win-ticket-display"></div>
+        
         <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="የገንዘብ ሽልማት:" data-lang-en="Cash Prize:">የገንዘብ ሽልማት:</span> <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
     </div>
 </div>
@@ -338,7 +349,6 @@
         </div>
     </div>
 
-    <!-- 🟢 አዲስ: ቦታ የተለዋወጠ TIMER/JACKPOT HEADER 🟢 -->
     <div class="new-timer-box">
         <div class="nt-left">
             <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
@@ -357,7 +367,6 @@
         <div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
     </div>
     
-    <!-- SELECTION ROW -->
     <div class="grid-subtitle-row" style="margin-top: 15px;">
         <div class="gs-left" data-lang-am="ካርቴላ ይምረጡ (10 ብር)" data-lang-en="Select Tickets (10 ETB)">ካርቴላ ይምረጡ (10 ብር)</div>
         <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 5</span></div>
@@ -385,13 +394,8 @@
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0</div></div>
     </div>
     
-    <!-- 🟢 አዲስ: አብሮ የተዋሃደው የመጥሪያ ኳስ እና ታሪክ 🟢 -->
-    <div class="live-caller-history-wrapper">
-        <div class="main-caller-area">
-            <div id="caller-ball" class="main-caller-ball">--</div>
-        </div>
-        <div id="history-scroll-top" class="history-top-bar new-history-layout"></div>
-    </div>
+    <!-- ኳሶች የሚደረደሩበት ሂስትሪ -->
+    <div id="history-scroll-top" class="history-top-bar"></div>
     
     <div class="game-layout-container"> 
         <div class="master-board-wrapper"> 
@@ -399,6 +403,11 @@
         </div>
         
         <div class="right-panel-stack">
+            <!-- ትልቁ የኳስ መጥሪያ ሣጥን እዚህ ላይ ተመልሷል -->
+            <div class="caller-box">
+                <div id="caller-ball" class="caller-ball">--</div>
+            </div>
+            
             <div class="tickets-history-box">
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;" data-lang-am="የእኔ ካርቴላ (My Ticket)" data-lang-en="My Ticket">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
@@ -418,9 +427,17 @@
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
-    <div id="ticket-history-bar" class="history-top-bar" style="background:var(--panel); border-radius:8px; padding:10px; margin-bottom:20px;">
-        <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
+    
+    <!-- 🟢 አዲስ: ትኬት ፔጅ ላይ የተጨመረው የኳስ መጥሪያ እና ታሪክ 🟢 -->
+    <div class="live-caller-history-wrapper">
+        <div class="main-caller-area">
+            <div id="ticket-caller-ball" class="main-caller-ball">--</div>
+        </div>
+        <div id="ticket-history-bar" class="history-top-bar new-history-layout">
+            <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
+        </div>
     </div>
+    
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     <div id="ticket-list"></div>
 </div>
@@ -439,7 +456,6 @@
             <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
         </div>
     </div>
-    <!-- TRANSACTION HISTORY -->
     <div style="margin-top: 30px; padding: 0 10px;">
         <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Transaction History)" data-lang-en="Transaction History">የሂሳብ ዝውውር ታሪክ (Transaction History)</h4>
         <div id="wallet-history-list">
@@ -448,7 +464,7 @@
     </div>
 </div>
 
-<!-- 6. REDESIGNED RANK PAGE -->
+<!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
     <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;" data-lang-am="🏆 አሸናፊዎች (Top 10 Rank)" data-lang-en="🏆 Winners (Top 10 Rank)">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div id="rank-content">
@@ -456,7 +472,7 @@
     </div>
 </div>
 
-<!-- 7. COMPACT PROFILE PAGE REDESIGN -->
+<!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 16px;" data-lang-am="👤 የእኔ ፕሮፋይል" data-lang-en="👤 My Profile">👤 የእኔ ፕሮፋይል</h3>
     <div class="profile-stat-box" style="padding: 15px; margin-bottom: 10px;">
@@ -816,7 +832,10 @@
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
-                document.getElementById('caller-ball').innerText = "--"; document.getElementById('g-balls').innerText = "0"; called = []; 
+                document.getElementById('caller-ball').innerText = "--"; 
+                document.getElementById('ticket-caller-ball').innerText = "--"; 
+                document.getElementById('g-balls').innerText = "0"; 
+                called = []; 
                 
                 if (currentUser) {
                     userTicketsData = []; pendingTicketsData = []; selected = [];
@@ -848,10 +867,9 @@
     socket.on('new_number', (num) => {
         if (!isGameRunningLocally) return;
         called.push(num); 
-        document.getElementById('g-balls').innerText = called.length; // የወጣውን ኳስ ብዛት ብቻ ያሳያል
+        document.getElementById('g-balls').innerText = called.length;
         updateLiveUI(num, true);
         
-        // ዩአይ (UI) ላይ ምልክት ማድረግ ብቻ
         userTicketsData.forEach(t => { 
             for(let c=0; c<5; c++) { 
                 for(let r=0; r<5; r++) { 
@@ -861,12 +879,33 @@
         });
     });
 
+    // 🟢 አዲስ: አሸናፊ ሲኖር ካርቴላውን ስሎ ያሳያል
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         document.getElementById('win-name').innerText = data.winnerName; 
         document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
         document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         
+        // አሸናፊውን ካርቴላ ከነኮከቡ መሳል
+        let g = data.ticketGrid;
+        let cld = data.calledNumbers;
+        let html = `<div class="preview-t-grid" style="width:180px; transform: scale(1.1); transform-origin: top; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);">`;
+        for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; height:25px; font-size:14px;">${bHeads[i]}</div>`; }
+        for(let r=0; r<5; r++){
+            for(let c=0; c<5; c++){
+                let num = g[c][r];
+                if(r===2 && c===2) {
+                    html += `<div class="preview-t-cell marked" style="height:30px; font-size:18px; color:#38bdf8;">★</div>`;
+                } else if(cld.includes(num)) {
+                    html += `<div class="preview-t-cell marked" style="height:30px; font-size:14px; color:#facc15;">★<br><span style="font-size:8px; color:#fff">${num}</span></div>`;
+                } else {
+                    html += `<div class="preview-t-cell" style="height:30px; font-size:14px;">${num}</div>`;
+                }
+            }
+        }
+        html += `</div>`;
+        document.getElementById('win-ticket-display').innerHTML = html;
+
         if(currentUser && data.phone === currentUser.phone) fetchUpdatedBalance(); 
     });
 
@@ -995,7 +1034,11 @@
 
         let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
         let ballText = bHeads[colIdx] + "-" + num;
-        if(isLatest) document.getElementById('caller-ball').innerText = ballText;
+        
+        if(isLatest) {
+            document.getElementById('caller-ball').innerText = ballText;
+            document.getElementById('ticket-caller-ball').innerText = ballText;
+        }
 
         let topH = document.getElementById('history-scroll-top'); let tickH = document.getElementById('ticket-history-bar');
         if (called.length === 1 && (tickH.innerText.includes("ገና") || tickH.innerText.includes("Not started"))) { tickH.innerHTML = ''; }
