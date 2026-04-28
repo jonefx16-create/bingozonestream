@@ -6,29 +6,25 @@
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
         :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
-        
-        /* Disable pull-to-refresh and global scrolling completely */
-        html, body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; height: 100%; overflow: hidden; touch-action: none; }
-        
-        .page { display: none; padding: 10px; height: calc(100dvh - 58px); overflow-y: auto; box-sizing: border-box; animation: fadeIn 0.3s; }
+        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Auth Layouts */
-        .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid #14532d; box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
+        /* Auth & Common Layouts */
+        .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid #14532d; box-shadow: 0 0 20px rgba(20,83,45,0.5); }
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; font-family: inherit;}
         .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        /* TOP HEADER */
-        .top-balance { background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; height: 50px; box-sizing: border-box;}
-        .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 0; }
-        .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+        /* Headers & Wallets */
+        .top-balance { background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+        .hdr-user-sec { display: flex; align-items: center; gap: 8px; }
+        .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
         .hdr-user-sec .phone { font-size: 9px; color: var(--text-gray); }
-        
-        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; margin-top: 0; }
-        .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 12px; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; min-width: 125px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
+        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 12px; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; min-width: 125px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
         .pill-wallet span.title { font-size: 8px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
         .pill-wallet span.title.play { color: var(--cyan); }
         .pill-wallet span.title.main { color: var(--gold); }
@@ -36,111 +32,91 @@
 
         /* Language Switch */
         .lang-switch-wrapper { display: flex; justify-content: flex-end; margin-bottom: 8px; padding-right: 5px; }
-        .lang-switch-pill { display: inline-flex; align-items: center; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 4px 10px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s; letter-spacing: 0.5px;}
-        .lang-active { color: white; text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); } 
+        .lang-switch-pill { display: inline-flex; align-items: center; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 10px; cursor: pointer;}
+        .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s;}
+        .lang-active { color: white; text-shadow: 0 0 8px rgba(255,255,255,0.6); } 
         .lang-inactive { color: #64748b; }
-        .lang-div { color: #334155; margin: 0 6px; font-weight: normal !important; font-size: 10px; }
+        .lang-div { color: #334155; margin: 0 6px; font-size: 10px; }
 
-        .new-timer-box { background: #111521; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); }
-        .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-        .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .nt-badge { background: rgba(74, 222, 128, 0.15); color: var(--faded-green); border: 1px solid rgba(74, 222, 128, 0.4); box-shadow: 0 0 10px rgba(74, 222, 128, 0.3); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900; }
-        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        /* Timer Box */
+        .new-timer-box { background: #111521; border: 1px solid rgba(74,222,128,0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;}
+        .nt-left, .nt-right { display: flex; flex-direction: column; gap: 4px; }
+        .nt-left { align-items: flex-start; } .nt-right { align-items: flex-end; }
+        .nt-badge { background: rgba(74,222,128,0.15); color: var(--faded-green); border: 1px solid rgba(74,222,128,0.4); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900;}
+        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; }
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
-        /* LIVE JACKPOT INDICATOR (Page 1) */
-        .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); z-index: 1000;}
-        .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;}
+        /* LIVE JACKPOT INDICATOR (Small Circle) */
+        .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14,165,233,0.2)); border: 2px solid rgba(56,189,248,0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
-        .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; margin-top: 1px;}
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif;}
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 70% { box-shadow: 0 0 0 5px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
 
         /* GRID SELECTION */
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; }
         .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 180px; } 
+        .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
+        
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         
+        /* 1. SELECTED BY ME (PENDING) */
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
-        .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; cursor: not-allowed; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
         
-        /* STRICT BLUR FOR TAKEN TICKETS */
-        .num-btn.taken { opacity: 0.2 !important; filter: blur(2px) !important; background: rgba(255,255,255,0.05) !important; color: #475569 !important; border-color: transparent !important; pointer-events: none !important; cursor: not-allowed !important; }
+        /* 2. BOUGHT BY ME (OWNED) */
+        .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
+        
+        /* 3. STRICTLY TAKEN BY OTHERS (BLURRED) */
+        .num-btn.taken { opacity: 0.3 !important; filter: blur(1.5px) !important; background: rgba(255,255,255,0.05) !important; color: #475569 !important; border-color: #1e293b !important; pointer-events: none !important; cursor: not-allowed !important; }
 
         /* BET SLIP POPUP */
-        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s; box-sizing: border-box; }
+        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11,18,31,0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1); box-sizing: border-box; z-index: 2000;}
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
-        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; scrollbar-width: none; min-height: 48px; }
+        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 85px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
         .preview-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #94a3b8; border: 1px solid #94a3b8;}
         .preview-t-head { color: white; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px;}
         .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
-
-        /* STAR FREE SPACE */
-        .free-space { background: #0f172a !important; color: #38bdf8 !important; display: flex; align-items: center; justify-content: center; }
-
+        .preview-t-cell.marked { background: #000; color: white; font-size: 7px; }
         .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
 
-        /* ================= PAGE 2 (GAME PAGE) NO SCROLL & FIT TO SCREEN CSS ================= */
-        #game-page { 
-            padding: 5px; 
-            height: calc(100dvh - 58px); /* Fits exactly above bottom nav */
-            overflow: hidden; /* STRICTLY PREVENTS SCROLLING */
-            display: none; 
-            flex-direction: column; 
-            box-sizing: border-box; 
-        }
-        #game-page.active-page { display: flex; } 
+        /* Game Page */
+        #game-page { padding: 5px; max-width: 1200px; margin: 0 auto; overflow-x: hidden; }
+        .top-info-wrapper { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none;}
+        .top-info-wrapper::-webkit-scrollbar { display: none; }
+        .top-info-box { flex: 1; min-width: 60px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 4px; text-align: center; }
+        .info-title { color: var(--text-gray); font-size: 10px; margin-bottom: 2px; font-weight: bold;}
+        .info-val { color: white; font-weight: bold; font-size: 14px; }
         
-        .top-info-wrapper { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 4px; flex-shrink: 0; }
-        .top-info-box { flex: 1; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 2px; text-align: center; }
-        .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
-        .info-title { color: var(--text-gray); font-size: 9px; margin-bottom: 1px; font-weight: bold;}
-        .info-val { color: white; font-weight: bold; font-size: 12px; }
-        .info-val.highlight { color: var(--faded-green); }
-        
-        .history-top-bar { display: flex; gap: 4px; overflow-x: auto; padding: 4px; margin-bottom: 6px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; flex-shrink: 0; min-height: 38px; scrollbar-width: none; align-items: center;}
+        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px; margin-bottom: 12px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74,222,128,0.3); border-radius: 12px; scrollbar-width: none; align-items: center; }
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 9px; flex-shrink: 0; }
+        .hist-top-ball { min-width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74,222,128,0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px;}
 
-        .game-layout-container { flex: 1; min-height: 0; display: flex; flex-direction: row; gap: 2%; align-items: stretch; justify-content: space-between; overflow: hidden; width: 100%;}
-        
-        /* Master Board Layout - Fills exactly available space */
-        .master-board-wrapper { width: 55%; flex: 0 0 55%; height: 100%; display: flex; flex-direction: column; min-height: 0;}
-        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr repeat(15, 1.2fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; height: 100%;}
-        .mb-head { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: white; background: #000;}
-        .mb-cell { display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: var(--text-gray); transition: 0.2s; background: #111827;}
-        
-        /* FEZZAZA GREEN FOR CALLED NUMBERS */
-        .mb-cell.called { background: #4ade80; color: #000; font-weight: 900;} 
-        .mb-cell.current { background: #fff; color: black; font-weight: 900; box-shadow: 0 0 10px rgba(255,255,255,0.8); position: relative; z-index: 2; transform: scale(1.15);}
+        .game-layout-container { display: flex; flex-direction: row; gap: 3%; align-items: stretch; justify-content: space-between; width: 100%; }
+        .master-board-wrapper { width: 55%; flex: 0 0 55%; background: transparent; }
+        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; overflow: hidden;}
+        .mb-head { aspect-ratio: 1.5/1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;}
+        .mb-cell { aspect-ratio: 1.5/1; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
+        .mb-cell.called { background: var(--orange); color: white; font-weight: 900;}
+        .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 5px rgba(74,222,128,0.8); z-index: 2; transform: scale(1.05);}
 
-        /* Right Panel Layout */
-        .right-panel-stack { width: 43%; flex: 0 0 43%; display: flex; flex-direction: column; gap: 5px; height: 100%; min-height: 0; overflow: hidden;}
-        
-        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .caller-ball { width: 35px; height: 35px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border: 3px solid var(--faded-green);}
+        .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; gap: 10px; }
+        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .caller-ball { width: 55px; height: 55px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; border: 4px solid var(--faded-green);}
 
-        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;}
-        
-        /* MINI TICKETS (No Scroll, Fit Layout) */
-        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; align-content: flex-start; gap: 2px; width: 100%; margin-top: 2px; flex: 1; min-height: 0; overflow: hidden;}
-        .mini-t-card { background: white; width: 48%; height: 32%; border-radius: 2px; overflow: hidden; border: 1px solid #ddd; display: flex; flex-direction: column;}
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; flex: 1;}
-        .mini-t-head { display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; color: white; background: var(--faded-green);}
-        .mini-t-cell { display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; color: #000; background: #fff;}
+        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; flex: 1;}
+        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; width: 100%; margin: 5px 0; }
+        .mini-t-card { background: white; flex: 1 1 31%; max-width: 48%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
+        .mini-t-head { color: white; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
+        .mini-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* LIVE CIRCLE FOR PAGE 2 */
-        .live-circle-badge-small { margin: 0 auto; width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 10px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;}
-
-        /* ================================================================ */
-
-        /* Tickets Page */
+        /* Others */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
@@ -148,37 +124,16 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
-        /* Bingo Win Overlay */
-        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
-        .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate;}
+        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10,15,24,0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
+        .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; animation: pulseWin 0.8s infinite alternate;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800; } }
-        .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3);}
+        .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px;}
 
-        /* Bottom Nav */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: none; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
-        .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
-        .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
-        .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
-
-        /* Modals & Inputs */
-        .trx-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
-        .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px; transform: translateY(100%); transition: transform 0.3s; max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
-        .trx-modal.show { transform: translateY(0); }
-        .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; cursor: pointer;}
-        .bank-btn.active { background: white; color: black; border-color: white; }
-        .trx-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 15px;}
-        .trx-submit-btn { background: #3b82f6; color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer;}
-        .trx-submit-btn.red-btn { background: #ef4444; }
-        
-        .pw-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: none; justify-content: center; align-items: center; }
-        .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px;}
-        .pw-input { background: #0b101e; border: 1px solid #1e293b; color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box;}
-        
-        /* Rank & Profile Stats */
+        /* Profile, Rank, Nav, Modals... (Minimized for Space) */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000;}
         .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; box-sizing: border-box;}
+        .prof-list-btn.logout { border-color: #7f1d1d; color: #ef4444; }
         
         .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 20px; padding-top: 30px; }
         .podium-box { display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, #1e293b, #0f172a); border-radius: 8px; padding: 10px 4px; width: 28%; text-align: center; position: relative; border: 1px solid #334155;}
@@ -188,6 +143,24 @@
         .podium-avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 900; margin-bottom: 5px; color: #000; position: absolute; top: -18px;}
         .p-1-ava { background: #FFDF00; width: 45px; height: 45px; font-size: 18px; top: -25px;} .p-2-ava { background: #E0E0E0; } .p-3-ava { background: #E6A15C; }
         .rank-card { display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.8); padding: 12px; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 8px;}
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: none; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
+        .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; font-weight: bold;}
+        .nav-item.active { color: var(--faded-green); }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
+
+        .trx-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
+        .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s; max-height: 90vh; overflow-y: auto;}
+        .trx-modal.show { transform: translateY(0); }
+        .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; cursor: pointer;}
+        .bank-btn.active { background: white; color: black; border-color: white; }
+        .trx-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 15px;}
+        .trx-submit-btn { background: #3b82f6; color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer;}
+        .trx-submit-btn.red-btn { background: #ef4444; }
+
+        .pw-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: none; justify-content: center; align-items: center; }
+        .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; box-sizing: border-box;}
     </style>
 </head>
 <body>
@@ -210,7 +183,6 @@
             <h3 style="color:white; margin:0;">Deposit Funds</h3>
             <span style="width:40px;"></span>
         </div>
-        <span class="trx-label">ባንክ ይምረጡ</span>
         <div class="bank-grid" id="dep-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')">TeleBirr</div>
             <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'dep')">CBE Birr</div>
@@ -236,7 +208,6 @@
             <h3 style="color:white; margin:0;">Withdraw Funds</h3>
             <span style="width:40px;"></span>
         </div>
-        <span class="trx-label">ወጪ ማድረጊያ ባንክ</span>
         <div class="bank-grid" id="wit-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'wit')">TeleBirr</div>
             <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'wit')">CBE Birr</div>
@@ -302,12 +273,12 @@
         <div class="lang-switch-pill" onclick="toggleLanguage()"><span id="lang-am" class="lang-active">AM</span><span class="lang-div">|</span><span id="lang-en" class="lang-inactive">EN</span></div>
     </div>
     <div class="new-timer-box">
-        <div class="nt-left"><div class="nt-badge">ደራሽ</div><div class="nt-value"><span id="jp">0</span><span class="nt-currency">ETB</span></div></div>
-        <div class="nt-right"><div class="nt-status">ጨዋታው ሊጀምር ነው</div><div class="nt-value" id="timer">00:35</div></div>
+        <div class="nt-left"><div class="nt-badge" data-lang-am="ደራሽ">ደራሽ</div><div class="nt-value"><span id="jp">0</span><span class="nt-currency">ETB</span></div></div>
+        <div class="nt-right"><div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው">ጨዋታው ሊጀምር ነው</div><div class="nt-value" id="timer">00:35</div></div>
     </div>
 
     <!-- LIVE CIRCLE -->
-    <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px;">
+    <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px; z-index: 1000;">
         <div class="live-indicator"><span class="dot"></span> LIVE</div>
         <div style="font-size:8px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
         <div class="jp-amount"><span id="h-jp-amt-2">0</span></div>
@@ -315,7 +286,7 @@
     </div>
     
     <div class="grid-subtitle-row" style="margin-top: 15px;">
-        <div class="gs-left">ካርቴላ ይምረጡ (10 ብር)</div>
+        <div class="gs-left" data-lang-am="ካርቴላ ይምረጡ (10 ብር)">ካርቴላ ይምረጡ (10 ብር)</div>
         <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 5</span></div>
     </div>
     <div id="grid-box" class="num-grid"></div>
@@ -324,14 +295,14 @@
 <!-- COMPACT FIXED BET SLIP POPUP -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
-        <span style="color:white; font-size:10px; font-weight:bold;">የመረጧቸው ካርቴላዎች: <span id="slip-count" style="color:var(--faded-green);">0</span></span>
+        <span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
     <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;">BET NOW (ወራረድ)</button>
 </div>
 
-<!-- 3. GAME PAGE (STRICTLY NO SCROLL, FIT TO SCREEN) -->
+<!-- 3. GAME PAGE -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
@@ -342,24 +313,18 @@
     <div id="history-scroll-top" class="history-top-bar"></div>
     
     <div class="game-layout-container"> 
-        <!-- Master Board Area -->
-        <div class="master-board-wrapper">
-            <div id="master-board" class="mb-board"></div>
-        </div>
-        
-        <!-- Right Panel Area -->
+        <div class="master-board-wrapper"><div id="master-board" class="mb-board"></div></div>
         <div class="right-panel-stack">
             <div class="caller-box"><div id="caller-ball" class="caller-ball">--</div></div>
-            
             <div class="tickets-history-box">
-                <div style="color: var(--faded-green); font-size: 10px; font-weight: bold; margin-bottom: 1px; flex-shrink:0;">የእኔ ካርቴላ</div>
+                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">የእኔ ካርቴላ</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
-            
-            <div class="live-circle-badge-small">
-                <div class="live-indicator" style="font-size: 8px; margin-bottom: 0;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div>
+            <!-- LIVE CIRCLE GAME PAGE -->
+            <div class="live-circle-badge" style="margin: auto auto 0 auto; width: 65px; height: 65px;">
+                <div class="live-indicator" style="font-size: 8px;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div>
                 <div style="font-size:7px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
-                <div class="jp-amount" style="font-size: 10px; margin: 0;"><span id="g-jp-amt">0</span></div>
+                <div class="jp-amount" style="font-size: 11px;"><span id="g-jp-amt">0</span></div>
             </div>
         </div>
     </div>
@@ -368,6 +333,8 @@
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;">የእኔ ካርቴላዎች</h3>
+    <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;">የወጡ ኳሶች (Called Numbers)</div>
+    <div id="ticket-history-bar" class="history-top-bar" style="background:var(--panel); border-radius:8px; padding:10px; margin-bottom:20px;"></div>
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     <div id="ticket-list"></div>
 </div>
@@ -453,7 +420,7 @@
 
     buildMasterBoard();
 
-    // Modals
+    // MODAL LOGIC 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => document.getElementById('dep-modal').classList.add('show'), 10); }
     function closeDepositModal(e) { if(e && e.target.id !== 'dep-modal-overlay') return; document.getElementById('dep-modal').classList.remove('show'); setTimeout(() => document.getElementById('dep-modal-overlay').style.display = 'none', 300); }
     function openWithdrawModal() { document.getElementById('wit-modal-overlay').style.display = 'flex'; setTimeout(() => document.getElementById('wit-modal').classList.add('show'), 10); }
@@ -564,12 +531,13 @@
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) await fetchUpdatedBalance(); });
 
-    // STRICT TICKETS BLUR & LOCK
+    // ይህ ከሰርቨር ሲመጣ ሌሎች የገዙትን ካርቴላ Blur ያደርጋል
     socket.on('update_taken_tickets', (ticketsArr) => {
         globalTakenTickets = ticketsArr;
         renderGridTakenStates();
     });
 
+    // በጣም ጥብቅ የሆነው የ Blur እና መቆለፊያ ሲስተም
     function renderGridTakenStates() {
         document.querySelectorAll('.num-btn').forEach(btn => {
             let num = parseInt(btn.innerText);
@@ -577,23 +545,24 @@
             let isTakenGlobally = globalTakenTickets.includes(num);
 
             if (isMine) {
-                // Owned by me
+                // እኔ የገዛሁት (አይደበዝዝም ግን መንካት አይቻልም)
                 btn.classList.add('bought-by-me');
                 btn.classList.remove('taken');
                 btn.classList.remove('selected');
             } else if (isTakenGlobally) {
-                // Taken by someone else -> STRICT BLUR AND LOCK
+                // ሌላ ሰው የገዛው (ይደበዝዛል/Blur ይሆናል፣ መንካት አይቻልም)
                 btn.classList.add('taken');
                 btn.classList.remove('selected');
                 btn.classList.remove('bought-by-me');
                 
+                // ካርቴላውን ለመግዛት መርጬው ከነበርና ሌላ ሰው ከቀደመኝ፤ ከምርጫዬ ላይ ወዲያው ያጠፋዋል
                 if(selected.includes(num)) {
                     selected = selected.filter(x => x !== num);
                     pendingTicketsData = pendingTicketsData.filter(t => t.id !== num);
                     updateBetPreview();
                 }
             } else {
-                // Free
+                // ማንም ያልገዛው (ነፃ)
                 btn.classList.remove('taken');
                 btn.classList.remove('bought-by-me');
             }
@@ -607,12 +576,14 @@
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId;
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
+        // አዲስ ሰው ሲገባ ወይም ሪፍሬሽ ሲያደርግ መረጃ እንዲሞላ
         if(data.takenTickets) { globalTakenTickets = data.takenTickets; }
 
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
+            document.querySelector('.nt-status').innerText = "ጨዋታው ሊጀምር ነው";
             
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
@@ -621,6 +592,7 @@
 
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
+                document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>`;
                 document.getElementById('caller-ball').innerText = "--"; document.getElementById('g-balls').innerText = "0/20"; called = []; 
                 
                 if (currentUser) {
@@ -628,6 +600,7 @@
                     document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
                     updateBetPreview(); 
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
+                    document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
                     if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
@@ -636,6 +609,7 @@
         } else if (data.state === "PLAYING") {
             isGameRunningLocally = true; 
             document.getElementById('timer').innerText = "LIVE 🔴"; 
+            document.querySelector('.nt-status').innerText = "ጨዋታው በመካሄድ ላይ ነው";
 
             if (currentGameState !== "PLAYING") {
                 currentGameState = "PLAYING"; document.getElementById('bet-slip-popup').classList.remove('show');
@@ -643,10 +617,11 @@
             }
             called = data.calledNumbers || []; document.getElementById('g-balls').innerText = called.length + "/20";
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
-            document.getElementById('history-scroll-top').innerHTML = '';
+            document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
             called.forEach((num, idx) => { updateLiveUI(num, idx === called.length - 1); });
         }
         
+        // በየሰኮንዱ የ Grid ሁኔታው ትክክል መሆኑን ያረጋግጣል
         renderGridTakenStates();
     });
 
@@ -676,9 +651,9 @@
             d.onclick = () => { 
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
                 
-                // Double layer of protection: Check classes AND arrays
-                if(globalTakenTickets.includes(i) || d.classList.contains('taken') || d.classList.contains('bought-by-me')) {
-                    alert("ይህ ካርቴላ በሌላ ሰው ተገዝቷል! እባክዎ ሌላ ነፃ ካርቴላ ይምረጡ።");
+                // የተገዛ ከሆነ በፍፁም አይነካም፣ Alert ያሳያል
+                if(d.classList.contains('taken') || d.classList.contains('bought-by-me')) {
+                    alert("ይህ ካርቴላ ተገዝቷል! እባክዎ ሌላ ነፃ ካርቴላ ይምረጡ።");
                     return; 
                 }
 
@@ -709,7 +684,7 @@
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
                 let html = `<div style="text-align:center; font-size:10px; font-weight:bold; color:#1e293b; padding:1px;">#${t.id}</div><div class="preview-t-grid">`;
                 for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`; }
-                for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) html += `<div class="preview-t-cell free-space">★</div>`; else html += `<div class="preview-t-cell">${t.grid[c][r]}</div>`; } }
+                for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) html += `<div class="preview-t-cell marked">F</div>`; else html += `<div class="preview-t-cell">${t.grid[c][r]}</div>`; } }
                 card.innerHTML = html + "</div>"; previewBox.appendChild(card);
             });
         } else { popup.classList.remove('show'); }
@@ -730,6 +705,7 @@
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
         
+        // ኔትወርክ ከመዘግየቱ በፊት ወዲያውኑ ሎካል (Local) ላይ እንደተገዙ አድርጎ ይመዘግባል
         selected.forEach(id => globalTakenTickets.push(id));
         renderGridTakenStates();
 
@@ -752,15 +728,7 @@
             let htmlMain = `<div style="text-align:center; font-size:11px; font-weight:900; margin-bottom:3px; color:#1e293b;">#${id}</div><div class="t-grid">`; 
             let htmlMini = `<div class="mini-t-grid">`;
             for(let i=0; i<5; i++) { htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; htmlMini += `<div class="mini-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`; } 
-            for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { 
-                if(r==2 && c==2) { 
-                    htmlMain += `<div class="t-cell free-space" style="font-size:16px;">★</div>`; 
-                    htmlMini += `<div class="mini-t-cell free-space" style="font-size:8px;">★</div>`; 
-                } else { 
-                    htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
-                    htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
-                } 
-            } } 
+            for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { if(r==2 && c==2) { htmlMain += `<div class="t-cell marked">F</div>`; htmlMini += `<div class="mini-t-cell marked"></div>`; } else { htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; } } } 
             card.innerHTML = htmlMain + "</div>"; miniCard.innerHTML = htmlMini + "</div>";
             list.appendChild(card); gameList.appendChild(miniCard);
         }); 
@@ -769,7 +737,7 @@
 
     function buildMasterBoard() {
         const board = document.getElementById('master-board'); board.innerHTML = '';
-        for(let c=0; c<5; c++) { let h = document.createElement('div'); h.className = 'mb-head'; h.innerText = bHeads[c]; board.appendChild(h); }
+        for(let c=0; c<5; c++) { let h = document.createElement('div'); h.className = 'mb-head'; h.style.background = bColors[c]; h.innerText = bHeads[c]; board.appendChild(h); }
         for(let r=1; r<=15; r++) { for(let c=0; c<5; c++) { let num = r + (c * 15); let d = document.createElement('div'); d.className = 'mb-cell'; d.id = 'mb-' + num; d.innerText = num; board.appendChild(d); } }
     }
 
@@ -783,9 +751,11 @@
         let ballText = bHeads[colIdx] + "-" + num;
         if(isLatest) document.getElementById('caller-ball').innerText = ballText;
 
-        let topH = document.getElementById('history-scroll-top'); 
+        let topH = document.getElementById('history-scroll-top'); let tickH = document.getElementById('ticket-history-bar');
+        if (called.length === 1 && (tickH.innerText.includes("ገና") || tickH.innerText.includes("Not started"))) { tickH.innerHTML = ''; }
         let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
-        topH.insertBefore(topDiv, topH.firstChild); 
+        let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
+        topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
     }
 
     function rn(min, max) { let a=[]; while(a.length<5){ let r=Math.floor(Math.random()*(max-min+1))+min; if(!a.includes(r)) a.push(r); } return a.sort((a,b)=>a-b); }
@@ -810,7 +780,7 @@
     
     function addHistoryRecord(title, amount, color) { 
         const hc = document.getElementById('wallet-history-list'); 
-        if(hc.innerHTML.includes("ታሪክ የለም")) hc.innerHTML = ''; 
+        if(hc.innerHTML.includes("ታሪክ የለም") || hc.innerHTML.includes("No History")) hc.innerHTML = ''; 
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
         hc.innerHTML = `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: #0b111a;"><div><span style="font-weight:bold; font-size: 11px;">${title}</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px;">${amount}</b></div>` + hc.innerHTML; 
     }
