@@ -198,10 +198,14 @@ let calledNumbers = [];
 let pool = [];
 let gameInterval;
 let gameId = Math.floor(Math.random() * 9000) + 1000;
+let globalTakenTickets = []; // አዲስ: የተገዙ ካርቴላዎችን መያዣ
 
 function startCountdown() {
     gameState = "WAITING"; timer = 25; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
     gameId = Math.floor(Math.random() * 9000) + 1000;
+    globalTakenTickets = []; // ጌም ሲጀምር የተገዙትን ባዶ ያደርጋል
+    io.emit('update_taken_tickets', globalTakenTickets); // ለሁሉም ክላይንቶች አዲስ ባዶ መሆኑን ይልካል
+    
     clearInterval(gameInterval);
     
     let waitInterval = setInterval(() => {
@@ -224,7 +228,7 @@ function startGame() {
         // 20 Ball Limit
         if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
             clearInterval(gameInterval); 
-            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); // 20 ኳስ ካለቀ በኋላ ወደ መጀመሪያ ገፅ ይመለሳል
+            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); 
             return; 
         }
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
@@ -235,6 +239,7 @@ function startGame() {
 
 io.on('connection', (socket) => {
     socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+    socket.emit('update_taken_tickets', globalTakenTickets); // አዲስ ሰው ሲገባ የተገዙትን ይነግረዋል
     
     socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
@@ -249,6 +254,14 @@ io.on('connection', (socket) => {
                 activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
                 totalTickets += data.ticketCount;
                 totalPrizePool = (totalTickets * 10) * 0.9; 
+                
+                // የተገዙትን ካርቴላዎች ወደ ግሎባል ሊስት ያስገባል
+                if(data.ticketIds) {
+                    data.ticketIds.forEach(id => {
+                        if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id);
+                    });
+                }
+                io.emit('update_taken_tickets', globalTakenTickets); // ለሁሉም ሰው ያሳውቃል (Blur እንዲያደርጉ)
                 
                 io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
                 socket.emit('balance_updated', data.phone); 
@@ -270,7 +283,7 @@ io.on('connection', (socket) => {
             }
             
             io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool, phone: data.phone });
-            setTimeout(() => { startCountdown(); }, 8000); // 8 ሰከንድ አሸናፊውን ካሳየ በኋላ ይመለሳል
+            setTimeout(() => { startCountdown(); }, 8000); 
         }
     });
 });
