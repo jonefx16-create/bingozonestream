@@ -7,11 +7,10 @@
     <style>
         :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
         
-        /* Disable pull-to-refresh and global scrolling */
+        /* Disable pull-to-refresh and global scrolling completely */
         html, body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; height: 100%; overflow: hidden; touch-action: none; }
         
-        /* Allowed scrolling on normal pages */
-        .page { display: none; padding: 10px; height: calc(100dvh - 110px); overflow-y: auto; box-sizing: border-box; animation: fadeIn 0.3s; }
+        .page { display: none; padding: 10px; height: calc(100dvh - 58px); overflow-y: auto; box-sizing: border-box; animation: fadeIn 0.3s; }
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -21,8 +20,8 @@
         .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        /* TOP HEADER (FIXED HEIGHT ~50px) */
-        .top-balance { background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; height: 50px; box-sizing: border-box; }
+        /* TOP HEADER */
+        .top-balance { background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; height: 50px; box-sizing: border-box;}
         .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 0; }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
@@ -51,7 +50,7 @@
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
-        /* LIVE JACKPOT INDICATOR */
+        /* LIVE JACKPOT INDICATOR (Page 1) */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); z-index: 1000;}
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;}
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
@@ -68,7 +67,7 @@
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
         .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; cursor: not-allowed; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
         
-        /* STRICT BLUR FOR TAKEN TICKETS (Other people's tickets) */
+        /* STRICT BLUR FOR TAKEN TICKETS */
         .num-btn.taken { opacity: 0.2 !important; filter: blur(2px) !important; background: rgba(255,255,255,0.05) !important; color: #475569 !important; border-color: transparent !important; pointer-events: none !important; cursor: not-allowed !important; }
 
         /* BET SLIP POPUP */
@@ -82,48 +81,37 @@
         .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
 
         /* STAR FREE SPACE */
-        .free-space { background: #0f172a !important; color: #38bdf8 !important; display: flex; align-items: center; justify-content: center; font-size: 14px;}
-        
+        .free-space { background: #0f172a !important; color: #38bdf8 !important; display: flex; align-items: center; justify-content: center; }
+
         .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
 
-        /* ================= PAGE 2 (GAME PAGE) NO SCROLL CSS ================= */
-        /* Forces the page to strictly fit inside the window, NO SCROLLING! */
+        /* ================= PAGE 2 (GAME PAGE) NO SCROLL & FIT TO SCREEN CSS ================= */
         #game-page { 
             padding: 5px; 
-            height: calc(100dvh - 108px); /* Total Height minus Header and Bottom Nav */
-            overflow: hidden; 
+            height: calc(100dvh - 58px); /* Fits exactly above bottom nav */
+            overflow: hidden; /* STRICTLY PREVENTS SCROLLING */
             display: none; 
             flex-direction: column; 
             box-sizing: border-box; 
         }
-        #game-page.active-page { display: flex; }
+        #game-page.active-page { display: flex; } 
         
-        .top-info-wrapper { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 5px; flex-shrink: 0; }
+        .top-info-wrapper { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 4px; flex-shrink: 0; }
         .top-info-box { flex: 1; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 2px; text-align: center; }
         .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
         .info-title { color: var(--text-gray); font-size: 9px; margin-bottom: 1px; font-weight: bold;}
         .info-val { color: white; font-weight: bold; font-size: 12px; }
         .info-val.highlight { color: var(--faded-green); }
         
-        .history-top-bar { display: flex; gap: 4px; overflow-x: auto; padding: 6px; margin-bottom: 6px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; flex-shrink: 0; scrollbar-width: none;}
+        .history-top-bar { display: flex; gap: 4px; overflow-x: auto; padding: 4px; margin-bottom: 6px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; flex-shrink: 0; min-height: 38px; scrollbar-width: none; align-items: center;}
         .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 9px; }
+        .hist-top-ball { min-width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 9px; flex-shrink: 0; }
 
-        .game-layout-container { flex-grow: 1; display: flex; flex-direction: row; gap: 2%; align-items: stretch; justify-content: space-between; overflow: hidden; height: 100%;}
+        .game-layout-container { flex: 1; min-height: 0; display: flex; flex-direction: row; gap: 2%; align-items: stretch; justify-content: space-between; overflow: hidden; width: 100%;}
         
-        /* Master Board wrapper exactly fits height */
-        .master-board-wrapper { width: 55%; flex: 0 0 55%; height: 100%; display: flex; flex-direction: column;}
-        .mb-board { 
-            display: grid; 
-            grid-template-columns: repeat(5, 1fr); 
-            grid-template-rows: 20px repeat(15, 1fr); /* 1 row for header, 15 for numbers */
-            gap: 1px; 
-            background: #1e293b; 
-            border: 1px solid #1e293b; 
-            border-radius: 4px; 
-            height: 100%; 
-            width: 100%;
-        }
+        /* Master Board Layout - Fills exactly available space */
+        .master-board-wrapper { width: 55%; flex: 0 0 55%; height: 100%; display: flex; flex-direction: column; min-height: 0;}
+        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr repeat(15, 1.2fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; height: 100%;}
         .mb-head { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: white; background: #000;}
         .mb-cell { display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: var(--text-gray); transition: 0.2s; background: #111827;}
         
@@ -131,19 +119,20 @@
         .mb-cell.called { background: #4ade80; color: #000; font-weight: 900;} 
         .mb-cell.current { background: #fff; color: black; font-weight: 900; box-shadow: 0 0 10px rgba(255,255,255,0.8); position: relative; z-index: 2; transform: scale(1.15);}
 
-        .right-panel-stack { width: 43%; flex: 0 0 43%; display: flex; flex-direction: column; gap: 5px; height: 100%; overflow: hidden;}
-        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .caller-ball { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border: 3px solid var(--faded-green);}
-
-        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;}
+        /* Right Panel Layout */
+        .right-panel-stack { width: 43%; flex: 0 0 43%; display: flex; flex-direction: column; gap: 5px; height: 100%; min-height: 0; overflow: hidden;}
         
-        /* MINI TICKETS NO SCROLL */
-        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; align-content: flex-start; gap: 4px; width: 100%; margin-top: 4px; overflow-y: auto; scrollbar-width: none; flex-grow: 1;}
-        .game-mini-tickets::-webkit-scrollbar { display: none; }
-        .mini-t-card { background: white; flex: 1 1 45%; max-width: 48%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; height: fit-content; }
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
-        .mini-t-head { color: white; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
-        .mini-t-cell { background: #fff; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; color: #000;}
+        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .caller-ball { width: 35px; height: 35px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border: 3px solid var(--faded-green);}
+
+        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;}
+        
+        /* MINI TICKETS (No Scroll, Fit Layout) */
+        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; align-content: flex-start; gap: 2px; width: 100%; margin-top: 2px; flex: 1; min-height: 0; overflow: hidden;}
+        .mini-t-card { background: white; width: 48%; height: 32%; border-radius: 2px; overflow: hidden; border: 1px solid #ddd; display: flex; flex-direction: column;}
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; flex: 1;}
+        .mini-t-head { display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; color: white; background: var(--faded-green);}
+        .mini-t-cell { display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; color: #000; background: #fff;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
         /* LIVE CIRCLE FOR PAGE 2 */
@@ -165,13 +154,13 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800; } }
         .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3);}
 
-        /* Bottom Nav (FIXED HEIGHT 58px) */
+        /* Bottom Nav */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: none; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
         .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
 
-        /* Modals */
+        /* Modals & Inputs */
         .trx-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
         .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px; transform: translateY(100%); transition: transform 0.3s; max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
         .trx-modal.show { transform: translateY(0); }
@@ -186,7 +175,7 @@
         .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px;}
         .pw-input { background: #0b101e; border: 1px solid #1e293b; color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box;}
         
-        /* Other specific pages styling hidden here to save length... */
+        /* Rank & Profile Stats */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000;}
         .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; box-sizing: border-box;}
@@ -342,7 +331,7 @@
     <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;">BET NOW (ወራረድ)</button>
 </div>
 
-<!-- 3. GAME PAGE (NO SCROLL, FIT TO SCREEN) -->
+<!-- 3. GAME PAGE (STRICTLY NO SCROLL, FIT TO SCREEN) -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
@@ -363,7 +352,7 @@
             <div class="caller-box"><div id="caller-ball" class="caller-ball">--</div></div>
             
             <div class="tickets-history-box">
-                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">የእኔ ካርቴላ</div>
+                <div style="color: var(--faded-green); font-size: 10px; font-weight: bold; margin-bottom: 1px; flex-shrink:0;">የእኔ ካርቴላ</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
             
@@ -575,7 +564,7 @@
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) await fetchUpdatedBalance(); });
 
-    // የሌሎች ሰዎችን ግዢ በጥብቅ ያግዳል
+    // STRICT TICKETS BLUR & LOCK
     socket.on('update_taken_tickets', (ticketsArr) => {
         globalTakenTickets = ticketsArr;
         renderGridTakenStates();
@@ -588,19 +577,23 @@
             let isTakenGlobally = globalTakenTickets.includes(num);
 
             if (isMine) {
+                // Owned by me
                 btn.classList.add('bought-by-me');
                 btn.classList.remove('taken');
                 btn.classList.remove('selected');
             } else if (isTakenGlobally) {
+                // Taken by someone else -> STRICT BLUR AND LOCK
                 btn.classList.add('taken');
                 btn.classList.remove('selected');
                 btn.classList.remove('bought-by-me');
+                
                 if(selected.includes(num)) {
                     selected = selected.filter(x => x !== num);
                     pendingTicketsData = pendingTicketsData.filter(t => t.id !== num);
                     updateBetPreview();
                 }
             } else {
+                // Free
                 btn.classList.remove('taken');
                 btn.classList.remove('bought-by-me');
             }
@@ -683,6 +676,7 @@
             d.onclick = () => { 
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
                 
+                // Double layer of protection: Check classes AND arrays
                 if(globalTakenTickets.includes(i) || d.classList.contains('taken') || d.classList.contains('bought-by-me')) {
                     alert("ይህ ካርቴላ በሌላ ሰው ተገዝቷል! እባክዎ ሌላ ነፃ ካርቴላ ይምረጡ።");
                     return; 
@@ -760,8 +754,8 @@
             for(let i=0; i<5; i++) { htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; htmlMini += `<div class="mini-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`; } 
             for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { 
                 if(r==2 && c==2) { 
-                    htmlMain += `<div class="t-cell free-space">★</div>`; 
-                    htmlMini += `<div class="mini-t-cell free-space" style="font-size:10px;">★</div>`; 
+                    htmlMain += `<div class="t-cell free-space" style="font-size:16px;">★</div>`; 
+                    htmlMini += `<div class="mini-t-cell free-space" style="font-size:8px;">★</div>`; 
                 } else { 
                     htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                     htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
