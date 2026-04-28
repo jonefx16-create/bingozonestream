@@ -198,13 +198,37 @@ let calledNumbers = [];
 let pool = [];
 let gameInterval;
 let gameId = Math.floor(Math.random() * 9000) + 1000;
-let globalTakenTickets = []; // አዲስ: የተገዙ ካርቴላዎችን መያዣ
+let globalTakenTickets = []; 
+
+// 🟢 ሰርቨር የቢንጎ ህግን የሚያረጋግጥበት ፈንክሽን
+function checkServerBingo(ticket, calledNums) {
+    let m = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; // መሃሉ Free (1) ነው
+    
+    // የወጡ ኳሶችን ካርቴላው ላይ ማመልከት
+    for(let c=0; c<5; c++) {
+        for(let r=0; r<5; r++) {
+            if(calledNums.includes(ticket.grid[c][r])) {
+                m[c][r] = 1;
+            }
+        }
+    }
+    
+    // 1. ወደ ታች (Columns) ማረጋገጥ
+    for(let c=0; c<5; c++) { if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; } 
+    // 2. ወደ ጎን (Rows) ማረጋገጥ
+    for(let r=0; r<5; r++) { if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; } 
+    // 3. ማዕዘን (Diagonals) ማረጋገጥ
+    if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
+    if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
+    
+    return false;
+}
 
 function startCountdown() {
     gameState = "WAITING"; timer = 25; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = [];
     gameId = Math.floor(Math.random() * 9000) + 1000;
-    globalTakenTickets = []; // ጌም ሲጀምር የተገዙትን ባዶ ያደርጋል
-    io.emit('update_taken_tickets', globalTakenTickets); // ለሁሉም ክላይንቶች አዲስ ባዶ መሆኑን ይልካል
+    globalTakenTickets = []; 
+    io.emit('update_taken_tickets', globalTakenTickets); 
     
     clearInterval(gameInterval);
     
@@ -214,7 +238,7 @@ function startCountdown() {
         if (timer <= 0) {
             clearInterval(waitInterval);
             if (totalTickets > 0) startGame();
-            else startCountdown();
+            else startCountdown(); // ሰው ካልገባ ዳግም ይቆጥራል
         }
     }, 1000);
 }
@@ -224,22 +248,63 @@ function startGame() {
     pool = Array.from({length: 75}, (_, i) => i + 1);
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
 
-    gameInterval = setInterval(() => {
-        // 20 Ball Limit
-        if (calledNumbers.length >= 20 || gameState !== "PLAYING") { 
-            clearInterval(gameInterval); 
-            if(gameState === "PLAYING") setTimeout(startCountdown, 5000); 
-            return; 
+    gameInterval = setInterval(async () => {
+        if (gameState !== "PLAYING") {
+            clearInterval(gameInterval);
+            return;
         }
+
         let num = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
         calledNumbers.push(num);
         io.emit('new_number', num);
+
+        // 🔴 አዲስ: አውቶማቲክ አሸናፊ ማረጋገጫ (Auto Winner Check)
+        let winnerFound = null;
+        for (let socketId in activePlayers) {
+            let player = activePlayers[socketId];
+            for (let t of player.fullTickets) {
+                if (checkServerBingo(t, calledNumbers)) {
+                    winnerFound = { name: player.name, phone: player.phone, ticketId: t.id };
+                    break;
+                }
+            }
+            if (winnerFound) break; // አንድ አሸናፊ ሲገኝ ፍለጋው ይቆማል
+        }
+
+        // አሸናፊ ከተገኘ ጌሙ ይቆማል
+        if (winnerFound) {
+            gameState = "FINISHED";
+            clearInterval(gameInterval);
+            
+            // የገንዘብ ሽልማቱን ለአሸናፊው መስጠት
+            const user = await User.findOne({phone: winnerFound.phone});
+            if(user) {
+                user.mainBalance += totalPrizePool;
+                user.won += totalPrizePool;
+                await user.save();
+                io.emit('balance_updated', user.phone);
+            }
+            
+            // ለሁሉም ሰው አሸናፊውን ማሳወቅ
+            io.emit('game_winner', { winnerName: winnerFound.name, ticketId: winnerFound.ticketId, prize: totalPrizePool, phone: winnerFound.phone });
+            
+            // ከ 8 ሰከንድ በኋላ አዲስ ጌም መጀመር
+            setTimeout(() => { startCountdown(); }, 8000);
+            return;
+        }
+
+        // ሁሉም 75 ኳስ ካለቀ እና (እንዳጋጣሚ) ማንም ካላሸነፈ ይመለሳል
+        if (calledNumbers.length >= 75) { 
+            clearInterval(gameInterval); 
+            setTimeout(startCountdown, 5000); 
+        }
+
     }, 3000);
 }
 
 io.on('connection', (socket) => {
     socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-    socket.emit('update_taken_tickets', globalTakenTickets); // አዲስ ሰው ሲገባ የተገዙትን ይነግረዋል
+    socket.emit('update_taken_tickets', globalTakenTickets); 
     
     socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
@@ -251,17 +316,26 @@ io.on('connection', (socket) => {
                 user.played += 1;
                 await user.save();
                 
-                activePlayers[socket.id] = { name: data.name, phone: data.phone, tickets: data.ticketCount };
-                totalTickets += data.ticketCount;
-                totalPrizePool = (totalTickets * 10) * 0.9; 
+                // የገዛቸውን ሙሉ ካርቴላዎች (Grid ጭምር) ወደ ሰርቨር መመዝገብ
+                activePlayers[socket.id] = { 
+                    name: data.name, 
+                    phone: data.phone, 
+                    tickets: data.ticketCount, 
+                    ticketIds: data.ticketIds,
+                    fullTickets: data.fullTickets // አውቶማቲክ ለሚያነበው ሲስተም
+                };
                 
-                // የተገዙትን ካርቴላዎች ወደ ግሎባል ሊስት ያስገባል
+                totalTickets += data.ticketCount;
+                
+                // 15% ለአድሚን ይቆረጣል (85% ለአሸናፊው ይቀራል)
+                totalPrizePool = (totalTickets * 10) * 0.85; 
+                
                 if(data.ticketIds) {
                     data.ticketIds.forEach(id => {
                         if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id);
                     });
                 }
-                io.emit('update_taken_tickets', globalTakenTickets); // ለሁሉም ሰው ያሳውቃል (Blur እንዲያደርጉ)
+                io.emit('update_taken_tickets', globalTakenTickets); 
                 
                 io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
                 socket.emit('balance_updated', data.phone); 
@@ -269,23 +343,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('claim_bingo', async (data) => {
-        if (gameState === "PLAYING") {
-            gameState = "FINISHED";
-            clearInterval(gameInterval);
-            
-            const user = await User.findOne({phone: data.phone});
-            if(user) {
-                user.mainBalance += totalPrizePool;
-                user.won += totalPrizePool;
-                await user.save();
-                io.emit('balance_updated', data.phone);
-            }
-            
-            io.emit('game_winner', { winnerName: data.name, ticketId: data.ticketId, prize: totalPrizePool, phone: data.phone });
-            setTimeout(() => { startCountdown(); }, 8000); 
-        }
-    });
+    // ማሳሰቢያ: ተጠቃሚዎች 'claim_bingo' መላክ አይጠበቅባቸውም። ሲስተሙ ራሱ ያውቀዋል!
 });
 
 startCountdown();
