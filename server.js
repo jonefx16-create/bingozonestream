@@ -24,8 +24,8 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     name: String,
     password: { type: String, required: true },
-    mainBalance: { type: Number, default: 0 },
-    playBalance: { type: Number, default: 0 },
+    mainBalance: { type: Number, default: 0 }, // ያሸነፉት (Withdrawable)
+    playBalance: { type: Number, default: 0 }, // ያስገቡት እና ቦነስ (Betting power)
     played: { type: Number, default: 0 },
     won: { type: Number, default: 0 }
 });
@@ -50,7 +50,8 @@ app.post('/api/register', async (req, res) => {
         let user = await User.findOne({ phone });
         if (user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
         
-        user = new User({ phone, name, password, mainBalance: 100, playBalance: 100 });
+        // አዲስ ሲመዘገብ 100 ብር Play Balance ይሰጠዋል
+        user = new User({ phone, name, password, mainBalance: 0, playBalance: 100 });
         await user.save();
         res.json({ success: true, user });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -80,7 +81,8 @@ app.post('/api/request-tx', async (req, res) => {
         if(!user) return res.json({success: false, message: "ተጠቃሚው አልተገኘም!"});
 
         if(type === 'withdraw') {
-            if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ሂሳብ የሎትም!"});
+            // 🟢 ትክክለኛው ህግ: ወጪ የሚደረገው ካሸነፉት (Main Balance) ብቻ ነው
+            if(user.mainBalance < amount) return res.json({success: false, message: "በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ብር የለም!"});
             user.mainBalance -= amount; 
             await user.save();
         }
@@ -90,7 +92,6 @@ app.post('/api/request-tx', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// 🟢 አዲስ: የ Transaction ታሪክን ከሰርቨር (አድሚን ያፀደቀውን ብቻ) ለመሳብ
 app.get('/api/user/transactions/:phone', async (req, res) => {
     try {
         const txs = await Transaction.find({ phone: req.params.phone, status: 'Approved' }).sort({ date: -1 }).limit(20);
@@ -144,14 +145,14 @@ app.post('/api/admin/action-tx', async (req, res) => {
         if (action === 'Approve') {
             tx.status = 'Approved';
             if(tx.type === 'deposit') { 
-                // 🟢 አዲስ: የ 30% ቦነስ ህግ (ከ 100 ብር በላይ ከሆነ)
-                user.mainBalance += tx.amount; 
+                // 🟢 ትክክለኛው ህግ: Deposit ሲያደርግ ብሩ እና 30% ቦነሱ Play Wallet ላይ ይገባል
                 let bonus = tx.amount >= 100 ? (tx.amount * 0.30) : 0;
                 user.playBalance += (tx.amount + bonus); 
             }
         } else if (action === 'Reject') {
             tx.status = 'Rejected';
             if(tx.type === 'withdraw') { 
+                // Reject ሲሆን ብሩ ወደ ዋናው ሂሳብ ይመለሳል
                 user.mainBalance += tx.amount; 
             } 
         }
@@ -167,7 +168,7 @@ app.post('/api/admin/send-bonus', async (req, res) => {
         const user = await User.findOne({ phone: req.body.phone });
         if(!user) return res.json({ success: false });
         
-        user.mainBalance += req.body.amount;
+        user.playBalance += req.body.amount;
         await user.save();
         
         io.emit('balance_updated', user.phone);
@@ -186,14 +187,6 @@ app.post('/api/admin/change-password', async (req, res) => {
         
         res.json({ success: true, message: "Password updated successfully!" });
     } catch (e) { res.status(500).json({ success: false, message: "Server error" }); }
-});
-
-app.post('/api/admin/ban-user', async (req, res) => {
-    if(req.body.password !== ADMIN_PASS) return res.status(401).json({error: "Unauthorized"});
-    try {
-        await User.findOneAndDelete({ phone: req.body.phone });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
@@ -242,7 +235,6 @@ function generateRiggedDrawSequence() {
 
     let targetInfo = allTickets[Math.floor(Math.random() * allTickets.length)];
     let tg = targetInfo.ticket.grid;
-    
     let requiredNumbers = [tg[0][2], tg[1][2], tg[3][2], tg[4][2]];
     
     requiredNumbers.forEach(n => {
@@ -254,7 +246,6 @@ function generateRiggedDrawSequence() {
     for(let i=0; i<16; i++) fillers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
 
     let winningBall = requiredNumbers.pop(); 
-    
     let mixed = [...requiredNumbers, ...fillers];
     mixed.sort(() => Math.random() - 0.5); 
     
@@ -270,6 +261,7 @@ async function declareWinner(player, ticket) {
     
     const user = await User.findOne({phone: player.phone});
     if(user) {
+        // 🟢 ትክክለኛው ህግ: ያሸነፈው ብር ሙሉ በሙሉ ወደ Main (Withdrawable) Balance ይገባል
         user.mainBalance += totalPrizePool;
         user.won += totalPrizePool;
         await user.save();
@@ -350,8 +342,16 @@ io.on('connection', (socket) => {
             const betAmount = data.ticketCount * 10;
             const user = await User.findOne({phone: data.phone});
             
-            if(user && user.mainBalance >= betAmount) {
-                user.mainBalance -= betAmount;
+            if(user && (user.playBalance + user.mainBalance) >= betAmount) {
+                // 🟢 ትክክለኛው ህግ: መጀመሪያ ከ Play Wallet ይቆርጣል፣ ከሌለ ከ Main Wallet ያሟላል
+                if (user.playBalance >= betAmount) {
+                    user.playBalance -= betAmount;
+                } else {
+                    let remaining = betAmount - user.playBalance;
+                    user.playBalance = 0;
+                    user.mainBalance -= remaining;
+                }
+                
                 user.played += 1;
                 await user.save();
                 
