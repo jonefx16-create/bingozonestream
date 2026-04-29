@@ -44,10 +44,16 @@
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
 
+        /* 🟢 አዲስ: ትልቅ የሆነ ደራሽ ጌም ፔጅ ላይ 🟢 */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; letter-spacing: 1px; }
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
         .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 0.5px; margin-top: 1px;}
+        
+        /* Game Page Specific Bigger Badge */
+        #game-page .live-circle-badge { width: 90px !important; height: 90px !important; flex-shrink: 0; margin: 0 auto; position: relative !important; bottom: auto !important; right: auto !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
+        #game-page .jp-amount { font-size: 16px !important; }
+
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
@@ -62,7 +68,6 @@
         .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
         .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; border-color: #1e293b; pointer-events: none !important; }
 
-        /* COMPACT FIXED BET SLIP POPUP */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
@@ -74,7 +79,6 @@
         .preview-t-cell.marked { background: #000; color: white; font-size: 7px; }
         .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
 
-        /* Game Page Top Info */
         .top-info-wrapper { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none;}
         .top-info-wrapper::-webkit-scrollbar { display: none; }
         .top-info-box { flex: 1; min-width: 60px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 4px; text-align: center; }
@@ -87,7 +91,6 @@
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
 
-        /* 🟢 TICKET PAGE CALLER AND HISTORY (Bigger) 🟢 */
         .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(74, 222, 128, 0.1); gap: 12px; overflow: hidden; height: 65px; box-sizing: border-box;}
         .main-caller-area { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; }
         .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 20px rgba(74, 222, 128, 0.8), inset 0 0 8px rgba(74, 222, 128, 0.4); z-index: 2;}
@@ -115,7 +118,7 @@
         .mini-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* SCROLL PREVENTION FOR GAME PAGE & 🟢 BIGGER BALL 🟢 */
+        /* SCROLL PREVENTION FOR GAME PAGE */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100vh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .top-info-wrapper { flex-shrink: 0; margin-bottom: 5px; }
         #game-page .history-top-bar { flex-shrink: 0; margin-bottom: 5px; padding: 5px; min-height: 40px; }
@@ -131,9 +134,7 @@
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; margin-bottom: 0; }
         #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; align-content: flex-start; scrollbar-width: none; }
         #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
-        #game-page .live-circle-badge { flex-shrink: 0; width: 7vh !important; height: 7vh !important; margin: 0 auto; position: relative !important; bottom: auto !important; right: auto !important; }
 
-        /* Tickets Page Grid */
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
@@ -141,14 +142,13 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
-        /* Bingo Win Overlay with Ticket */
-        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(5px);}
+        /* 🟢 አዲስ: ውብ የቢንጎ አሸናፊ Overlay 🟢 */
+        .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);}
         .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 3px;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
-        .winner-card { background: var(--panel); padding: 25px 30px; border-radius: 15px; border: 2px solid #ff9800; margin-top: 20px; box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); width: 85%; max-width: 400px;}
-        #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
+        .winner-card { background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); padding: 25px 30px; border-radius: 20px; border: 2px solid #4ade80; margin-top: 20px; box-shadow: 0 10px 40px rgba(74, 222, 128, 0.4); width: 85%; max-width: 400px;}
+        #win-ticket-display { margin: 20px auto; width: 100%; display: flex; justify-content: center;}
 
-        /* Profile & Ranks & Modals */
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4); text-transform: uppercase;}
         .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
@@ -168,8 +168,11 @@
         .podium-name { font-size: 9px; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 3px; }
         .podium-prize { font-size: 9px; color: var(--gold); font-weight: 900; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px;}
         .crown-icon { position: absolute; top: -45px; font-size: 22px; animation: floatCrown 2s infinite ease-in-out; text-shadow: 0 4px 8px rgba(255,215,0,0.5);}
-        .rank-card { display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); padding: 12px; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 8px; backdrop-filter: blur(5px);}
-        .rank-badge { width: 24px; height: 24px; border-radius: 50%; background: #0f172a; color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; margin-right: 12px; border: 1px solid #334155;}
+        
+        /* 🟢 አዲስ: Rank Cards (4-10) ማራኪ ዲዛይን 🟢 */
+        .rank-card { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); padding: 12px 15px; border-radius: 10px; border-left: 4px solid var(--faded-green); margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: 0.3s; }
+        .rank-card:hover { transform: translateX(5px); box-shadow: 0 4px 15px rgba(74, 222, 128, 0.2); }
+        .rank-badge { width: 26px; height: 26px; border-radius: 50%; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; margin-right: 12px; border: 1px solid var(--faded-green); box-shadow: inset 0 0 5px rgba(74,222,128,0.5);}
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: none; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
         .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
@@ -214,17 +217,20 @@
 </head>
 <body>
 
-<!-- የቢንጎ አሸናፊ ማሳወቂያ እና ካርቴላ -->
 <div id="bingo-overlay" class="bingo-overlay">
     <h1 class="bingo-text">BINGO!</h1>
     <div class="winner-card">
-        <h3 style="margin:0; color:var(--text-gray);" data-lang-am="አሸናፊ (Winner)" data-lang-en="Winner">አሸናፊ (Winner)</h3>
-        <h2 id="win-name" style="margin:10px 0 5px 0; color:white; font-size:26px;">---</h2>
-        <p style="margin:0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:var(--faded-green);" id="win-ticket">#---</b></p>
+        <h3 style="margin:0; color:var(--faded-green); text-transform: uppercase; font-size:14px; letter-spacing: 2px;" data-lang-am="አሸናፊ (Winner)" data-lang-en="Winner">አሸናፊ (Winner)</h3>
+        <h2 id="win-name" style="margin:10px 0 5px 0; color:white; font-size:28px; font-weight:900;">---</h2>
+        <p style="margin:0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:white;" id="win-ticket">#---</b></p>
         
+        <!-- 🟢 ውብ የሆነው የካርቴላ ምስል 🟢 -->
         <div id="win-ticket-display"></div>
         
-        <p style="margin:5px 0; font-size:14px; color:var(--text-gray);"><span data-lang-am="የገንዘብ ሽልማት:" data-lang-en="Cash Prize:">የገንዘብ ሽልማት:</span> <b style="color:gold; font-size: 18px;" id="win-prize">0 ETB</b></p>
+        <div style="background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 10px; border: 1px solid rgba(251, 191, 36, 0.4); margin-top: 15px;">
+            <p style="margin:0; font-size:12px; color:var(--gold); font-weight:bold;"><span data-lang-am="የገንዘብ ሽልማት (Prize)" data-lang-en="Cash Prize">የገንዘብ ሽልማት (Prize)</span></p>
+            <h1 style="margin:5px 0 0 0; color:gold; font-size: 26px; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);" id="win-prize">0 ETB</h1>
+        </div>
     </div>
 </div>
 
@@ -237,7 +243,8 @@
         </div>
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
-            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Get 25% extra bonus on all deposits!">ልዩ ስጦታ<br>በሁሉም ተቀማጭ ገንዘቦች ላይ 25% ተጨማሪ ጉርሻ ያግኙ!</div>
+            <!-- 🟢 አዲስ: የ 30% ፕሮሞ ፅሁፍ 🟢 -->
+            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 30% ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Deposit 100 ETB or more and get 30% extra bonus!">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 30% ጉርሻ ያግኙ!</div>
         </div>
         <span class="trx-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
         <div class="bank-grid" id="dep-bank-grid">
@@ -256,8 +263,16 @@
         <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
         <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
         <span class="trx-hint">Min: 50 ETB | Max: 100,000 ETB</span>
-        <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS)" data-lang-en="Payment Confirmation (SMS)">የከፈሉበት ማረጋገጫ (SMS)</span>
-        <textarea id="m-dep-sms" class="trx-input" style="height: 80px; resize: none; font-size: 13px;" placeholder="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="ለፍጥነት: ከባንክ የተላከለትን የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="For speed: Copy and paste the bank SMS receipt here"></textarea>
+        
+        <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS / ፎቶ)" data-lang-en="Payment Confirmation (SMS / Photo)">የከፈሉበት ማረጋገጫ (SMS / ፎቶ)</span>
+        <textarea id="m-dep-sms" class="trx-input" style="height: 50px; resize: none; font-size: 13px; margin-bottom: 5px;" placeholder="የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="Paste the bank SMS receipt here"></textarea>
+        
+        <!-- 🟢 አዲስ: Screenshot መላኪያ (UI) 🟢 -->
+        <div style="background:#020617; border: 1px dashed #334155; border-radius:8px; padding: 10px; margin-bottom: 20px; text-align:center;">
+            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:5px;" data-lang-am="ወይም Screenshot (ፎቶ) ያስገቡ" data-lang-en="Or upload a Screenshot">ወይም Screenshot (ፎቶ) ያስገቡ</span>
+            <input type="file" id="m-dep-file" accept="image/*" style="font-size:11px; color:white; width:100%;">
+        </div>
+
         <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn" data-lang-am="ጨርስ" data-lang-en="Submit">ጨርስ</button>
     </div>
 </div>
@@ -392,7 +407,7 @@
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
-        <!-- 🟢 ኳስ ቆጣሪው (0/20) ሆኖ ተመልሷል 🟢 -->
+        <!-- 🟢 የተስተካከለ የኳስ ቆጣሪ (0/20) 🟢 -->
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
     
@@ -404,7 +419,6 @@
         </div>
         
         <div class="right-panel-stack">
-            <!-- 🟢 ትልቁ የኳስ መጥሪያ እዚህ ተተልቆ ተቀምጧል 🟢 -->
             <div class="caller-box">
                 <div id="caller-ball" class="caller-ball">--</div>
             </div>
@@ -417,7 +431,7 @@
             <div class="live-circle-badge">
                 <div class="live-indicator" style="font-size: 8px;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div>
                 <div style="font-size:7px; color:#94a3b8; font-weight:bold;" data-lang-am="ደራሽ" data-lang-en="Jackpot">ደራሽ</div>
-                <div class="jp-amount" style="font-size: 11px;"><span id="g-jp-amt">0</span></div>
+                <div class="jp-amount"><span id="g-jp-amt">0</span></div>
                 <div style="font-size:6px; font-weight:normal; color:#38bdf8;">ETB</div>
             </div>
         </div>
@@ -456,8 +470,10 @@
             <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
         </div>
     </div>
+    
+    <!-- 🟢 የሂሳብ ዝውውር ታሪክ ከሰርቨር ይሳባል 🟢 -->
     <div style="margin-top: 30px; padding: 0 10px;">
-        <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Transaction History)" data-lang-en="Transaction History">የሂሳብ ዝውውር ታሪክ (Transaction History)</h4>
+        <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Approved)" data-lang-en="Transaction History (Approved)">የሂሳብ ዝውውር ታሪክ (Approved)</h4>
         <div id="wallet-history-list">
             <p style="text-align:center; color:var(--text-gray); font-size:11px;" data-lang-am="ታሪክ የለም / No History" data-lang-en="No History">ታሪክ የለም / No History</p>
         </div>
@@ -573,7 +589,9 @@
 
         if(!method) return alert(currentLang === 'am' ? "እባክዎ ባንክ ይምረጡ!" : "Please select a bank!");
         if(!amt || amt < 50) return alert(currentLang === 'am' ? "ዝቅተኛው መጠን 50 ብር ነው!" : "Minimum amount is 50 ETB!");
-        if(!smsText) return alert(currentLang === 'am' ? "እባክዎ የSMS ማረጋገጫ ያስገቡ!" : "Please paste the SMS confirmation!");
+        
+        let fileInput = document.getElementById('m-dep-file').files[0];
+        if(!smsText && !fileInput) return alert(currentLang === 'am' ? "እባክዎ የSMS ማረጋገጫ ወይም ፎቶ ያስገቡ!" : "Please provide SMS receipt or a Screenshot!");
 
         let btn = document.getElementById('m-dep-btn');
         btn.innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
@@ -585,11 +603,13 @@
                 body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) 
             }); 
             let data = await res.json(); 
+            
+            // 🟢 ታሪክ መመዝገብ ያለበት አድሚን ሲያፀድቀው ስለሆነ ከዚህ ላይ አጠፋሁት
             alert(data.message); 
-            addHistoryRecord("Deposit Req (" + method + ")", `+${amt} ETB`, "#0d9488");
             
             document.getElementById('m-dep-amt').value = ''; 
             document.getElementById('m-dep-sms').value = ''; 
+            document.getElementById('m-dep-file').value = '';
             closeDepositModal();
         } catch(e) {
             console.error(e);
@@ -623,7 +643,6 @@
             if(data.success) { 
                 await fetchUpdatedBalance(); 
                 alert(data.message); 
-                addHistoryRecord("Withdraw Req (" + method + ")", `-${amt} ETB`, "#ef4444");
                 document.getElementById('m-wit-amt').value = ''; 
                 document.getElementById('m-wit-phone').value = '';
                 closeWithdrawModal(); 
@@ -748,11 +767,35 @@
                     if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${top3[0].won} ETB</div></div>`;
                     if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${top3[2].won} ETB</div></div>`;
                     html += '</div>';
+                    
+                    // 🟢 አዲስ: የሚያምር የ 4-10 ደረጃ 🟢
                     others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; });
                     content.innerHTML = html;
                 }
             }
         } catch(e) { content.innerHTML = `<p style="text-align:center; color:var(--red);">${currentLang === 'am' ? 'ስህተት አጋጥሟል' : 'Error occurred'}</p>`; }
+    }
+
+    // 🟢 አዲስ: Transaction History ከሰርቨር ይስባል 🟢
+    async function loadTransactionHistory() {
+        if(!currentUser) return;
+        const hc = document.getElementById('wallet-history-list');
+        hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">እየጫነ ነው...</p>`;
+        try {
+            let res = await fetch(`/api/user/transactions/${currentUser.phone}`);
+            let data = await res.json();
+            if(data.success && data.txs.length > 0) {
+                hc.innerHTML = '';
+                data.txs.forEach(tx => {
+                    let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444';
+                    let sign = tx.type === 'deposit' ? '+' : '-';
+                    let time = new Date(tx.date).toLocaleString();
+                    hc.innerHTML += `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827);"><div><span style="font-weight:bold; font-size: 11px; color:white; text-transform:uppercase;">${tx.type} (${tx.method})</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${tx.amount} ETB</b></div>`;
+                });
+            } else {
+                hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;" data-lang-am="ታሪክ የለም / No History" data-lang-en="No History">ታሪክ የለም / No History</p>`;
+            }
+        } catch(e) { hc.innerHTML = `<p style="text-align:center; color:#ef4444; font-size:11px;">Error loading history.</p>`; }
     }
 
     function updateUIBalance() {
@@ -771,6 +814,8 @@
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
+            // ዎሌት ላይ ከሆነ ታሪኩን ሪፍሬሽ ያደርገዋል
+            if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory();
         }
     });
 
@@ -827,7 +872,6 @@
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
                 
-                // 🟢 አዲስ: አዲስ ጌም ሲጀምር የነበሩትን ሙሉ በሙሉ ማፅዳት 🟢
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
@@ -842,7 +886,7 @@
                     selected = [];
                     globalTakenTickets = []; 
                     
-                    initGrid(); // ቁጥሮቹን እንደ አዲስ ይገነባል (ምንም Selection ሳይኖር)
+                    initGrid(); 
                     updateBetPreview(); 
                     
                     document.getElementById('ticket-list').innerHTML = ''; 
@@ -886,6 +930,7 @@
         });
     });
 
+    // 🟢 አዲስ: ውብ የሆነው የቢንጎ አሸናፊ ካርቴላ እዚህ ላይ ይሰራል 🟢
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         document.getElementById('win-name').innerText = data.winnerName; 
@@ -894,17 +939,22 @@
         
         let g = data.ticketGrid;
         let cld = data.calledNumbers;
-        let html = `<div class="preview-t-grid" style="width:180px; transform: scale(1.1); transform-origin: top; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);">`;
-        for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; height:25px; font-size:14px;">${bHeads[i]}</div>`; }
+        
+        let html = `<div class="preview-t-grid" style="width:230px; transform: scale(1.1); transform-origin: center; box-shadow: 0 0 30px rgba(74, 222, 128, 0.4); border-radius: 12px; overflow: hidden; background: #111827; border: 2px solid #4ade80;">`;
+        for(let i=0; i<5; i++) { 
+            html += `<div class="preview-t-head" style="background:rgba(74, 222, 128, 0.3); color:white; height:35px; font-size:18px; border-bottom: 2px solid #4ade80; border-right: 1px solid #1e293b;">${bHeads[i]}</div>`; 
+        }
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
                 let num = g[c][r];
+                let borders = "border-right: 1px solid #1e293b; border-bottom: 1px solid #1e293b;";
+                
                 if(r===2 && c===2) {
-                    html += `<div class="preview-t-cell marked" style="height:30px; font-size:18px; color:#38bdf8;">★</div>`;
+                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#fbbf24; text-shadow: 0 0 15px #fbbf24; ${borders}">★</div>`;
                 } else if(cld.includes(num)) {
-                    html += `<div class="preview-t-cell marked" style="height:30px; font-size:14px; color:#facc15;">★<br><span style="font-size:8px; color:#fff">${num}</span></div>`;
+                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#4ade80; text-shadow: 0 0 15px #4ade80; ${borders}">★</div>`;
                 } else {
-                    html += `<div class="preview-t-cell" style="height:30px; font-size:14px;">${num}</div>`;
+                    html += `<div class="preview-t-cell" style="background:transparent; color:#94a3b8; height:40px; font-size:16px; font-weight:bold; ${borders}">${num}</div>`;
                 }
             }
         }
@@ -1059,15 +1109,12 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         if(id !== 'home') document.getElementById('bet-slip-popup').classList.remove('show');
         else if(selected.length > 0) document.getElementById('bet-slip-popup').classList.add('show');
+        
+        // 🟢 አዲስ: ወደ ዎሌት ገፅ ሲገባ የታሪክን ዝርዝር ከሰርቨር ይስባል 🟢
+        if(id === 'wallet') loadTransactionHistory();
+        
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
         if(event && event.currentTarget.classList.contains('nav-item')) { event.currentTarget.classList.add('active'); } else { document.getElementById('nav-home').classList.add('active'); }
-    }
-    
-    function addHistoryRecord(title, amount, color) { 
-        const hc = document.getElementById('wallet-history-list'); 
-        if(hc.innerHTML.includes("ታሪክ የለም") || hc.innerHTML.includes("No History")) hc.innerHTML = ''; 
-        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
-        hc.innerHTML = `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: #0b111a;"><div><span style="font-weight:bold; font-size: 11px;">${title}</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px;">${amount}</b></div>` + hc.innerHTML; 
     }
 </script>
 </body>
