@@ -11,7 +11,7 @@
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Auth Modernized (Zemnawi Black Theme) */
+        /* Auth Modernized */
         .auth-card { background: rgba(10, 15, 24, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 35px 25px; border-radius: 25px; width: 90%; max-width: 360px; margin: 30px auto 20px auto; text-align: center; border: 1px solid rgba(74, 222, 128, 0.15); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(74, 222, 128, 0.05); }
         .input-group { margin-bottom: 12px; position: relative; }
         .auth-input { width: 100%; padding: 14px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: 0.3s; }
@@ -102,12 +102,11 @@
         #game-page .mb-head { background: var(--faded-green); color: black; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
         #game-page .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; transition: 0.2s;}
         
-        /* Masterboard Called state (Medium Green) */
         #game-page .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         #game-page .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
-        .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
+        .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; }
@@ -316,7 +315,6 @@
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (Register)</button>
         <p style="font-size: 13px; color: #6ee7b7; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
         
-        <!-- Need Help Button Added to Auth -->
         <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">
             📞 <span data-lang-am="እርዳታ ያስፈልጎታል?" data-lang-en="Need Help?">እርዳታ ያስፈልጎታል? (Need Help)</span>
         </button>
@@ -424,9 +422,9 @@
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-        <div style="position: relative; width: 60px; min-height: 60px; flex-shrink: 0;">
-            <div class="caller-box" style="width: 100%; height: 100%; padding: 0;"><div id="ticket-caller-ball" class="caller-ball" style="width: 45px; height: 45px; font-size: 14px;">--</div></div>
-            <div id="sound-toggle" style="position: absolute; top: -5px; right: -5px; background: #1e293b; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; border: 1px solid #4ade80;" onclick="toggleSound()">🔊</div>
+        <div class="caller-box" style="position: relative; width: 60px; min-height: 60px; padding: 0; flex-shrink: 0;">
+            <div id="ticket-caller-ball" class="caller-ball" style="width: 45px; height: 45px; font-size: 14px;">--</div>
+            <div id="sound-toggle" onclick="toggleSound()" style="position: absolute; top: 2px; right: 2px; font-size: 10px; cursor: pointer; z-index: 10; background: rgba(0,0,0,0.5); border-radius: 50%; width: 16px; height: 16px; display: flex; justify-content: center; align-items: center;">🔊</div>
         </div>
         <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 60px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
     </div>
