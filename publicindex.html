@@ -108,13 +108,25 @@
         .mini-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* TICKET PAGE CALLER */
-        .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); gap: 12px; height: 65px; box-sizing: border-box;}
-        .main-caller-area { width: 50px; height: 50px; flex-shrink:0; display:flex; justify-content:center; align-items:center; }
-        .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 20px rgba(74, 222, 128, 0.8), inset 0 0 8px rgba(74, 222, 128, 0.4);}
-        .history-top-bar.new-history-layout { display: flex; gap: 6px; overflow-x: auto; flex-grow: 1; scrollbar-width: none; }
-        .history-top-bar.new-history-layout::-webkit-scrollbar { display: none; }
-        .history-top-bar.new-history-layout .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight:bold;}
+        /* 🟢 ወደ ጎን የሚደረደሩበት History (ክብ ቅርፅ) 🟢 */
+        .history-top-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; margin-bottom: 5px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); align-items: center; scrollbar-width: none; flex-shrink: 0; min-height: 45px;}
+        .history-top-bar::-webkit-scrollbar { display: none; }
+        
+        .hist-top-ball { 
+            min-width: 35px; 
+            height: 35px; 
+            border-radius: 50%; 
+            border: 2px solid var(--faded-green); 
+            background: rgba(74, 222, 128, 0.1); 
+            color: var(--faded-green); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 11px; 
+            font-weight: 900;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+            flex-shrink: 0;
+        }
 
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
@@ -123,11 +135,16 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
-        /* 🟢 ውብ የቢንጎ አሸናፊ Overlay 🟢 */
+        /* ውብ የቢንጎ አሸናፊ Overlay */
         .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);}
-        .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 3px;}
-        @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
-        .winner-card { background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); padding: 25px 30px; border-radius: 20px; border: 2px solid #4ade80; margin-top: 20px; box-shadow: 0 10px 40px rgba(74, 222, 128, 0.4); width: 85%; max-width: 400px;}
+        
+        .bling-text { font-size: 14px; font-weight: bold; color: white; margin-bottom: 15px; animation: blinker 1s linear infinite; text-shadow: 0 0 10px white; }
+        @keyframes blinker { 50% { opacity: 0.3; } }
+        
+        .bingo-text { font-size: 60px; font-weight: 900; color: #4ade80; margin: 0; text-shadow: 0 0 20px #4ade80, 0 0 50px #22c55e; animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px; font-family: 'Arial Black', sans-serif;}
+        @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #4ade80; } to { transform: scale(1.1); text-shadow: 0 0 40px #22c55e, 0 0 60px #4ade80; } }
+        
+        .winner-card { background: transparent; padding: 10px; width: 90%; max-width: 400px;}
         #win-ticket-display { margin: 20px auto; width: 100%; display: flex; justify-content: center;}
 
         /* Rank Cards (4-10) ማራኪ ዲዛይን */
@@ -181,20 +198,21 @@
 </head>
 <body>
 
-<!-- የቢንጎ አሸናፊ ማሳወቂያ እና ካርቴላ -->
+<!-- 🟢 የቢንጎ አሸናፊ ማሳወቂያ 🟢 -->
 <div id="bingo-overlay" class="bingo-overlay">
-    <h1 class="bingo-text">BINGO!</h1>
+    <div class="bling-text">✨ ሽልማት ገቢ እየተደረገ ነው... ✨</div>
     <div class="winner-card">
-        <h3 style="margin:0; color:var(--faded-green); text-transform: uppercase; font-size:14px; letter-spacing: 2px;" data-lang-am="አሸናፊ (Winner)" data-lang-en="Winner">አሸናፊ (Winner)</h3>
-        <h2 id="win-name" style="margin:10px 0 5px 0; color:white; font-size:28px; font-weight:900;">---</h2>
-        <p style="margin:0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:white;" id="win-ticket">#---</b></p>
+        <h3 style="margin:0; color:white; font-size:12px; letter-spacing: 2px; text-transform: uppercase;">Winner</h3>
+        <h1 class="bingo-text">B I N G O !</h1>
         
-        <!-- 🟢 አዲስ: ውብ የሆነው የካርቴላ ምስል 🟢 -->
         <div id="win-ticket-display"></div>
         
-        <div style="background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 10px; border: 1px solid rgba(251, 191, 36, 0.4); margin-top: 15px;">
-            <p style="margin:0; font-size:12px; color:var(--gold); font-weight:bold;"><span data-lang-am="የገንዘብ ሽልማት (Prize)" data-lang-en="Cash Prize">የገንዘብ ሽልማት (Prize)</span></p>
-            <h1 style="margin:5px 0 0 0; color:gold; font-size: 26px; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);" id="win-prize">0 ETB</h1>
+        <h2 id="win-name" style="margin:10px 0 0 0; color:white; font-size:24px; font-weight:900;">---</h2>
+        <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b id="win-ticket">#---</b></p>
+        
+        <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05)); padding: 12px; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.3);">
+            <p style="margin:0; font-size:11px; color:#fbbf24; font-weight:bold; letter-spacing:1px; text-transform:uppercase;" data-lang-am="የገንዘብ ሽልማት (Prize)" data-lang-en="Cash Prize">የገንዘብ ሽልማት (Prize)</p>
+            <h1 style="margin:5px 0 0 0; color:#fbbf24; font-size: 28px; text-shadow: 0 0 15px rgba(251, 191, 36, 0.6);" id="win-prize">0 ETB</h1>
         </div>
     </div>
 </div>
@@ -232,7 +250,6 @@
         <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS / ፎቶ)" data-lang-en="Payment Confirmation (SMS / Photo)">የከፈሉበት ማረጋገጫ (SMS / ፎቶ)</span>
         <textarea id="m-dep-sms" class="trx-input" style="height: 50px; resize: none; margin-bottom: 5px;" placeholder="የክፍያ ማረጋገጫ SMS ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="የክፍያ ማረጋገጫ SMS ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="Paste the bank SMS receipt here"></textarea>
         
-        <!-- Screenshot Upload -->
         <div style="background:#020617; border: 1px dashed #334155; border-radius:8px; padding: 10px; margin-bottom: 20px; text-align:center;">
             <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:5px;" data-lang-am="ወይም Screenshot (ፎቶ) ያስገቡ" data-lang-en="Or upload a Screenshot">ወይም Screenshot (ፎቶ) ያስገቡ</span>
             <input type="file" id="m-dep-file" accept="image/*" style="font-size:11px; color:white; width:100%;">
@@ -328,10 +345,9 @@
         </div>
     </div>
     
-    <!-- 🟢 የሚያምር ሎጎ Home Page ላይ 🟢 -->
-    <div style="text-align: center; margin-bottom: 15px;">
-        <h1 style="margin: 0; font-size: 26px; font-weight: 900; background: linear-gradient(to right, #ffffff, #4ade80, #ffffff); -webkit-background-clip: text; color: transparent; text-shadow: 0px 4px 15px rgba(74, 222, 128, 0.5); letter-spacing: 1px;">ቢንጎ ሀበሻ</h1>
-        <div style="color: white; font-size: 10px; letter-spacing: 3px; font-weight: bold; opacity: 0.8;">BINGO HABESHA</div>
+    <div style="text-align: center; margin-bottom: 15px; display: flex; justify-content: center; align-items: baseline; gap: 8px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6); letter-spacing: 1px;">BINGO</h1>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6); letter-spacing: 1px;">HABESHA</h1>
     </div>
 
     <div class="new-timer-box">
@@ -379,6 +395,7 @@
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
     
+    <!-- 🟢 የወጡ ኳሶች ወደ ጎን የሚደረደሩበት (Horizontal History) 🟢 -->
     <div id="history-scroll-top" class="history-top-bar"></div>
     
     <div class="game-layout-container"> 
@@ -408,13 +425,9 @@
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     
-    <div class="live-caller-history-wrapper">
-        <div class="main-caller-area">
-            <div id="ticket-caller-ball" class="main-caller-ball">--</div>
-        </div>
-        <div id="ticket-history-bar" class="history-top-bar new-history-layout">
-            <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
-        </div>
+    <!-- 🟢 Ticket ፔጅ ላይ ያለው አግድም ታሪክ 🟢 -->
+    <div id="ticket-history-bar" class="history-top-bar" style="margin-bottom: 20px;">
+        <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
     </div>
     
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
@@ -435,7 +448,6 @@
             <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
         </div>
     </div>
-    
     <div style="margin-top: 30px; padding: 0 10px;">
         <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Approved)" data-lang-en="Transaction History (Approved)">የሂሳብ ዝውውር ታሪክ (Approved)</h4>
         <div id="wallet-history-list">
@@ -588,7 +600,6 @@
         if(!phone) return alert(currentLang === 'am' ? "እባክዎ ስልክ ቁጥር ያስገቡ!" : "Please enter a phone number!");
         if(!amt || amt < 50 || amt > 300000) return alert(currentLang === 'am' ? "መጠን በ 50 እና 300,000 መሃል መሆን አለበት!" : "Amount must be between 50 and 300,000 ETB!");
         
-        // 🟢 ትክክለኛው ህግ: ወጪ የሚጠየቀው ካሸነፈው (Main Balance) ብቻ ነው 🟢
         let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
         if(amt > currentMainBal) return alert(currentLang === 'am' ? "በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ወጪ ማድረግ የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Main Balance! You can only withdraw won money."); 
         
@@ -829,12 +840,10 @@
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
                 
-                // 🟢 አዲስ: ጌም ሲያልቅ የነበሩት ካርቴላዎች እና ቀለሞች ይጠፋሉ (Clear) 🟢
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
                 document.getElementById('caller-ball').innerText = "--"; 
-                document.getElementById('ticket-caller-ball').innerText = "--"; 
                 document.getElementById('g-balls').innerText = "0/20"; 
                 called = []; 
                 
@@ -894,7 +903,6 @@
         document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
         document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         
-        // 🟢 አዲስ: ዘመናዊ ነጭ የቢንጎ አሸናፊ ካርቴላ 🟢
         let g = data.ticketGrid;
         let cld = data.calledNumbers;
         
@@ -1056,7 +1064,6 @@
         
         if(isLatest) {
             document.getElementById('caller-ball').innerText = ballText;
-            document.getElementById('ticket-caller-ball').innerText = ballText;
         }
 
         let topH = document.getElementById('history-scroll-top'); let tickH = document.getElementById('ticket-history-bar');
