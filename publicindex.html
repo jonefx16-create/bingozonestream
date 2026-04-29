@@ -26,7 +26,7 @@
         .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
         .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 12px; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; min-width: 125px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
         .pill-wallet span.title { font-size: 8px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
-        .pill-wallet span.title.play { color: var(--cyan); }
+        .pill-wallet span.title.play { color: var(--faded-green); }
         .pill-wallet span.title.main { color: var(--gold); }
         .pill-wallet span.amt { color: white; font-size: 11px; font-weight: 900; font-family: monospace;}
 
@@ -76,20 +76,19 @@
         .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
         .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
 
-        /* Game Page Top Info & Prize Pool Shining Golden */
+        /* Game Page Top Info & Prize Pool Shining Cyan/Blue */
         .top-info-wrapper { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 5px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;}
         .top-info-wrapper::-webkit-scrollbar { display: none; }
         .top-info-box { flex: 1; min-width: 60px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 4px; text-align: center; }
         .info-title { color: var(--text-gray); font-size: 10px; margin-bottom: 2px; font-weight: bold;}
         .info-val { color: white; font-weight: bold; font-size: 14px; }
         
-        /* 🟢 4. Prize Pool Golden Shine 🟢 */
-        .top-info-box.prize-box { border-color: var(--gold); box-shadow: inset 0 0 10px rgba(251, 191, 36, 0.2);}
-        .info-title.prize-title { color: var(--gold); text-shadow: 0 0 5px rgba(251, 191, 36, 0.4); }
-        .info-val.highlight { color: var(--gold); text-shadow: 0 0 8px rgba(251, 191, 36, 0.8); animation: shineGold 1.5s infinite alternate; }
-        @keyframes shineGold { 
-            from { text-shadow: 0 0 5px rgba(251, 191, 36, 0.4); } 
-            to { text-shadow: 0 0 15px rgba(251, 191, 36, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } 
+        .top-info-box.prize-box { border-color: var(--cyan); box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.2);}
+        .info-title.prize-title { color: var(--cyan); text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); }
+        .info-val.highlight { color: var(--cyan); text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); animation: shineCyan 1.5s infinite alternate; }
+        @keyframes shineCyan { 
+            from { text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); } 
+            to { text-shadow: 0 0 15px rgba(56, 189, 248, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } 
         }
 
         /* 🟢 GAME PAGE (No Scroll & Fit to Screen) 🟢 */
@@ -100,9 +99,9 @@
         #game-page .mb-head { background: var(--faded-green); color: white; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
         #game-page .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
         
-        /* 🟢 3. Master Board Faded Green 🟢 */
-        #game-page .mb-cell.called { background: #bbf7d0; color: #14532d; font-weight: 900; box-shadow: inset 0 0 5px rgba(20, 83, 45, 0.2);}
-        #game-page .mb-cell.current { background: #22c55e; color: black; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 10px #22c55e;}
+        /* 🟢 Master Board ደመቅ ያለ አረንጓዴ (Darker/Vibrant Green) 🟢 */
+        #game-page .mb-cell.called { background: #16a34a; color: #ffffff; font-weight: 900; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);}
+        #game-page .mb-cell.current { background: #22c55e; color: black; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 10px #22c55e; border: 2px solid white;}
         
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         
@@ -119,7 +118,7 @@
         .mini-t-cell { background: #fff; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* 🟢 ወደ ጎን የሚደረደሩበት History (ክብ ቅርፅ) 🟢 */
+        /* ወደ ጎን የሚደረደሩበት History (ክብ ቅርፅ) */
         .history-top-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); align-items: center; scrollbar-width: none; flex-shrink: 0; min-height: 45px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
         
@@ -152,7 +151,6 @@
         .bling-text { font-size: 14px; font-weight: bold; color: white; margin-bottom: 15px; animation: blinker 1s linear infinite; text-shadow: 0 0 10px white; }
         @keyframes blinker { 50% { opacity: 0.3; } }
         
-        /* 🟢 1. BINGO ፅሁፍ በሚያምር ነጭ (White Glow) 🟢 */
         .bingo-text { font-size: 50px; font-weight: 900; color: #ffffff; margin: 0; text-shadow: 0 0 15px #ffffff, 0 0 30px rgba(255,255,255,0.8); animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px; font-family: 'Arial Black', sans-serif;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 15px #ffffff; } to { transform: scale(1.05); text-shadow: 0 0 25px #ffffff, 0 0 40px rgba(255,255,255,0.9); } }
         
@@ -215,7 +213,6 @@
     <div class="bling-text">✨ ሽልማት ገቢ እየተደረገ ነው... ✨</div>
     <div class="winner-card">
         <h3 style="margin:0; color:white; font-size:12px; letter-spacing: 2px; text-transform: uppercase;">Winner</h3>
-        <!-- 🟢 1. BINGO ፅሁፍ የሚያምር ነጭ (White Glow) 🟢 -->
         <h1 class="bingo-text">B I N G O !</h1>
         
         <div id="win-ticket-display"></div>
@@ -240,7 +237,8 @@
         </div>
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
-            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 30% ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Deposit 100 ETB or more and get 30% extra bonus!">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 30% ጉርሻ ያግኙ!</div>
+            <!-- 🟢 Deposit Bonus Text 20% 🟢 -->
+            <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Deposit 100 ETB or more and get 20% extra bonus!">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div>
         </div>
         <span class="trx-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
         <div class="bank-grid" id="dep-bank-grid">
@@ -360,16 +358,16 @@
     
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
-            <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
+            <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.8); background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 30px; display: inline-block; border: 2px solid rgba(255,255,255,0.3);">BINGO</span> 
             <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
         </h1>
-        <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
+        <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 5px;">BINGO HABESHA</div>
     </div>
 
     <div class="new-timer-box">
         <div class="nt-left">
             <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
-            <div class="nt-value" id="timer">00:35</div> 
+            <div class="nt-value" id="timer">00:40</div> 
         </div>
         <div class="nt-right">
             <div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div>
@@ -407,7 +405,6 @@
     <div class="top-info-wrapper">
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
-        <!-- 🟢 4. Prize Pool ወርቃማ እና የሚያበራ 🟢 -->
         <div class="top-info-box prize-box"><div class="info-title prize-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
@@ -505,6 +502,12 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
+        <!-- 🟢 Telegram Help Button 🟢 -->
+        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/Bingohabesha'">
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span style="color:var(--cyan);" data-lang-am="እርዳታ ያስፈልጎታል?" data-lang-en="Need Help?">እርዳታ ያስፈልጎታል?</span></div>
+            <span style="color:var(--cyan)">></span>
+        </button>
+
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🔐</span> <span data-lang-am="የይለፍ ቃል ቀይር" data-lang-en="Change Password">የይለፍ ቃል ቀይር</span></div>
             <span style="color:var(--text-gray)">></span>
