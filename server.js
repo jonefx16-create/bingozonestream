@@ -141,7 +141,8 @@ app.post('/api/admin/action-tx', async (req, res) => {
         if (action === 'Approve') {
             tx.status = 'Approved';
             if(tx.type === 'deposit') { 
-                let bonus = tx.amount >= 100 ? (tx.amount * 0.30) : 0;
+                // 🟢 20% BONUS LOGIC (100 ETB እና ከዚያ በላይ ለሚያስገቡ) 🟢
+                let bonus = tx.amount >= 100 ? (tx.amount * 0.20) : 0;
                 user.playBalance += (tx.amount + bonus); 
             }
         } else if (action === 'Reject') {
@@ -181,7 +182,7 @@ app.post('/api/admin/change-password', async (req, res) => {
 // 🟢 LIVE BINGO GAME ENGINE (SOCKET.IO)
 // ==========================================
 let gameState = "WAITING";
-let timer = 35; // 🟢 የሰዓት ቆጣሪው 35 ሰከንድ ሆኗል 🟢
+let timer = 40; // 🟢 ሰዓቱ 40 ሴኮንድ ሆኗል 🟢
 let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
@@ -250,7 +251,7 @@ async function declareWinner(player, ticket) {
 
 function startCountdown() {
     gameState = "WAITING"; 
-    timer = 35; // 🟢 እዚህም 35 ሰከንድ ሆኗል 🟢
+    timer = 40; // 🟢 ሰዓቱ እዚህም 40 ሴኮንድ ሆኗል 🟢
     activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000;
     globalTakenTickets = []; 
