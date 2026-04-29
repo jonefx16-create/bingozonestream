@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     password: { type: String, required: true },
-    referredBy: { type: String, default: "" }, // ሪፈራል ኮድ
+    referredBy: { type: String, default: "" }, 
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 },
@@ -50,7 +50,19 @@ app.post('/api/register', async (req, res) => {
         let user = await User.findOne({ phone });
         if (user) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
         
-        user = new User({ phone, name, password, referredBy: refCode || "", mainBalance: 0, playBalance: 100 });
+        let actualReferrer = "";
+        // ሪፈራል ካስገባ ለጋበዘው ሰው 10 ብር ቦነስ ይሰጣል
+        if (refCode && refCode.trim() !== "") {
+            let referrer = await User.findOne({ phone: refCode.trim() });
+            if (referrer) {
+                referrer.playBalance += 10;
+                await referrer.save();
+                io.emit('balance_updated', referrer.phone);
+                actualReferrer = referrer.phone;
+            }
+        }
+        
+        user = new User({ phone, name, password, referredBy: actualReferrer, mainBalance: 0, playBalance: 100 });
         await user.save();
         res.json({ success: true, user });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -182,7 +194,7 @@ app.post('/api/admin/change-password', async (req, res) => {
 // 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
 let gameState = "WAITING";
-let timer = 40; // 40 Seconds 
+let timer = 40; 
 let activePlayers = {};
 let totalPrizePool = 0;
 let totalTickets = 0;
