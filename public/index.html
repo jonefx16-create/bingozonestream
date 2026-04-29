@@ -11,17 +11,19 @@
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Auth Modernized */
-        .auth-card { background: linear-gradient(145deg, #0f172a, #1e293b); padding: 35px 25px; border-radius: 25px; width: 90%; max-width: 360px; margin: 50px auto 20px auto; text-align: center; border: 1px solid rgba(74, 222, 128, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.05); }
+        /* Auth Modernized (Zemnawi Black Theme) */
+        .auth-card { background: rgba(10, 15, 24, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 35px 25px; border-radius: 25px; width: 90%; max-width: 360px; margin: 30px auto 20px auto; text-align: center; border: 1px solid rgba(74, 222, 128, 0.15); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(74, 222, 128, 0.05); }
         .input-group { margin-bottom: 12px; position: relative; }
-        .auth-input { width: 100%; padding: 14px 15px; border-radius: 12px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: 0.3s; }
-        .auth-input:focus { border-color: var(--faded-green); outline: none; box-shadow: 0 0 8px rgba(74,222,128,0.3); }
+        .auth-input { width: 100%; padding: 14px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: 0.3s; }
+        .auth-input:focus { border-color: var(--faded-green); outline: none; box-shadow: 0 0 8px rgba(74,222,128,0.3); background: rgba(0,0,0,0.8); }
         .ref-input { background: rgba(74, 222, 128, 0.05); border-color: rgba(74, 222, 128, 0.2); }
         .ref-input::placeholder { color: #6ee7b7; opacity: 0.7; }
         .auth-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--faded-green), #059669); color: #000; border: none; border-radius: 12px; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 4px 15px rgba(74,222,128,0.4);}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; background: #334155; color: #94a3b8;}
         .eye-icon { position: absolute; right: 15px; top: 14px; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.2s; }
         .eye-icon:hover { opacity: 1; }
+        .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
         /* Header */
         .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
@@ -98,11 +100,11 @@
         #game-page .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; }
         #game-page .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; }
         #game-page .mb-head { background: var(--faded-green); color: black; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
-        #game-page .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
+        #game-page .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; transition: 0.2s;}
         
-        /* Faded Green Masterboard updates */
-        #game-page .mb-cell.called { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; font-weight: 900; border: 1px solid rgba(16, 185, 129, 0.5); box-shadow: inset 0 0 8px rgba(0,0,0,0.5);}
-        #game-page .mb-cell.current { background: #059669; color: white; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
+        /* Masterboard Called state (Medium Green) */
+        #game-page .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
+        #game-page .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
@@ -271,7 +273,7 @@
     </div>
 </div>
 
-<!-- 1. AUTH PAGE (Modernized & Bug Free) -->
+<!-- 1. AUTH PAGE (Modernized) -->
 <div id="auth-page" class="page active-page">
     <div class="lang-switch-wrapper" style="justify-content: center; margin-bottom: 20px;">
         <div class="lang-switch-pill" onclick="toggleLanguage()">
@@ -280,7 +282,13 @@
     </div>
     
     <div class="auth-card">
-        <h1 style="color:var(--faded-green); margin:0; font-weight: 900; font-size: 28px; letter-spacing: 2px;">BINGO HABESHA</h1>
+        <div style="text-align: center; margin-bottom: 25px;">
+            <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
+                <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">BINGO</span> 
+                <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">HABESHA</span>
+            </h1>
+        </div>
+        
         <p id="auth-subtitle" style="font-size: 13px; color: #cbd5e1; margin-bottom: 25px;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
         
         <div class="input-group" id="name-group">
@@ -292,7 +300,7 @@
         </div>
         
         <div class="input-group">
-            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" onkeyup="v()">
+            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()">
             <span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span>
         </div>
 
@@ -307,6 +315,11 @@
         
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (Register)</button>
         <p style="font-size: 13px; color: #6ee7b7; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
+        
+        <!-- Need Help Button Added to Auth -->
+        <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">
+            📞 <span data-lang-am="እርዳታ ያስፈልጎታል?" data-lang-en="Need Help?">እርዳታ ያስፈልጎታል? (Need Help)</span>
+        </button>
     </div>
 </div>
 
@@ -331,7 +344,7 @@
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
-    <div class="lang-switch-wrapper" id="home-lang-wrapper" style="display:none;"></div> <!-- Handled dynamically -->
+    <div class="lang-switch-wrapper" id="home-lang-wrapper" style="display:none;"></div> 
     
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
@@ -361,7 +374,7 @@
     
     <div class="grid-subtitle-row" style="margin-top: 15px;">
         <div class="gs-left" data-lang-am="ካርቴላ ይምረጡ (10 ብር)" data-lang-en="Select Tickets (10 ETB)">ካርቴላ ይምረጡ (10 ብር)</div>
-        <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 5</span></div>
+        <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div>
     </div>
 
     <div id="grid-box" class="num-grid"></div>
@@ -411,7 +424,10 @@
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-        <div class="caller-box" style="width: 60px; min-height: 60px; padding: 0; flex-shrink: 0;"><div id="ticket-caller-ball" class="caller-ball" style="width: 45px; height: 45px; font-size: 14px;">--</div></div>
+        <div style="position: relative; width: 60px; min-height: 60px; flex-shrink: 0;">
+            <div class="caller-box" style="width: 100%; height: 100%; padding: 0;"><div id="ticket-caller-ball" class="caller-ball" style="width: 45px; height: 45px; font-size: 14px;">--</div></div>
+            <div id="sound-toggle" style="position: absolute; top: -5px; right: -5px; background: #1e293b; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; border: 1px solid #4ade80;" onclick="toggleSound()">🔊</div>
+        </div>
         <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 60px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
     </div>
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
@@ -496,6 +512,7 @@
     let currentLang = 'am';
     let currentGameState = null;
     let globalTakenTickets = []; 
+    let isSoundOn = true;
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -503,7 +520,6 @@
 
     buildMasterBoard();
 
-    // On Load Persistent Login Check
     window.onload = async () => {
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
@@ -513,11 +529,7 @@
             try {
                 let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: savedPhone, password: savedPass}) });
                 let data = await res.json();
-                if(data.success) {
-                    processLoginSuccess(data.user);
-                } else {
-                    logout();
-                }
+                if(data.success) { processLoginSuccess(data.user); } else { logout(); }
             } catch(e) {
                 document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (Register)";
                 document.getElementById('start-btn').disabled = false;
@@ -525,17 +537,17 @@
         }
     };
 
-    function logout() {
-        localStorage.removeItem('bingo_user_phone');
-        localStorage.removeItem('bingo_user_pass');
-        location.reload();
+    function toggleSound() {
+        isSoundOn = !isSoundOn;
+        document.getElementById('sound-toggle').innerText = isSoundOn ? '🔊' : '🔇';
     }
+
+    function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
 
     function togglePass() {
         let x = document.getElementById("reg-pass");
         let icon = document.getElementById("eye-icon");
-        if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } 
-        else { x.type = "password"; icon.innerText = "👁️"; }
+        if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; }
     }
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
@@ -554,10 +566,7 @@
             document.getElementById('m-dep-name').innerText = depAccounts[method].name;
         }
     }
-    function copyModalNumber(id) {
-        navigator.clipboard.writeText(document.getElementById(id).innerText);
-        alert(currentLang === 'am' ? "ቁጥሩ ኮፒ ተደርጓል!" : "Account Number Copied!");
-    }
+    function copyModalNumber(id) { navigator.clipboard.writeText(document.getElementById(id).innerText); alert(currentLang === 'am' ? "ቁጥሩ ኮፒ ተደርጓል!" : "Account Number Copied!"); }
 
     async function processNewDeposit() {
         let amt = parseFloat(document.getElementById('m-dep-amt').value);
@@ -571,15 +580,13 @@
         let fileInput = document.getElementById('m-dep-file').files[0];
         if(!smsText && !fileInput) return alert(currentLang === 'am' ? "እባክዎ የSMS ማረጋገጫ ወይም ፎቶ ያስገቡ!" : "Please provide SMS receipt or a Screenshot!");
 
-        let btn = document.getElementById('m-dep-btn');
-        btn.innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
+        let btn = document.getElementById('m-dep-btn'); btn.innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
         
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); 
             alert(data.message); 
-            document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; document.getElementById('m-dep-file').value = '';
-            closeDepositModal();
+            document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; document.getElementById('m-dep-file').value = ''; closeDepositModal();
         } catch(e) {}
         btn.innerText = currentLang === 'am' ? "ጨርስ" : "Submit";
     }
@@ -616,7 +623,7 @@
             let data = await res.json();
             alert(data.message);
             if(data.success) { 
-                localStorage.setItem('bingo_user_pass', newPass); // Update local storage
+                localStorage.setItem('bingo_user_pass', newPass); 
                 document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; 
             }
         } catch(e) {}
@@ -658,25 +665,18 @@
         let pass = document.getElementById('reg-pass').value.trim();
         let name = document.getElementById('reg-name').value.trim();
         let btn = document.getElementById('start-btn');
-        
         let phoneValid = (phone.startsWith('09') || phone.startsWith('07')) && phone.length === 10 && /^\d+$/.test(phone);
         let passValid = pass.length >= 4;
         
-        if(isLoginMode) {
-            btn.disabled = !(phoneValid && passValid);
-        } else {
-            let nameValid = name.length > 0;
-            let c1 = document.getElementById('c1').checked;
-            let c2 = document.getElementById('c2').checked;
+        if(isLoginMode) { btn.disabled = !(phoneValid && passValid); } else {
+            let nameValid = name.length > 0; let c1 = document.getElementById('c1').checked; let c2 = document.getElementById('c2').checked;
             btn.disabled = !(phoneValid && passValid && nameValid && c1 && c2);
         }
     }
 
     async function authAction() {
-        let phone = document.getElementById('reg-phone').value.trim();
-        let pass = document.getElementById('reg-pass').value.trim();
-        let name = document.getElementById('reg-name').value.trim();
-        let refCode = document.getElementById('reg-ref').value.trim();
+        let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
+        let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
 
         document.getElementById('start-btn').innerText = currentLang === 'am' ? "እባክዎ ይጠብቁ..." : "Please wait..."; 
         document.getElementById('start-btn').disabled = true;
@@ -685,49 +685,27 @@
         let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
         let data = await res.json();
         
-        if(data.success) {
-            localStorage.setItem('bingo_user_phone', phone);
-            localStorage.setItem('bingo_user_pass', pass);
-            processLoginSuccess(data.user);
-        } else {
-            alert(data.message);
-            document.getElementById('start-btn').disabled = false;
-            toggleLanguage(); toggleLanguage();
-        }
+        if(data.success) { localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); processLoginSuccess(data.user); } 
+        else { alert(data.message); document.getElementById('start-btn').disabled = false; toggleLanguage(); toggleLanguage(); }
     }
 
     function processLoginSuccess(userObj) {
         currentUser = userObj;
-        document.getElementById('hdr-name').innerText = currentUser.name;
-        document.getElementById('hdr-phone').innerText = currentUser.phone;
-        
-        document.getElementById('prof-name').innerText = currentUser.name;
-        document.getElementById('prof-phone').innerText = currentUser.phone;
+        document.getElementById('hdr-name').innerText = currentUser.name; document.getElementById('hdr-phone').innerText = currentUser.phone;
+        document.getElementById('prof-name').innerText = currentUser.name; document.getElementById('prof-phone').innerText = currentUser.phone;
         document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
-        
         let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5);
         document.getElementById('prof-id-display').innerText = "ID: #" + displayId;
-        
-        document.getElementById('prof-played').innerText = currentUser.played || 0;
-        document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
+        document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
         updateUIBalance();
-        
-        document.getElementById('auth-page').classList.remove('active-page');
-        document.getElementById('navbar').style.display = 'flex';
-        document.getElementById('global-header').style.display = 'flex';
-        initGrid();
-        handleHomeNav();
+        document.getElementById('auth-page').classList.remove('active-page'); document.getElementById('navbar').style.display = 'flex'; document.getElementById('global-header').style.display = 'flex';
+        initGrid(); handleHomeNav();
     }
 
     async function fetchUpdatedBalance() {
         if(!currentUser) return;
-        let res = await fetch(`/api/getUser/${currentUser.phone}`);
-        let data = await res.json();
-        if(data.success) { 
-            currentUser = data.user; updateUIBalance(); 
-            document.getElementById('prof-played').innerText = currentUser.played || 0;
-            document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
-        }
+        let res = await fetch(`/api/getUser/${currentUser.phone}`); let data = await res.json();
+        if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB"; }
     }
 
     async function loadLeaderboard() {
@@ -735,19 +713,15 @@
         const content = document.getElementById('rank-content');
         content.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:13px;">${currentLang === 'am' ? 'እየጫነ ነው...' : 'Loading...'}</p>`;
         try {
-            let res = await fetch('/api/leaderboard');
-            let data = await res.json();
+            let res = await fetch('/api/leaderboard'); let data = await res.json();
             if(data.success) {
-                if(data.leaderboard.length === 0) {
-                    content.innerHTML = `<div style="background:rgba(15,23,42,0.5); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">${currentLang === 'am' ? 'እስካሁን አሸናፊ የለም' : 'No winners yet'}</div>`;
-                } else {
-                    let top3 = data.leaderboard.slice(0, 3); let others = data.leaderboard.slice(3);
-                    let html = '<div class="podium-container">';
+                if(data.leaderboard.length === 0) { content.innerHTML = `<div style="background:rgba(15,23,42,0.5); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">${currentLang === 'am' ? 'እስካሁን አሸናፊ የለም' : 'No winners yet'}</div>`; } 
+                else {
+                    let top3 = data.leaderboard.slice(0, 3); let others = data.leaderboard.slice(3); let html = '<div class="podium-container">';
                     if(top3[1]) html += `<div class="podium-box podium-2"><div class="podium-avatar p-2-ava">2</div><div class="podium-name">${top3[1].name}</div><div class="podium-prize">${top3[1].won} ETB</div></div>`;
                     if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${top3[0].won} ETB</div></div>`;
                     if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${top3[2].won} ETB</div></div>`;
                     html += '</div>';
-                    
                     others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; });
                     content.innerHTML = html;
                 }
@@ -760,14 +734,11 @@
         const hc = document.getElementById('wallet-history-list');
         hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">እየጫነ ነው...</p>`;
         try {
-            let res = await fetch(`/api/user/transactions/${currentUser.phone}`);
-            let data = await res.json();
+            let res = await fetch(`/api/user/transactions/${currentUser.phone}`); let data = await res.json();
             if(data.success && data.txs.length > 0) {
                 hc.innerHTML = '';
                 data.txs.forEach(tx => {
-                    let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444';
-                    let sign = tx.type === 'deposit' ? '+' : '-';
-                    let time = new Date(tx.date).toLocaleString();
+                    let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444'; let sign = tx.type === 'deposit' ? '+' : '-'; let time = new Date(tx.date).toLocaleString();
                     hc.innerHTML += `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827);"><div><span style="font-weight:bold; font-size: 11px; color:white; text-transform:uppercase;">${tx.type} (${tx.method})</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${tx.amount} ETB</b></div>`;
                 });
             } else { hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;" data-lang-am="ታሪክ የለም / No History" data-lang-en="No History">ታሪክ የለም / No History</p>`; }
@@ -787,21 +758,13 @@
 
     function formatTime(seconds) { if(isNaN(seconds)) return seconds; let m = Math.floor(seconds / 60); let s = seconds % 60; return `0${m}:${s < 10 ? '0' : ''}${s}`; }
 
-    socket.on('balance_updated', async (phone) => {
-        if(currentUser && phone === currentUser.phone) { 
-            await fetchUpdatedBalance(); 
-            if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory();
-        }
-    });
+    socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) { await fetchUpdatedBalance(); if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory(); } });
 
     socket.on('update_taken_tickets', (ticketsArr) => { globalTakenTickets = ticketsArr; renderGridTakenStates(); });
 
     function renderGridTakenStates() {
         document.querySelectorAll('.num-btn').forEach(btn => {
-            let num = parseInt(btn.innerText);
-            let isMine = userTicketsData && userTicketsData.some(t => t.id === num);
-            let isTakenGlobally = globalTakenTickets.includes(num);
-
+            let num = parseInt(btn.innerText); let isMine = userTicketsData && userTicketsData.some(t => t.id === num); let isTakenGlobally = globalTakenTickets.includes(num);
             if (isMine) { btn.classList.add('bought-by-me'); btn.classList.remove('taken'); btn.classList.remove('selected'); } 
             else if (isTakenGlobally) {
                 btn.classList.add('taken'); btn.classList.remove('selected'); btn.classList.remove('bought-by-me');
@@ -865,10 +828,8 @@
     });
 
     socket.on('game_winner', (data) => {
-        document.getElementById('bingo-overlay').style.display = 'flex'; 
-        document.getElementById('win-name').innerText = data.winnerName; 
-        document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
-        document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
+        document.getElementById('bingo-overlay').style.display = 'flex'; document.getElementById('win-name').innerText = data.winnerName; 
+        document.getElementById('win-ticket').innerText = "#" + data.ticketId; document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         
         let g = data.ticketGrid; let cld = data.calledNumbers;
         let html = `<div style="width:200px; margin: 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
@@ -882,8 +843,7 @@
                 else { html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; }
             }
         }
-        html += `</div></div>`;
-        document.getElementById('win-ticket-display').innerHTML = html;
+        html += `</div></div>`; document.getElementById('win-ticket-display').innerHTML = html;
         if(currentUser && data.phone === currentUser.phone) fetchUpdatedBalance(); 
     });
 
@@ -902,12 +862,12 @@
                 if(d.classList.contains('selected')) { 
                     d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); 
                 } 
-                else if((selected.length + userTicketsData.length) < 5) { 
+                else if((selected.length + userTicketsData.length) < 4) { 
                     d.classList.add('selected'); selected.push(i); 
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
-                } else { alert(currentLang === 'am' ? "በአጠቃላይ ከ 5 ካርቴላ በላይ መግዛት አይቻልም!" : "Max 5 tickets total allowed per round!"); } 
+                } else { alert(currentLang === 'am' ? "በአጠቃላይ ከ 4 ካርቴላ በላይ መግዛት አይቻልም!" : "Max 4 tickets total allowed per round!"); } 
                 updateBetPreview(); 
             }; box.appendChild(d); 
         } 
@@ -977,7 +937,7 @@
     function buildMasterBoard() {
         const board = document.getElementById('master-board'); board.innerHTML = '';
         for(let c=0; c<5; c++) { let h = document.createElement('div'); h.className = 'mb-head'; h.style.background = bColors[c]; h.innerText = bHeads[c]; board.appendChild(h); }
-        for(let r=1; r<=15; r++) { for(let c=0; c<5; c++) { let num = r + (c * 15); let d = document.createElement('div'); d.className = 'mb-cell'; d.id = 'mb-' + num; d.innerText = num; board.appendChild(d); } }
+        for(let r=1; r<=15; r++) { for(let c=0; c<5; c++) { let num = r + (c * 15); let d = document.createElement('div'); d.className = 'mb-cell'; d.id = 'mb-' + num; d.innerText = num; d.style.color = bColors[c]; board.appendChild(d); } }
     }
 
     function updateLiveUI(num, isLatest) {
