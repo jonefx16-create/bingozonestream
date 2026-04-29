@@ -96,7 +96,7 @@
         #game-page .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; z-index: 2; transform: scale(1.05);}
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         
-        #game-page .caller-box, #ticket-page .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
+        .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; }
@@ -104,12 +104,14 @@
         #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
         .mini-t-card { background: white; flex: 1 1 48%; border-radius: 3px; border: 1px solid #ddd; }
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; }
-        .mini-t-head { color: white; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
-        .mini-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
+        
+        /* 🟢 4. ትናንሽ ካርቴላዎች ላይ ቁጥሩ በግልፅ እንዲታይ 🟢 */
+        .mini-t-head { color: white; height: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 9px;}
+        .mini-t-cell { background: #fff; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
         /* 🟢 ወደ ጎን የሚደረደሩበት History (ክብ ቅርፅ) 🟢 */
-        .history-top-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; margin-bottom: 5px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); align-items: center; scrollbar-width: none; flex-shrink: 0; min-height: 45px;}
+        .history-top-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); align-items: center; scrollbar-width: none; flex-shrink: 0; min-height: 45px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
         
         .hist-top-ball { 
@@ -210,9 +212,10 @@
         <h2 id="win-name" style="margin:10px 0 0 0; color:white; font-size:24px; font-weight:900;">---</h2>
         <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b id="win-ticket">#---</b></p>
         
-        <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05)); padding: 12px; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.3);">
-            <p style="margin:0; font-size:11px; color:#fbbf24; font-weight:bold; letter-spacing:1px; text-transform:uppercase;" data-lang-am="የገንዘብ ሽልማት (Prize)" data-lang-en="Cash Prize">የገንዘብ ሽልማት (Prize)</p>
-            <h1 style="margin:5px 0 0 0; color:#fbbf24; font-size: 28px; text-shadow: 0 0 15px rgba(251, 191, 36, 0.6);" id="win-prize">0 ETB</h1>
+        <!-- 🟢 3. ትንሹ ሽልማት ማሳያ ቦክስ በነጭ ፅሁፍ 🟢 -->
+        <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
+            <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;" data-lang-am="የገንዘብ ሽልማት (Prize)" data-lang-en="Cash Prize">የገንዘብ ሽልማት (Prize)</p>
+            <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">0 ETB</h1>
         </div>
     </div>
 </div>
@@ -345,7 +348,6 @@
         </div>
     </div>
     
-    <!-- 🟢 1. የ Home Page ርዕስ ማስተካከያ 🟢 -->
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
             <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
@@ -427,18 +429,18 @@
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
     
-    <!-- 🟢 2. ትልቁ Caller Ball Ticket Page ላይ እንዲታይ 🟢 -->
-    <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-        <div class="caller-box" style="width: 100%; min-height: 80px; padding: 10px 0;">
-            <div id="ticket-caller-ball" class="caller-ball" style="width: 50px; height: 50px; font-size: 18px;">--</div>
-        </div>
-    </div>
-
+    <!-- 🟢 5. Ticket Page ትልቁ ኳስ እና አግድም ታሪክ አቀማመጥ 🟢 -->
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     
-    <!-- 🟢 Ticket ፔጅ ላይ ያለው አግድም ታሪክ 🟢 -->
-    <div id="ticket-history-bar" class="history-top-bar" style="margin-bottom: 20px;">
-        <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+        <!-- ትልቁ Caller Ball (በስተግራ) -->
+        <div class="caller-box" style="width: 60px; min-height: 60px; padding: 0; flex-shrink: 0;">
+            <div id="ticket-caller-ball" class="caller-ball" style="width: 45px; height: 45px; font-size: 14px;">--</div>
+        </div>
+        <!-- የወጡ ኳሶች ወደ ጎን የሚደረደሩበት -->
+        <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 60px;">
+            <span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>
+        </div>
     </div>
     
     <p style="text-align: center; font-size: 13px; color: var(--text-gray);" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
@@ -922,20 +924,20 @@
         let g = data.ticketGrid;
         let cld = data.calledNumbers;
         
-        // 🟢 3. የአሸናፊ ካርቴላ እይታ ማስተካከያ (Modern, Smaller, Real Numbers, Golden Circles, Subtle Glow) 🟢
-        let html = `<div class="preview-t-grid" style="width:180px; margin: 0 auto; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); border-radius: 8px; overflow: hidden; background: #1e293b; border: 1px solid #334155; gap: 1px;">`;
+        // 🟢 1 & 2 & 4. የአሸናፊ ካርቴላ እይታ በነጭ (ልክ ሲገዙ እንደሚታየው) እና አሸናፊ ቁጥሮች በወርቃማ ክብ 🟢
+        let html = `<div class="preview-t-grid" style="width:200px; margin: 0 auto; box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); border-radius: 6px; overflow: hidden; background: #ffffff; border: 1px solid #cbd5e1; gap: 1px;">`;
         for(let i=0; i<5; i++) { 
-            html += `<div class="preview-t-head" style="background:#0f172a; color:#cbd5e1; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; 
+            html += `<div class="preview-t-head" style="background:${bColors[i]}; color:#fff; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; 
         }
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
                 let num = g[c][r];
                 if(r===2 && c===2) {
-                    html += `<div class="preview-t-cell" style="background:#0f172a; height:30px; display:flex; align-items:center; justify-content:center;"><div style="border: 2px solid #fbbf24; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fbbf24; font-size: 7px; font-weight: 900; background: rgba(251,191,36,0.1);">FREE</div></div>`;
+                    html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`;
                 } else if(cld.includes(num)) {
-                    html += `<div class="preview-t-cell" style="background:#0f172a; height:30px; display:flex; align-items:center; justify-content:center;"><div style="border: 2px solid #fbbf24; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fbbf24; font-size: 11px; font-weight: 900; background: rgba(251,191,36,0.1); box-shadow: 0 0 5px rgba(251,191,36,0.3);">${num}</div></div>`;
+                    html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="border: 2px solid #fbbf24; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#000; font-size: 12px; font-weight: 900; background: transparent; box-shadow: 0 0 5px rgba(251,191,36,0.5);">${num}</div></div>`;
                 } else {
-                    html += `<div class="preview-t-cell" style="background:#1e293b; color:#94a3b8; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`;
+                    html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`;
                 }
             }
         }
@@ -1050,7 +1052,7 @@
             for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { 
                 if(r==2 && c==2) { 
                     htmlMain += `<div class="t-cell marked" style="color:#38bdf8; font-size:16px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
-                    htmlMini += `<div class="mini-t-cell marked" style="color:#38bdf8; font-size:10px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
+                    htmlMini += `<div class="mini-t-cell marked" style="color:#38bdf8; font-size:14px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
                 } else { 
                     htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                     htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
