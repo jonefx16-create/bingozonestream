@@ -96,8 +96,8 @@
         #game-page .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; z-index: 2; transform: scale(1.05);}
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         
-        #game-page .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
-        #game-page .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
+        #game-page .caller-box, #ticket-page .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
+        .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; }
         #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; scrollbar-width: none; }
@@ -141,11 +141,11 @@
         .bling-text { font-size: 14px; font-weight: bold; color: white; margin-bottom: 15px; animation: blinker 1s linear infinite; text-shadow: 0 0 10px white; }
         @keyframes blinker { 50% { opacity: 0.3; } }
         
-        .bingo-text { font-size: 60px; font-weight: 900; color: #4ade80; margin: 0; text-shadow: 0 0 20px #4ade80, 0 0 50px #22c55e; animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px; font-family: 'Arial Black', sans-serif;}
-        @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #4ade80; } to { transform: scale(1.1); text-shadow: 0 0 40px #22c55e, 0 0 60px #4ade80; } }
+        .bingo-text { font-size: 50px; font-weight: 900; color: #4ade80; margin: 0; text-shadow: 0 0 15px #4ade80, 0 0 30px #22c55e; animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px; font-family: 'Arial Black', sans-serif;}
+        @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 15px #4ade80; } to { transform: scale(1.05); text-shadow: 0 0 25px #22c55e, 0 0 40px #4ade80; } }
         
         .winner-card { background: transparent; padding: 10px; width: 90%; max-width: 400px;}
-        #win-ticket-display { margin: 20px auto; width: 100%; display: flex; justify-content: center;}
+        #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
 
         /* Rank Cards (4-10) ማራኪ ዲዛይን */
         .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 20px; padding-top: 30px; }
@@ -345,9 +345,13 @@
         </div>
     </div>
     
-    <div style="text-align: center; margin-bottom: 15px; display: flex; justify-content: center; align-items: baseline; gap: 8px;">
-        <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6); letter-spacing: 1px;">BINGO</h1>
-        <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6); letter-spacing: 1px;">HABESHA</h1>
+    <!-- 🟢 1. የ Home Page ርዕስ ማስተካከያ 🟢 -->
+    <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
+            <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
+            <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
+        </h1>
+        <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
     </div>
 
     <div class="new-timer-box">
@@ -395,7 +399,6 @@
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
     
-    <!-- 🟢 የወጡ ኳሶች ወደ ጎን የሚደረደሩበት (Horizontal History) 🟢 -->
     <div id="history-scroll-top" class="history-top-bar"></div>
     
     <div class="game-layout-container"> 
@@ -423,6 +426,14 @@
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ካርቴላዎች" data-lang-en="My Tickets">የእኔ ካርቴላዎች</h3>
+    
+    <!-- 🟢 2. ትልቁ Caller Ball Ticket Page ላይ እንዲታይ 🟢 -->
+    <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+        <div class="caller-box" style="width: 100%; min-height: 80px; padding: 10px 0;">
+            <div id="ticket-caller-ball" class="caller-ball" style="width: 50px; height: 50px; font-size: 18px;">--</div>
+        </div>
+    </div>
+
     <div style="font-size:11px; color:var(--text-gray); margin-bottom: 5px;" data-lang-am="የወጡ ኳሶች (Called Numbers)" data-lang-en="Called Numbers">የወጡ ኳሶች (Called Numbers)</div>
     
     <!-- 🟢 Ticket ፔጅ ላይ ያለው አግድም ታሪክ 🟢 -->
@@ -843,7 +854,12 @@
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
+                
+                // 🟢 Reset Caller Balls
                 document.getElementById('caller-ball').innerText = "--"; 
+                let ticketCb = document.getElementById('ticket-caller-ball');
+                if(ticketCb) ticketCb.innerText = "--";
+
                 document.getElementById('g-balls').innerText = "0/20"; 
                 called = []; 
                 
@@ -906,21 +922,20 @@
         let g = data.ticketGrid;
         let cld = data.calledNumbers;
         
-        let html = `<div class="preview-t-grid" style="width:230px; transform: scale(1.1); transform-origin: center; box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); border-radius: 12px; overflow: hidden; background: #ffffff; border: 2px solid #4ade80;">`;
+        // 🟢 3. የአሸናፊ ካርቴላ እይታ ማስተካከያ (Modern, Smaller, Real Numbers, Golden Circles, Subtle Glow) 🟢
+        let html = `<div class="preview-t-grid" style="width:180px; margin: 0 auto; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); border-radius: 8px; overflow: hidden; background: #1e293b; border: 1px solid #334155; gap: 1px;">`;
         for(let i=0; i<5; i++) { 
-            html += `<div class="preview-t-head" style="background:rgba(74, 222, 128, 0.2); color:#000; height:35px; font-size:18px; border-bottom: 2px solid #4ade80; border-right: 1px solid #e2e8f0;">${bHeads[i]}</div>`; 
+            html += `<div class="preview-t-head" style="background:#0f172a; color:#cbd5e1; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; 
         }
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
                 let num = g[c][r];
-                let borders = "border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;";
-                
                 if(r===2 && c===2) {
-                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.6); ${borders}">★</div>`;
+                    html += `<div class="preview-t-cell" style="background:#0f172a; height:30px; display:flex; align-items:center; justify-content:center;"><div style="border: 2px solid #fbbf24; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fbbf24; font-size: 7px; font-weight: 900; background: rgba(251,191,36,0.1);">FREE</div></div>`;
                 } else if(cld.includes(num)) {
-                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.6); ${borders}">★</div>`;
+                    html += `<div class="preview-t-cell" style="background:#0f172a; height:30px; display:flex; align-items:center; justify-content:center;"><div style="border: 2px solid #fbbf24; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fbbf24; font-size: 11px; font-weight: 900; background: rgba(251,191,36,0.1); box-shadow: 0 0 5px rgba(251,191,36,0.3);">${num}</div></div>`;
                 } else {
-                    html += `<div class="preview-t-cell" style="background:transparent; color:#475569; height:40px; font-size:16px; font-weight:bold; ${borders}">${num}</div>`;
+                    html += `<div class="preview-t-cell" style="background:#1e293b; color:#94a3b8; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`;
                 }
             }
         }
@@ -1064,6 +1079,9 @@
         
         if(isLatest) {
             document.getElementById('caller-ball').innerText = ballText;
+            // 🟢 Ticket Page ላይ ያለውን Caller Ball አብሮ ማዘመን
+            let ticketCb = document.getElementById('ticket-caller-ball');
+            if(ticketCb) ticketCb.innerText = ballText;
         }
 
         let topH = document.getElementById('history-scroll-top'); let tickH = document.getElementById('ticket-history-bar');
