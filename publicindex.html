@@ -5,24 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO STREAM - LIVE ULTIMATE</title>
     <style>
-        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444; --faded-red: #f87171;}
+        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* Auth */
         .auth-card { background: var(--panel); padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 350px; margin: 50px auto; text-align: center; border: 1px solid #14532d; box-shadow: 0 0 20px rgba(20, 83, 45, 0.5); }
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #0d1117; color: white; box-sizing: border-box; font-family: inherit;}
         .auth-btn { width: 100%; padding: 14px; background: var(--faded-green); color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
+        /* Header */
         .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-        .hdr-user-sec { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+        .hdr-user-sec { display: flex; align-items: center; gap: 8px; }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
         .hdr-user-sec .phone { font-size: 9px; color: var(--text-gray); }
-        
-        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; margin-top: 0; }
+        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
         .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 12px; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; min-width: 125px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
         .pill-wallet span.title { font-size: 8px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
         .pill-wallet span.title.play { color: var(--cyan); }
@@ -31,29 +32,26 @@
 
         .lang-switch-wrapper { display: flex; justify-content: flex-end; margin-bottom: 8px; padding-right: 5px; }
         .lang-switch-pill { display: inline-flex; align-items: center; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 4px 10px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s; letter-spacing: 0.5px;}
+        .lang-switch-pill span { font-size: 10px; font-weight: 900; transition: 0.2s; }
         .lang-active { color: white; text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); } 
         .lang-inactive { color: #64748b; }
-        .lang-div { color: #334155; margin: 0 6px; font-weight: normal !important; font-size: 10px; }
 
+        /* Timer Box */
         .new-timer-box { background: #111521; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); }
         .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
         .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .nt-badge { background: rgba(74, 222, 128, 0.15); color: var(--faded-green); border: 1px solid rgba(74, 222, 128, 0.4); box-shadow: 0 0 10px rgba(74, 222, 128, 0.3), inset 0 0 5px rgba(74, 222, 128, 0.2); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
-        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px; }
+        .nt-badge { background: rgba(74, 222, 128, 0.15); color: var(--faded-green); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
+        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
-        .nt-currency { font-size: 12px; font-weight: bold; margin-left: 2px;}
+        #timer { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); font-size: 26px; }
 
-        /* 🟢 አዲስ: ትልቅ የሆነ ደራሽ ጌም ፔጅ ላይ 🟢 */
+        /* Game & Home Page Badge */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; letter-spacing: 1px; }
+        .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
-        .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 0.5px; margin-top: 1px;}
-        
-        /* Game Page Specific Bigger Badge */
-        #game-page .live-circle-badge { width: 90px !important; height: 90px !important; flex-shrink: 0; margin: 0 auto; position: relative !important; bottom: auto !important; right: auto !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
+        .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; margin-top: 1px;}
+        #game-page .live-circle-badge { width: 90px !important; height: 90px !important; margin: 0 auto; position: relative !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
         #game-page .jp-amount { font-size: 16px !important; }
-
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
@@ -61,79 +59,62 @@
         .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
         .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
-        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; justify-content: center; padding-bottom: 200px; } 
+        .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
-        
         .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
         .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
-        .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; border-color: #1e293b; pointer-events: none !important; }
+        .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; }
 
+        /* Slip Popup */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
         .bet-slip-popup.show { transform: translate(-50%, 0); } 
-        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; justify-content: flex-start; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
+        .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 85px; flex: 0 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
         .preview-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #94a3b8; border: 1px solid #94a3b8;}
         .preview-t-head { color: white; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px;}
         .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
-        .preview-t-cell.marked { background: #000; color: white; font-size: 7px; }
         .auth-btn.bet-btn-small { padding: 10px; font-size: 13px; }
 
-        .top-info-wrapper { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none;}
+        /* Game Page Top Info */
+        .top-info-wrapper { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 5px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;}
         .top-info-wrapper::-webkit-scrollbar { display: none; }
         .top-info-box { flex: 1; min-width: 60px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 4px; text-align: center; }
         .top-info-box.prize-box { border-color: var(--faded-green); box-shadow: inset 0 0 10px rgba(74, 222, 128, 0.1);}
         .info-title { color: var(--text-gray); font-size: 10px; margin-bottom: 2px; font-weight: bold;}
         .info-val { color: white; font-weight: bold; font-size: 14px; }
         .info-val.highlight { color: var(--faded-green); }
+
+        /* 🟢 GAME PAGE (No Scroll & Fit to Screen) 🟢 */
+        #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
+        #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; gap: 2%; }
+        #game-page .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; }
+        #game-page .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; }
+        #game-page .mb-head { background: var(--faded-green); color: white; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
+        #game-page .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
+        #game-page .mb-cell.called { background: var(--orange); color: white; font-weight: 900;}
+        #game-page .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; z-index: 2; transform: scale(1.05);}
+        #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         
-        .history-top-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px; margin-bottom: 12px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); scrollbar-width: none; align-items: center; }
-        .history-top-bar::-webkit-scrollbar { display: none; }
-        .hist-top-ball { min-width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
-
-        .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(74, 222, 128, 0.1); gap: 12px; overflow: hidden; height: 65px; box-sizing: border-box;}
-        .main-caller-area { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; }
-        .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 20px rgba(74, 222, 128, 0.8), inset 0 0 8px rgba(74, 222, 128, 0.4); z-index: 2;}
-        .history-top-bar.new-history-layout { display: flex; gap: 6px; overflow-x: auto; background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; flex-grow: 1; align-items: center; scrollbar-width: none; }
-        .history-top-bar.new-history-layout::-webkit-scrollbar { display: none; }
-        .history-top-bar.new-history-layout .hist-top-ball { min-width: 35px; height: 35px; font-size: 11px;}
-
-        .game-layout-container { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 3%; align-items: stretch; justify-content: space-between; width: 100%; }
-        .master-board-wrapper { width: 55%; flex: 0 0 55%; background: transparent; }
-        .mb-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; overflow: hidden; width: 100%;}
-        .mb-head { aspect-ratio: 1.5/1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;}
-        .mb-cell { aspect-ratio: 1.5/1; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
-        .mb-cell.called { background: var(--orange); color: white; font-weight: 900;}
-        .mb-cell.current { background: var(--faded-green); color: black; font-weight: 900; box-shadow: 0 0 5px rgba(74,222,128,0.8); position: relative; z-index: 2; transform: scale(1.05);}
-
-        .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; gap: 10px; }
-        .caller-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; height: 80px; display: flex; align-items: center; justify-content: center; }
-        .caller-ball { width: 55px; height: 55px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.3);}
-
-        .tickets-history-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; flex: 1;}
-        .game-mini-tickets { display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; width: 100%; margin: 5px 0; }
-        .mini-t-card { background: white; flex: 1 1 31%; max-width: 48%; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; }
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0;}
+        #game-page .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0;}
+        #game-page .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
+        
+        #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; }
+        #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; scrollbar-width: none; }
+        #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
+        .mini-t-card { background: white; flex: 1 1 48%; border-radius: 3px; border: 1px solid #ddd; }
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; }
         .mini-t-head { color: white; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px;}
         .mini-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
-        /* SCROLL PREVENTION FOR GAME PAGE */
-        #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100vh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
-        #game-page .top-info-wrapper { flex-shrink: 0; margin-bottom: 5px; }
-        #game-page .history-top-bar { flex-shrink: 0; margin-bottom: 5px; padding: 5px; min-height: 40px; }
-        #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; margin-bottom: 0; gap: 2%; }
-        #game-page .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; }
-        #game-page .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); gap: 1px; width: 100%; }
-        #game-page .mb-head, #game-page .mb-cell { aspect-ratio: unset; height: 100%; font-size: 2vh; }
-        #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
-        
-        #game-page .caller-box { height: 15%; min-height: 65px; flex-shrink: 0; margin-bottom: 0; background: linear-gradient(135deg, #111827, #0f172a); border-color: rgba(74, 222, 128, 0.4);}
-        #game-page .caller-ball { width: 8.5vh; height: 8.5vh; font-size: 3vh; border-width: 5px; box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
-        
-        #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; margin-bottom: 0; }
-        #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; align-content: flex-start; scrollbar-width: none; }
-        #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
+        /* TICKET PAGE CALLER */
+        .live-caller-history-wrapper { display: flex; align-items: center; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 8px 10px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); gap: 12px; height: 65px; box-sizing: border-box;}
+        .main-caller-area { width: 50px; height: 50px; flex-shrink:0; display:flex; justify-content:center; align-items:center; }
+        .main-caller-ball { width: 100%; height: 100%; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; border: 4px solid var(--faded-green); box-shadow: 0 0 20px rgba(74, 222, 128, 0.8), inset 0 0 8px rgba(74, 222, 128, 0.4);}
+        .history-top-bar.new-history-layout { display: flex; gap: 6px; overflow-x: auto; flex-grow: 1; scrollbar-width: none; }
+        .history-top-bar.new-history-layout::-webkit-scrollbar { display: none; }
+        .history-top-bar.new-history-layout .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight:bold;}
 
         .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #ticket-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
@@ -142,22 +123,16 @@
         .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
-        /* 🟢 አዲስ: ውብ የቢንጎ አሸናፊ Overlay 🟢 */
+        /* 🟢 ውብ የቢንጎ አሸናፊ Overlay 🟢 */
         .bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 24, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);}
         .bingo-text { font-size: 60px; font-weight: 900; color: #ffeb3b; margin: 0; text-shadow: 0 0 20px #ffeb3b, 0 0 50px #ff9800; animation: pulseWin 0.8s infinite alternate; letter-spacing: 3px;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 20px #ffeb3b; } to { transform: scale(1.1); text-shadow: 0 0 40px #ff9800, 0 0 60px #ffeb3b; } }
         .winner-card { background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); padding: 25px 30px; border-radius: 20px; border: 2px solid #4ade80; margin-top: 20px; box-shadow: 0 10px 40px rgba(74, 222, 128, 0.4); width: 85%; max-width: 400px;}
         #win-ticket-display { margin: 20px auto; width: 100%; display: flex; justify-content: center;}
 
-        .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
-        .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4); text-transform: uppercase;}
-        .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; width: 100%; box-sizing: border-box;}
-        .prof-list-btn:hover { border-color: var(--faded-green); background: #1e293b; }
-        .prof-list-btn .icon-bg { background: #1e293b; padding: 6px; border-radius: 8px; margin-right: 12px; font-size: 14px;}
-        .prof-list-btn.logout { border-color: #7f1d1d; color: #ef4444; }
-        .prof-list-btn.logout:hover { background: #7f1d1d; color: white; }
+        /* Rank Cards (4-10) ማራኪ ዲዛይን */
         .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 20px; padding-top: 30px; }
-        .podium-box { display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, #1e293b, #0f172a); border-radius: 8px; padding: 10px 4px; width: 28%; text-align: center; position: relative; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s;}
+        .podium-box { display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, #1e293b, #0f172a); border-radius: 8px; padding: 10px 4px; width: 28%; text-align: center; position: relative; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .podium-1 { border-color: #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); transform: scale(1.1); z-index: 2; height: 90px; justify-content: flex-end;}
         .podium-2 { border-color: #C0C0C0; height: 75px; justify-content: flex-end;}
         .podium-3 { border-color: #CD7F32; height: 65px; justify-content: flex-end;}
@@ -168,10 +143,7 @@
         .podium-name { font-size: 9px; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 3px; }
         .podium-prize { font-size: 9px; color: var(--gold); font-weight: 900; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px;}
         .crown-icon { position: absolute; top: -45px; font-size: 22px; animation: floatCrown 2s infinite ease-in-out; text-shadow: 0 4px 8px rgba(255,215,0,0.5);}
-        
-        /* 🟢 አዲስ: Rank Cards (4-10) ማራኪ ዲዛይን 🟢 */
         .rank-card { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); padding: 12px 15px; border-radius: 10px; border-left: 4px solid var(--faded-green); margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: 0.3s; }
-        .rank-card:hover { transform: translateX(5px); box-shadow: 0 4px 15px rgba(74, 222, 128, 0.2); }
         .rank-badge { width: 26px; height: 26px; border-radius: 50%; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; margin-right: 12px; border: 1px solid var(--faded-green); box-shadow: inset 0 0 5px rgba(74,222,128,0.5);}
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: none; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
@@ -179,44 +151,37 @@
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
 
-        .trx-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
-        .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto; border-top: 1px solid #1e293b;}
+        /* Profile & Modals */
+        .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
+        .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4);}
+        .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; box-sizing: border-box;}
+        .trx-modal-overlay, .pw-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
+        .pw-modal-overlay { justify-content: center; align-items: center; }
+        .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto;}
         .trx-modal.show { transform: translateY(0); }
         .trx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .trx-title { color: white; font-size: 18px; font-weight: 900; margin: 0; }
-        .trx-close { color: #64748b; font-size: 14px; cursor: pointer; font-weight: bold; background: none; border: none; padding: 5px;}
+        .trx-close { color: #64748b; font-size: 14px; cursor: pointer; font-weight: bold; background: none; border: none;}
         .dep-banner { background: linear-gradient(90deg, rgba(217, 119, 6, 0.15), rgba(180, 83, 9, 0.15)); border: 1px solid rgba(217, 119, 6, 0.4); border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-        .dep-banner-icon { font-size: 20px; }
-        .dep-banner-text { color: var(--gold); font-size: 13px; font-weight: bold; line-height: 1.4; text-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
-        .trx-label { color: #94a3b8; font-size: 12px; margin-bottom: 8px; display: block; font-weight: bold; }
         .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; text-align: center; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer;}
         .bank-btn.active { background: white; color: black; border-color: white; }
         .bank-btn.mpesa { grid-column: span 2; }
         .bank-logo { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
-        .logo-tb { background: #00b0f0; color: white; font-family: Arial, sans-serif; font-style: italic; font-weight: bold; }
-        .logo-cbe { background: #502179; color: #fdb913; font-family: serif; font-size: 9px; letter-spacing: 0.5px;}
-        .logo-mp { background: #00a859; color: white; font-family: sans-serif; }
+        .logo-tb { background: #00b0f0; color: white; } .logo-cbe { background: #502179; color: #fdb913; font-size: 9px;} .logo-mp { background: #00a859; color: white; }
         .trx-copy-box { background: #020617; border: 1px solid #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; justify-content: space-between; align-items: center;}
-        .trx-copy-box.show { display: flex; animation: fadeIn 0.3s; }
-        .trx-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 15px; font-family: inherit;}
-        .trx-input:focus { outline: none; border-color: var(--blue); }
-        .trx-hint { color: #475569; font-size: 10px; text-align: right; display: block; margin-bottom: 20px; }
-        .trx-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: 0.2s; letter-spacing: 1px;}
-        .trx-submit-btn:active { transform: scale(0.98); }
-        .trx-submit-btn.red-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
-
-        .pw-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: center; }
-        .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); box-sizing: border-box; animation: fadeIn 0.3s; border: 1px solid #1e293b;}
-        .pw-input { background: #0b101e; border: 1px solid #1e293b; color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-size: 14px; font-family: inherit;}
+        .trx-copy-box.show { display: flex; }
+        .trx-input, .pw-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 14px;}
+        .trx-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer;}
+        .trx-submit-btn.red-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; border: 1px solid #1e293b;}
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
-        .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 14px;}
-        .pw-btn.cancel { background: #1e293b; color: #94a3b8; }
-        .pw-btn.save { background: var(--faded-green); color: #000; } 
+        .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
+<!-- የቢንጎ አሸናፊ ማሳወቂያ እና ካርቴላ -->
 <div id="bingo-overlay" class="bingo-overlay">
     <h1 class="bingo-text">BINGO!</h1>
     <div class="winner-card">
@@ -224,7 +189,7 @@
         <h2 id="win-name" style="margin:10px 0 5px 0; color:white; font-size:28px; font-weight:900;">---</h2>
         <p style="margin:0; font-size:12px; color:var(--text-gray);"><span data-lang-am="አሸናፊ ካርቴላ:" data-lang-en="Winning Ticket:">አሸናፊ ካርቴላ:</span> <b style="color:white;" id="win-ticket">#---</b></p>
         
-        <!-- 🟢 ውብ የሆነው የካርቴላ ምስል 🟢 -->
+        <!-- 🟢 አዲስ: ውብ የሆነው የካርቴላ ምስል 🟢 -->
         <div id="win-ticket-display"></div>
         
         <div style="background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 10px; border: 1px solid rgba(251, 191, 36, 0.4); margin-top: 15px;">
@@ -234,6 +199,7 @@
     </div>
 </div>
 
+<!-- Deposit Modal -->
 <div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
     <div id="dep-modal" class="trx-modal" onclick="event.stopPropagation()">
         <div class="trx-header">
@@ -243,7 +209,6 @@
         </div>
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
-            <!-- 🟢 አዲስ: የ 30% ፕሮሞ ፅሁፍ 🟢 -->
             <div class="dep-banner-text" data-lang-am="ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 30% ጉርሻ ያግኙ!" data-lang-en="Special Gift<br>Deposit 100 ETB or more and get 30% extra bonus!">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 30% ጉርሻ ያግኙ!</div>
         </div>
         <span class="trx-label" data-lang-am="ባንክ ይምረጡ" data-lang-en="Select Bank">ባንክ ይምረጡ</span>
@@ -262,12 +227,12 @@
         </div>
         <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
         <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
-        <span class="trx-hint">Min: 50 ETB | Max: 100,000 ETB</span>
+        <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 20px;">Min: 50 ETB | Max: 100,000 ETB</span>
         
         <span class="trx-label" data-lang-am="የከፈሉበት ማረጋገጫ (SMS / ፎቶ)" data-lang-en="Payment Confirmation (SMS / Photo)">የከፈሉበት ማረጋገጫ (SMS / ፎቶ)</span>
-        <textarea id="m-dep-sms" class="trx-input" style="height: 50px; resize: none; font-size: 13px; margin-bottom: 5px;" placeholder="የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="የክፍያ ማረጋገጫ SMS (Text) ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="Paste the bank SMS receipt here"></textarea>
+        <textarea id="m-dep-sms" class="trx-input" style="height: 50px; resize: none; margin-bottom: 5px;" placeholder="የክፍያ ማረጋገጫ SMS ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-am="የክፍያ ማረጋገጫ SMS ኮፒ አድርገው እዚህ ይለጥፉ" data-lang-en="Paste the bank SMS receipt here"></textarea>
         
-        <!-- 🟢 አዲስ: Screenshot መላኪያ (UI) 🟢 -->
+        <!-- Screenshot Upload -->
         <div style="background:#020617; border: 1px dashed #334155; border-radius:8px; padding: 10px; margin-bottom: 20px; text-align:center;">
             <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:5px;" data-lang-am="ወይም Screenshot (ፎቶ) ያስገቡ" data-lang-en="Or upload a Screenshot">ወይም Screenshot (ፎቶ) ያስገቡ</span>
             <input type="file" id="m-dep-file" accept="image/*" style="font-size:11px; color:white; width:100%;">
@@ -277,6 +242,7 @@
     </div>
 </div>
 
+<!-- Withdraw Modal -->
 <div id="wit-modal-overlay" class="trx-modal-overlay" onclick="closeWithdrawModal(event)">
     <div id="wit-modal" class="trx-modal" onclick="event.stopPropagation()">
         <div class="trx-header">
@@ -292,10 +258,10 @@
         </div>
         <span class="trx-label" data-lang-am="የእርስዎ ስልክ ቁጥር/አካውንት" data-lang-en="Your Phone/Account Number">የእርስዎ ስልክ ቁጥር/አካውንት</span>
         <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
-        <span class="trx-hint" style="margin-bottom: 10px;">&nbsp;</span>
+        <span style="display: block; margin-bottom: 10px;">&nbsp;</span>
         <span class="trx-label" data-lang-am="መጠን (ብር)" data-lang-en="Amount (ETB)">መጠን (ብር)</span>
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
-        <span class="trx-hint" style="margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
+        <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
         <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn" data-lang-am="ወጪ ጠይቅ" data-lang-en="Request Withdraw">ወጪ ጠይቅ</button>
     </div>
 </div>
@@ -307,8 +273,8 @@
         <input type="password" id="pw-new" class="pw-input" placeholder="New Password (min 4)">
         <input type="password" id="pw-conf" class="pw-input" placeholder="Confirm New Password">
         <div class="pw-btn-row">
-            <button class="pw-btn cancel" onclick="document.getElementById('pw-modal-overlay').style.display='none'">CANCEL</button>
-            <button class="pw-btn save" onclick="savePassword()">SAVE</button>
+            <button class="pw-btn cancel" style="background:#1e293b; color:#94a3b8;" onclick="document.getElementById('pw-modal-overlay').style.display='none'">CANCEL</button>
+            <button class="pw-btn save" style="background:var(--faded-green); color:#000;" onclick="savePassword()">SAVE</button>
         </div>
     </div>
 </div>
@@ -318,16 +284,13 @@
     <div class="auth-card">
         <h1 style="color:var(--faded-green); margin:0; font-weight: 900; letter-spacing: 1px;">BINGO STREAM</h1>
         <p id="auth-subtitle" style="font-size: 13px; color: var(--text-gray); margin-bottom: 25px;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
-        
         <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)">
         <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (Phone Number)">
         <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (Password)" onkeyup="v()">
-        
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 15px 0; color: var(--text-gray); line-height: 1.8;">
             <input type="checkbox" id="c1" onchange="v()"> <span>እድሜዬ 21+ መሆኑን አረጋግጣለሁ</span><br>
             <input type="checkbox" id="c2" onchange="v()"> <span>በውልና ደንቦች እስማማለሁ</span>
         </div>
-        
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (Register)</button>
         <p style="font-size: 13px; color: var(--faded-green); cursor: pointer; margin-top: 20px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
     </div>
@@ -364,11 +327,17 @@
             <span id="lang-en" class="lang-inactive">EN</span>
         </div>
     </div>
+    
+    <!-- 🟢 የሚያምር ሎጎ Home Page ላይ 🟢 -->
+    <div style="text-align: center; margin-bottom: 15px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 900; background: linear-gradient(to right, #ffffff, #4ade80, #ffffff); -webkit-background-clip: text; color: transparent; text-shadow: 0px 4px 15px rgba(74, 222, 128, 0.5); letter-spacing: 1px;">ቢንጎ ሀበሻ</h1>
+        <div style="color: white; font-size: 10px; letter-spacing: 3px; font-weight: bold; opacity: 0.8;">BINGO HABESHA</div>
+    </div>
 
     <div class="new-timer-box">
         <div class="nt-left">
             <div class="nt-status" data-lang-am="ጨዋታው ሊጀምር ነው" data-lang-en="Game starting soon">ጨዋታው ሊጀምር ነው</div>
-            <div class="nt-value" id="timer" style="color: var(--faded-green);">00:35</div> 
+            <div class="nt-value" id="timer">00:35</div> 
         </div>
         <div class="nt-right">
             <div class="nt-badge" data-lang-am="ደራሽ" data-lang-en="JACKPOT">ደራሽ</div>
@@ -407,7 +376,6 @@
         <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
-        <!-- 🟢 የተስተካከለ የኳስ ቆጣሪ (0/20) 🟢 -->
         <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
     
@@ -417,17 +385,14 @@
         <div class="master-board-wrapper"> 
             <div id="master-board" class="mb-board"></div>
         </div>
-        
         <div class="right-panel-stack">
             <div class="caller-box">
                 <div id="caller-ball" class="caller-ball">--</div>
             </div>
-            
             <div class="tickets-history-box">
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;" data-lang-am="የእኔ ካርቴላ (My Ticket)" data-lang-en="My Ticket">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
-            
             <div class="live-circle-badge">
                 <div class="live-indicator" style="font-size: 8px;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div>
                 <div style="font-size:7px; color:#94a3b8; font-weight:bold;" data-lang-am="ደራሽ" data-lang-en="Jackpot">ደራሽ</div>
@@ -460,7 +425,7 @@
 <div id="wallet-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 20px;" data-lang-am="የእኔ ሂሳብ (Wallet)" data-lang-en="My Wallet">የእኔ ሂሳብ (Wallet)</h3>
     <div style="background: linear-gradient(135deg, #0b111a, #131b2f); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; border: 1px solid var(--border-color); text-align: center;">
-        <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;" data-lang-am="ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያላስገቡት/Deposit)</span>" data-lang-en="Main Balance <span style='font-size:9px; color:#fbbf24;'>(Deposit)</span>">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያላስገቡት/Deposit)</span></div>
+        <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;" data-lang-am="ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያላስገቡት/Deposit)</span>" data-lang-en="Main Balance <span style='font-size:9px; color:#fbbf24;'>(Deposit)</span>">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያሸነፉት/ወጪ የሚደረግ)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 5px 0; font-family: monospace;" id="main-bal">0.00</div>
         <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px; display: inline-block;" data-lang-am="መጫወቻ ሂሳብ: <b style='color:#38bdf8;'><span id='play-bal-am'>0.00</span> ETB</b>" data-lang-en="Play Balance: <b style='color:#38bdf8;'><span id='play-bal-en'>0.00</span> ETB</b>">
             መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b>
@@ -471,7 +436,6 @@
         </div>
     </div>
     
-    <!-- 🟢 የሂሳብ ዝውውር ታሪክ ከሰርቨር ይሳባል 🟢 -->
     <div style="margin-top: 30px; padding: 0 10px;">
         <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;" data-lang-am="የሂሳብ ዝውውር ታሪክ (Approved)" data-lang-en="Transaction History (Approved)">የሂሳብ ዝውውር ታሪክ (Approved)</h4>
         <div id="wallet-history-list">
@@ -518,7 +482,6 @@
     </div>
 </div>
 
-<!-- BOTTOM NAV -->
 <nav id="navbar" class="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span>Home</span></div>
     <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span>Ticket</span></div>
@@ -546,7 +509,6 @@
 
     buildMasterBoard();
 
-    // MODAL LOGIC 
     function openDepositModal() {
         document.getElementById('dep-modal-overlay').style.display = 'flex';
         setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10);
@@ -604,7 +566,6 @@
             }); 
             let data = await res.json(); 
             
-            // 🟢 ታሪክ መመዝገብ ያለበት አድሚን ሲያፀድቀው ስለሆነ ከዚህ ላይ አጠፋሁት
             alert(data.message); 
             
             document.getElementById('m-dep-amt').value = ''; 
@@ -627,8 +588,9 @@
         if(!phone) return alert(currentLang === 'am' ? "እባክዎ ስልክ ቁጥር ያስገቡ!" : "Please enter a phone number!");
         if(!amt || amt < 50 || amt > 300000) return alert(currentLang === 'am' ? "መጠን በ 50 እና 300,000 መሃል መሆን አለበት!" : "Amount must be between 50 and 300,000 ETB!");
         
-        let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
-        if(amt > currentPlayBal) return alert(currentLang === 'am' ? "በመጫወቻ (Play) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ማውጣት የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Play Balance! You can only withdraw won money."); 
+        // 🟢 ትክክለኛው ህግ: ወጪ የሚጠየቀው ካሸነፈው (Main Balance) ብቻ ነው 🟢
+        let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
+        if(amt > currentMainBal) return alert(currentLang === 'am' ? "በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! ወጪ ማድረግ የሚቻለው ያሸነፉትን ብር ብቻ ነው።" : "Insufficient Main Balance! You can only withdraw won money."); 
         
         let btn = document.getElementById('m-wit-btn');
         btn.innerText = currentLang === 'am' ? "እየላከ ነው..." : "Sending...";
@@ -768,7 +730,6 @@
                     if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${top3[2].won} ETB</div></div>`;
                     html += '</div>';
                     
-                    // 🟢 አዲስ: የሚያምር የ 4-10 ደረጃ 🟢
                     others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; });
                     content.innerHTML = html;
                 }
@@ -776,7 +737,6 @@
         } catch(e) { content.innerHTML = `<p style="text-align:center; color:var(--red);">${currentLang === 'am' ? 'ስህተት አጋጥሟል' : 'Error occurred'}</p>`; }
     }
 
-    // 🟢 አዲስ: Transaction History ከሰርቨር ይስባል 🟢
     async function loadTransactionHistory() {
         if(!currentUser) return;
         const hc = document.getElementById('wallet-history-list');
@@ -814,7 +774,6 @@
     socket.on('balance_updated', async (phone) => {
         if(currentUser && phone === currentUser.phone) { 
             await fetchUpdatedBalance(); 
-            // ዎሌት ላይ ከሆነ ታሪኩን ሪፍሬሽ ያደርገዋል
             if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory();
         }
     });
@@ -827,7 +786,6 @@
     function renderGridTakenStates() {
         document.querySelectorAll('.num-btn').forEach(btn => {
             let num = parseInt(btn.innerText);
-            
             let isMine = userTicketsData && userTicketsData.some(t => t.id === num);
             let isTakenGlobally = globalTakenTickets.includes(num);
 
@@ -839,7 +797,6 @@
                 btn.classList.add('taken');
                 btn.classList.remove('selected');
                 btn.classList.remove('bought-by-me');
-                
                 if(selected.includes(num)) {
                     selected = selected.filter(x => x !== num);
                     pendingTicketsData = pendingTicketsData.filter(t => t.id !== num);
@@ -872,6 +829,7 @@
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
                 
+                // 🟢 አዲስ: ጌም ሲያልቅ የነበሩት ካርቴላዎች እና ቀለሞች ይጠፋሉ (Clear) 🟢
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">${currentLang === 'am' ? 'ገና አልጀመረም...' : 'Not started yet...'}</span>`;
@@ -930,31 +888,31 @@
         });
     });
 
-    // 🟢 አዲስ: ውብ የሆነው የቢንጎ አሸናፊ ካርቴላ እዚህ ላይ ይሰራል 🟢
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         document.getElementById('win-name').innerText = data.winnerName; 
         document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
         document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         
+        // 🟢 አዲስ: ዘመናዊ ነጭ የቢንጎ አሸናፊ ካርቴላ 🟢
         let g = data.ticketGrid;
         let cld = data.calledNumbers;
         
-        let html = `<div class="preview-t-grid" style="width:230px; transform: scale(1.1); transform-origin: center; box-shadow: 0 0 30px rgba(74, 222, 128, 0.4); border-radius: 12px; overflow: hidden; background: #111827; border: 2px solid #4ade80;">`;
+        let html = `<div class="preview-t-grid" style="width:230px; transform: scale(1.1); transform-origin: center; box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); border-radius: 12px; overflow: hidden; background: #ffffff; border: 2px solid #4ade80;">`;
         for(let i=0; i<5; i++) { 
-            html += `<div class="preview-t-head" style="background:rgba(74, 222, 128, 0.3); color:white; height:35px; font-size:18px; border-bottom: 2px solid #4ade80; border-right: 1px solid #1e293b;">${bHeads[i]}</div>`; 
+            html += `<div class="preview-t-head" style="background:rgba(74, 222, 128, 0.2); color:#000; height:35px; font-size:18px; border-bottom: 2px solid #4ade80; border-right: 1px solid #e2e8f0;">${bHeads[i]}</div>`; 
         }
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
                 let num = g[c][r];
-                let borders = "border-right: 1px solid #1e293b; border-bottom: 1px solid #1e293b;";
+                let borders = "border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;";
                 
                 if(r===2 && c===2) {
-                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#fbbf24; text-shadow: 0 0 15px #fbbf24; ${borders}">★</div>`;
+                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.6); ${borders}">★</div>`;
                 } else if(cld.includes(num)) {
-                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#4ade80; text-shadow: 0 0 15px #4ade80; ${borders}">★</div>`;
+                    html += `<div class="preview-t-cell" style="background:transparent; height:40px; font-size:24px; color:#4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.6); ${borders}">★</div>`;
                 } else {
-                    html += `<div class="preview-t-cell" style="background:transparent; color:#94a3b8; height:40px; font-size:16px; font-weight:bold; ${borders}">${num}</div>`;
+                    html += `<div class="preview-t-cell" style="background:transparent; color:#475569; height:40px; font-size:16px; font-weight:bold; ${borders}">${num}</div>`;
                 }
             }
         }
@@ -1027,8 +985,14 @@
             return;
         }
 
-        let betAmount = selected.length * 10; let currentBal = parseFloat(currentUser.mainBalance) || 0;
-        if(currentBal < betAmount) { alert(currentLang === 'am' ? "በዋና ሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከዋና ሂሳብ ላይ ነው።" : "Insufficient Main Balance! Bets are placed from your main balance."); return; }
+        let betAmount = selected.length * 10; 
+        let currentPlayBal = parseFloat(currentUser.playBalance) || 0;
+        let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
+        
+        if((currentPlayBal + currentMainBal) < betAmount) { 
+            alert(currentLang === 'am' ? "በሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መወራረድ የሚቻለው ከ Play Wallet ከዚያም ከ Main Wallet ነው።" : "Insufficient Balance!"); 
+            return; 
+        }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
@@ -1110,7 +1074,6 @@
         if(id !== 'home') document.getElementById('bet-slip-popup').classList.remove('show');
         else if(selected.length > 0) document.getElementById('bet-slip-popup').classList.add('show');
         
-        // 🟢 አዲስ: ወደ ዎሌት ገፅ ሲገባ የታሪክን ዝርዝር ከሰርቨር ይስባል 🟢
         if(id === 'wallet') loadTransactionHistory();
         
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
