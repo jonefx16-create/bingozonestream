@@ -99,9 +99,9 @@
         #game-page .mb-head { background: var(--faded-green); color: white; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
         #game-page .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; color: var(--text-gray); transition: 0.2s;}
         
-        /* 🟢 Master Board ደመቅ ያለ አረንጓዴ (Darker/Vibrant Green) 🟢 */
-        #game-page .mb-cell.called { background: #16a34a; color: #ffffff; font-weight: 900; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);}
-        #game-page .mb-cell.current { background: #22c55e; color: black; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 10px #22c55e; border: 2px solid white;}
+        /* 🟢 Master Board ፈዘዝ ያለ ሰማያዊ (Faded Blue) 🟢 */
+        #game-page .mb-cell.called { background: rgba(59, 130, 246, 0.3); color: #93c5fd; font-weight: 900; border: 1px solid rgba(59, 130, 246, 0.5); box-shadow: inset 0 0 8px rgba(0,0,0,0.5);}
+        #game-page .mb-cell.current { background: var(--blue); color: white; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 12px var(--blue); border: 2px solid white;}
         
         #game-page .right-panel-stack { width: 42%; flex: 0 0 42%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         
@@ -356,12 +356,13 @@
         </div>
     </div>
     
+    <!-- 🟢 1. የ Home Page ርዕስ ከዚህ በፊት ወደ ነበረው ተመልሷል 🟢 -->
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
-            <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.8); background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 30px; display: inline-block; border: 2px solid rgba(255,255,255,0.3);">BINGO</span> 
+            <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
             <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
         </h1>
-        <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 5px;">BINGO HABESHA</div>
+        <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
     </div>
 
     <div class="new-timer-box">
@@ -502,7 +503,6 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <!-- 🟢 Telegram Help Button 🟢 -->
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/Bingohabesha'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span style="color:var(--cyan);" data-lang-am="እርዳታ ያስፈልጎታል?" data-lang-en="Need Help?">እርዳታ ያስፈልጎታል?</span></div>
             <span style="color:var(--cyan)">></span>
@@ -934,7 +934,7 @@
         let g = data.ticketGrid;
         let cld = data.calledNumbers;
         
-        /* 🟢 2. አሸናፊው ካርቴላ ብቻ 100% ኦቫል (Oval/Pill) ሆነ 🟢 */
+        /* 🟢 አሸናፊው ካርቴላ 100% ኦቫል (Oval/Pill) 🟢 */
         let html = `<div style="width:200px; margin: 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
         html += `<div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
         for(let i=0; i<5; i++) { 
@@ -999,7 +999,6 @@
         if(selected.length > 0) {
             popup.classList.add('show'); document.getElementById('slip-count').innerText = selected.length; document.getElementById('slip-price').innerText = selected.length * 10;
             pendingTicketsData.forEach(t => {
-                /* 🟢 1. ሲገዙ የሚታየው BINGO ፅሁፍ (White Glow) 🟢 */
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
                 let html = `<div style="text-align:center; font-size:10px; font-weight:bold; color:#1e293b; padding:1px;">#${t.id}</div><div class="preview-t-grid">`;
                 for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color: #ffffff; text-shadow: 0 0 5px #ffffff;">${bHeads[i]}</div>`; }
@@ -1060,7 +1059,6 @@
             let card = document.createElement('div'); card.className = 't-card'; 
             let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
             
-            /* 🟢 5. #ID እና ፈዘዝ ያለው ወደ ታች የሚነበበው (Vertical) ፅሁፍ (BINGO HABESHA CARTELA) 🟢 */
             let htmlMain = `<div style="text-align:center; font-size:11px; font-weight:900; margin-bottom:3px; color:#1e293b;">#${id}</div>`; 
             htmlMain += `<div style="display:flex; align-items:center;">
                             <div style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 7px; color: #94a3b8; opacity: 0.5; font-weight:900; white-space:nowrap; margin-right:3px; letter-spacing:1px;">BINGO HABESHA CARTELA</div>
