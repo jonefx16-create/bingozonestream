@@ -118,7 +118,9 @@
         .t-id-badge { text-align: center; font-size: 11px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .mini-t-id-badge { text-align: center; font-size: 10px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .t-grid-wrapper { display: flex; flex-grow: 1; min-height: 0; align-items: stretch; }
-        .t-side-text { writing-mode: vertical-rl; transform: rotate(180deg); color: #94a3b8; opacity: 0.5; font-weight: 900; margin-right: 2px; letter-spacing: 1px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        
+        /* 🔥 BINGO HABESHA SIDE TEXT (Very Small) 🔥 */
+        .t-side-text { writing-mode: vertical-rl; transform: rotate(180deg); color: #94a3b8; opacity: 0.5; font-weight: normal; font-size: 4px !important; margin-right: 2px; letter-spacing: 0.5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 1px; background: #e2e8f0; flex-grow: 1; min-height: 0;}
         .mini-t-head { color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: clamp(7px, 1.5vh, 12px); padding: 2px 0; min-height: 0;}
@@ -129,11 +131,19 @@
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
 
-        /* 🟢 TICKETS PAGE FIT SCREEN (COMPRESSED MB & 2x2 TICKETS WITH GAPS) 🟢 */
+        /* 🟢 TICKETS PAGE FIT SCREEN (COMPRESSED MB & 2x2 TICKETS) 🟢 */
         #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
         
         .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
         
+        /* 🔥 Ticket Page Header Badges (Balls & Prize) 🔥 */
+        .t-page-badges { display: flex; justify-content: center; gap: 15px; margin-bottom: 5px; }
+        .t-badge-box { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--cyan); border-radius: 8px; padding: 5px 12px; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.2); }
+        .t-badge-box span { font-size: 9px; color: var(--text-gray); font-weight: bold; text-transform: uppercase; }
+        .t-badge-box b { font-size: 14px; color: var(--white); font-family: monospace; }
+        .t-badge-box.prize-b { border-color: var(--faded-green); box-shadow: inset 0 0 8px rgba(74, 222, 128, 0.2); }
+        .t-badge-box.prize-b b { color: var(--faded-green); }
+
         /* 🔥 Ticket Masterboard: Compressed perfectly to fit in screen 🔥 */
         #ticket-mb-container { display: none; width: 90%; max-width: 350px; margin: 0 auto 6px auto; flex: 0 0 24vh; min-height: 0; }
         #ticket-page.show-mb #ticket-mb-container { display: flex; flex-direction: column; }
@@ -163,6 +173,10 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 15px #ffffff; } to { transform: scale(1.05); text-shadow: 0 0 25px #ffffff, 0 0 40px rgba(255,255,255,0.9); } }
         .winner-card { background: transparent; padding: 10px; width: 90%; max-width: 400px;}
         #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
+
+        /* 🔥 Back to Game Button (Winner Overlay) 🔥 */
+        .close-win-btn { margin-top: 20px; background: #ffffff; color: #0f172a; border: none; padding: 10px 25px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.3); transition: 0.2s;}
+        .close-win-btn:active { transform: scale(0.95); }
 
         /* Ranks */
         .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 20px; padding-top: 30px; }
@@ -228,6 +242,9 @@
             <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
             <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">0 ETB</h1>
         </div>
+        
+        <!-- 🔥 Back to Game Button 🔥 -->
+        <button class="close-win-btn" onclick="document.getElementById('bingo-overlay').style.display='none'">ወደ ጨዋታው ተመለስ (Back to Game)</button>
     </div>
 </div>
 
@@ -300,6 +317,7 @@
 
 <!-- 1. AUTH PAGE -->
 <div id="auth-page" class="page active-page">
+    
     <div class="auth-card">
         <div style="text-align: center; margin-bottom: 10px;">
             <h1 style="margin: 0; font-size: 42px; font-weight: 900; letter-spacing: 2px;">
@@ -308,50 +326,92 @@
             </h1>
             <div style="color: #94a3b8; font-size: 13px; font-weight: bold; letter-spacing: 6px; margin-top: 5px; text-transform: uppercase;">BINGO HABESHA</div>
         </div>
+        
         <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
-        <div class="input-group" id="name-group"><input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()"></div>
-        <div class="input-group"><input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (09... ወይም 07...)" onkeyup="v()"></div>
-        <div class="input-group"><input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()"><span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span></div>
-        <div class="input-group" id="ref-group"><input type="text" id="reg-ref" class="auth-input ref-input" placeholder="የጋበዝዎት ሰው ኮድ (ካለዎት)" onkeyup="v()"></div>
+        
+        <div class="input-group" id="name-group">
+            <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()">
+        </div>
+        
+        <div class="input-group">
+            <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (09... ወይም 07...)" onkeyup="v()">
+        </div>
+        
+        <div class="input-group">
+            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()">
+            <span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span>
+        </div>
+
+        <div class="input-group" id="ref-group">
+            <input type="text" id="reg-ref" class="auth-input ref-input" placeholder="የጋበዝዎት ሰው ኮድ (ካለዎት)" onkeyup="v()">
+        </div>
+        
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
         </div>
+        
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
         <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
-        <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span></button>
+        
+        <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">
+            📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span>
+        </button>
     </div>
 </div>
 
 <!-- TOP HEADER -->
 <div id="global-header" class="top-balance" style="display:none;">
-    <div class="hdr-user-sec"><div class="icon">👤</div><div><div id="hdr-name" class="name">User</div><div id="hdr-phone" class="phone">09...</div></div></div>
+    <div class="hdr-user-sec">
+        <div class="icon">👤</div>
+        <div>
+            <div id="hdr-name" class="name">User</div>
+            <div id="hdr-phone" class="phone">09...</div>
+        </div>
+    </div>
     <div class="hdr-wallets-right">
-        <div class="pill-wallet"><span class="title play">PLAY WALLET</span><span class="amt" id="hdr-play-balance">0.00</span></div>
-        <div class="pill-wallet"><span class="title main">MAIN WALLET</span><span class="amt" id="hdr-main-balance">0.00</span></div>
+        <div class="pill-wallet">
+            <span class="title play">PLAY WALLET</span><span class="amt" id="hdr-play-balance">0.00</span>
+        </div>
+        <div class="pill-wallet">
+            <span class="title main">MAIN WALLET</span><span class="amt" id="hdr-main-balance">0.00</span>
+        </div>
     </div>
 </div>
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;"><span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span></h1>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
+            <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
+            <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
+        </h1>
         <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
     </div>
+
     <div class="new-timer-box">
-        <div class="nt-left"><div class="nt-status">ጨዋታው ሊጀምር ነው</div><div class="nt-value" id="timer">00:40</div></div>
-        <div class="nt-right"><div class="nt-badge">ደራሽ</div><div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div></div>
+        <div class="nt-left">
+            <div class="nt-status">ጨዋታው ሊጀምር ነው</div>
+            <div class="nt-value" id="timer">00:40</div> 
+        </div>
+        <div class="nt-right">
+            <div class="nt-badge">ደራሽ</div>
+            <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
+        </div>
     </div>
+
     <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px; z-index: 1000;">
         <div class="live-indicator"><span class="dot"></span> LIVE</div>
         <div style="font-size:8px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
         <div class="jp-amount"><span id="h-jp-amt-2">0</span></div>
         <div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
     </div>
+    
     <div class="grid-subtitle-row" style="margin-top: 15px;">
         <div class="gs-left">ካርቴላ ይምረጡ (10 ብር)</div>
         <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div>
     </div>
+
     <div id="grid-box" class="num-grid"></div>
 </div>
 
@@ -376,7 +436,9 @@
     <div id="history-scroll-top" class="history-top-bar"></div>
     
     <div class="game-layout-container"> 
-        <div class="master-board-wrapper"><div id="master-board" class="mb-board"></div></div>
+        <div class="master-board-wrapper"> 
+            <div id="master-board" class="mb-board"></div>
+        </div>
         <div class="right-panel-stack">
             <div class="caller-box" style="position: relative;">
                 <div id="caller-ball" class="caller-ball">--</div>
@@ -384,7 +446,6 @@
             </div>
             <div class="tickets-history-box">
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">የእኔ ካርቴላ (My Ticket)</div>
-                <!-- Mini tickets fixed so IDs show properly -->
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
             <div class="live-circle-badge">
@@ -397,10 +458,15 @@
     </div>
 </div>
 
-<!-- 4. TICKETS PAGE -->
+<!-- 4. TICKETS PAGE (MASTER BOARD & 2x2 TICKETS FIT TO SCREEN WITH GAPS AND ARROW) -->
 <div id="ticket-page" class="page">
     <div class="ticket-top-section">
-        <h3 style="text-align:center; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
+        
+        <!-- 🔥 New Top Badges (Balls & Prize) 🔥 -->
+        <div class="t-page-badges">
+            <div class="t-badge-box"><span>Balls</span><b id="t-page-balls">0/20</b></div>
+            <div class="t-badge-box prize-b"><span>Prize Pool</span><b id="t-page-prize">0.00 ETB</b></div>
+        </div>
         
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;">
@@ -410,7 +476,7 @@
         </div>
 
         <!-- 👁️ Button with Arrow -->
-        <div style="text-align: center;">
+        <div style="text-align: center; margin-top: 5px;">
             <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
                 👁️ ሙሉ ቦርድ እይ (Master Board) <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span>
             </button>
@@ -419,12 +485,12 @@
         <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
 
-    <!-- Ticket Master Board -->
+    <!-- Ticket Master Board: Compressed -->
     <div id="ticket-mb-container">
         <div id="ticket-master-board" class="mb-board"></div>
     </div>
     
-    <!-- Tickets List Grid -->
+    <!-- Tickets List (2x2 Grid) -->
     <div id="ticket-list"></div>
 </div>
 
@@ -770,6 +836,10 @@
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
         let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
+        
+        // 🔥 UPDATE BALLS & PRIZE IN TICKET PAGE TOO 🔥
+        let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = data.totalPrizePool.toFixed(2) + " ETB";
+        
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
         if (data.state === "WAITING") {
@@ -786,7 +856,9 @@
                 
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
-                document.getElementById('g-balls').innerText = "0/20"; called = []; 
+                document.getElementById('g-balls').innerText = "0/20"; 
+                document.getElementById('t-page-balls').innerText = "0/20"; // Reset Ticket page balls
+                called = []; 
                 
                 if (currentUser) {
                     userTicketsData = []; pendingTicketsData = []; selected = []; globalTakenTickets = []; 
@@ -806,7 +878,9 @@
                 currentGameState = "PLAYING"; document.getElementById('bet-slip-popup').classList.remove('show');
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
-            called = data.calledNumbers || []; document.getElementById('g-balls').innerText = called.length + "/20";
+            called = data.calledNumbers || []; 
+            document.getElementById('g-balls').innerText = called.length + "/20";
+            document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -816,7 +890,10 @@
 
     socket.on('new_number', (num) => {
         if (!isGameRunningLocally) return;
-        called.push(num); document.getElementById('g-balls').innerText = called.length + "/20"; updateLiveUI(num, true);
+        called.push(num); 
+        document.getElementById('g-balls').innerText = called.length + "/20"; 
+        document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live update
+        updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
 
@@ -925,9 +1002,8 @@
             let card = document.createElement('div'); card.className = 't-card'; 
             let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
             
-            // Layout fixes using explicit CSS classes to guarantee ID doesn't get cut
             let htmlMain = `<div class="t-id-badge">#${id}</div><div class="t-grid-wrapper"><div class="t-side-text">BINGO HABESHA</div><div class="t-grid">`;
-            let htmlMini = `<div class="mini-t-id-badge">#${id}</div><div class="t-grid-wrapper"><div class="t-side-text" style="font-size:5px;">BINGO HABESHA</div><div class="mini-t-grid">`;
+            let htmlMini = `<div class="mini-t-id-badge">#${id}</div><div class="t-grid-wrapper"><div class="t-side-text" style="font-size:3px;">BINGO HABESHA</div><div class="mini-t-grid">`;
 
             for(let i=0; i<5; i++) { 
                 htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; 
