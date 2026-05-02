@@ -92,7 +92,7 @@
         .info-val.highlight { color: var(--cyan); text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); animation: shineCyan 1.5s infinite alternate; }
         @keyframes shineCyan { from { text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); } to { text-shadow: 0 0 15px rgba(56, 189, 248, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } }
 
-        /* 🟢 GAME PAGE STYLES (Narrow MB, Wider Tickets) 🟢 */
+        /* 🟢 GAME PAGE STYLES 🟢 */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; gap: 2%; }
         
@@ -110,11 +110,9 @@
         
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; min-height: 0; }
         
-        /* 🔥 Game Page 2x2 Mini Tickets Fix 🔥 */
         #game-page .game-mini-tickets { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px; overflow: hidden; align-content: stretch; min-height: 0; padding-bottom: 2px; }
         .mini-t-card { background: white; border-radius: 8px; border: 1px solid #ddd; padding: 2px; display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; }
         
-        /* EXPLICIT ID BADGE CSS TO PREVENT DISAPPEARING */
         .t-id-badge { text-align: center; font-size: 11px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .mini-t-id-badge { text-align: center; font-size: 10px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .t-grid-wrapper { display: flex; flex-grow: 1; min-height: 0; align-items: stretch; }
@@ -131,28 +129,26 @@
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
 
-        /* 🟢 TICKETS PAGE FIT SCREEN (COMPRESSED MB & 2x2 TICKETS) 🟢 */
+        /* 🟢 TICKETS PAGE STYLES 🟢 */
         #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
         
-        .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+        .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; position: relative;}
         
-        /* 🔥 Ticket Page Header Badges (Balls & Prize) 🔥 */
-        .t-page-badges { display: flex; justify-content: center; gap: 15px; margin-bottom: 5px; }
-        .t-badge-box { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--cyan); border-radius: 8px; padding: 5px 12px; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.2); }
+        /* 🔥 Ticket Page Header Badges (Balls Normal, Prize Cyan) Top Right 🔥 */
+        .t-page-badges-container { position: absolute; top: 0; right: 5px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; z-index: 10; }
+        .t-badge-box { background: transparent; display: flex; align-items: center; gap: 5px; }
         .t-badge-box span { font-size: 9px; color: var(--text-gray); font-weight: bold; text-transform: uppercase; }
-        .t-badge-box b { font-size: 14px; color: var(--white); font-family: monospace; }
-        .t-badge-box.prize-b { border-color: var(--faded-green); box-shadow: inset 0 0 8px rgba(74, 222, 128, 0.2); }
-        .t-badge-box.prize-b b { color: var(--faded-green); }
+        .t-badge-box b { font-size: 12px; color: var(--white); font-family: monospace; }
+        .t-badge-box.prize-b { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; padding: 2px 6px; box-shadow: inset 0 0 5px rgba(56, 189, 248, 0.2); }
+        .t-badge-box.prize-b b { color: var(--cyan); }
 
-        /* 🔥 Ticket Masterboard: Compressed perfectly to fit in screen 🔥 */
-        #ticket-mb-container { display: none; width: 90%; max-width: 350px; margin: 0 auto 6px auto; flex: 0 0 24vh; min-height: 0; }
+        #ticket-mb-container { display: none; width: 85%; max-width: 320px; margin: 0 auto 6px auto; flex: 0 0 24vh; min-height: 0; }
         #ticket-page.show-mb #ticket-mb-container { display: flex; flex-direction: column; }
         
         #ticket-master-board { height: 100%; }
         #ticket-master-board .mb-head { font-size: 1.2vh; padding: 1px 0; min-height: 0;}
         #ticket-master-board .mb-cell { font-size: 1.4vh; line-height: 1; min-height: 0; padding: 0;}
         
-        /* 🔥 Ticket List: 2x2 Grid using exact remaining space 🔥 */
         #ticket-list { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; box-sizing: border-box; overflow: hidden; align-content: start; min-height: 0; padding-bottom: 4px; padding-top: 4px;}
         #ticket-page.show-mb #ticket-list { grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px; } 
 
@@ -175,7 +171,7 @@
         #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
 
         /* 🔥 Back to Game Button (Winner Overlay) 🔥 */
-        .close-win-btn { margin-top: 20px; background: #ffffff; color: #0f172a; border: none; padding: 10px 25px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.3); transition: 0.2s;}
+        .close-win-btn { margin-top: 15px; background: #ffffff; color: #0f172a; border: none; padding: 8px 20px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.3); transition: 0.2s;}
         .close-win-btn:active { transform: scale(0.95); }
 
         /* Ranks */
@@ -243,8 +239,8 @@
             <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">0 ETB</h1>
         </div>
         
-        <!-- 🔥 Back to Game Button 🔥 -->
-        <button class="close-win-btn" onclick="document.getElementById('bingo-overlay').style.display='none'">ወደ ጨዋታው ተመለስ (Back to Game)</button>
+        <!-- 🔥 Back to Game Button redirecting to Home Page 🔥 -->
+        <button class="close-win-btn" onclick="closeWinnerOverlayAndGoHome()">ወደ ጨዋታው ተመለስ</button>
     </div>
 </div>
 
@@ -458,24 +454,25 @@
     </div>
 </div>
 
-<!-- 4. TICKETS PAGE (MASTER BOARD & 2x2 TICKETS FIT TO SCREEN WITH GAPS AND ARROW) -->
+<!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <div class="ticket-top-section">
         
-        <!-- 🔥 New Top Badges (Balls & Prize) 🔥 -->
-        <div class="t-page-badges">
-            <div class="t-badge-box"><span>Balls</span><b id="t-page-balls">0/20</b></div>
-            <div class="t-badge-box prize-b"><span>Prize Pool</span><b id="t-page-prize">0.00 ETB</b></div>
+        <!-- 🔥 New Top Badges (Balls Normal, Prize Cyan) Top Right 🔥 -->
+        <div class="t-page-badges-container">
+            <div class="t-badge-box"><span>Balls:</span><b id="t-page-balls">0/20</b></div>
+            <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
         </div>
+        
+        <h3 style="text-align:left; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
         
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;">
                 <div id="ticket-caller-ball" class="caller-ball" style="width: 35px; height: 35px; font-size: 12px; border-width: 3px;">--</div>
             </div>
-            <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 50px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
+            <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 50px; padding-right: 90px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
         </div>
 
-        <!-- 👁️ Button with Arrow -->
         <div style="text-align: center; margin-top: 5px;">
             <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
                 👁️ ሙሉ ቦርድ እይ (Master Board) <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span>
@@ -485,12 +482,12 @@
         <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
 
-    <!-- Ticket Master Board: Compressed -->
+    <!-- Ticket Master Board -->
     <div id="ticket-mb-container">
         <div id="ticket-master-board" class="mb-board"></div>
     </div>
     
-    <!-- Tickets List (2x2 Grid) -->
+    <!-- Tickets List Grid -->
     <div id="ticket-list"></div>
 </div>
 
@@ -614,6 +611,12 @@
         } else {
             arrow.innerText = '▼'; 
         }
+    }
+
+    // 🔥 Close Winner Overlay and return to Home
+    function closeWinnerOverlayAndGoHome() {
+        document.getElementById('bingo-overlay').style.display = 'none';
+        showPage('home');
     }
 
     function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
