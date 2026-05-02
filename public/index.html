@@ -92,11 +92,11 @@
         .info-val.highlight { color: var(--cyan); text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); animation: shineCyan 1.5s infinite alternate; }
         @keyframes shineCyan { from { text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); } to { text-shadow: 0 0 15px rgba(56, 189, 248, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } }
 
-        /* 🟢 MASTERBOARD & GAME/TICKET STYLES 🟢 */
+        /* 🟢 MASTERBOARD & GAME PAGE STYLES 🟢 */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; gap: 2%; }
         
-        .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; }
+        .master-board-wrapper { width: 56%; flex: 0 0 56%; display: flex; flex-direction: column; justify-content: center; min-height: 0;}
         .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; }
         .mb-head { background: var(--faded-green); color: black; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
         .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; transition: 0.2s;}
@@ -108,29 +108,34 @@
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
-        #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; }
-        #game-page .game-mini-tickets { overflow-y: auto; max-height: 100%; display: flex; flex-wrap: wrap; justify-content: space-evenly; gap: 4px; scrollbar-width: none; }
-        #game-page .game-mini-tickets::-webkit-scrollbar { display: none; }
-        .mini-t-card { background: white; flex: 1 1 48%; border-radius: 8px; border: 1px solid #ddd; padding: 2px; }
-        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; }
-        .mini-t-head { color: white; height: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 9px;}
-        .mini-t-cell { background: #fff; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: #000;}
+        #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; min-height: 0; }
+        
+        /* 🔥 Game Page 2x2 Mini Tickets Fix 🔥 */
+        #game-page .game-mini-tickets { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; overflow: hidden; align-content: start; min-height: 0; }
+        .mini-t-card { background: white; border-radius: 8px; border: 1px solid #ddd; padding: 2px; display: flex; flex-direction: column; box-sizing: border-box; }
+        .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1px; background: #e2e8f0; flex-grow: 1; min-height: 0;}
+        .mini-t-head { color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: clamp(6px, 1.2vh, 10px); padding: 2px 0;}
+        .mini-t-cell { background: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: clamp(6px, 1.2vh, 10px); color: #000;}
         .mini-t-cell.marked { background: #000 !important; color: #fff !important; }
 
         .history-top-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); align-items: center; scrollbar-width: none; flex-shrink: 0; min-height: 45px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
 
-        .list-card { background: var(--panel); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        /* 🟢 TICKETS PAGE FIT SCREEN (2x2 + MASTERBOARD) 🟢 */
+        #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
         
-        /* 🟢 TICKETS PAGE FIT SCREEN 🟢 */
-        #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 10px; box-sizing: border-box; }
-        #ticket-list { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; box-sizing: border-box; overflow-y: auto; scrollbar-width: none; padding-bottom: 15px; align-content: flex-start;}
-        #ticket-list::-webkit-scrollbar { display: none; }
+        .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
         
-        .t-card { background: #fff; color: #000; border-radius: 12px; padding: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd;}
-        .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #000;}
-        .t-cell { background: #fff; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
+        #ticket-mb-container { display: none; width: 100%; flex: 0 0 45%; margin-bottom: 5px; min-height: 0; }
+        #ticket-page.show-mb #ticket-mb-container { display: flex; flex-direction: column; }
+        
+        #ticket-list { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; width: 100%; box-sizing: border-box; overflow: hidden; align-content: start; min-height: 0;}
+        #ticket-page.show-mb #ticket-list { grid-template-rows: repeat(2, 1fr); } /* Force 2x2 fit when MB is open */
+
+        .t-card { background: #fff; color: #000; border-radius: 8px; padding: 3px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd; display: flex; flex-direction: column; box-sizing: border-box; min-height: 0;}
+        .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1px; background: #000; flex-grow: 1; min-height: 0;}
+        .t-cell { background: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(8px, 1.8vh, 14px); }
         .t-cell.marked { background: #000 !important; color: white !important;}
 
         /* Bingo Winner Overlay */
@@ -418,30 +423,32 @@
     </div>
 </div>
 
-<!-- 4. TICKETS PAGE (MODIFIED FOR MASTER BOARD) -->
+<!-- 4. TICKETS PAGE (MASTER BOARD & 2x2 TICKETS FIT TO SCREEN) -->
 <div id="ticket-page" class="page">
-    <h3 style="text-align:center; color:var(--faded-green); margin-top: 0; margin-bottom: 5px; font-size: 18px;">የእኔ ካርቴላዎች</h3>
-    
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-shrink: 0;">
-        <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0; flex-shrink: 0;">
-            <div id="ticket-caller-ball" class="caller-ball" style="width: 35px; height: 35px; font-size: 12px; border-width: 3px;">--</div>
+    <div class="ticket-top-section">
+        <h3 style="text-align:center; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
+        
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;">
+                <div id="ticket-caller-ball" class="caller-ball" style="width: 35px; height: 35px; font-size: 12px; border-width: 3px;">--</div>
+            </div>
+            <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 50px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
         </div>
-        <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 50px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
-    </div>
 
-    <!-- 👁️ Button -->
-    <div style="text-align: center; margin-bottom: 8px; flex-shrink: 0;">
-        <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer;">👁️ ሙሉ ቦርድ እይ (Master Board)</button>
+        <!-- 👁️ Button -->
+        <div style="text-align: center;">
+            <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer;">👁️ ሙሉ ቦርድ እይ (Master Board)</button>
+        </div>
+        
+        <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
 
     <!-- Ticket Master Board (Hidden by default) -->
-    <div id="ticket-mb-container" style="display: none; flex-shrink: 0; height: 32vh; margin-bottom: 10px;">
-        <div id="ticket-master-board" class="mb-board" style="height: 100%;"></div>
+    <div id="ticket-mb-container">
+        <div id="ticket-master-board" class="mb-board"></div>
     </div>
-
-    <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 0 0 5px 0; flex-shrink: 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     
-    <!-- Tickets List (Scrollable) -->
+    <!-- Tickets List (2x2 Grid, Auto sizes to fit screen) -->
     <div id="ticket-list"></div>
 </div>
 
@@ -554,13 +561,10 @@
         if(st) st.innerText = isSoundOn ? '🔊' : '🔇';
     }
 
+    // Toggle the Masterboard in Ticket Page
     function toggleTicketMasterBoard() {
-        const container = document.getElementById('ticket-mb-container');
-        if (container.style.display === 'none' || container.style.display === '') {
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
+        const page = document.getElementById('ticket-page');
+        page.classList.toggle('show-mb');
     }
 
     function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
@@ -926,8 +930,8 @@
             let id = t.id; let cols = t.grid;
             let card = document.createElement('div'); card.className = 't-card'; let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
             
-            let htmlMain = `<div style="text-align:center; font-size:11px; font-weight:900; margin-bottom:3px; color:#1e293b;">#${id}</div><div style="display:flex; align-items:center;"><div style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 7px; color: #94a3b8; opacity: 0.5; font-weight:900; white-space:nowrap; margin-right:3px; letter-spacing:1px;">BINGO HABESHA</div><div class="t-grid" style="flex-grow:1;">`;
-            let htmlMini = `<div style="text-align:center; font-size:9px; font-weight:900; margin-bottom:2px; color:#1e293b;">#${id}</div><div style="display:flex; align-items:center;"><div style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 5px; color: #94a3b8; opacity: 0.5; font-weight:900; white-space:nowrap; margin-right:2px; letter-spacing:1px;">BINGO HABESHA</div><div class="mini-t-grid" style="flex-grow:1;">`;
+            let htmlMain = `<div style="text-align:center; font-size:11px; font-weight:900; margin-bottom:3px; color:#1e293b;">#${id}</div><div style="display:flex; align-items:center; flex-grow: 1; min-height: 0;"><div style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 7px; color: #94a3b8; opacity: 0.5; font-weight:900; white-space:nowrap; margin-right:3px; letter-spacing:1px;">BINGO HABESHA</div><div class="t-grid">`;
+            let htmlMini = `<div style="text-align:center; font-size:9px; font-weight:900; margin-bottom:2px; color:#1e293b;">#${id}</div><div style="display:flex; align-items:center; flex-grow: 1; min-height: 0;"><div style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 5px; color: #94a3b8; opacity: 0.5; font-weight:900; white-space:nowrap; margin-right:2px; letter-spacing:1px;">BINGO HABESHA</div><div class="mini-t-grid">`;
 
             for(let i=0; i<5; i++) { htmlMain += `<div class="t-cell" style="background:${bColors[i]}; color:white; border:none;">${bHeads[i]}</div>`; htmlMini += `<div class="mini-t-head" style="background:${bColors[i]};">${bHeads[i]}</div>`; } 
             for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { 
@@ -956,7 +960,7 @@
                 let num = r + (c * 15); 
                 let d = document.createElement('div'); 
                 d.className = 'mb-cell'; 
-                d.id = 'tmb-' + num; // Ticket specific ID
+                d.id = 'tmb-' + num; 
                 d.innerText = num; 
                 d.style.color = bColors[c]; 
                 tBoard.appendChild(d); 
