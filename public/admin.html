@@ -71,8 +71,11 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">BINGO ADMIN</div>
-        <button class="nav-btn active" onclick="switchTab('tab-tx', this)">💳 Transactions</button>
-        <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Users</button>
+        
+        <!-- ONE BUTTON FOR FINANCIAL HISTORY -->
+        <button class="nav-btn active" onclick="switchTab('tab-tx', this)">💳 Financial History</button>
+        
+        <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Registered Users</button>
         <button class="nav-btn" onclick="switchTab('tab-history', this)">🏆 Game History</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Promo & Bonus</button>
         
@@ -83,17 +86,17 @@
     <!-- Main Content -->
     <div class="main-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 id="page-title" style="margin: 0;">💳 Deposit & Withdraw</h2>
+            <h2 id="page-title" style="margin: 0;">💳 Financial History</h2>
             <button class="action-btn btn-blue" onclick="loadData()">🔄 Refresh Data</button>
         </div>
 
-        <!-- TAB 1: TRANSACTIONS -->
+        <!-- TAB 1: FINANCIAL HISTORY -->
         <div id="tab-tx" class="tab-content active">
             <div class="card">
                 <!-- Filters -->
                 <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="badge bg-all" onclick="renderTxs('All')">📂 All Transactions</button>
-                    <button class="badge bg-pending" onclick="renderTxs('Pending')">⏳ Pending Only</button>
+                    <button class="badge bg-pending" onclick="renderTxs('Pending')">⏳ Pending Requests</button>
                     <button class="badge bg-approved" onclick="renderTxs('Approved Deposit')">✅ Approved Deposits</button>
                     <button class="badge bg-approved" style="border-color:var(--orange); color:var(--orange);" onclick="renderTxs('Approved Withdraw')">💸 Approved Withdrawals</button>
                 </div>
@@ -162,16 +165,12 @@
         <p style="font-size:11px; color:var(--orange); margin-top:-10px;">ማሳሰቢያ: ስልክ ቁጥሩን ከቀየሩት የድሮው ሂሳብ እና ታሪክ ወደ አዲሱ ስልክ ቁጥር ይዛወራል።</p>
         
         <input type="hidden" id="eu-oldPhone">
-        
         <label>Phone Number</label>
         <input type="text" id="eu-phone">
-        
         <label>Password</label>
         <input type="text" id="eu-password">
-        
         <label>Main Balance (ETB - አሸንፈው ያገኙት)</label>
         <input type="number" id="eu-main" step="0.01">
-        
         <label>Play Balance (ETB - ቦነስ/ዲፖዚት)</label>
         <input type="number" id="eu-play" step="0.01">
         
@@ -194,7 +193,7 @@
 
 <script>
     let pass = "";
-    let allTxs = []; // Store all transactions globally for filtering
+    let allTxs = []; 
     
     function login() { 
         pass = document.getElementById('adminPass').value; 
@@ -207,7 +206,7 @@
         document.getElementById(tabId).classList.add('active');
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
-        const titles = { 'tab-tx': '💳 Transactions', 'tab-users': '👥 User Management', 'tab-history': '🏆 Game History', 'tab-bonus': '🎁 Promo & Bonus' };
+        const titles = { 'tab-tx': '💳 Financial History', 'tab-users': '👥 Registered Users', 'tab-history': '🏆 Game History', 'tab-bonus': '🎁 Promo & Bonus' };
         document.getElementById('page-title').innerText = titles[tabId];
     }
 
@@ -240,7 +239,7 @@
             // TRANSACTIONS
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allTxs = await tRes.json();
-            renderTxs('All'); // Default view
+            renderTxs('All'); 
 
             // GAME HISTORY
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
@@ -250,14 +249,7 @@
                 let d = new Date(h.date).toLocaleString();
                 let gridData = JSON.stringify(h.winningGrid);
                 let callData = JSON.stringify(h.calledNumbers);
-                hHtml += `<tr>
-                    <td style="font-size:11px; color:var(--text-gray);">${d}</td>
-                    <td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
-                    <td>${h.winnerName}</td>
-                    <td>${h.winnerPhone}</td>
-                    <td style="color:var(--faded-green); font-weight:bold;">+${h.prize} ETB</td>
-                    <td><button class="btn-sm btn-blue" onclick='viewHistory(${gridData}, ${callData})'>View Details</button></td>
-                </tr>`;
+                hHtml += `<tr><td style="font-size:11px; color:var(--text-gray);">${d}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize} ETB</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${gridData}, ${callData})'>View Details</button></td></tr>`;
             });
             document.getElementById('history-body').innerHTML = hHtml;
 
@@ -275,16 +267,11 @@
         } catch (e) { alert("Server error connecting to DB."); }
     }
 
-    // --- Transaction Filter Logic ---
     function renderTxs(filterType) {
         let filtered = allTxs;
-        if(filterType === 'Pending') {
-            filtered = allTxs.filter(t => t.status === 'Pending');
-        } else if (filterType === 'Approved Deposit') {
-            filtered = allTxs.filter(t => t.status === 'Approved' && t.type === 'deposit');
-        } else if (filterType === 'Approved Withdraw') {
-            filtered = allTxs.filter(t => t.status === 'Approved' && t.type === 'withdraw');
-        }
+        if(filterType === 'Pending') filtered = allTxs.filter(t => t.status === 'Pending');
+        else if (filterType === 'Approved Deposit') filtered = allTxs.filter(t => t.status === 'Approved' && t.type === 'deposit');
+        else if (filterType === 'Approved Withdraw') filtered = allTxs.filter(t => t.status === 'Approved' && t.type === 'withdraw');
 
         let tHtml = "";
         filtered.forEach(t => {
@@ -299,90 +286,25 @@
         document.getElementById('tx-body').innerHTML = tHtml;
     }
 
-    // --- User Edit Modal Logic ---
+    // Modal and Admin functions
     function openEditModal(phone, passw, mainBal, playBal) {
-        document.getElementById('eu-oldPhone').value = phone;
-        document.getElementById('eu-phone').value = phone;
-        document.getElementById('eu-password').value = passw;
-        document.getElementById('eu-main').value = mainBal;
-        document.getElementById('eu-play').value = playBal;
-        document.getElementById('edit-user-modal').style.display = 'flex';
+        document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw;
+        document.getElementById('eu-main').value = mainBal; document.getElementById('eu-play').value = playBal; document.getElementById('edit-user-modal').style.display = 'flex';
     }
-    
     function closeEditModal() { document.getElementById('edit-user-modal').style.display = 'none'; }
-
     async function saveUserEdit() {
-        let oldPhone = document.getElementById('eu-oldPhone').value;
-        let newPhone = document.getElementById('eu-phone').value;
-        let password = document.getElementById('eu-password').value;
-        let mainBalance = document.getElementById('eu-main').value;
-        let playBalance = document.getElementById('eu-play').value;
-
+        let oldPhone = document.getElementById('eu-oldPhone').value; let newPhone = document.getElementById('eu-phone').value; let password = document.getElementById('eu-password').value;
+        let mainBalance = document.getElementById('eu-main').value; let playBalance = document.getElementById('eu-play').value;
         if(!newPhone || !password || mainBalance === "" || playBalance === "") return alert("Please fill all fields.");
-
-        if(oldPhone !== newPhone) {
-            if(!confirm(`⚠️ Warning: You are changing the phone from ${oldPhone} to ${newPhone}. All their history and balances will be transferred. Proceed?`)) return;
-        }
-
-        let res = await fetch('/api/admin/edit-user', { 
-            method: 'POST', 
-            headers: {'Content-Type':'application/json'}, 
-            body: JSON.stringify({ adminPass: pass, oldPhone, newPhone, password, mainBalance, playBalance })
-        });
-        let data = await res.json();
-        
-        if(data.success) {
-            alert(data.message);
-            closeEditModal();
-            loadData();
-        } else {
-            alert(data.message);
-        }
+        if(oldPhone !== newPhone) if(!confirm(`⚠️ Warning: Changing phone from ${oldPhone} to ${newPhone}. All history will be transferred. Proceed?`)) return;
+        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, oldPhone, newPhone, password, mainBalance, playBalance }) });
+        let data = await res.json(); if(data.success) { alert(data.message); closeEditModal(); loadData(); } else alert(data.message);
     }
-
-    // --- General Actions ---
-    async function actionTx(txId, action) {
-        if(!confirm("Are you sure?")) return;
-        await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})});
-        loadData();
-    }
-
-    async function sendBonus() {
-        let phone = document.getElementById('b-phone').value; let amount = parseFloat(document.getElementById('b-amt').value);
-        if(!phone || !amount) return;
-        let res = await fetch('/api/admin/send-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})});
-        let data = await res.json(); if(data.success) { alert("Sent!"); loadData(); } else { alert("Failed!"); }
-    }
-
-    async function createMassBonus() {
-        let code = document.getElementById('m-code').value.toUpperCase(); let maxUsers = parseInt(document.getElementById('m-users').value);
-        let amount = parseFloat(document.getElementById('m-amt').value); let timeMin = parseInt(document.getElementById('m-time').value);
-        if(!code || !maxUsers || !amount || !timeMin) return alert("Fill all fields!");
-        let res = await fetch('/api/admin/create-promo', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, code, maxUsers, amount, timeMin }) });
-        let data = await res.json(); if(data.success) { alert(`Promo Code [${code}] Created!`); loadData(); } else alert(data.message);
-    }
-
-    async function banUser(phone) {
-        if(confirm("Ban this user permanently?")) {
-            await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})});
-            loadData(); 
-        }
-    }
-
-    function viewHistory(grid, calledNumbers) {
-        document.getElementById('m-called').innerText = "Called: " + calledNumbers.join(", ");
-        let gridHtml = "";
-        for(let r=0; r<5; r++){
-            for(let c=0; c<5; c++){
-                let num = grid[c][r];
-                let isHit = calledNumbers.includes(num) || (c===2 && r===2) ? "highlight" : "";
-                let display = (c===2 && r===2) ? "FREE" : num;
-                gridHtml += `<div class="${isHit}">${display}</div>`;
-            }
-        }
-        document.getElementById('m-grid').innerHTML = gridHtml;
-        document.getElementById('history-modal').style.display = 'flex';
-    }
+    async function actionTx(txId, action) { if(!confirm("Are you sure?")) return; await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); }
+    async function sendBonus() { let phone = document.getElementById('b-phone').value; let amount = parseFloat(document.getElementById('b-amt').value); if(!phone || !amount) return; let res = await fetch('/api/admin/send-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})}); let data = await res.json(); if(data.success) { alert("Sent!"); loadData(); } else alert("Failed!"); }
+    async function createMassBonus() { let code = document.getElementById('m-code').value.toUpperCase(); let maxUsers = parseInt(document.getElementById('m-users').value); let amount = parseFloat(document.getElementById('m-amt').value); let timeMin = parseInt(document.getElementById('m-time').value); if(!code || !maxUsers || !amount || !timeMin) return alert("Fill all fields!"); let res = await fetch('/api/admin/create-promo', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, code, maxUsers, amount, timeMin }) }); let data = await res.json(); if(data.success) { alert(`Promo Code Created!`); loadData(); } else alert(data.message); }
+    async function banUser(phone) { if(confirm("Ban this user permanently?")) { await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
+    function viewHistory(grid, calledNumbers) { document.getElementById('m-called').innerText = "Called: " + calledNumbers.join(", "); let gridHtml = ""; for(let r=0; r<5; r++){ for(let c=0; c<5; c++){ let num = grid[c][r]; let isHit = calledNumbers.includes(num) || (c===2 && r===2) ? "highlight" : ""; let display = (c===2 && r===2) ? "FREE" : num; gridHtml += `<div class="${isHit}">${display}</div>`; } } document.getElementById('m-grid').innerHTML = gridHtml; document.getElementById('history-modal').style.display = 'flex'; }
 </script>
 </body>
 </html>
