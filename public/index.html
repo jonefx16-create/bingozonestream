@@ -92,27 +92,27 @@
         .info-val.highlight { color: var(--cyan); text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); animation: shineCyan 1.5s infinite alternate; }
         @keyframes shineCyan { from { text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); } to { text-shadow: 0 0 15px rgba(56, 189, 248, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } }
 
-        /* 🟢 MASTERBOARD & GAME PAGE STYLES 🟢 */
+        /* 🟢 GAME PAGE STYLES (Narrow MB, Wider Tickets) 🟢 */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; gap: 2%; }
         
-        /* 🔥 Game Page Masterboard: Narrower (50%) 🔥 */
-        .master-board-wrapper { width: 49%; flex: 0 0 49%; display: flex; flex-direction: column; justify-content: center; min-height: 0;}
-        .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, 1fr); grid-template-columns: repeat(5, 1fr); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; }
+        /* 🔥 Game Page Masterboard: Tabab yarg (45%) 🔥 */
+        .master-board-wrapper { width: 45%; flex: 0 0 45%; display: flex; flex-direction: column; justify-content: center; min-height: 0;}
+        .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, minmax(0, 1fr)); grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; }
         .mb-head { background: var(--faded-green); color: black; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
-        .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; transition: 0.2s;}
+        .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; transition: 0.2s; min-height: 0; overflow: hidden;}
         
         .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
-        /* 🔥 Game Page Right Panel: Wider (49%) 🔥 */
-        #game-page .right-panel-stack { width: 49%; flex: 0 0 49%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
+        /* 🔥 Game Page Right Panel: Sefa yarg (53%) 🔥 */
+        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; min-height: 0; }
         
-        /* 🔥 Game Page 2x2 Mini Tickets Fix (Larger Fonts) 🔥 */
+        /* 🔥 Game Page 2x2 Mini Tickets Fix 🔥 */
         #game-page .game-mini-tickets { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; overflow: hidden; align-content: start; min-height: 0; }
         .mini-t-card { background: white; border-radius: 8px; border: 1px solid #ddd; padding: 2px; display: flex; flex-direction: column; box-sizing: border-box; }
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1px; background: #e2e8f0; flex-grow: 1; min-height: 0;}
@@ -124,23 +124,30 @@
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
 
-        /* 🟢 TICKETS PAGE FIT SCREEN (2x2 + MASTERBOARD CENTERED & SMALLER) 🟢 */
+        /* 🟢 TICKETS PAGE FIT SCREEN (COMPRESSED MB & 2x2 TICKETS) 🟢 */
         #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
         
-        .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+        .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
         
-        /* 🔥 Ticket Masterboard: Centered & Smaller 🔥 */
-        #ticket-mb-container { display: none; width: 75%; max-width: 300px; margin: 0 auto 10px auto; flex: 0 0 35%; min-height: 0; }
+        /* 🔥 Ticket Masterboard: Compressed (Size of 9 rows, holds 15 rows cleanly) 🔥 */
+        #ticket-mb-container { display: none; width: 85%; max-width: 320px; margin: 0 auto 6px auto; flex: 0 0 28vh; min-height: 0; }
         #ticket-page.show-mb #ticket-mb-container { display: flex; flex-direction: column; }
         
-        /* 🔥 Ticket List: Clear 2x2 Grid 🔥 */
-        #ticket-list { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; box-sizing: border-box; overflow-y: auto; scrollbar-width: none; align-content: start; min-height: 0; padding-bottom: 10px;}
-        #ticket-list::-webkit-scrollbar { display: none; }
-        #ticket-page.show-mb #ticket-list { grid-template-rows: repeat(2, 1fr); }
+        /* Shrink font inside Ticket MB so numbers don't get cut off */
+        #ticket-master-board .mb-head { font-size: 1.2vh; padding: 1px 0; min-height: 0;}
+        #ticket-master-board .mb-cell { font-size: 1.4vh; line-height: 1; min-height: 0; padding: 0;}
+        
+        /* 🔥 Ticket List: Clear 2x2 Grid that perfectly fits remaining space 🔥 */
+        #ticket-list { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; box-sizing: border-box; overflow: hidden; align-content: stretch; min-height: 0; padding-bottom: 5px;}
+        #ticket-page.show-mb #ticket-list { grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 4px; }
 
         .t-card { background: #fff; color: #000; border-radius: 8px; padding: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #ddd; display: flex; flex-direction: column; box-sizing: border-box; min-height: 0;}
-        .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1px; background: #000; flex-grow: 1; min-height: 0;}
-        .t-cell { background: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(8px, 1.8vh, 14px); }
+        #ticket-page.show-mb .t-card { padding: 2px; border-radius: 6px; } /* tighter padding when MB is open */
+
+        .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 1px; background: #000; flex-grow: 1; min-height: 0;}
+        .t-cell { background: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(8px, 1.8vh, 14px); min-height: 0;}
+        #ticket-page.show-mb .t-cell { font-size: clamp(7px, 1.3vh, 12px); } /* smaller font when MB is open */
+        
         .t-cell.marked { background: #000 !important; color: white !important;}
 
         /* Bingo Winner Overlay */
@@ -428,7 +435,7 @@
     </div>
 </div>
 
-<!-- 4. TICKETS PAGE -->
+<!-- 4. TICKETS PAGE (MASTER BOARD & 2x2 TICKETS FIT TO SCREEN) -->
 <div id="ticket-page" class="page">
     <div class="ticket-top-section">
         <h3 style="text-align:center; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
@@ -448,7 +455,7 @@
         <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
 
-    <!-- Ticket Master Board (Center, Small & Beautiful) -->
+    <!-- Ticket Master Board (Center, Small & Beautiful - 15 rows fit in 9 row height without cutting) -->
     <div id="ticket-mb-container">
         <div id="ticket-master-board" class="mb-board"></div>
     </div>
