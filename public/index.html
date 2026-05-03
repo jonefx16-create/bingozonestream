@@ -449,7 +449,6 @@
 <div id="ticket-page" class="page">
     <div class="ticket-top-section">
         
-        <!-- 🔥 New Top Badges (Balls Normal, Prize Cyan) Top Right 🔥 -->
         <div class="t-page-badges-container">
             <div class="t-badge-box"><span>Balls:</span><b id="t-page-balls">0/20</b></div>
             <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
@@ -473,12 +472,10 @@
         <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
 
-    <!-- Ticket Master Board -->
     <div id="ticket-mb-container">
         <div id="ticket-master-board" class="mb-board"></div>
     </div>
     
-    <!-- Tickets List Grid -->
     <div id="ticket-list"></div>
 </div>
 
@@ -568,6 +565,7 @@
     buildMasterBoard();
     buildTicketMasterBoard();
 
+    // 🟢 አዲስ የጨመርነው ኮድ፡ ሪፍሬሽ ሲደረግ ዳታ ይመልሳል
     window.onload = async () => {
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
@@ -577,7 +575,32 @@
             try {
                 let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: savedPhone, password: savedPass}) });
                 let data = await res.json();
-                if(data.success) { processLoginSuccess(data.user); } else { logout(); }
+                if(data.success) { 
+                    processLoginSuccess(data.user); 
+                    
+                    // 👉 ሪፍሬሽ ስናደርግ የገዛናቸውን ካርዶች ከሰርቨር እንጠይቃለን
+                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
+                    let tData = await tRes.json();
+                    
+                    if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); // ካርዶቹን ስክሪን ላይ ይስላል
+                        
+                        // የተጠሩ ቁጥሮች ካሉ ካርዱ ላይ ያጠቁራል
+                        if(tData.calledNumbers && tData.calledNumbers.length > 0) {
+                            called = tData.calledNumbers;
+                            called.forEach(num => {
+                                // ካርዱ ላይ ያለውን ቁጥር ለማጥቆር ማርክ ማድረግ
+                                document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+                                // ማስተር ቦርድ ላይም ማጥቆር
+                                let mbCell = document.getElementById('mb-' + num);
+                                if(mbCell) mbCell.classList.add('called');
+                                let tmbCell = document.getElementById('tmb-' + num);
+                                if(tmbCell) tmbCell.classList.add('called');
+                            });
+                        }
+                    }
+                } else { logout(); }
             } catch(e) {
                 document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
                 document.getElementById('start-btn').disabled = false;
@@ -591,7 +614,6 @@
         if(st) st.innerText = isSoundOn ? '🔊' : '🔇';
     }
 
-    // Toggle the Masterboard in Ticket Page & Arrow Direction
     function toggleTicketMasterBoard() {
         const page = document.getElementById('ticket-page');
         const arrow = document.getElementById('mb-toggle-arrow');
@@ -798,7 +820,6 @@
         document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
         document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
-        
         let playEl = document.getElementById('play-bal');
         if(playEl) playEl.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
     }
@@ -824,8 +845,6 @@
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
         let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
-        
-        // 🔥 UPDATE BALLS & PRIZE IN TICKET PAGE TOO 🔥
         let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = data.totalPrizePool.toFixed(2) + " ETB";
         
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
@@ -845,7 +864,7 @@
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
                 document.getElementById('g-balls').innerText = "0/20"; 
-                document.getElementById('t-page-balls').innerText = "0/20"; // Reset Ticket page balls
+                document.getElementById('t-page-balls').innerText = "0/20";
                 called = []; 
                 
                 if (currentUser) {
@@ -868,7 +887,7 @@
             }
             called = data.calledNumbers || []; 
             document.getElementById('g-balls').innerText = called.length + "/20";
-            document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live
+            document.getElementById('t-page-balls').innerText = called.length + "/20";
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -880,9 +899,8 @@
         if (!isGameRunningLocally) return;
         called.push(num); 
         document.getElementById('g-balls').innerText = called.length + "/20"; 
-        document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live update
+        document.getElementById('t-page-balls').innerText = called.length + "/20";
         updateLiveUI(num, true);
-        userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
 
     socket.on('game_winner', (data) => {
@@ -898,16 +916,9 @@
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
                 let num = g[c][r];
-                if(r===2 && c===2) { 
-                    html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
-                } 
-                else if(cld.includes(num)) { 
-                    // 🔥 GREEN CALLED NUMBERS IN POPUP 🔥
-                    html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; 
-                } 
-                else { 
-                    html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; 
-                }
+                if(r===2 && c===2) { html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; } 
+                else if(cld.includes(num)) { html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; } 
+                else { html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; }
             }
         }
         html += `</div></div>`; document.getElementById('win-ticket-display').innerHTML = html;
@@ -980,7 +991,6 @@
         }, 800);
     }
     
-    // 🔥 Rendering Tickets with FIXED #ID BADGE Visibility 🔥
     function renderConfirmedTickets() { 
         const list = document.getElementById('ticket-list'); const gameList = document.getElementById('game-mini-tickets');
         list.innerHTML = ''; gameList.innerHTML = ''; 
@@ -1003,6 +1013,7 @@
                         htmlMain += `<div class="t-cell marked" style="color:#38bdf8; font-size:16px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
                         htmlMini += `<div class="mini-t-cell marked" style="color:#38bdf8; font-size:14px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
                     } else { 
+                        // የቁጥሩን ክላስ ስም t-v-10 እያደረግን እንሰጠዋለን (ለማጥቆር እንዲመች)
                         htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                         htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                     } 
