@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin Dashboard - Bingo</title>
+    <title>Admin Dashboard - Bingo Habesha</title>
     <style>
         :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --cyan: #06b6d4; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
@@ -15,7 +15,7 @@
         
         /* 🔥 MOBILE RESPONSIVE SIDEBAR 🔥 */
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s;}
-        .sidebar-header { text-align: center; color: var(--faded-green); font-size: 20px; font-weight: 900; margin-bottom: 20px; }
+        .sidebar-header { text-align: center; color: var(--faded-green); font-size: 18px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;}
         .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
         .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
@@ -37,7 +37,10 @@
         .search-bar { background-color: #050810; border: 1px solid var(--blue);}
         
         button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        button.btn-red { background: var(--red); color: white; } button.btn-blue { background: var(--blue); color: white; } button.btn-purple { background: var(--purple); color: white; }
+        button.btn-red { background: var(--red); color: white; } 
+        button.btn-blue { background: var(--blue); color: white; } 
+        button.btn-purple { background: var(--purple); color: white; }
+        button.btn-orange { background: var(--orange); color: white; } /* NEW ORANGE BUTTON */
         button.btn-sm { padding: 8px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
@@ -73,7 +76,7 @@
 
 <div id="login-sec">
     <div class="login-card">
-        <h2 style="color: var(--faded-green);">🛡️ Admin Login</h2>
+        <h2 style="color: var(--faded-green);">🛡️ Bingo Habesha Admin</h2>
         <input type="password" id="adminPass" placeholder="Admin Password" onkeyup="if(event.key === 'Enter') login()">
         <button class="action-btn" style="width: 100%;" onclick="login()">Access Dashboard</button>
     </div>
@@ -81,7 +84,7 @@
 
 <div id="dash-sec">
     <div class="sidebar">
-        <div class="sidebar-header">BINGO ADMIN</div>
+        <div class="sidebar-header">BINGO HABESHA ADMIN</div>
         <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();">📊 Live & Analytics</button>
         <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Users & Passwords</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
@@ -91,6 +94,7 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-history', this)">🏆 Winners History</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
+        <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
         <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Logout</button>
         <button class="nav-btn" style="color: var(--cyan);" onclick="location.href='/finance'">🏦 Go to Finance Page</button>
     </div>
@@ -104,7 +108,7 @@
         <!-- 🟢 Live Stats -->
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Monthly Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>Total Company Profit</h3><h2 style="color: var(--faded-green);" id="stat-total-profit">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
@@ -215,14 +219,16 @@
                     <input type="number" id="mb-time" placeholder="Expires In (Minutes)">
                     <button class="action-btn btn-blue" style="width:100%;" onclick="createMassBonus()">Create Airdrop</button>
                 </div>
+            </div>
+        </div>
 
-                <!-- Telegram Promo -->
-                <div class="card" style="border-left: 4px solid var(--blue);">
-                    <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Broadcast</h3>
-                    <textarea id="tg-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
-                    <button class="action-btn btn-blue" style="width:100%;" onclick="sendTelegramPromo()">Broadcast to Telegram</button>
-                </div>
-
+        <!-- 🟢 Telegram Broadcast Tab -->
+        <div id="tab-telegram" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
+                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Broadcast</h3>
+                <p style="font-size:12px; color:var(--text-gray);">ወደ ቴሌግራም ቻናልዎ ወይም ግሩፕዎ ማስታወቂያ ይላኩ።</p>
+                <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
+                <button class="action-btn btn-blue" style="width:100%;" onclick="sendTelegramPromo()">Broadcast to Telegram</button>
             </div>
         </div>
 
@@ -232,7 +238,7 @@
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control</h3>
                     <p style="font-size: 12px; color:var(--text-gray);">ጌም ማቆም ከፈለጉ ይጫኑ። ሲቆም ማንም ሰው ካርድ መግዛት አይችልም።</p>
-                    <button id="btn-pause" class="action-btn btn-red" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">Pause Game</button>
+                    <button id="btn-pause" class="action-btn btn-orange" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">⏸️ Pause Game</button>
                     
                     <label>🎟️ Ticket Price (ETB)</label>
                     <div style="display:flex; gap:10px;">
@@ -300,15 +306,23 @@
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             let data = await res.json();
-            document.getElementById('stat-total-users').innerText = data.totalUsers;
+            document.getElementById('stat-total-users').innerText = data.totalUsers; // Monthly Users
             document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB";
             document.getElementById('stat-live-players').innerText = data.livePlayers;
             document.getElementById('stat-game-state').innerText = data.gameState;
             
             isGameCurrentlyPaused = data.settings.isGamePaused;
             let pBtn = document.getElementById('btn-pause');
-            if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } 
-            else { pBtn.innerText = "⏸️ Pause Game"; pBtn.className = "action-btn btn-red"; }
+            
+            // Toggle colors: Green if Paused (ready to play), Orange if Playing (ready to pause)
+            if(isGameCurrentlyPaused) { 
+                pBtn.innerText = "▶️ Resume Game"; 
+                pBtn.className = "action-btn"; // Green
+            } else { 
+                pBtn.innerText = "⏸️ Pause Game"; 
+                pBtn.className = "action-btn btn-orange"; // Orange
+            }
+            
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
         } catch(e) {}
     }
@@ -322,6 +336,7 @@
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
 
             let users = await uRes.json();
+            // Total Registered Count
             document.getElementById('box-total-reg').innerText = users.length;
             
             let activeHtml = "", bannedHtml = "", refCounts = {};
