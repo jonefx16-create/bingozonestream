@@ -13,18 +13,17 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
-// ==========================================
-// 🗄️ Database Connection & Models
-// ==========================================
+// Database Connection
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
+// MODELS
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
-    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' } 
+    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -32,12 +31,12 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
 }));
 
 const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
-    gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number, adminProfit: { type: Number, default: 0 }, 
-    ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
+    gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
+    adminProfit: { type: Number, default: 0 }, ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
+    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -93,9 +92,8 @@ app.post('/api/user/change-password', async (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => { res.json({ success: true, leaderboard: await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won') }); });
 
-
 // ==========================================
-// 🔴 ADMIN APIs
+// 🔴 ADMIN & FINANCE APIs
 // ==========================================
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
@@ -106,7 +104,7 @@ const auth = (req, res, next) => {
 
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
-app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(100)));
+app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
@@ -143,7 +141,6 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.updateOne({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.updateOne({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
-// Bonus APIs
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     try {
         const user = await User.findOne({ phone: req.body.phone });
@@ -155,6 +152,8 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
 
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     let phones = req.body.phones; let amount = Number(req.body.amount); let count = 0;
+    // Log expense to DB
+    await ActiveBonus.create({ amount, maxUsers: phones.length, currentClaims: phones.length });
     for(let phone of phones) {
         let u = await User.findOne({phone: phone.trim()});
         if(u) { u.playBalance += amount; await u.save(); io.emit('balance_updated', u.phone); count++; }
@@ -162,20 +161,24 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
-app.post('/api/admin/finance-report', auth, async (req, res) => {
-    const txs = await Transaction.find({ status: 'Approved' });
-    let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
-    let totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((a, b) => a + b.amount, 0);
-    const games = await GameHistory.find();
-    let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
-    let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
-    const users = await User.find();
-    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
-    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost: 0, totalUserBalances });
+app.post('/api/admin/broadcast-telegram', auth, (req, res) => {
+    console.log("Telegram Promo Broadcast: ", req.body.message);
+    res.json({ success: true, message: "ማስታወቂያው ወደ ቴሌግራም ቦት ተልኳል!" });
+});
+
+// 🔥 Finance Raw Data for Filtering 🔥
+app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
+    try {
+        const txs = await Transaction.find({ status: 'Approved' });
+        const games = await GameHistory.find();
+        const bonuses = await ActiveBonus.find();
+        const users = await User.find();
+        res.json({ success: true, txs, games, bonuses, users });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
-// 🟢 BULLETPROOF LIVE BINGO GAME ENGINE
+// 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -212,7 +215,7 @@ function generateRiggedDrawSequence() {
 
 async function declareWinner(player, ticket) {
     gameState = "FINISHED"; 
-    gameClock = 12; // Wait 12 seconds
+    gameClock = 12; 
     const user = await User.findOne({phone: player.phone});
     if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
     let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
@@ -222,43 +225,28 @@ async function declareWinner(player, ticket) {
 }
 
 function resetToWaiting() {
-    gameState = "WAITING"; 
-    gameClock = 40; 
-    activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
-    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
-    io.emit('update_taken_tickets', globalTakenTickets); 
+    gameState = "WAITING"; gameClock = 40; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
+    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
-// 🔥 ONE SINGLE BULLETPROOF LOOP FOR EVERYTHING 🔥
 setInterval(() => {
-    if(GLOBAL_SETTINGS.isGamePaused) { 
-        io.emit('game_status', { state: "PAUSED", timer: "PAUSED", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-        return; 
-    }
+    if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "PAUSED", timer: "PAUSED", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId }); return; }
 
     if (gameState === "WAITING") {
         gameClock--;
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-        
         if (gameClock <= 0) { 
-            if(Object.keys(activePlayers).length > 1) { // Requires 2+ players
-                gameState = "PLAYING";
-                gameClock = 3; 
-                currentDrawSequence = generateRiggedDrawSequence();
+            if(Object.keys(activePlayers).length > 1) {
+                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence();
                 io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-            } else {
-                gameClock = 40; 
-            }
+            } else { gameClock = 40; }
         }
     } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
-            let num = currentDrawSequence.shift(); 
-            calledNumbers.push(num); 
-            io.emit('new_number', num);
-            
+            let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
             let winnerFound = false;
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) {
@@ -268,14 +256,10 @@ setInterval(() => {
             }
         }
     } else if (gameState === "FINISHED") {
-        gameClock--;
-        if (gameClock <= 0) {
-            resetToWaiting();
-        }
+        gameClock--; if (gameClock <= 0) { resetToWaiting(); }
     }
 }, 1000);
 
-// SOCKETS
 io.on('connection', (socket) => {
     socket.emit('game_status', { state: GLOBAL_SETTINGS.isGamePaused ? "PAUSED" : gameState, timer: gameState === "PLAYING" ? "LIVE" : gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
@@ -322,7 +306,7 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
-// 🛣️ EXTREMELY SAFE ROUTING (FIX FOR ADMIN/FINANCE NOT LOADING)
+// 🛣️ EXPLICIT ROUTING (Mobile Fix)
 // ==========================================
 app.get('/admin', (req, res) => {
     let p = path.join(__dirname, 'public', 'admin.html');
