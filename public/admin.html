@@ -2,63 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Admin Dashboard - Bingo</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --yellow: #eab308; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
         #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); position: absolute; z-index: 100; }
         .login-card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid var(--faded-green); text-align: center; width: 90%; max-width: 350px; }
         
         #dash-sec { display: none; width: 100%; height: 100%; display: flex; flex-direction: row; }
-        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto;}
+        
+        /* 🔥 MOBILE RESPONSIVE SIDEBAR 🔥 */
+        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s;}
         .sidebar-header { text-align: center; color: var(--faded-green); font-size: 20px; font-weight: 900; margin-bottom: 20px; }
-        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 12px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; gap: 10px; font-weight: bold; border-left: 4px solid transparent;}
+        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
         .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
         
-        .main-content { flex: 1; padding: 25px; overflow-y: auto; background: var(--bg-dark); }
-        .tab-content { display: none; }
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
+        .tab-content { display: none; animation: fadeIn 0.3s; }
         .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .card { background: var(--panel); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .card { background: var(--panel); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden;}
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--panel); padding: 20px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
         .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase;}
         .stat-card h2 { margin: 10px 0 0 0; font-size: 28px; font-weight: 900;}
         
-        input, select, textarea { padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; }
-        .search-bar { background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gray" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>') no-repeat 10px center; padding-left: 35px; background-color: #050810; border: 1px solid var(--blue);}
+        input, select, textarea { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
+        .search-bar { background-color: #050810; border: 1px solid var(--blue);}
         
-        button.action-btn { background: var(--faded-green); color: black; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         button.btn-red { background: var(--red); color: white; } button.btn-blue { background: var(--blue); color: white; } button.btn-purple { background: var(--purple); color: white; }
-        button.btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+        button.btn-sm { padding: 8px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
-        th, td { padding: 10px; border-bottom: 1px solid var(--border); }
-        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 500px; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; white-space: nowrap;}
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); }
-        .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
-        .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;}
-        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: white; }
-        .grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; background: #000; padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0;}
-        .grid-preview div { background: var(--border); padding: 8px 0; border-radius: 4px; font-weight: bold; font-family: monospace;}
-        .grid-preview .highlight { background: var(--faded-green); color: black; }
         
-        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight:bold;}
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;}
+        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 400px; color: white; }
+
+        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold;}
         .tx-tab-btn.active { background: var(--border); color: white;}
 
+        /* 🔥 MOBILE CSS 🔥 */
         @media (max-width: 768px) {
+            body { flex-direction: column; }
             #dash-sec { flex-direction: column; }
-            .sidebar { width: 100%; flex-direction: row; padding: 0; border-right: none; border-bottom: 1px solid var(--border); }
+            .sidebar { width: 100%; height: auto; flex-direction: row; padding: 10px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap; }
             .sidebar-header { display: none; }
-            .nav-btn { white-space: nowrap; padding: 15px; border-left: none; border-bottom: 3px solid transparent; }
+            .nav-btn { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; font-size: 12px; }
             .nav-btn.active { background: transparent; border-bottom-color: var(--faded-green); }
             .main-content { padding: 15px; }
         }
@@ -76,172 +75,121 @@
 
 <div id="dash-sec">
     <div class="sidebar">
-        <div class="sidebar-header" style="margin-top:10px;">BINGO ADMIN</div>
-        <button class="nav-btn active" onclick="switchTab('tab-live-data', this); loadLiveStats();">📊 Live & Analytics</button>
+        <div class="sidebar-header">BINGO ADMIN</div>
+        <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();">📊 Live & Analytics</button>
+        <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Registered Users</button>
+        <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
         <button class="nav-btn" onclick="switchTab('tab-pending', this)">⏳ Pending Requests</button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 Financial History</button>
-        <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Active Users</button>
-        <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
-        <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
-        <button class="nav-btn" onclick="switchTab('tab-game-history', this)">🏆 Winners History</button>
-        
-        <!-- 🔥 NEW BONUS TAB 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-history', this)">🏆 Winners History</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
-        
-        <!-- System Settings includes Logout -->
-        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ System Settings</button>
+        <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Promo</button>
+        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Logout</button>
+        <button class="nav-btn" style="color: var(--cyan);" onclick="location.href='/finance'">🏦 Go to Finance</button>
     </div>
 
     <div class="main-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 id="page-title" style="margin: 0; font-size: 18px;">📊 Live & Analytics</h2>
-            <button class="action-btn btn-blue" onclick="loadData(); loadLiveStats();" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh All</button>
-        </div>
-
-        <!-- 🟢 Live Stats & Profit Tab -->
-        <div id="tab-live-data" class="tab-content active">
+        <!-- 🟢 Live Stats -->
+        <div id="tab-live" class="tab-content active">
+            <h2 style="margin-top:0;">Live & Analytics</h2>
             <div class="stats-grid">
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);">
-                    <h3>👥 Total Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);">
-                    <h3>💰 Total Company Profit</h3><h2 style="color: var(--faded-green);" id="stat-total-profit">0 ETB</h2>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--purple);">
-                    <h3>🔴 Live Players</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--orange);">
-                    <h3>⏳ Game Status</h3><h2 style="color: var(--orange); font-size: 20px; margin-top:15px;" id="stat-game-state">WAITING</h2>
-                </div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Active Monthly Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>Live Players Now</h3><h2 style="color: var(--faded-green);" id="stat-live-players">0</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
             </div>
-            <div class="card" style="text-align: center; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); padding:15px;">
-                <p style="margin:0; font-size: 13px;">⚡ <b>Live Monitor:</b> ይህ መረጃ ፔጁን ሪፍሬሽ ሳያደርጉ <span style="color:var(--blue)">በየ 3 ሰከንዱ</span> ራሱን ያድሳል (Auto-update)።</p>
+            
+            <div class="card">
+                <h3>🎮 Current Game Monitor</h3>
+                <div class="table-responsive">
+                    <table><thead><tr><th>Player Phone</th><th>Name</th><th>Tickets</th><th>Action</th></tr></thead><tbody id="game-players-body"></tbody></table>
+                </div>
             </div>
         </div>
 
-        <!-- 🟢 Pending Requests Tab -->
+        <!-- 🟢 Registered Users (With Total Box and Password) -->
+        <div id="tab-users" class="tab-content">
+            <div class="stat-card" style="border-color: var(--purple); max-width: 300px; margin-bottom: 20px;">
+                <h3 style="color: var(--purple);">Total Registered Users</h3>
+                <h2 id="box-total-reg">0</h2>
+            </div>
+            <input type="text" class="search-bar" id="search-user" onkeyup="searchTable('search-user', 'users-body')" placeholder="🔍 Search Phone...">
+            <div class="card"><div class="table-responsive">
+                <table><thead><tr><th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Action</th></tr></thead><tbody id="users-body"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- 🟢 Invite & Earn (Referrals) -->
+        <div id="tab-referral" class="tab-content">
+            <h2 style="margin-top:0; color:var(--cyan);">🤝 Invite & Earn Leaderboard</h2>
+            <div class="card"><div class="table-responsive">
+                <table><thead><tr><th>Referrer Phone</th><th>Total People Invited</th><th>Bonus Earned</th></tr></thead><tbody id="ref-body"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- 🟢 Pending Requests -->
         <div id="tab-pending" class="tab-content">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto;">
                 <button class="tx-tab-btn active" id="btn-pend-dep" onclick="filterPending('deposit')">⬇️ Deposits</button>
                 <button class="tx-tab-btn" id="btn-pend-wit" onclick="filterPending('withdraw')">⬆️ Withdrawals</button>
             </div>
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="pending-body"></tbody></table>
+                <table><thead><tr><th>Date</th><th>Phone</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="pending-body"></tbody></table>
             </div></div>
         </div>
-        
-        <!-- 🟢 Financial History Tab -->
-        <div id="tab-history-tx" class="tab-content">
-            <input type="text" class="search-bar" id="search-tx" onkeyup="searchTable('search-tx', 'history-tx-body')" placeholder="🔍 Search by Phone Number...">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-                <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTx('deposit')">⬇️ Deposits</button>
-                <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTx('withdraw')">⬆️ Withdrawals</button>
-                <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTx('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
-            </div>
+
+        <!-- 🟢 Winners History (Ticket ID explicitly visible) -->
+        <div id="tab-history" class="tab-content">
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody id="history-tx-body"></tbody></table>
+                <table><thead><tr><th>Date</th><th>Game ID</th><th>Winner</th><th>Phone</th><th><span style="color:var(--cyan);">Ticket ID</span></th><th>Prize</th></tr></thead><tbody id="game-history-body"></tbody></table>
             </div></div>
         </div>
 
-        <!-- 🟢 Active Users Tab -->
-        <div id="tab-users" class="tab-content">
-            <input type="text" class="search-bar" id="search-user" onkeyup="searchTable('search-user', 'users-body')" placeholder="🔍 Search by Name or Phone...">
-            <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Name</th><th>Phone</th><th>Main Bal</th><th>Play Bal</th><th>Action</th></tr></thead><tbody id="users-body"></tbody></table>
-            </div></div>
-        </div>
-
-        <!-- 🟢 Banned Users Tab -->
-        <div id="tab-banned" class="tab-content">
-            <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Name</th><th>Phone Number</th><th>Status</th><th>Action</th></tr></thead><tbody id="banned-body"></tbody></table>
-            </div></div>
-        </div>
-
-        <!-- 🟢 Players & Bets Info Tab -->
-        <div id="tab-players" class="tab-content">
-            <div class="card">
-                <select id="game-details-select" onchange="renderGamePlayers(this.value)" style="border-color: var(--purple); font-weight: bold;">
-                    <option value="">-- Select a Game to View Details --</option>
-                </select>
-                <div class="table-responsive">
-                    <table><thead><tr><th>Name</th><th>Phone</th><th>Tickets</th><th>Bet Amount</th><th>Action</th></tr></thead><tbody id="game-players-body"><tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr></tbody></table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🟢 Winners History Tab -->
-        <div id="tab-game-history" class="tab-content">
-            <input type="text" class="search-bar" id="search-history" onkeyup="searchTable('search-history', 'game-history-body')" placeholder="🔍 Search Winner by Phone...">
-            <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table>
-            </div></div>
-        </div>
-
-        <!-- 🔥 BONUS TAB 🔥 -->
+        <!-- 🟢 Manage Bonus -->
         <div id="tab-bonus" class="tab-content">
-            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                <!-- Single Bonus -->
-                <div class="card" style="flex: 1; border-left: 4px solid var(--faded-green);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <div class="card" style="border-left: 4px solid var(--faded-green);">
                     <h3 style="margin-top:0; color:var(--faded-green);">👤 Single User Bonus</h3>
-                    <p style="font-size:12px; color:var(--text-gray);">ለአንድ ሰው ብቻ ስልኩን አስገብተው ቦነስ ይላኩ።</p>
-                    <label>Phone Number</label><input type="text" id="sb-phone" placeholder="e.g. 0911223344">
-                    <label>Amount (ETB)</label><input type="number" id="sb-amt" placeholder="e.g. 50">
+                    <input type="text" id="sb-phone" placeholder="User Phone (e.g. 0911...)">
+                    <input type="number" id="sb-amt" placeholder="Amount (ETB)">
                     <button class="action-btn" style="width:100%;" onclick="sendSingleBonus()">Send Bonus</button>
                 </div>
-
-                <!-- Mass/Claim Bonus -->
-                <div class="card" style="flex: 1; border-left: 4px solid var(--purple);">
-                    <h3 style="margin-top:0; color:var(--purple);">🎁 Mass Claim Bonus (Airdrop)</h3>
-                    <p style="font-size:12px; color:var(--text-gray);">የተወሰኑ ሰዎች ራሳቸው Claim እንዲያደርጉ ቦነስ ይፍጠሩ።</p>
-                    
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1"><label>Amount (ETB/User)</label><input type="number" id="mb-amt" placeholder="e.g. 10"></div>
-                        <div style="flex:1"><label>Max Users</label><input type="number" id="mb-users" placeholder="e.g. 300"></div>
-                    </div>
-                    <label>Expires In (Minutes)</label><input type="number" id="mb-time" placeholder="e.g. 60">
-                    <button class="action-btn btn-purple" style="width:100%;" onclick="createMassBonus()">Create Airdrop</button>
+                <div class="card" style="border-left: 4px solid var(--purple);">
+                    <h3 style="margin-top:0; color:var(--purple);">🎁 Mass/Bulk Bonus</h3>
+                    <textarea id="b-phones" rows="3" style="width: 100%; background: #000; color: white; border: 1px solid var(--border); border-radius: 6px; padding: 10px;" placeholder="0911..., 0922..."></textarea>
+                    <input type="number" id="mb-amt" placeholder="Amount per person">
+                    <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
-            </div>
-
-            <!-- Telegram Broadcast -->
-            <div class="card" style="border-left: 4px solid var(--blue);">
-                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Broadcast & Promo</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ወደ ቴሌግራም ቻናልዎ/ቦትዎ ማስታወቂያ ወይም ቦነስ ሊንክ ይላኩ።</p>
-                <textarea id="tg-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; box-sizing:border-box; margin-bottom:10px;" placeholder="Message to broadcast..."></textarea>
-                <button class="action-btn btn-blue" onclick="sendTelegramPromo()">Broadcast to Telegram</button>
             </div>
         </div>
 
-        <!-- 🟢 System Settings Tab -->
+        <!-- 🟢 Telegram Promo -->
+        <div id="tab-telegram" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
+                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Broadcast & Promotion</h3>
+                <p style="font-size:12px; color:var(--text-gray);">ወደ ቴሌግራም ቻናልዎ/ግሩፕዎ ማስታወቂያ ወይም የቦነስ ሊንክ ይላኩ።</p>
+                <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
+                <button class="action-btn btn-blue" style="width:100%;" onclick="sendTelegramPromo()">Send to Telegram</button>
+            </div>
+        </div>
+
+        <!-- 🟢 System Settings -->
         <div id="tab-settings" class="tab-content">
-            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                <div class="card" style="flex: 1; border-left: 4px solid var(--orange);">
-                    <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control</h3>
-                    <p style="font-size: 12px; color:var(--text-gray);">ጌም ማቆም ከፈለጉ ይጫኑ። ሲቆም ማንም ሰው ካርድ መግዛት አይችልም።</p>
-                    <button id="btn-pause" class="action-btn btn-red" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">Pause Game</button>
-                    
-                    <label>🎟️ Ticket Price (ETB)</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="number" id="set-price" placeholder="e.g. 10">
-                        <button class="action-btn" onclick="updateSettings('price')">Save</button>
-                    </div>
+            <div class="card" style="max-width: 400px;">
+                <h3 style="margin-top:0;">⚙️ System Settings</h3>
+                <button id="btn-pause" class="action-btn btn-red" style="width: 100%; margin-bottom:20px;" onclick="togglePauseGame()">Pause Game</button>
+                <label>Ticket Price (ETB)</label>
+                <div style="display:flex; gap:10px; margin-bottom:20px;">
+                    <input type="number" id="set-price">
+                    <button class="action-btn" onclick="updateSettings('price')">Save</button>
                 </div>
-                
-                <div class="card" style="flex: 1; border-left: 4px solid var(--blue);">
-                    <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
-                    <label>New Admin Password</label>
-                    <input type="text" id="set-pass" placeholder="Enter new password">
-                    <button class="action-btn btn-blue" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('password')">Change Password</button>
-                    
-                    <hr style="border-color: var(--border);">
-                    <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
-                </div>
+                <hr style="border-color: var(--border); margin-bottom:20px;">
+                <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
             </div>
         </div>
+
     </div>
 </div>
 
+<!-- Edit User Modal -->
 <div class="modal" id="edit-user-modal">
     <div class="modal-content">
         <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User</h3>
@@ -254,38 +202,33 @@
     </div>
 </div>
 
-<div class="modal" id="history-modal">
-    <div class="modal-content" style="text-align: center;">
-        <h3 style="color: var(--faded-green); margin-top:0;">🎟️ Player Tickets</h3>
-        <p id="m-called" style="font-size: 12px; color: var(--text-gray); word-wrap: break-word;"></p>
-        <div id="m-grid" style="text-align: left;"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button>
-    </div>
-</div>
-
+<script src="/socket.io/socket.io.js"></script>
 <script>
-    let pass = ""; let allTransactions = []; let allGameHistories = [];
-    let currentPendType = 'deposit'; let currentHistType = 'deposit';
+    const socket = io();
+    let pass = ""; let allTransactions = []; 
     let isGameCurrentlyPaused = false;
 
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText; }
-    
-    // 🔍 Search Logic
-    function searchTable(inputId, tableId) {
-        let filter = document.getElementById(inputId).value.toLowerCase();
-        let rows = document.querySelectorAll(`#${tableId} tr`);
-        rows.forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; });
-    }
+    function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
+
+    // Live Data Socket
+    socket.on('admin_game_update', (data) => {
+        if(!document.getElementById('tab-live').classList.contains('active')) return;
+        document.getElementById('stat-live-players').innerText = data.playersCount;
+        let tBody = document.getElementById('game-players-body');
+        if(data.playersData && data.playersData.length > 0) {
+            tBody.innerHTML = data.playersData.map(p => `<tr><td style="color:var(--cyan);">${p.phone}</td><td>${p.name}</td><td>${p.tickets} Cards</td><td><button class="btn-sm btn-blue">Active</button></td></tr>`).join('');
+        } else { tBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No players in this round.</td></tr>`; }
+    });
 
     async function loadLiveStats() {
-        if(!pass || !document.getElementById('tab-live-data').classList.contains('active')) return;
+        if(!pass) return;
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             let data = await res.json();
-            document.getElementById('stat-total-users').innerText = data.totalUsers;
+            document.getElementById('stat-total-users').innerText = data.totalUsers; // Acts as Monthly
             document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB";
-            document.getElementById('stat-live-players').innerText = data.livePlayers;
             document.getElementById('stat-game-state').innerText = data.gameState;
             
             isGameCurrentlyPaused = data.settings.isGamePaused;
@@ -299,38 +242,47 @@
 
     async function loadData() {
         try {
+            // USERS
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
 
             let users = await uRes.json();
-            let activeHtml = "", bannedHtml = "";
+            document.getElementById('box-total-reg').innerText = users.length;
+            
+            let uHtml = ""; let refCounts = {};
             users.forEach(u => {
-                let row = `<tr><td>${u.name}</td><td>${u.phone}</td><td>${u.mainBalance.toFixed(2)}</td><td>${u.playBalance.toFixed(2)}</td>`;
-                if(u.status === 'banned') bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`;
-                else activeHtml += row + `<td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`;
+                uHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td><td>${u.playBalance}</td><td>${u.mainBalance}</td>
+                <td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button></td></tr>`;
+                
+                // Referral Logic
+                if(u.referredBy && u.referredBy !== "") {
+                    refCounts[u.referredBy] = (refCounts[u.referredBy] || 0) + 1;
+                }
             });
-            document.getElementById('users-body').innerHTML = activeHtml; document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
+            document.getElementById('users-body').innerHTML = uHtml;
 
+            // Referrals Table
+            let refHtml = "";
+            for (const [refPhone, count] of Object.entries(refCounts)) {
+                refHtml += `<tr><td style="color:var(--cyan); font-weight:bold;">${refPhone}</td><td>${count} People</td><td style="color:var(--faded-green); font-weight:bold;">${count * 10} ETB</td></tr>`;
+            }
+            document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="3" style="text-align:center;">No referrals yet.</td></tr>`;
+
+            // TRANSACTIONS
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allTransactions = await tRes.json();
-            filterPending(currentPendType); filterHistoryTx(currentHistType);
+            filterPending(currentPendType);
 
+            // GAME HISTORY
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            allGameHistories = await hRes.json();
-            
-            document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => 
-                `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
-                <td>${h.winnerName}</td><td>${h.winnerPhone}</td>
-                <td style="color:var(--cyan); font-weight:bold;">#${h.ticketId || 'N/A'}</td>
-                <td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td>
-                <td style="color:var(--blue); font-weight:bold;">+${h.adminProfit || 0}</td>
-                <td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`
+            let hist = await hRes.json();
+            document.getElementById('game-history-body').innerHTML = hist.map(h => 
+                `<tr><td>${new Date(h.date).toLocaleString()}</td><td>#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td>
+                <td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td></tr>`
             ).join('');
 
-            let dropHtml = '<option value="">-- Select a Game --</option>';
-            allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; });
-            document.getElementById('game-details-select').innerHTML = dropHtml;
+            socket.emit('admin_request_game_data');
         } catch (e) { console.log(e); }
     }
 
@@ -338,44 +290,10 @@
         currentPendType = type;
         document.getElementById('btn-pend-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
         document.getElementById('btn-pend-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        document.getElementById('pending-body').innerHTML = allTransactions.filter(t => t.type === type && t.status === 'Pending').map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td style="${t.type === 'withdraw'?'color:var(--orange);':'color:var(--faded-green);'} font-weight:bold;">${t.amount}</td><td><span class="badge bg-pending">${t.status}</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`).join('');
+        document.getElementById('pending-body').innerHTML = allTransactions.filter(t => t.type === type && t.status === 'Pending').map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td style="font-weight:bold;">${t.amount}</td><td><button class="btn-sm btn-green" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;">No pending requests</td></tr>`;
     }
 
-    function filterHistoryTx(type) {
-        currentHistType = type;
-        document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        
-        let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
-        document.getElementById('history-tx-body').innerHTML = filtered.map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span></td></tr>`).join('');
-    }
-
-    function renderGamePlayers(index) {
-        if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; }
-        let game = allGameHistories[index];
-        document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${p.tickets * (game.ticketPrice || 10)} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`;
-    }
-
-    function viewPlayerMultipleCards(ticketsData, called) {
-        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
-        let fullHtml = "";
-        ticketsData.forEach((ticket, i) => {
-            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`;
-            for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; 
-            fullHtml += `</div><hr style="border-color: var(--border);">`;
-        });
-        document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex';
-    }
-
-    function viewHistory(grid, called) { 
-        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
-        let gHtml = `<div class="grid-preview">`; 
-        for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; 
-        document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; 
-    }
-
-    // BONUS FUNCTIONS
+    // Single Bonus
     async function sendSingleBonus() {
         let phone = document.getElementById('sb-phone').value; let amount = document.getElementById('sb-amt').value;
         if(!phone || !amount) return alert("Fill all fields");
@@ -383,35 +301,35 @@
         let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value = ''; document.getElementById('sb-amt').value = ''; loadData(); }
     }
 
-    async function createMassBonus() {
-        let amount = document.getElementById('mb-amt').value; let maxUsers = document.getElementById('mb-users').value; let minutes = document.getElementById('mb-time').value;
-        if(!amount || !maxUsers || !minutes) return alert("Fill all fields");
-        let res = await fetch('/api/admin/create-mass-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, amount, usersLimit: maxUsers, minutes})});
-        let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('mb-amt').value = ''; document.getElementById('mb-users').value = ''; document.getElementById('mb-time').value = ''; }
+    // Bulk Bonus
+    async function sendBulkBonus() {
+        let phonesRaw = document.getElementById('b-phones').value; let amount = document.getElementById('mb-amt').value;
+        if(!phonesRaw || !amount) return alert("Fill all fields");
+        let phoneList = phonesRaw.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        if(!confirm(`Send ${amount} ETB to ${phoneList.length} users?`)) return;
+        let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: phoneList, amount})});
+        let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value = ''; document.getElementById('mb-amt').value = ''; }
     }
 
+    // Telegram
     async function sendTelegramPromo() {
-        let msg = document.getElementById('tg-msg').value;
-        if(!msg) return alert("Enter a message");
+        let msg = document.getElementById('tg-msg').value; if(!msg) return alert("Enter a message");
         let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message: msg})});
         let data = await res.json(); alert(data.message); if(data.success) document.getElementById('tg-msg').value = '';
     }
 
-    // Settings & Actions
+    // Settings
     async function updateSettings(type) {
         let payload = { password: pass };
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return; payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; }
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return; payload.ticketPrice = pr; }
-        await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        alert("✅ Settings Updated Successfully!");
+        await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); alert("✅ Saved!");
     }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); } }
     function openEditModal(phone, passw, main, play) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('edit-user-modal').style.display = 'flex'; }
     async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, password: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value }; await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); document.getElementById('edit-user-modal').style.display='none'; loadData(); }
-    async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
-    async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
 
 </script>
 </body>
