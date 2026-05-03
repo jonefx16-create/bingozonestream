@@ -26,7 +26,6 @@
         .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
         .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
-        /* HIDE NAV & HEADER ON AUTH PAGE */
         body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
 
         /* Header */
@@ -92,7 +91,7 @@
         .info-val.highlight { color: var(--cyan); text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); animation: shineCyan 1.5s infinite alternate; }
         @keyframes shineCyan { from { text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); } to { text-shadow: 0 0 15px rgba(56, 189, 248, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } }
 
-        /* 🟢 GAME PAGE STYLES 🟢 */
+        /* GAME PAGE STYLES */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
         #game-page .game-layout-container { flex-grow: 1; display: flex; min-height: 0; align-items: stretch; gap: 2%; }
         
@@ -128,7 +127,7 @@
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
 
-        /* 🟢 TICKETS PAGE STYLES 🟢 */
+        /* TICKETS PAGE STYLES */
         #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
         
         .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; position: relative;}
@@ -156,7 +155,6 @@
         .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 1px; background: #000; flex-grow: 1; min-height: 0;}
         .t-cell { background: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(8px, 1.8vh, 16px); min-height: 0;}
         #ticket-page.show-mb .t-cell { font-size: clamp(7px, 1.5vh, 12px); }
-        
         .t-cell.marked { background: #000 !important; color: white !important;}
 
         /* Bingo Winner Overlay */
@@ -238,10 +236,7 @@
 <div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
     <div id="dep-modal" class="trx-modal" onclick="event.stopPropagation()">
         <div class="trx-header"><button class="trx-close" onclick="closeDepositModal()">Close</button><h3 class="trx-title">Deposit Funds</h3><span style="width:40px;"></span></div>
-        <div class="dep-banner">
-            <div class="dep-banner-icon">🔥</div>
-            <div class="dep-banner-text">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div>
-        </div>
+        <div class="dep-banner"><div class="dep-banner-icon">🔥</div><div class="dep-banner-text">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div></div>
         <span class="trx-label">ባንክ ይምረጡ</span>
         <div class="bank-grid" id="dep-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')"><div class="bank-logo logo-tb">t</div> TeleBirr</div>
@@ -249,22 +244,16 @@
             <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this, 'dep')"><div class="bank-logo logo-mp">m</div> MPesa</div>
         </div>
         <div id="dep-copy-box" class="trx-copy-box show">
-            <div>
-                <small style="color:#64748b; font-size:10px;">Account Name:</small><br><b id="m-dep-name" style="font-size:13px; color:white;">Tsedey Abebe</b><br>
-                <b id="m-dep-acc" style="font-size:18px; color:var(--cyan); font-family:monospace; margin-top:3px; display:block;">0933638022</b>
-            </div>
+            <div><small style="color:#64748b; font-size:10px;">Account Name:</small><br><b id="m-dep-name" style="font-size:13px; color:white;">Tsedey Abebe</b><br><b id="m-dep-acc" style="font-size:18px; color:var(--cyan); font-family:monospace; margin-top:3px; display:block;">0933638022</b></div>
             <button style="background: #1e293b; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="copyModalNumber('m-dep-acc')">Copy</button>
         </div>
         <span class="trx-label">መጠን (ብር)</span>
         <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 20px;">Min: 50 ETB | Max: 100,000 ETB</span>
-        
         <span class="trx-label">የከፈሉበት ማረጋገጫ (SMS / ፎቶ)</span>
         <textarea id="m-dep-sms" class="trx-input" style="height: 50px; resize: none; margin-bottom: 5px;" placeholder="የክፍያ ማረጋገጫ SMS"></textarea>
-        
         <div style="background:#020617; border: 1px dashed #334155; border-radius:8px; padding: 10px; margin-bottom: 20px; text-align:center;">
-            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:5px;">ወይም Screenshot (ፎቶ) ያስገቡ</span>
-            <input type="file" id="m-dep-file" accept="image/*" style="font-size:11px; color:white; width:100%;">
+            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:5px;">ወይም Screenshot (ፎቶ) ያስገቡ</span><input type="file" id="m-dep-file" accept="image/*" style="font-size:11px; color:white; width:100%;">
         </div>
         <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ጨርስ</button>
     </div>
@@ -279,10 +268,8 @@
             <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'wit')"><div class="bank-logo logo-cbe">CBE</div> CBE Birr</div>
             <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this, 'wit')"><div class="bank-logo logo-mp">m</div> MPesa</div>
         </div>
-        <span class="trx-label">የእርስዎ ስልክ ቁጥር/አካውንት</span>
-        <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
-        <span style="display: block; margin-bottom: 10px;">&nbsp;</span>
-        <span class="trx-label">መጠን (ብር)</span>
+        <span class="trx-label">የእርስዎ ስልክ ቁጥር/አካውንት</span><input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
+        <span style="display: block; margin-bottom: 10px;">&nbsp;</span><span class="trx-label">መጠን (ብር)</span>
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
         <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn">ወጪ ጠይቅ</button>
@@ -304,110 +291,55 @@
 
 <!-- 1. AUTH PAGE -->
 <div id="auth-page" class="page active-page">
-    
     <div class="auth-card">
         <div style="text-align: center; margin-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 42px; font-weight: 900; letter-spacing: 2px;">
-                <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
-                <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
-            </h1>
+            <h1 style="margin: 0; font-size: 42px; font-weight: 900; letter-spacing: 2px;"><span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span></h1>
             <div style="color: #94a3b8; font-size: 13px; font-weight: bold; letter-spacing: 6px; margin-top: 5px; text-transform: uppercase;">BINGO HABESHA</div>
         </div>
-        
         <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
-        
-        <div class="input-group" id="name-group">
-            <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()">
-        </div>
-        
-        <div class="input-group">
-            <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (09... ወይም 07...)" onkeyup="v()">
-        </div>
-        
-        <div class="input-group">
-            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()">
-            <span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span>
-        </div>
-
-        <div class="input-group" id="ref-group">
-            <input type="text" id="reg-ref" class="auth-input ref-input" placeholder="የጋበዝዎት ሰው ኮድ (ካለዎት)" onkeyup="v()">
-        </div>
-        
+        <div class="input-group" id="name-group"><input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()"></div>
+        <div class="input-group"><input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (09... ወይም 07...)" onkeyup="v()"></div>
+        <div class="input-group"><input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()"><span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span></div>
+        <div class="input-group" id="ref-group"><input type="text" id="reg-ref" class="auth-input ref-input" placeholder="የጋበዝዎት ሰው ኮድ (ካለዎት)" onkeyup="v()"></div>
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
         </div>
-        
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
         <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
-        
-        <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">
-            📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span>
-        </button>
+        <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span></button>
     </div>
 </div>
 
 <!-- TOP HEADER -->
 <div id="global-header" class="top-balance" style="display:none;">
-    <div class="hdr-user-sec">
-        <div class="icon">👤</div>
-        <div>
-            <div id="hdr-name" class="name">User</div>
-            <div id="hdr-phone" class="phone">09...</div>
-        </div>
-    </div>
+    <div class="hdr-user-sec"><div class="icon">👤</div><div><div id="hdr-name" class="name">User</div><div id="hdr-phone" class="phone">09...</div></div></div>
     <div class="hdr-wallets-right">
-        <div class="pill-wallet">
-            <span class="title play">PLAY WALLET</span><span class="amt" id="hdr-play-balance">0.00</span>
-        </div>
-        <div class="pill-wallet">
-            <span class="title main">MAIN WALLET</span><span class="amt" id="hdr-main-balance">0.00</span>
-        </div>
+        <div class="pill-wallet"><span class="title play">PLAY WALLET</span><span class="amt" id="hdr-play-balance">0.00</span></div>
+        <div class="pill-wallet"><span class="title main">MAIN WALLET</span><span class="amt" id="hdr-main-balance">0.00</span></div>
     </div>
 </div>
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
-            <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
-            <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
-        </h1>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;"><span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span></h1>
         <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
     </div>
-
     <div class="new-timer-box">
-        <div class="nt-left">
-            <div class="nt-status">ጨዋታው ሊጀምር ነው</div>
-            <div class="nt-value" id="timer">00:40</div> 
-        </div>
-        <div class="nt-right">
-            <div class="nt-badge">ደራሽ</div>
-            <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
-        </div>
+        <div class="nt-left"><div class="nt-status">ጨዋታው ሊጀምር ነው</div><div class="nt-value" id="timer">00:40</div></div>
+        <div class="nt-right"><div class="nt-badge">ደራሽ</div><div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div></div>
     </div>
-
     <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px; z-index: 1000;">
-        <div class="live-indicator"><span class="dot"></span> LIVE</div>
-        <div style="font-size:8px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
-        <div class="jp-amount"><span id="h-jp-amt-2">0</span></div>
-        <div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
+        <div class="live-indicator"><span class="dot"></span> LIVE</div><div style="font-size:8px; color:#94a3b8; font-weight:bold;">ደራሽ</div><div class="jp-amount"><span id="h-jp-amt-2">0</span></div><div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
     </div>
-    
-    <div class="grid-subtitle-row" style="margin-top: 15px;">
-        <div class="gs-left">ካርቴላ ይምረጡ (10 ብር)</div>
-        <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div>
-    </div>
-
+    <div class="grid-subtitle-row" style="margin-top: 15px;"><div class="gs-left">ካርቴላ ይምረጡ (10 ብር)</div><div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div></div>
     <div id="grid-box" class="num-grid"></div>
 </div>
 
 <!-- COMPACT FIXED BET SLIP POPUP -->
 <div id="bet-slip-popup" class="bet-slip-popup">
-    <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
-        <span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
-        <span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
-    </div>
+    <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;"><span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span><span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span></div>
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
     <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;">BET NOW (ወራረድ)</button>
 </div>
@@ -423,9 +355,7 @@
     <div id="history-scroll-top" class="history-top-bar"></div>
     
     <div class="game-layout-container"> 
-        <div class="master-board-wrapper"> 
-            <div id="master-board" class="mb-board"></div>
-        </div>
+        <div class="master-board-wrapper"><div id="master-board" class="mb-board"></div></div>
         <div class="right-panel-stack">
             <div class="caller-box" style="position: relative;">
                 <div id="caller-ball" class="caller-ball">--</div>
@@ -435,12 +365,7 @@
                 <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
-            <div class="live-circle-badge">
-                <div class="live-indicator" style="font-size: 8px;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div>
-                <div style="font-size:7px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
-                <div class="jp-amount"><span id="g-jp-amt">0</span></div>
-                <div style="font-size:6px; font-weight:normal; color:#38bdf8;">ETB</div>
-            </div>
+            <div class="live-circle-badge"><div class="live-indicator" style="font-size: 8px;"><span class="dot" style="width:5px; height:5px;"></span> LIVE</div><div style="font-size:7px; color:#94a3b8; font-weight:bold;">ደራሽ</div><div class="jp-amount"><span id="g-jp-amt">0</span></div><div style="font-size:6px; font-weight:normal; color:#38bdf8;">ETB</div></div>
         </div>
     </div>
 </div>
@@ -448,34 +373,19 @@
 <!-- 4. TICKETS PAGE -->
 <div id="ticket-page" class="page">
     <div class="ticket-top-section">
-        
         <div class="t-page-badges-container">
             <div class="t-badge-box"><span>Balls:</span><b id="t-page-balls">0/20</b></div>
             <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
         </div>
-        
         <h3 style="text-align:left; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
-        
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;">
-                <div id="ticket-caller-ball" class="caller-ball" style="width: 35px; height: 35px; font-size: 12px; border-width: 3px;">--</div>
-            </div>
+            <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;"><div id="ticket-caller-ball" class="caller-ball" style="width: 35px; height: 35px; font-size: 12px; border-width: 3px;">--</div></div>
             <div id="ticket-history-bar" class="history-top-bar" style="flex-grow: 1; margin: 0; min-height: 50px; padding-right: 90px;"><span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span></div>
         </div>
-
-        <div style="text-align: center; margin-top: 5px;">
-            <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
-                👁️ ሙሉ ቦርድ እይ (Master Board) <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span>
-            </button>
-        </div>
-        
+        <div style="text-align: center; margin-top: 5px;"><button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">👁️ ሙሉ ቦርድ እይ (Master Board) <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span></button></div>
         <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
-
-    <div id="ticket-mb-container">
-        <div id="ticket-master-board" class="mb-board"></div>
-    </div>
-    
+    <div id="ticket-mb-container"><div id="ticket-master-board" class="mb-board"></div></div>
     <div id="ticket-list"></div>
 </div>
 
@@ -485,9 +395,7 @@
     <div style="background: linear-gradient(135deg, #0b111a, #131b2f); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; border: 1px solid var(--border-color); text-align: center;">
         <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያሸነፉት/ወጪ የሚደረግ)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 5px 0; font-family: monospace;" id="main-bal">0.00</div>
-        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px; display: inline-block;">
-            መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b>
-        </div>
+        <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px; display: inline-block;">መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b></div>
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
             <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="openDepositModal()">➕ Deposit</button>
             <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
@@ -509,20 +417,11 @@
 <div id="profile-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 16px;">👤 የእኔ ፕሮፋይል</h3>
     <div class="profile-stat-box" style="padding: 15px; margin-bottom: 10px;">
-        <div id="prof-avatar" class="prof-avatar-circle">U</div>
-        <h2 id="prof-name" style="margin: 0; color: white; font-size: 16px;">User Name</h2>
-        <p id="prof-phone" style="color: var(--text-gray); margin-top: 4px; font-size: 11px;">09...</p>
-        <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
+        <div id="prof-avatar" class="prof-avatar-circle">U</div><h2 id="prof-name" style="margin: 0; color: white; font-size: 16px;">User Name</h2><p id="prof-phone" style="color: var(--text-gray); margin-top: 4px; font-size: 11px;">09...</p><p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue); padding: 12px;">
-            <div style="font-size: 10px; color: var(--text-gray);">የተጫወቱት (Played)</div>
-            <div style="font-size: 18px; font-weight: bold; color: var(--blue);" id="prof-played">0</div>
-        </div>
-        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green); padding: 12px;">
-            <div style="font-size: 10px; color: var(--text-gray);">ያሸነፉት (Won)</div>
-            <div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div>
-        </div>
+        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue); padding: 12px;"><div style="font-size: 10px; color: var(--text-gray);">የተጫወቱት (Played)</div><div style="font-size: 18px; font-weight: bold; color: var(--blue);" id="prof-played">0</div></div>
+        <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green); padding: 12px;"><div style="font-size: 10px; color: var(--text-gray);">ያሸነፉት (Won)</div><div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div></div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/Bingohabesha'">
@@ -562,272 +461,94 @@
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
-    buildMasterBoard();
-    buildTicketMasterBoard();
-
-    // 🟢 አዲስ የጨመርነው ኮድ፡ ሪፍሬሽ ሲደረግ ዳታ ይመልሳል
+    // 🟢 አዲስ ሎጂክ: ሪፍሬሽ ሲደረግ ዳታ ይመልሳል
     window.onload = async () => {
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
         if(savedPhone && savedPass) {
-            document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)";
-            document.getElementById('start-btn').disabled = true;
+            document.getElementById('start-btn').innerText = "እየገባ ነው..."; document.getElementById('start-btn').disabled = true;
             try {
                 let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: savedPhone, password: savedPass}) });
                 let data = await res.json();
                 if(data.success) { 
                     processLoginSuccess(data.user); 
                     
-                    // 👉 ሪፍሬሽ ስናደርግ የገዛናቸውን ካርዶች ከሰርቨር እንጠይቃለን
+                    // ዳታ መመለሻ
                     let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
                     let tData = await tRes.json();
                     
                     if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
                         userTicketsData = tData.ticketsData;
-                        renderConfirmedTickets(); // ካርዶቹን ስክሪን ላይ ይስላል
+                        renderConfirmedTickets(); 
+                        
+                        // የ 1 - 200 ቦርድ ማስተካከያ (ካርዶቼን Green ያደርጋል)
+                        userTicketsData.forEach(ticket => {
+                            let btn = document.querySelector(`.num-btn:nth-child(${ticket.id})`);
+                            if(btn) btn.classList.add('bought-by-me');
+                        });
                         
                         // የተጠሩ ቁጥሮች ካሉ ካርዱ ላይ ያጠቁራል
                         if(tData.calledNumbers && tData.calledNumbers.length > 0) {
                             called = tData.calledNumbers;
+                            
+                            // History Scroll Bar እንደገና መሳል
                             called.forEach(num => {
-                                // ካርዱ ላይ ያለውን ቁጥር ለማጥቆር ማርክ ማድረግ
+                                let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
+                                let ballText = bHeads[colIdx] + "-" + num;
+                                let topH = document.getElementById('history-scroll-top'); 
+                                let tickH = document.getElementById('ticket-history-bar');
+                                if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
+                                let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
+                                let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
+                                topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
+                            });
+
+                            // ቦርዶች ላይ ማጥቆር
+                            called.forEach(num => {
                                 document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
-                                // ማስተር ቦርድ ላይም ማጥቆር
-                                let mbCell = document.getElementById('mb-' + num);
-                                if(mbCell) mbCell.classList.add('called');
-                                let tmbCell = document.getElementById('tmb-' + num);
-                                if(tmbCell) tmbCell.classList.add('called');
+                                let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
+                                let tmbCell = document.getElementById('tmb-' + num); if(tmbCell) tmbCell.classList.add('called');
                             });
                         }
                     }
                 } else { logout(); }
-            } catch(e) {
-                document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
-                document.getElementById('start-btn').disabled = false;
-            }
+            } catch(e) { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('start-btn').disabled = false; }
         }
+        buildMasterBoard(); buildTicketMasterBoard(); initGrid();
     };
 
-    function toggleSound() {
-        isSoundOn = !isSoundOn;
-        let st = document.getElementById('sound-toggle');
-        if(st) st.innerText = isSoundOn ? '🔊' : '🔇';
-    }
-
-    function toggleTicketMasterBoard() {
-        const page = document.getElementById('ticket-page');
-        const arrow = document.getElementById('mb-toggle-arrow');
-        page.classList.toggle('show-mb');
-        
-        if(page.classList.contains('show-mb')) {
-            arrow.innerText = '▲'; 
-        } else {
-            arrow.innerText = '▼'; 
-        }
-    }
-
+    function toggleSound() { isSoundOn = !isSoundOn; let st = document.getElementById('sound-toggle'); if(st) st.innerText = isSoundOn ? '🔊' : '🔇'; }
+    function toggleTicketMasterBoard() { const page = document.getElementById('ticket-page'); const arrow = document.getElementById('mb-toggle-arrow'); page.classList.toggle('show-mb'); if(page.classList.contains('show-mb')) { arrow.innerText = '▲'; } else { arrow.innerText = '▼'; } }
     function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
-
-    function togglePass() {
-        let x = document.getElementById("reg-pass");
-        let icon = document.getElementById("eye-icon");
-        if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; }
-    }
+    function togglePass() { let x = document.getElementById("reg-pass"); let icon = document.getElementById("eye-icon"); if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; } }
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
     function closeDepositModal(e) { if(e && e.target.id !== 'dep-modal-overlay') return; document.getElementById('dep-modal').classList.remove('show'); setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300); }
     function openWithdrawModal() { document.getElementById('wit-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('wit-modal').classList.add('show'); }, 10); }
     function closeWithdrawModal(e) { if(e && e.target.id !== 'wit-modal-overlay') return; document.getElementById('wit-modal').classList.remove('show'); setTimeout(() => { document.getElementById('wit-modal-overlay').style.display = 'none'; }, 300); }
     
-    function selectBank(method, element, type) {
-        let gridId = type === 'dep' ? 'dep-bank-grid' : 'wit-bank-grid';
-        let buttons = document.querySelectorAll(`#${gridId} .bank-btn`);
-        buttons.forEach(btn => btn.classList.remove('active'));
-        element.classList.add('active');
-        if(type === 'dep') {
-            document.getElementById('dep-copy-box').classList.add('show');
-            document.getElementById('m-dep-acc').innerText = depAccounts[method].num;
-            document.getElementById('m-dep-name').innerText = depAccounts[method].name;
-        }
-    }
+    function selectBank(method, element, type) { let gridId = type === 'dep' ? 'dep-bank-grid' : 'wit-bank-grid'; let buttons = document.querySelectorAll(`#${gridId} .bank-btn`); buttons.forEach(btn => btn.classList.remove('active')); element.classList.add('active'); if(type === 'dep') { document.getElementById('dep-copy-box').classList.add('show'); document.getElementById('m-dep-acc').innerText = depAccounts[method].num; document.getElementById('m-dep-name').innerText = depAccounts[method].name; } }
     function copyModalNumber(id) { navigator.clipboard.writeText(document.getElementById(id).innerText); alert("ቁጥሩ ኮፒ ተደርጓል!"); }
 
-    async function processNewDeposit() {
-        let amt = parseFloat(document.getElementById('m-dep-amt').value);
-        let activeBtn = document.querySelector('#dep-bank-grid .bank-btn.active');
-        let method = activeBtn ? activeBtn.getAttribute('data-bankname') : '';
-        let smsText = document.getElementById('m-dep-sms').value.trim();
+    async function processNewDeposit() { let amt = parseFloat(document.getElementById('m-dep-amt').value); let activeBtn = document.querySelector('#dep-bank-grid .bank-btn.active'); let method = activeBtn ? activeBtn.getAttribute('data-bankname') : ''; let smsText = document.getElementById('m-dep-sms').value.trim(); if(!method) return alert("እባክዎ ባንክ ይምረጡ!"); if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!"); let fileInput = document.getElementById('m-dep-file').files[0]; if(!smsText && !fileInput) return alert("እባክዎ የSMS ማረጋገጫ ወይም ፎቶ ያስገቡ!"); let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው..."; try { let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); let data = await res.json(); alert(data.message); document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; document.getElementById('m-dep-file').value = ''; closeDepositModal(); } catch(e) {} btn.innerText = "ጨርስ"; }
+    async function processNewWithdraw() { let amt = parseFloat(document.getElementById('m-wit-amt').value); let activeBtn = document.querySelector('#wit-bank-grid .bank-btn.active'); let method = activeBtn ? activeBtn.getAttribute('data-bankname') : ''; let phone = document.getElementById('m-wit-phone').value.trim(); if(!method) return alert("እባክዎ ባንክ ይምረጡ!"); if(!phone) return alert("እባክዎ ስልክ ቁጥር ያስገቡ!"); if(!amt || amt < 50 || amt > 300000) return alert("መጠን በ 50 እና 300,000 መሃል መሆን አለበት!"); let currentMainBal = parseFloat(currentUser.mainBalance) || 0; if(amt > currentMainBal) return alert("በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); let btn = document.getElementById('m-wit-btn'); btn.innerText = "እየላከ ነው..."; try { let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method, destinationPhone: phone }) }); let data = await res.json(); if(data.success) { await fetchUpdatedBalance(); alert(data.message); document.getElementById('m-wit-amt').value = ''; document.getElementById('m-wit-phone').value = ''; closeWithdrawModal(); } else { alert(data.message); } } catch(e) {} btn.innerText = "ወጪ ጠይቅ"; }
+    async function savePassword() { let oldPass = document.getElementById('pw-old').value; let newPass = document.getElementById('pw-new').value; let confPass = document.getElementById('pw-conf').value; if(!oldPass || !newPass || !confPass) return alert("እባክዎ ሁሉንም ያስገቡ!"); if(newPass !== confPass) return alert("አዲሱ የይለፍ ቃል አይመሳሰልም!"); try { let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) }); let data = await res.json(); alert(data.message); if(data.success) { localStorage.setItem('bingo_user_pass', newPass); document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; } } catch(e) {} }
 
-        if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
-        if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!");
-        
-        let fileInput = document.getElementById('m-dep-file').files[0];
-        if(!smsText && !fileInput) return alert("እባክዎ የSMS ማረጋገጫ ወይም ፎቶ ያስገቡ!");
+    function toggleAuthMode() { isLoginMode = !isLoginMode; document.getElementById('name-group').style.display = isLoginMode ? 'none' : 'block'; document.getElementById('ref-group').style.display = isLoginMode ? 'none' : 'block'; document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block'; if(isLoginMode) { document.getElementById('start-btn').innerText = "ግባ (LOGIN)"; document.getElementById('auth-subtitle').innerText = "ወደ አካውንትዎ ይግቡ"; document.getElementById('toggle-auth-text').innerText = "አዲስ አካውንት ይክፈቱ (Register)"; } else { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('auth-subtitle').innerText = "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)"; document.getElementById('toggle-auth-text').innerText = "አካውንት አለዎት? ይግቡ (Login)"; } v(); }
+    function v() { let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim(); let name = document.getElementById('reg-name').value.trim(); let btn = document.getElementById('start-btn'); let phoneValid = (phone.startsWith('09') || phone.startsWith('07')) && phone.length === 10 && /^\d+$/.test(phone); let passValid = pass.length >= 4; if(isLoginMode) { btn.disabled = !(phoneValid && passValid); } else { let nameValid = name.length > 0; let c1 = document.getElementById('c1').checked; let c2 = document.getElementById('c2').checked; btn.disabled = !(phoneValid && passValid && nameValid && c1 && c2); } }
 
-        let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
-        
-        try { 
-            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
-            let data = await res.json(); 
-            alert(data.message); 
-            document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; document.getElementById('m-dep-file').value = ''; closeDepositModal();
-        } catch(e) {}
-        btn.innerText = "ጨርስ";
-    }
+    async function authAction() { let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim(); let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim(); document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; document.getElementById('start-btn').disabled = true; let endpoint = isLoginMode ? '/api/login' : '/api/register'; let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) }); let data = await res.json(); if(data.success) { localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); processLoginSuccess(data.user); } else { alert(data.message); document.getElementById('start-btn').disabled = false; } }
 
-    async function processNewWithdraw() {
-        let amt = parseFloat(document.getElementById('m-wit-amt').value);
-        let activeBtn = document.querySelector('#wit-bank-grid .bank-btn.active');
-        let method = activeBtn ? activeBtn.getAttribute('data-bankname') : '';
-        let phone = document.getElementById('m-wit-phone').value.trim();
+    function processLoginSuccess(userObj) { currentUser = userObj; document.getElementById('hdr-name').innerText = currentUser.name; document.getElementById('hdr-phone').innerText = currentUser.phone; document.getElementById('prof-name').innerText = currentUser.name; document.getElementById('prof-phone').innerText = currentUser.phone; document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase(); let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5); document.getElementById('prof-id-display').innerText = "ID: #" + displayId; document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB"; updateUIBalance(); document.getElementById('auth-page').classList.remove('active-page'); document.getElementById('navbar').style.display = 'flex'; document.getElementById('global-header').style.display = 'flex'; handleHomeNav(); }
+    async function fetchUpdatedBalance() { if(!currentUser) return; let res = await fetch(`/api/getUser/${currentUser.phone}`); let data = await res.json(); if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB"; } }
 
-        if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
-        if(!phone) return alert("እባክዎ ስልክ ቁጥር ያስገቡ!");
-        if(!amt || amt < 50 || amt > 300000) return alert("መጠን በ 50 እና 300,000 መሃል መሆን አለበት!");
-        
-        let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
-        if(amt > currentMainBal) return alert("በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); 
-        
-        let btn = document.getElementById('m-wit-btn'); btn.innerText = "እየላከ ነው...";
-        try { 
-            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method, destinationPhone: phone }) }); 
-            let data = await res.json(); 
-            if(data.success) { await fetchUpdatedBalance(); alert(data.message); document.getElementById('m-wit-amt').value = ''; document.getElementById('m-wit-phone').value = ''; closeWithdrawModal(); } 
-            else { alert(data.message); } 
-        } catch(e) {}
-        btn.innerText = "ወጪ ጠይቅ";
-    }
-
-    async function savePassword() {
-        let oldPass = document.getElementById('pw-old').value; let newPass = document.getElementById('pw-new').value; let confPass = document.getElementById('pw-conf').value;
-        if(!oldPass || !newPass || !confPass) return alert("እባክዎ ሁሉንም ያስገቡ!");
-        if(newPass !== confPass) return alert("አዲሱ የይለፍ ቃል አይመሳሰልም!");
-        try {
-            let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
-            let data = await res.json();
-            alert(data.message);
-            if(data.success) { 
-                localStorage.setItem('bingo_user_pass', newPass); 
-                document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; 
-            }
-        } catch(e) {}
-    }
-
-    function toggleAuthMode() {
-        isLoginMode = !isLoginMode;
-        document.getElementById('name-group').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('ref-group').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
-        
-        if(isLoginMode) {
-            document.getElementById('start-btn').innerText = "ግባ (LOGIN)";
-            document.getElementById('auth-subtitle').innerText = "ወደ አካውንትዎ ይግቡ";
-            document.getElementById('toggle-auth-text').innerText = "አዲስ አካውንት ይክፈቱ (Register)";
-        } else {
-            document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
-            document.getElementById('auth-subtitle').innerText = "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
-            document.getElementById('toggle-auth-text').innerText = "አካውንት አለዎት? ይግቡ (Login)";
-        }
-        v();
-    }
-
-    function v() { 
-        let phone = document.getElementById('reg-phone').value.trim();
-        let pass = document.getElementById('reg-pass').value.trim();
-        let name = document.getElementById('reg-name').value.trim();
-        let btn = document.getElementById('start-btn');
-        let phoneValid = (phone.startsWith('09') || phone.startsWith('07')) && phone.length === 10 && /^\d+$/.test(phone);
-        let passValid = pass.length >= 4;
-        
-        if(isLoginMode) { btn.disabled = !(phoneValid && passValid); } else {
-            let nameValid = name.length > 0; let c1 = document.getElementById('c1').checked; let c2 = document.getElementById('c2').checked;
-            btn.disabled = !(phoneValid && passValid && nameValid && c1 && c2);
-        }
-    }
-
-    async function authAction() {
-        let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
-        let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
-
-        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; 
-        document.getElementById('start-btn').disabled = true;
-        
-        let endpoint = isLoginMode ? '/api/login' : '/api/register';
-        let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
-        let data = await res.json();
-        
-        if(data.success) { localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); processLoginSuccess(data.user); } 
-        else { alert(data.message); document.getElementById('start-btn').disabled = false; }
-    }
-
-    function processLoginSuccess(userObj) {
-        currentUser = userObj;
-        document.getElementById('hdr-name').innerText = currentUser.name; document.getElementById('hdr-phone').innerText = currentUser.phone;
-        document.getElementById('prof-name').innerText = currentUser.name; document.getElementById('prof-phone').innerText = currentUser.phone;
-        document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
-        let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5);
-        document.getElementById('prof-id-display').innerText = "ID: #" + displayId;
-        document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
-        updateUIBalance();
-        document.getElementById('auth-page').classList.remove('active-page'); document.getElementById('navbar').style.display = 'flex'; document.getElementById('global-header').style.display = 'flex';
-        initGrid(); handleHomeNav();
-    }
-
-    async function fetchUpdatedBalance() {
-        if(!currentUser) return;
-        let res = await fetch(`/api/getUser/${currentUser.phone}`); let data = await res.json();
-        if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB"; }
-    }
-
-    async function loadLeaderboard() {
-        showPage('rank');
-        const content = document.getElementById('rank-content');
-        content.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p>`;
-        try {
-            let res = await fetch('/api/leaderboard'); let data = await res.json();
-            if(data.success) {
-                if(data.leaderboard.length === 0) { content.innerHTML = `<div style="background:rgba(15,23,42,0.5); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">እስካሁን አሸናፊ የለም</div>`; } 
-                else {
-                    let top3 = data.leaderboard.slice(0, 3); let others = data.leaderboard.slice(3); let html = '<div class="podium-container">';
-                    if(top3[1]) html += `<div class="podium-box podium-2"><div class="podium-avatar p-2-ava">2</div><div class="podium-name">${top3[1].name}</div><div class="podium-prize">${top3[1].won} ETB</div></div>`;
-                    if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${top3[0].won} ETB</div></div>`;
-                    if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${top3[2].won} ETB</div></div>`;
-                    html += '</div>';
-                    others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; });
-                    content.innerHTML = html;
-                }
-            }
-        } catch(e) { content.innerHTML = `<p style="text-align:center; color:var(--red);">ስህተት አጋጥሟል</p>`; }
-    }
-
-    async function loadTransactionHistory() {
-        if(!currentUser) return;
-        const hc = document.getElementById('wallet-history-list');
-        hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">እየጫነ ነው...</p>`;
-        try {
-            let res = await fetch(`/api/user/transactions/${currentUser.phone}`); let data = await res.json();
-            if(data.success && data.txs.length > 0) {
-                hc.innerHTML = '';
-                data.txs.forEach(tx => {
-                    let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444'; let sign = tx.type === 'deposit' ? '+' : '-'; let time = new Date(tx.date).toLocaleString();
-                    hc.innerHTML += `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827);"><div><span style="font-weight:bold; font-size: 11px; color:white; text-transform:uppercase;">${tx.type} (${tx.method})</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${tx.amount} ETB</b></div>`;
-                });
-            } else { hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም</p>`; }
-        } catch(e) { hc.innerHTML = `<p style="text-align:center; color:#ef4444; font-size:11px;">Error loading history.</p>`; }
-    }
-
-    function updateUIBalance() {
-        document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
-        document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
-        document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
-        let playEl = document.getElementById('play-bal');
-        if(playEl) playEl.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
-    }
-
+    async function loadLeaderboard() { showPage('rank'); const content = document.getElementById('rank-content'); content.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p>`; try { let res = await fetch('/api/leaderboard'); let data = await res.json(); if(data.success) { if(data.leaderboard.length === 0) { content.innerHTML = `<div style="background:rgba(15,23,42,0.5); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">እስካሁን አሸናፊ የለም</div>`; } else { let top3 = data.leaderboard.slice(0, 3); let others = data.leaderboard.slice(3); let html = '<div class="podium-container">'; if(top3[1]) html += `<div class="podium-box podium-2"><div class="podium-avatar p-2-ava">2</div><div class="podium-name">${top3[1].name}</div><div class="podium-prize">${top3[1].won} ETB</div></div>`; if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${top3[0].won} ETB</div></div>`; if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${top3[2].won} ETB</div></div>`; html += '</div>'; others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${u.won} ETB</div></div>`; }); content.innerHTML = html; } } } catch(e) { content.innerHTML = `<p style="text-align:center; color:var(--red);">ስህተት አጋጥሟል</p>`; } }
+    async function loadTransactionHistory() { if(!currentUser) return; const hc = document.getElementById('wallet-history-list'); hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">እየጫነ ነው...</p>`; try { let res = await fetch(`/api/user/transactions/${currentUser.phone}`); let data = await res.json(); if(data.success && data.txs.length > 0) { hc.innerHTML = ''; data.txs.forEach(tx => { let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444'; let sign = tx.type === 'deposit' ? '+' : '-'; let time = new Date(tx.date).toLocaleString(); hc.innerHTML += `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827);"><div><span style="font-weight:bold; font-size: 11px; color:white; text-transform:uppercase;">${tx.type} (${tx.method})</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${tx.amount} ETB</b></div>`; }); } else { hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም</p>`; } } catch(e) { hc.innerHTML = `<p style="text-align:center; color:#ef4444; font-size:11px;">Error loading history.</p>`; } }
+    function updateUIBalance() { document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2); document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2); document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2); let playEl = document.getElementById('play-bal'); if(playEl) playEl.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2); }
     function formatTime(seconds) { if(isNaN(seconds)) return seconds; let m = Math.floor(seconds / 60); let s = seconds % 60; return `0${m}:${s < 10 ? '0' : ''}${s}`; }
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) { await fetchUpdatedBalance(); if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory(); } });
-
     socket.on('update_taken_tickets', (ticketsArr) => { globalTakenTickets = ticketsArr; renderGridTakenStates(); });
 
     function renderGridTakenStates() {
@@ -846,7 +567,6 @@
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
         let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
         let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = data.totalPrizePool.toFixed(2) + " ETB";
-        
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
         if (data.state === "WAITING") {
@@ -860,11 +580,9 @@
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>`;
-                
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
-                document.getElementById('g-balls').innerText = "0/20"; 
-                document.getElementById('t-page-balls').innerText = "0/20";
+                document.getElementById('g-balls').innerText = "0/20"; document.getElementById('t-page-balls').innerText = "0/20";
                 called = []; 
                 
                 if (currentUser) {
@@ -895,23 +613,12 @@
         }
     });
 
-    socket.on('new_number', (num) => {
-        if (!isGameRunningLocally) return;
-        called.push(num); 
-        document.getElementById('g-balls').innerText = called.length + "/20"; 
-        document.getElementById('t-page-balls').innerText = called.length + "/20";
-        updateLiveUI(num, true);
-    });
+    socket.on('new_number', (num) => { if (!isGameRunningLocally) return; called.push(num); document.getElementById('g-balls').innerText = called.length + "/20"; document.getElementById('t-page-balls').innerText = called.length + "/20"; updateLiveUI(num, true); });
 
     socket.on('game_winner', (data) => {
-        document.getElementById('bingo-overlay').style.display = 'flex'; 
-        document.getElementById('win-name').innerText = data.winnerName; 
-        document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
-        document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
-        
+        document.getElementById('bingo-overlay').style.display = 'flex'; document.getElementById('win-name').innerText = data.winnerName; document.getElementById('win-ticket').innerText = "#" + data.ticketId; document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         let g = data.ticketGrid; let cld = data.calledNumbers;
-        let html = `<div style="width:200px; margin: 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
-        html += `<div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
+        let html = `<div style="width:200px; margin: 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;"><div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
         for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color:#fff; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; }
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
@@ -929,7 +636,6 @@
         const box = document.getElementById('grid-box'); box.innerHTML = ''; 
         for(let i=1; i<=200; i++) { 
             let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; 
-            
             let isMine = userTicketsData && userTicketsData.some(t=>t.id===i);
             if(isMine) { d.classList.add('bought-by-me'); } else if(globalTakenTickets.includes(i)) { d.classList.add('taken'); }
 
@@ -937,9 +643,7 @@
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
                 if(d.classList.contains('taken') || d.classList.contains('bought-by-me')) return; 
 
-                if(d.classList.contains('selected')) { 
-                    d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); 
-                } 
+                if(d.classList.contains('selected')) { d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); } 
                 else if((selected.length + userTicketsData.length) < 4) { 
                     d.classList.add('selected'); selected.push(i); 
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
@@ -953,8 +657,7 @@
 
     function updateBetPreview() {
         document.getElementById('jp').innerText = (selected.length * 10); document.getElementById('grid-sel-count').innerText = selected.length;
-        const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
-        previewBox.innerHTML = '';
+        const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box'); previewBox.innerHTML = '';
         if(selected.length > 0) {
             popup.classList.add('show'); document.getElementById('slip-count').innerText = selected.length; document.getElementById('slip-price').innerText = selected.length * 10;
             pendingTicketsData.forEach(t => {
@@ -996,10 +699,8 @@
         list.innerHTML = ''; gameList.innerHTML = ''; 
         userTicketsData.forEach(t => { 
             let id = t.id; let cols = t.grid;
-            
             let card = document.createElement('div'); card.className = 't-card'; 
             let miniCard = document.createElement('div'); miniCard.className = 'mini-t-card'; 
-            
             let htmlMain = `<div class="t-id-badge">#${id}</div><div class="t-grid-wrapper"><div class="t-side-text">BINGO HABESHA</div><div class="t-grid">`;
             let htmlMini = `<div class="mini-t-id-badge">#${id}</div><div class="t-grid-wrapper"><div class="t-side-text" style="font-size:3px;">BINGO HABESHA</div><div class="mini-t-grid">`;
 
@@ -1013,7 +714,6 @@
                         htmlMain += `<div class="t-cell marked" style="color:#38bdf8; font-size:16px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
                         htmlMini += `<div class="mini-t-cell marked" style="color:#38bdf8; font-size:14px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
                     } else { 
-                        // የቁጥሩን ክላስ ስም t-v-10 እያደረግን እንሰጠዋለን (ለማጥቆር እንዲመች)
                         htmlMain += `<div class="t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                         htmlMini += `<div class="mini-t-cell t-v-${cols[c][r]}">${cols[c][r]}</div>`; 
                     } 
@@ -1033,32 +733,15 @@
     }
 
     function buildTicketMasterBoard() {
-        const tBoard = document.getElementById('ticket-master-board');
-        if(!tBoard) return;
-        tBoard.innerHTML = '';
+        const tBoard = document.getElementById('ticket-master-board'); if(!tBoard) return; tBoard.innerHTML = '';
         for(let c=0; c<5; c++) { let h = document.createElement('div'); h.className = 'mb-head'; h.style.background = bColors[c]; h.innerText = bHeads[c]; tBoard.appendChild(h); }
-        for(let r=1; r<=15; r++) { 
-            for(let c=0; c<5; c++) { 
-                let num = r + (c * 15); 
-                let d = document.createElement('div'); 
-                d.className = 'mb-cell'; 
-                d.id = 'tmb-' + num; 
-                d.innerText = num; 
-                d.style.color = bColors[c]; 
-                tBoard.appendChild(d); 
-            } 
-        }
+        for(let r=1; r<=15; r++) { for(let c=0; c<5; c++) { let num = r + (c * 15); let d = document.createElement('div'); d.className = 'mb-cell'; d.id = 'tmb-' + num; d.innerText = num; d.style.color = bColors[c]; tBoard.appendChild(d); } }
     }
 
     function updateLiveUI(num, isLatest) {
         if(isLatest) document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('current'));
-        
-        let cell = document.getElementById('mb-' + num);
-        if(cell) { cell.classList.add('called'); if(isLatest) cell.classList.add('current'); }
-
-        let tCell = document.getElementById('tmb-' + num);
-        if(tCell) { tCell.classList.add('called'); if(isLatest) tCell.classList.add('current'); }
-
+        let cell = document.getElementById('mb-' + num); if(cell) { cell.classList.add('called'); if(isLatest) cell.classList.add('current'); }
+        let tCell = document.getElementById('tmb-' + num); if(tCell) { tCell.classList.add('called'); if(isLatest) tCell.classList.add('current'); }
         document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
 
         let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
