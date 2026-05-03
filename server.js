@@ -223,7 +223,6 @@ app.post('/api/admin/change-password', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: "Server error" }); }
 });
 
-// New Admin APIs from server (3).js
 app.post('/api/admin/finance-report', auth, async (req, res) => {
     try {
         const txs = await Transaction.find({ status: 'Approved' });
@@ -268,6 +267,7 @@ let totalTickets = 0;
 let calledNumbers = [];
 let currentDrawSequence = []; 
 let gameInterval;
+let waitInterval; // ✅ ታይመሩ እንዳይደራረብ ይቆጣጠራል
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
@@ -303,7 +303,10 @@ function generateRiggedDrawSequence() {
 }
 
 async function declareWinner(player, ticket) {
-    gameState = "FINISHED"; clearInterval(gameInterval);
+    gameState = "FINISHED"; 
+    clearInterval(gameInterval);
+    clearInterval(waitInterval);
+
     const user = await User.findOne({phone: player.phone});
     if(user) { 
         user.mainBalance += totalPrizePool; 
@@ -312,7 +315,6 @@ async function declareWinner(player, ticket) {
         io.emit('balance_updated', player.phone); 
     }
     
-    // Save to GameHistory
     let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
     await GameHistory.create({ 
         gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, 
@@ -321,24 +323,40 @@ async function declareWinner(player, ticket) {
     });
 
     io.emit('game_winner', { winnerName: player.name, ticketId: ticket.id, prize: totalPrizePool, phone: player.phone, ticketGrid: ticket.grid, calledNumbers: [...calledNumbers] });
+    
     setTimeout(startCountdown, 12000); 
 }
 
 function startCountdown() {
-    gameState = "WAITING"; timer = 40; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
-    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
-    clearInterval(gameInterval);
+    gameState = "WAITING"; 
+    timer = 40; 
+    activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
+    gameId = Math.floor(Math.random() * 9000) + 1000; 
+    globalTakenTickets = []; 
+    io.emit('update_taken_tickets', globalTakenTickets); 
     
-    let waitInterval = setInterval(() => {
-        if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "PAUSED", message: "ጌም ለጊዜው ቆሟል..." }); return; }
+    clearInterval(gameInterval);
+    clearInterval(waitInterval); 
+    
+    waitInterval = setInterval(() => {
+        if(GLOBAL_SETTINGS.isGamePaused) { 
+            io.emit('game_status', { state: "PAUSED", timer: "PAUSED", message: "ጌም ለጊዜው ቆሟል..." }); 
+            return; 
+        }
         timer--;
         io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-        if (timer <= 0) { clearInterval(waitInterval); totalTickets > 0 ? startGame() : startCountdown(); }
+        
+        if (timer <= 0) { 
+            clearInterval(waitInterval); 
+            totalTickets > 0 ? startGame() : startCountdown(); 
+        }
     }, 1000);
 }
 
 function startGame() {
-    gameState = "PLAYING"; currentDrawSequence = generateRiggedDrawSequence(); 
+    clearInterval(waitInterval); 
+    gameState = "PLAYING"; 
+    currentDrawSequence = generateRiggedDrawSequence(); 
     io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
     
     gameInterval = setInterval(() => {
@@ -371,7 +389,6 @@ io.on('connection', (socket) => {
         if(GLOBAL_SETTINGS.isGamePaused) { socket.emit('error_message', `በአሁን ሰዓት ጌም አይሰራም!`); return; }
         if (gameState === "WAITING") {
             
-            // Limit 4 tickets per user
             let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
             if (currentTickets + data.ticketCount > 4) { socket.emit('error_message', `ቢበዛ 4 ካርድ ብቻ ነው መያዝ የሚቻለው!`); return; }
             
