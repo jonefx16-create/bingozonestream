@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const http = require('http');
-const fs = require('fs'); // ፋይሎችን ለመፈለግ
+const fs = require('fs');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -10,38 +10,34 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json());
-// ፋይሎችህ 'public' ፎልደር ውስጥ ከሌሉም እንዲሰሩ
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname)); 
+app.use(express.static(__dirname));
 
-// Database Connection
+// ==========================================
+// 🗄️ Database Connection & Models
+// ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
-// MODELS
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
-    played: { type: Number, default: 0 }, won: { type: Number, default: 0 },
-    status: { type: String, default: 'active' }
+    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' } 
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
-    phone: String, type: String, amount: Number, method: String,
-    status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }
+    phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }
 }));
 
 const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
-    gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
-    adminProfit: { type: Number, default: 0 }, 
+    gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number, adminProfit: { type: Number, default: 0 }, 
     ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 },
-    claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
+    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -96,6 +92,7 @@ app.post('/api/user/change-password', async (req, res) => {
 });
 
 app.get('/api/leaderboard', async (req, res) => { res.json({ success: true, leaderboard: await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won') }); });
+
 
 // ==========================================
 // 🔴 ADMIN APIs
@@ -152,8 +149,7 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
         const user = await User.findOne({ phone: req.body.phone });
         if(!user) return res.json({ success: false, message: "ተጠቃሚ አልተገኘም!" });
         user.playBalance += Number(req.body.amount); await user.save();
-        io.emit('balance_updated', user.phone);
-        res.json({ success: true, message: "ቦነሱ በተሳካ ሁኔታ ተልኳል!" });
+        io.emit('balance_updated', user.phone); res.json({ success: true, message: "ቦነሱ ተልኳል!" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -164,11 +160,6 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
         if(u) { u.playBalance += amount; await u.save(); io.emit('balance_updated', u.phone); count++; }
     }
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
-});
-
-app.post('/api/admin/broadcast-telegram', auth, (req, res) => {
-    console.log("Telegram Promo Broadcast: ", req.body.message);
-    res.json({ success: true, message: "ማስታወቂያው ወደ ቴሌግራም ቦት ተልኳል! (Integration ready)" });
 });
 
 app.post('/api/admin/finance-report', auth, async (req, res) => {
@@ -184,14 +175,16 @@ app.post('/api/admin/finance-report', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE
+// 🟢 BULLETPROOF LIVE BINGO GAME ENGINE
 // ==========================================
 let gameState = "WAITING";
-let timer = 40; 
+let gameClock = 40; 
 let activePlayers = {}; 
-let totalPrizePool = 0; let totalTickets = 0;
-let calledNumbers = []; let currentDrawSequence = []; 
-let gameInterval; let waitInterval; let gameId = Math.floor(Math.random() * 9000) + 1000;
+let totalPrizePool = 0; 
+let totalTickets = 0;
+let calledNumbers = []; 
+let currentDrawSequence = []; 
+let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
 function serverCheckBingo(grid, called) {
@@ -209,93 +202,94 @@ function generateRiggedDrawSequence() {
     let allTickets = [];
     Object.values(activePlayers).forEach(p => p.ticketsData.forEach(t => allTickets.push({ phone: p.phone, name: p.name, ticket: t })));
     if (allTickets.length === 0) return pool.sort(() => Math.random() - 0.5).slice(0, 20);
-    
     let target = allTickets[Math.floor(Math.random() * allTickets.length)];
     let req = [target.ticket.grid[0][2], target.ticket.grid[1][2], target.ticket.grid[3][2], target.ticket.grid[4][2]];
     req.forEach(n => { let i = pool.indexOf(n); if(i > -1) pool.splice(i, 1); });
-    
     let fillers = []; for(let i=0; i<16; i++) fillers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
     let winBall = req.pop(); let mixed = [...req, ...fillers].sort(() => Math.random() - 0.5); 
     mixed.splice(Math.floor(Math.random() * 5) + 15, 0, winBall); return mixed;
 }
 
 async function declareWinner(player, ticket) {
-    gameState = "FINISHED"; clearInterval(gameInterval); clearInterval(waitInterval);
+    gameState = "FINISHED"; 
+    gameClock = 12; // Wait 12 seconds
     const user = await User.findOne({phone: player.phone});
     if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
-    
     let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
     await GameHistory.create({ gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, prize: totalPrizePool, adminProfit, ticketPrice: GLOBAL_SETTINGS.ticketPrice, winningGrid: ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) });
     io.emit('game_winner', { winnerName: player.name, ticketId: ticket.id, prize: totalPrizePool, phone: player.phone, ticketGrid: ticket.grid, calledNumbers: [...calledNumbers] });
-    
     io.emit('admin_game_update', { playersCount: 0, totalTickets: 0, totalPrizePool: 0, playersData: [] });
-    setTimeout(startCountdown, 12000); 
 }
 
-function startCountdown() {
-    gameState = "WAITING"; timer = 40; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
-    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
-    clearInterval(gameInterval); clearInterval(waitInterval);
-    
-    waitInterval = setInterval(() => {
-        // 🔥 Error Fix: Added totalPrizePool to prevent frontend from crashing 🔥
-        if(GLOBAL_SETTINGS.isGamePaused) { 
-            io.emit('game_status', { state: "PAUSED", timer: "PAUSED", message: "ጌም ለጊዜው ቆሟል...", totalPrizePool, totalTickets, calledNumbers, gameId, ticketPrice: GLOBAL_SETTINGS.ticketPrice }); 
-            return; 
-        }
+function resetToWaiting() {
+    gameState = "WAITING"; 
+    gameClock = 40; 
+    activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
+    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
+    io.emit('update_taken_tickets', globalTakenTickets); 
+}
+
+// 🔥 ONE SINGLE BULLETPROOF LOOP FOR EVERYTHING 🔥
+setInterval(() => {
+    if(GLOBAL_SETTINGS.isGamePaused) { 
+        io.emit('game_status', { state: "PAUSED", timer: "PAUSED", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+        return; 
+    }
+
+    if (gameState === "WAITING") {
+        gameClock--;
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
-        timer--;
-        io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-        
-        if (timer <= 0) { 
-            clearInterval(waitInterval); 
-            if(Object.keys(activePlayers).length > 1) {
-                startGame();
+        if (gameClock <= 0) { 
+            if(Object.keys(activePlayers).length > 1) { // Requires 2+ players
+                gameState = "PLAYING";
+                gameClock = 3; 
+                currentDrawSequence = generateRiggedDrawSequence();
+                io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else {
-                io.emit('system_message', "ጨዋታው ለመጀመር ቢያንስ 2 ተጫዋች ያስፈልጋል!");
-                startCountdown();
+                gameClock = 40; 
             }
         }
-    }, 1000);
-}
-
-function startGame() {
-    clearInterval(waitInterval);
-    gameState = "PLAYING"; currentDrawSequence = generateRiggedDrawSequence(); 
-    io.emit('game_status', { state: gameState, timer: "LIVE", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-
-    gameInterval = setInterval(() => {
-        if (gameState !== "PLAYING" || currentDrawSequence.length === 0) { clearInterval(gameInterval); if(gameState === "PLAYING") setTimeout(startCountdown, 5000); return; }
-        let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
-        let winnerFound = false;
-        for (let player of Object.values(activePlayers)) {
-            for (let i = 0; i < player.ticketsData.length; i++) {
-                if (serverCheckBingo(player.ticketsData[i].grid, calledNumbers)) { winnerFound = true; declareWinner(player, player.ticketsData[i]); break; }
+    } else if (gameState === "PLAYING") {
+        gameClock--;
+        if (gameClock <= 0) {
+            gameClock = 3; 
+            if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
+            let num = currentDrawSequence.shift(); 
+            calledNumbers.push(num); 
+            io.emit('new_number', num);
+            
+            let winnerFound = false;
+            for (let player of Object.values(activePlayers)) {
+                for (let ticket of player.ticketsData) {
+                    if (serverCheckBingo(ticket.grid, calledNumbers)) { winnerFound = true; declareWinner(player, ticket); break; }
+                }
+                if(winnerFound) break;
             }
-            if(winnerFound) break;
         }
-    }, 3000);
-}
+    } else if (gameState === "FINISHED") {
+        gameClock--;
+        if (gameClock <= 0) {
+            resetToWaiting();
+        }
+    }
+}, 1000);
 
+// SOCKETS
 io.on('connection', (socket) => {
-    socket.emit('game_status', { state: GLOBAL_SETTINGS.isGamePaused ? "PAUSED" : gameState, timer: gameState === "PLAYING" ? "LIVE" : timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
+    socket.emit('game_status', { state: GLOBAL_SETTINGS.isGamePaused ? "PAUSED" : gameState, timer: gameState === "PLAYING" ? "LIVE" : gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
 
     socket.on('get_initial_data', (phone) => {
         let myData = activePlayers[phone];
-        socket.emit('sync_data', {
-            gameState: gameState,
-            globalTakenTickets: globalTakenTickets,
-            calledNumbers: calledNumbers,
-            myTickets: myData ? myData.ticketsData : []
-        });
+        socket.emit('sync_data', { gameState: gameState, globalTakenTickets: globalTakenTickets, calledNumbers: calledNumbers, myTickets: myData ? myData.ticketsData : [] });
     });
     
     socket.on('buy_tickets', async (data) => {
-        if(GLOBAL_SETTINGS.isGamePaused) { socket.emit('error_message', `በአሁን ሰዓት ጌም አይሰራም (Paused)!`); return; }
+        if(GLOBAL_SETTINGS.isGamePaused) return;
         if (gameState === "WAITING") {
             let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
-            if (currentTickets + data.ticketCount > 4) { socket.emit('error_message', `በአንድ ጨዋታ ቢበዛ 4 ካርድ ብቻ ነው መያዝ የሚቻለው!`); return; }
+            if (currentTickets + data.ticketCount > 4) return;
 
             const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice; 
             const user = await User.findOne({phone: data.phone});
@@ -313,11 +307,11 @@ io.on('connection', (socket) => {
                 if(data.ticketIds) { data.ticketIds.forEach(id => { if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id); }); io.emit('update_taken_tickets', globalTakenTickets); }
                 
                 socket.emit('balance_updated', data.phone); 
-                io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
                 
                 let playersDataList = Object.values(activePlayers).map(p => ({ phone: p.phone, name: p.name, tickets: p.tickets, ticketIds: p.ticketsData.map(t => t.id) }));
                 io.emit('admin_game_update', { playersCount: Object.keys(activePlayers).length, totalTickets: totalTickets, totalPrizePool: totalPrizePool, playersData: playersDataList });
-            } else { socket.emit('error_message', "ለዚህ ካርድ የሚሆን በቂ ሂሳብ የሎትም!"); }
+            }
         }
     });
 
@@ -328,31 +322,20 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
-// 🛣️ EXTREMELY SAFE ROUTING (Prevents Admin/Finance crash)
+// 🛣️ EXTREMELY SAFE ROUTING (FIX FOR ADMIN/FINANCE NOT LOADING)
 // ==========================================
 app.get('/admin', (req, res) => {
-    const pubPath = path.join(__dirname, 'public', 'admin.html');
-    const rootPath = path.join(__dirname, 'admin.html');
-    if(fs.existsSync(pubPath)) res.sendFile(pubPath);
-    else if(fs.existsSync(rootPath)) res.sendFile(rootPath);
-    else res.send("<h2>Error: admin.html is missing! Make sure you saved it correctly.</h2>");
+    let p = path.join(__dirname, 'public', 'admin.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'admin.html'));
 });
-
 app.get('/finance', (req, res) => {
-    const pubPath = path.join(__dirname, 'public', 'finance.html');
-    const rootPath = path.join(__dirname, 'finance.html');
-    if(fs.existsSync(pubPath)) res.sendFile(pubPath);
-    else if(fs.existsSync(rootPath)) res.sendFile(rootPath);
-    else res.send("<h2>Error: finance.html is missing! Make sure you saved it correctly.</h2>");
+    let p = path.join(__dirname, 'public', 'finance.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'finance.html'));
 });
-
 app.get('*', (req, res) => {
-    const pubPath = path.join(__dirname, 'public', 'index.html');
-    const rootPath = path.join(__dirname, 'index.html');
-    if(fs.existsSync(pubPath)) res.sendFile(pubPath);
-    else if(fs.existsSync(rootPath)) res.sendFile(rootPath);
-    else res.send("<h2>Error: index.html is missing! Make sure you saved it correctly.</h2>");
+    let p = path.join(__dirname, 'public', 'index.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running!`));
+server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
