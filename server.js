@@ -85,7 +85,6 @@ app.get('/api/leaderboard', async (req, res) => {
     res.json({ success: true, leaderboard: await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won') });
 });
 
-// Mass Bonus (ያለ ኮድ ክሌም ማድረጊያ)
 app.post('/api/user/claim-mass-bonus', async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone }); if(!user) return res.json({ success: false });
     let bonus = await ActiveBonus.findOne({ isActive: true });
@@ -99,10 +98,16 @@ app.post('/api/user/claim-mass-bonus', async (req, res) => {
     res.json({ success: true, message: `✅ እንኳን ደስ አሎት! የ ${bonus.amount} ETB ቦነስ አግኝተዋል።` });
 });
 
-// Refresh ሲደረግ የገዟቸውን ካርዶች መመለሻ (Persistence)
+// 🛠️ ማስተካከያ: Refresh ሲደረግ የገዟቸውን ካርዶች እና የተጠሩትን ቁጥሮች በትክክል መመለሻ (Persistence)
 app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     let p = activePlayers[req.params.phone];
-    res.json(p ? { success: true, ticketsData: p.ticketsData } : { success: false });
+    res.json({ 
+        success: true, 
+        ticketsData: p ? p.ticketsData : [], 
+        calledNumbers: [...calledNumbers], // የተጠሩት ቁጥሮች እንዳይጠፉ
+        gameState: gameState,
+        gameId: gameId
+    });
 });
 
 // ==========================================
@@ -230,6 +235,16 @@ io.on('connection', (socket) => {
     socket.emit('game_status', { state: gameState, timer: gameState === "PLAYING" ? "LIVE" : timer, totalPrizePool, totalTickets, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
     
+    // 🛠️ ማስተካከያ: ሪፍሬሽ ለሚያደርጉ ደንበኞች ካርዳቸውንና ጌሙን ለመመለስ (Optional Socket Endpoint)
+    socket.on('request_my_game', (phone) => {
+        let p = activePlayers[phone];
+        socket.emit('restored_data', {
+            ticketsData: p ? p.ticketsData : [],
+            calledNumbers: [...calledNumbers],
+            gameState: gameState
+        });
+    });
+
     socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
             const betAmount = data.ticketCount * 10; const user = await User.findOne({phone: data.phone});
@@ -237,8 +252,14 @@ io.on('connection', (socket) => {
                 if (user.playBalance >= betAmount) user.playBalance -= betAmount; else { user.mainBalance -= (betAmount - user.playBalance); user.playBalance = 0; }
                 user.played += 1; await user.save();
                 
-                // ሪፍሬሽ ሲያደርግ እንዳይጠፋበት በስልኩ ሴቭ ይደረጋል
-                activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
+                // 🛠️ ማስተካከያ: አዲስ ሲገዙ የድሮውን እንዳያጠፋው (Append)
+                if (!activePlayers[data.phone]) {
+                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
+                } else {
+                    activePlayers[data.phone].tickets += data.ticketCount;
+                    activePlayers[data.phone].ticketsData = [...activePlayers[data.phone].ticketsData, ...data.ticketsData];
+                }
+
                 totalTickets += data.ticketCount; totalPrizePool = (totalTickets * 10) * 0.85; 
                 
                 if(data.ticketIds) {
