@@ -8,29 +8,35 @@
         :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
+        /* Login Screen */
         #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); position: absolute; z-index: 100; }
         .login-card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid var(--faded-green); text-align: center; box-shadow: 0 0 30px rgba(74, 222, 128, 0.2); width: 300px; }
         
+        /* Dashboard Layout */
         #dash-sec { display: none; width: 100%; height: 100%; }
         
+        /* Sidebar */
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; }
         .sidebar-header { text-align: center; color: var(--faded-green); font-size: 20px; font-weight: 900; margin-bottom: 30px; letter-spacing: 1px; }
-        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 15px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent;}
+        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
         .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
-        
+        .nav-icon { font-size: 18px; }
+
+        /* Main Content */
         .main-content { flex: 1; padding: 30px; overflow-y: auto; background: var(--bg-dark); }
         .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Components */
         .card { background: var(--panel); padding: 25px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .card-title { margin-top: 0; color: white; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;}
         
         input { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; font-family: monospace; }
         input:focus { outline: none; border-color: var(--faded-green); }
         label { font-size: 12px; color: var(--text-gray); margin-bottom: 5px; display: block; }
-        
+
         button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         button.action-btn:hover { transform: scale(1.02); }
         button.btn-red { background: var(--red); color: white; }
@@ -38,16 +44,18 @@
         button.btn-purple { background: var(--purple); color: white; }
         button.btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
 
+        /* Tables */
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
         th, td { padding: 12px; border-bottom: 1px solid var(--border); }
         th { color: var(--text-gray); font-weight: bold; text-transform: uppercase; font-size: 11px; }
         tr:hover { background: rgba(255,255,255,0.02); }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); cursor: pointer;}
-        .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); cursor: pointer;}
-        .bg-all { background: rgba(59, 130, 246, 0.2); color: var(--blue); border: 1px solid var(--blue); cursor: pointer;}
-        
+        .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); }
+        .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
+        .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
+
+        /* Modals */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--panel); padding: 25px; border-radius: 10px; border: 1px solid var(--border); width: 400px; max-width: 90%; color: white; }
         .grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 15px 0; background: #000; padding: 10px; border-radius: 8px; text-align: center;}
@@ -57,7 +65,7 @@
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN SECTION -->
 <div id="login-sec">
     <div class="login-card">
         <h2 style="color: var(--faded-green); margin-top:0;">🛡️ Admin Login</h2>
@@ -66,48 +74,62 @@
     </div>
 </div>
 
-<!-- DASHBOARD -->
+<!-- DASHBOARD SECTION -->
 <div id="dash-sec">
-    <!-- Sidebar -->
+    <!-- Sidebar Navigation -->
     <div class="sidebar">
         <div class="sidebar-header">BINGO ADMIN</div>
         
-        <!-- ONE BUTTON FOR FINANCIAL HISTORY -->
-        <button class="nav-btn active" onclick="switchTab('tab-tx', this)">💳 Financial History</button>
-        
-        <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Registered Users</button>
-        <button class="nav-btn" onclick="switchTab('tab-history', this)">🏆 Game History</button>
-        <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Promo & Bonus</button>
+        <button class="nav-btn active" onclick="switchTab('tab-pending', this)">
+            <span class="nav-icon">⏳</span> Pending Requests
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">
+            <span class="nav-icon">📜</span> Financial History
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-users', this)">
+            <span class="nav-icon">👥</span> Registered Users
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-game-history', this)">
+            <span class="nav-icon">🏆</span> Game History
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-bonus', this)">
+            <span class="nav-icon">🎁</span> Send Bonus
+        </button>
         
         <div style="flex:1"></div>
-        <button class="nav-btn" style="border-top: 1px solid #30363d; color: #ef4444;" onclick="location.reload()">🚪 Logout</button>
+        <button class="nav-btn" style="border-top: 1px solid #30363d; color: #ef4444;" onclick="location.reload()">
+            <span class="nav-icon">🚪</span> Logout
+        </button>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content Area -->
     <div class="main-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 id="page-title" style="margin: 0;">💳 Financial History</h2>
+            <h2 id="page-title" style="margin: 0;">⏳ Pending Requests</h2>
             <button class="action-btn btn-blue" onclick="loadData()">🔄 Refresh Data</button>
         </div>
 
-        <!-- TAB 1: FINANCIAL HISTORY -->
-        <div id="tab-tx" class="tab-content active">
+        <!-- TAB 1: PENDING TRANSACTIONS -->
+        <div id="tab-pending" class="tab-content active">
             <div class="card">
-                <!-- Filters -->
-                <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="badge bg-all" onclick="renderTxs('All')">📂 All Transactions</button>
-                    <button class="badge bg-pending" onclick="renderTxs('Pending')">⏳ Pending Requests</button>
-                    <button class="badge bg-approved" onclick="renderTxs('Approved Deposit')">✅ Approved Deposits</button>
-                    <button class="badge bg-approved" style="border-color:var(--orange); color:var(--orange);" onclick="renderTxs('Approved Withdraw')">💸 Approved Withdrawals</button>
-                </div>
                 <table>
                     <thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody id="tx-body"></tbody>
+                    <tbody id="pending-body"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- TAB 2: USERS -->
+        <!-- TAB 2: TRANSACTION HISTORY -->
+        <div id="tab-history-tx" class="tab-content">
+            <div class="card">
+                <table>
+                    <thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
+                    <tbody id="history-tx-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 3: REGISTERED USERS -->
         <div id="tab-users" class="tab-content">
             <div class="card">
                 <table>
@@ -117,44 +139,49 @@
             </div>
         </div>
 
-        <!-- TAB 3: GAME HISTORY -->
-        <div id="tab-history" class="tab-content">
+        <!-- TAB 4: GAME HISTORY -->
+        <div id="tab-game-history" class="tab-content">
             <div class="card">
                 <table>
-                    <thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone Number</th><th>Prize Won</th><th>Action</th></tr></thead>
-                    <tbody id="history-body"></tbody>
+                    <thead><tr><th>Date</th><th>Game ID</th><th>Ticket #</th><th>Winner Name</th><th>Phone Number</th><th>Prize Won</th><th>Action</th></tr></thead>
+                    <tbody id="game-history-body"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- TAB 4: BONUS & PROMO -->
+        <!-- TAB 5: SEND BONUS & MASS BONUS -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                
+                <!-- Direct Bonus -->
                 <div class="card" style="flex: 1; min-width: 300px; border-left: 4px solid var(--faded-green);">
-                    <h3 class="card-title">🎁 Direct Bonus</h3>
-                    <input type="text" id="b-phone" placeholder="User Phone">
+                    <h3 class="card-title">🎁 Direct Bonus (ለ 1 ሰው)</h3>
+                    <input type="text" id="b-phone" placeholder="User Phone (e.g. 0911223344)">
                     <input type="number" id="b-amt" placeholder="Amount (ETB)">
-                    <button class="action-btn" onclick="sendBonus()" style="width: 100%;">Send Direct Bonus</button>
+                    <button class="action-btn" onclick="sendDirectBonus()" style="width: 100%;">Send Direct Bonus</button>
                 </div>
+
+                <!-- Mass Bonus -->
                 <div class="card" style="flex: 1; min-width: 300px; border-left: 4px solid var(--purple);">
-                    <h3 class="card-title">🎟️ Mass Promo Code</h3>
-                    <input type="text" id="m-code" placeholder="Promo Code (e.g. BINGO300)">
+                    <h3 class="card-title">🎟️ Mass Claim Bonus (ለብዙ ሰዎች)</h3>
                     <div style="display: flex; gap: 10px;">
-                        <input type="number" id="m-users" placeholder="Max Users">
+                        <input type="number" id="m-users" placeholder="Max Users (e.g. 300)">
                         <input type="number" id="m-amt" placeholder="Amount per user">
                     </div>
                     <input type="number" id="m-time" placeholder="Expires in (Minutes)">
-                    <button class="action-btn btn-purple" onclick="createMassBonus()" style="width: 100%;">Create Promo Code</button>
+                    <button class="action-btn btn-purple" onclick="createMassBonus()" style="width: 100%;">Create Active Bonus</button>
                 </div>
             </div>
+
             <div class="card" style="margin-top: 20px;">
-                <h3 class="card-title">📌 Active Promo Codes</h3>
+                <h3 class="card-title">📌 Current Active Mass Bonus</h3>
                 <table>
-                    <thead><tr><th>Code Name</th><th>Amount</th><th>Limit</th><th>Claimed By</th><th>Expires In</th></tr></thead>
+                    <thead><tr><th>Amount</th><th>Limit</th><th>Claimed By</th><th>Status</th></tr></thead>
                     <tbody id="promo-body"></tbody>
                 </table>
             </div>
         </div>
+
     </div>
 </div>
 
@@ -184,7 +211,7 @@
 <!-- MODAL: BINGO HISTORY -->
 <div class="modal" id="history-modal">
     <div class="modal-content" style="text-align: center;">
-        <h3 style="color: var(--faded-green); margin-top:0;">🏆 Winner Details</h3>
+        <h3 style="color: var(--faded-green); margin-top:0;">🏆 Winning Ticket Details</h3>
         <p id="m-called" style="font-size: 12px; color: var(--text-gray); word-wrap: break-word;"></p>
         <div class="grid-preview" id="m-grid"></div>
         <button class="action-btn btn-red" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('history-modal').style.display='none'">Close</button>
@@ -193,7 +220,6 @@
 
 <script>
     let pass = "";
-    let allTxs = []; 
     
     function login() { 
         pass = document.getElementById('adminPass').value; 
@@ -201,20 +227,23 @@
         loadData(); 
     }
 
+    // Sidebar Tab Switching Logic
     function switchTab(tabId, btnElement) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
+        
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
-        const titles = { 'tab-tx': '💳 Financial History', 'tab-users': '👥 Registered Users', 'tab-history': '🏆 Game History', 'tab-bonus': '🎁 Promo & Bonus' };
-        document.getElementById('page-title').innerText = titles[tabId];
+
+        document.getElementById('page-title').innerText = btnElement.innerText;
     }
 
     async function loadData() {
         try {
             // USERS
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            if(uRes.status === 401) return alert("Wrong Password!");
+            if(uRes.status === 401) { alert("Wrong Password!"); return; }
+            
             document.getElementById('login-sec').style.display = 'none'; 
             document.getElementById('dash-sec').style.display = 'flex';
 
@@ -223,23 +252,51 @@
             users.forEach((u) => {
                 let shortId = "..." + u._id.substring(u._id.length - 6);
                 uHtml += `<tr>
-                    <td style="color:var(--text-gray);">${shortId}</td>
+                    <td style="color:var(--text-gray); font-family:monospace;">${shortId}</td>
                     <td style="font-weight:bold;">${u.name}</td>
                     <td style="color:var(--blue);">${u.phone}</td>
-                    <td>${u.mainBalance.toFixed(2)}</td>
-                    <td>${u.playBalance.toFixed(2)}</td>
+                    <td>${u.mainBalance.toFixed(2)} ETB</td>
+                    <td>${u.playBalance.toFixed(2)} ETB</td>
                     <td>
                         <button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button>
-                        <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button>
+                        <button class="btn-sm btn-red" onclick="banUser('${u.phone}', '${u.name}')">Ban / Delete</button>
                     </td>
                 </tr>`;
             });
             document.getElementById('users-body').innerHTML = uHtml;
 
-            // TRANSACTIONS
+            // TRANSACTIONS (Split Pending and History)
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            allTxs = await tRes.json();
-            renderTxs('All'); 
+            let txs = await tRes.json();
+            
+            let pendingHtml = "";
+            let historyTxHtml = "";
+
+            txs.forEach(t => {
+                let d = new Date(t.date).toLocaleString(); 
+                let bClass = t.status==='Pending'?'bg-pending':t.status==='Approved'?'bg-approved':'bg-rejected';
+                let typeColor = t.type==='deposit' ? 'var(--faded-green)' : 'var(--orange)';
+                
+                if(t.status === 'Pending') {
+                    pendingHtml += `<tr>
+                        <td style="color:var(--text-gray); font-size:11px;">${d}</td><td style="font-weight:bold;">${t.phone}</td>
+                        <td style="text-transform:uppercase; font-weight:bold; color:${typeColor}">${t.type}</td><td>${t.method}</td>
+                        <td style="font-family:monospace;">${t.amount} ETB</td><td><span class="badge ${bClass}">${t.status}</span></td>
+                        <td>
+                            <button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> 
+                            <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button>
+                        </td>
+                    </tr>`;
+                } else {
+                    historyTxHtml += `<tr>
+                        <td style="color:var(--text-gray); font-size:11px;">${d}</td><td style="font-weight:bold;">${t.phone}</td>
+                        <td style="text-transform:uppercase; font-weight:bold; color:${typeColor}">${t.type}</td><td>${t.method}</td>
+                        <td style="font-family:monospace;">${t.amount} ETB</td><td><span class="badge ${bClass}">${t.status}</span></td>
+                    </tr>`;
+                }
+            });
+            document.getElementById('pending-body').innerHTML = pendingHtml;
+            document.getElementById('history-tx-body').innerHTML = historyTxHtml;
 
             // GAME HISTORY
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
@@ -249,62 +306,100 @@
                 let d = new Date(h.date).toLocaleString();
                 let gridData = JSON.stringify(h.winningGrid);
                 let callData = JSON.stringify(h.calledNumbers);
-                hHtml += `<tr><td style="font-size:11px; color:var(--text-gray);">${d}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize} ETB</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${gridData}, ${callData})'>View Details</button></td></tr>`;
+                hHtml += `<tr>
+                    <td style="font-size:11px; color:var(--text-gray);">${d}</td>
+                    <td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
+                    <td style="font-family:monospace;">${h.ticketId || 'N/A'}</td>
+                    <td>${h.winnerName}</td>
+                    <td>${h.winnerPhone}</td>
+                    <td style="color:var(--faded-green); font-weight:bold;">+${h.prize} ETB</td>
+                    <td><button class="btn-sm btn-blue" onclick='viewHistory(${gridData}, ${callData})'>View Card</button></td>
+                </tr>`;
             });
-            document.getElementById('history-body').innerHTML = hHtml;
+            document.getElementById('game-history-body').innerHTML = hHtml;
 
-            // PROMOS
-            let pRes = await fetch('/api/admin/promos', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            let promos = await pRes.json();
-            let pHtml = "";
-            promos.forEach(p => {
-                let d = new Date(p.expiresAt);
-                let expTxt = (d < new Date()) ? `<span style="color:var(--red)">Expired</span>` : d.toLocaleString();
-                pHtml += `<tr><td style="font-weight:bold; color:var(--purple);">${p.code}</td><td>${p.amount} ETB</td><td>${p.currentClaims} / ${p.maxUsers}</td><td style="font-size:11px; color:var(--text-gray);">${p.claimedBy.length} claims</td><td style="font-size:11px;">${expTxt}</td></tr>`;
-            });
-            document.getElementById('promo-body').innerHTML = pHtml;
+            // MASS BONUS
+            let pRes = await fetch('/api/admin/active-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            let p = await pRes.json();
+            if(p) {
+                let isExp = new Date(p.expiresAt) < new Date() || !p.isActive;
+                document.getElementById('promo-body').innerHTML = `<tr>
+                    <td>${p.amount} ETB</td><td>${p.currentClaims} / ${p.maxUsers}</td>
+                    <td style="font-size:11px; color:var(--text-gray);">${p.claimedBy.length} users claimed</td>
+                    <td>${isExp ? '<span class="badge bg-rejected">Expired/Closed</span>' : '<span class="badge bg-approved">Active LIVE</span>'}</td>
+                </tr>`;
+            } else { 
+                document.getElementById('promo-body').innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-gray);">No Active Mass Bonus</td></tr>'; 
+            }
 
-        } catch (e) { alert("Server error connecting to DB."); }
+        } catch (e) { console.log("Error loading data"); }
     }
 
-    function renderTxs(filterType) {
-        let filtered = allTxs;
-        if(filterType === 'Pending') filtered = allTxs.filter(t => t.status === 'Pending');
-        else if (filterType === 'Approved Deposit') filtered = allTxs.filter(t => t.status === 'Approved' && t.type === 'deposit');
-        else if (filterType === 'Approved Withdraw') filtered = allTxs.filter(t => t.status === 'Approved' && t.type === 'withdraw');
-
-        let tHtml = "";
-        filtered.forEach(t => {
-            let d = new Date(t.date).toLocaleString(); 
-            let bClass = t.status==='Pending'?'bg-pending':t.status==='Approved'?'bg-approved':'bg-rejected';
-            let btnHtml = t.status === 'Pending' ? 
-                `<button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> 
-                 <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button>` : 
-                `<span style="color:var(--text-gray); font-size:11px;">Done</span>`;
-            tHtml += `<tr><td>${d}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td>${t.amount}</td><td><span class="badge ${bClass}">${t.status}</span></td><td>${btnHtml}</td></tr>`;
-        });
-        document.getElementById('tx-body').innerHTML = tHtml;
+    // ACTIONS
+    async function actionTx(txId, action) {
+        if(!confirm(`Are you sure you want to ${action} this transaction?`)) return;
+        let res = await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})});
+        let data = await res.json(); if(data.success) { loadData(); } else { alert("Failed!"); }
     }
 
-    // Modal and Admin functions
+    async function sendDirectBonus() {
+        let phone = document.getElementById('b-phone').value; let amount = parseFloat(document.getElementById('b-amt').value);
+        if(!phone || !amount) return alert("Please fill all fields");
+        if(!confirm(`Send ${amount} ETB to ${phone}?`)) return;
+        let res = await fetch('/api/admin/send-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})});
+        let data = await res.json(); 
+        if(data.success) { alert("✅ Bonus sent successfully!"); document.getElementById('b-phone').value = ''; document.getElementById('b-amt').value = ''; loadData(); } 
+        else { alert("User not found or failed!"); }
+    }
+
+    async function createMassBonus() {
+        let maxUsers = document.getElementById('m-users').value; let amount = document.getElementById('m-amt').value; let timeMin = document.getElementById('m-time').value;
+        if(!maxUsers || !amount || !timeMin) return alert("እባክዎ ሙሉ መረጃ ያስገቡ!");
+        let res = await fetch('/api/admin/create-mass-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, maxUsers, amount, timeMin }) });
+        let data = await res.json();
+        if(data.success) { alert(`✅ Mass Claim Bonus Created Successfully!`); loadData(); }
+    }
+
+    // USER EDIT
     function openEditModal(phone, passw, mainBal, playBal) {
         document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw;
         document.getElementById('eu-main').value = mainBal; document.getElementById('eu-play').value = playBal; document.getElementById('edit-user-modal').style.display = 'flex';
     }
     function closeEditModal() { document.getElementById('edit-user-modal').style.display = 'none'; }
+    
     async function saveUserEdit() {
-        let oldPhone = document.getElementById('eu-oldPhone').value; let newPhone = document.getElementById('eu-phone').value; let password = document.getElementById('eu-password').value;
-        let mainBalance = document.getElementById('eu-main').value; let playBalance = document.getElementById('eu-play').value;
-        if(!newPhone || !password || mainBalance === "" || playBalance === "") return alert("Please fill all fields.");
-        if(oldPhone !== newPhone) if(!confirm(`⚠️ Warning: Changing phone from ${oldPhone} to ${newPhone}. All history will be transferred. Proceed?`)) return;
-        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, oldPhone, newPhone, password, mainBalance, playBalance }) });
-        let data = await res.json(); if(data.success) { alert(data.message); closeEditModal(); loadData(); } else alert(data.message);
+        let payload = { 
+            adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, 
+            password: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value 
+        };
+        if(!payload.newPhone || !payload.password) return alert("Please fill all fields.");
+        if(payload.oldPhone !== payload.newPhone) if(!confirm(`⚠️ ስልክ ቁጥሩን ከ ${payload.oldPhone} ወደ ${payload.newPhone} እየቀየሩ ነው። ታሪኩ ይዛወራል። ይቀጥል?`)) return;
+        
+        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        let data = await res.json(); alert(data.message);
+        if(data.success) { closeEditModal(); loadData(); }
     }
-    async function actionTx(txId, action) { if(!confirm("Are you sure?")) return; await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); }
-    async function sendBonus() { let phone = document.getElementById('b-phone').value; let amount = parseFloat(document.getElementById('b-amt').value); if(!phone || !amount) return; let res = await fetch('/api/admin/send-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})}); let data = await res.json(); if(data.success) { alert("Sent!"); loadData(); } else alert("Failed!"); }
-    async function createMassBonus() { let code = document.getElementById('m-code').value.toUpperCase(); let maxUsers = parseInt(document.getElementById('m-users').value); let amount = parseFloat(document.getElementById('m-amt').value); let timeMin = parseInt(document.getElementById('m-time').value); if(!code || !maxUsers || !amount || !timeMin) return alert("Fill all fields!"); let res = await fetch('/api/admin/create-promo', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, code, maxUsers, amount, timeMin }) }); let data = await res.json(); if(data.success) { alert(`Promo Code Created!`); loadData(); } else alert(data.message); }
-    async function banUser(phone) { if(confirm("Ban this user permanently?")) { await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
-    function viewHistory(grid, calledNumbers) { document.getElementById('m-called').innerText = "Called: " + calledNumbers.join(", "); let gridHtml = ""; for(let r=0; r<5; r++){ for(let c=0; c<5; c++){ let num = grid[c][r]; let isHit = calledNumbers.includes(num) || (c===2 && r===2) ? "highlight" : ""; let display = (c===2 && r===2) ? "FREE" : num; gridHtml += `<div class="${isHit}">${display}</div>`; } } document.getElementById('m-grid').innerHTML = gridHtml; document.getElementById('history-modal').style.display = 'flex'; }
+
+    async function banUser(phone, name) {
+        if(!confirm(`⚠️ ማስጠንቀቂያ: እርግጠኛ ነዎት የ ${name} (${phone}) አካውንት ማጥፋት (Ban) ይፈልጋሉ?`)) return;
+        let res = await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone: phone})});
+        let data = await res.json(); if(data.success) { alert(`✅ User has been banned.`); loadData(); }
+    }
+
+    function viewHistory(grid, calledNumbers) {
+        document.getElementById('m-called').innerText = "Called Numbers: " + calledNumbers.join(", ");
+        let gridHtml = "";
+        for(let r=0; r<5; r++){
+            for(let c=0; c<5; c++){
+                let num = grid[c][r];
+                let isHit = calledNumbers.includes(num) || (c===2 && r===2) ? "highlight" : "";
+                let display = (c===2 && r===2) ? "FREE" : num;
+                gridHtml += `<div class="${isHit}">${display}</div>`;
+            }
+        }
+        document.getElementById('m-grid').innerHTML = gridHtml;
+        document.getElementById('history-modal').style.display = 'flex';
+    }
 </script>
 </body>
 </html>
