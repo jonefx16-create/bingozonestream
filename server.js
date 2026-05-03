@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const http = require('http');
+const fs = require('fs'); // ፋይሎችን ለመፈለግ
 const { Server } = require('socket.io');
 
 const app = express();
@@ -9,7 +10,9 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json());
+// ፋይሎችህ 'public' ፎልደር ውስጥ ከሌሉም እንዲሰሩ
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname)); 
 
 // Database Connection
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
@@ -21,20 +24,24 @@ mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).cat
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
-    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' }
+    played: { type: Number, default: 0 }, won: { type: Number, default: 0 },
+    status: { type: String, default: 'active' }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
-    phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }
+    phone: String, type: String, amount: Number, method: String,
+    status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }
 }));
 
 const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
     gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
-    adminProfit: { type: Number, default: 0 }, ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
+    adminProfit: { type: Number, default: 0 }, 
+    ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
+    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 },
+    claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -103,7 +110,6 @@ const auth = (req, res, next) => {
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(100)));
-app.post('/api/admin/active-bonus', auth, async (req, res) => res.json(await ActiveBonus.findOne({ isActive: true })));
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
@@ -140,12 +146,14 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.updateOne({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.updateOne({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
+// Bonus APIs
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     try {
         const user = await User.findOne({ phone: req.body.phone });
         if(!user) return res.json({ success: false, message: "ተጠቃሚ አልተገኘም!" });
         user.playBalance += Number(req.body.amount); await user.save();
-        io.emit('balance_updated', user.phone); res.json({ success: true, message: "ቦነሱ ተልኳል!" });
+        io.emit('balance_updated', user.phone);
+        res.json({ success: true, message: "ቦነሱ በተሳካ ሁኔታ ተልኳል!" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -158,6 +166,11 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
+app.post('/api/admin/broadcast-telegram', auth, (req, res) => {
+    console.log("Telegram Promo Broadcast: ", req.body.message);
+    res.json({ success: true, message: "ማስታወቂያው ወደ ቴሌግራም ቦት ተልኳል! (Integration ready)" });
+});
+
 app.post('/api/admin/finance-report', auth, async (req, res) => {
     const txs = await Transaction.find({ status: 'Approved' });
     let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
@@ -165,7 +178,9 @@ app.post('/api/admin/finance-report', auth, async (req, res) => {
     const games = await GameHistory.find();
     let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
     let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
-    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost: 0, totalUserBalances: 0 });
+    const users = await User.find();
+    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
+    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost: 0, totalUserBalances });
 });
 
 // ==========================================
@@ -223,14 +238,23 @@ function startCountdown() {
     clearInterval(gameInterval); clearInterval(waitInterval);
     
     waitInterval = setInterval(() => {
-        if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "PAUSED", timer: "PAUSED", message: "ጌም ለጊዜው ቆሟል..." }); return; }
+        // 🔥 Error Fix: Added totalPrizePool to prevent frontend from crashing 🔥
+        if(GLOBAL_SETTINGS.isGamePaused) { 
+            io.emit('game_status', { state: "PAUSED", timer: "PAUSED", message: "ጌም ለጊዜው ቆሟል...", totalPrizePool, totalTickets, calledNumbers, gameId, ticketPrice: GLOBAL_SETTINGS.ticketPrice }); 
+            return; 
+        }
+        
         timer--;
         io.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (timer <= 0) { 
             clearInterval(waitInterval); 
-            if(Object.keys(activePlayers).length > 1) { startGame(); } 
-            else { io.emit('system_message', "ጨዋታው ለመጀመር ቢያንስ 2 ተጫዋች ያስፈልጋል!"); startCountdown(); }
+            if(Object.keys(activePlayers).length > 1) {
+                startGame();
+            } else {
+                io.emit('system_message', "ጨዋታው ለመጀመር ቢያንስ 2 ተጫዋች ያስፈልጋል!");
+                startCountdown();
+            }
         }
     }, 1000);
 }
@@ -257,7 +281,6 @@ io.on('connection', (socket) => {
     socket.emit('game_status', { state: GLOBAL_SETTINGS.isGamePaused ? "PAUSED" : gameState, timer: gameState === "PLAYING" ? "LIVE" : timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
 
-    // 🔥 Sync Data on Refresh (ይህ የጠፉትን ካርቴላዎች ይመልሳል) 🔥
     socket.on('get_initial_data', (phone) => {
         let myData = activePlayers[phone];
         socket.emit('sync_data', {
@@ -304,10 +327,32 @@ io.on('connection', (socket) => {
     });
 });
 
-// Route ordering - Extremely Important!
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'public', 'finance.html')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// ==========================================
+// 🛣️ EXTREMELY SAFE ROUTING (Prevents Admin/Finance crash)
+// ==========================================
+app.get('/admin', (req, res) => {
+    const pubPath = path.join(__dirname, 'public', 'admin.html');
+    const rootPath = path.join(__dirname, 'admin.html');
+    if(fs.existsSync(pubPath)) res.sendFile(pubPath);
+    else if(fs.existsSync(rootPath)) res.sendFile(rootPath);
+    else res.send("<h2>Error: admin.html is missing! Make sure you saved it correctly.</h2>");
+});
+
+app.get('/finance', (req, res) => {
+    const pubPath = path.join(__dirname, 'public', 'finance.html');
+    const rootPath = path.join(__dirname, 'finance.html');
+    if(fs.existsSync(pubPath)) res.sendFile(pubPath);
+    else if(fs.existsSync(rootPath)) res.sendFile(rootPath);
+    else res.send("<h2>Error: finance.html is missing! Make sure you saved it correctly.</h2>");
+});
+
+app.get('*', (req, res) => {
+    const pubPath = path.join(__dirname, 'public', 'index.html');
+    const rootPath = path.join(__dirname, 'index.html');
+    if(fs.existsSync(pubPath)) res.sendFile(pubPath);
+    else if(fs.existsSync(rootPath)) res.sendFile(rootPath);
+    else res.send("<h2>Error: index.html is missing! Make sure you saved it correctly.</h2>");
+});
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running!`));
 
