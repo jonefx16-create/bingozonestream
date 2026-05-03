@@ -24,9 +24,12 @@
         .eye-icon { position: absolute; right: 15px; top: 14px; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.2s; }
         .eye-icon:hover { opacity: 1; }
         .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
+        /* HIDE NAV & HEADER ON AUTH PAGE */
         body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
 
+        /* Header */
         .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .hdr-user-sec { display: flex; align-items: center; gap: 8px; }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
@@ -39,10 +42,16 @@
         .pill-wallet span.title.main { color: var(--gold); }
         .pill-wallet span.amt { color: white; font-size: 11px; font-weight: 900; font-family: monospace;}
 
+        /* Timer Box */
         .new-timer-box { background: #111521; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); }
+        .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+        .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .nt-badge { background: rgba(74, 222, 128, 0.15); color: var(--faded-green); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
+        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         #timer { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); font-size: 26px; }
 
+        /* Game & Home Page Badge */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
@@ -54,6 +63,7 @@
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
         .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
+        .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
@@ -61,8 +71,10 @@
         .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
         .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; }
 
-        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 120%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
-        .bet-slip-popup.show { transform: translate(-50%, 0); } 
+        /* 🔥 STRICT HIDE FOR SLIP POPUP 🔥 */
+        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 150%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; opacity: 0; visibility: hidden; pointer-events: none; }
+        .bet-slip-popup.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; } 
+        
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
         .preview-t-card { background: white; min-width: 85px; flex: 0 0 auto; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;}
@@ -79,6 +91,7 @@
         .top-info-box.prize-box { border-color: var(--cyan); box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.2);}
         .info-title.prize-title { color: var(--cyan); text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); }
         .info-val.highlight { color: var(--cyan); text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); animation: shineCyan 1.5s infinite alternate; }
+        @keyframes shineCyan { from { text-shadow: 0 0 5px rgba(56, 189, 248, 0.4); } to { text-shadow: 0 0 15px rgba(56, 189, 248, 1), 0 0 25px rgba(255, 255, 255, 0.5); transform: scale(1.02); } }
 
         /* 🟢 GAME PAGE STYLES 🟢 */
         #game-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 65px); overflow: hidden; padding: 5px; box-sizing: border-box; margin: 0; max-width: 100%; }
@@ -88,6 +101,7 @@
         .mb-board { height: 100%; display: grid; grid-template-rows: auto repeat(15, minmax(0, 1fr)); grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: #1e293b; border: 1px solid #1e293b; border-radius: 4px; width: 100%; }
         .mb-head { background: var(--faded-green); color: black; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: 900;}
         .mb-cell { background: #111827; display: flex; align-items: center; justify-content: center; font-size: 2vh; font-weight: bold; transition: 0.2s; min-height: 0; overflow: hidden;}
+        
         .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
@@ -96,12 +110,14 @@
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
         #game-page .tickets-history-box { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 5px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 8px; min-height: 0; }
+        
         #game-page .game-mini-tickets { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px; overflow: hidden; align-content: stretch; min-height: 0; padding-bottom: 2px; }
         .mini-t-card { background: white; border-radius: 8px; border: 1px solid #ddd; padding: 2px; display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; }
         
         .t-id-badge { text-align: center; font-size: 11px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .mini-t-id-badge { text-align: center; font-size: 10px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .t-grid-wrapper { display: flex; flex-grow: 1; min-height: 0; align-items: stretch; }
+        
         .t-side-text { writing-mode: vertical-rl; transform: rotate(180deg); color: #94a3b8; opacity: 0.5; font-weight: normal; font-size: 4px !important; margin-right: 2px; letter-spacing: 0.5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
         .mini-t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 1px; background: #e2e8f0; flex-grow: 1; min-height: 0;}
@@ -115,7 +131,9 @@
 
         /* 🟢 TICKETS PAGE STYLES 🟢 */
         #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
+        
         .ticket-top-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; position: relative;}
+        
         .t-page-badges-container { position: absolute; top: 0; right: 5px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; z-index: 10; }
         .t-badge-box { background: transparent; display: flex; align-items: center; gap: 5px; }
         .t-badge-box span { font-size: 9px; color: var(--text-gray); font-weight: bold; text-transform: uppercase; }
@@ -139,6 +157,7 @@
         .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 1px; background: #000; flex-grow: 1; min-height: 0;}
         .t-cell { background: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(8px, 1.8vh, 16px); min-height: 0;}
         #ticket-page.show-mb .t-cell { font-size: clamp(7px, 1.5vh, 12px); }
+        
         .t-cell.marked { background: #000 !important; color: white !important;}
 
         /* Bingo Winner Overlay */
@@ -149,8 +168,6 @@
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 15px #ffffff; } to { transform: scale(1.05); text-shadow: 0 0 25px #ffffff, 0 0 40px rgba(255,255,255,0.9); } }
         .winner-card { background: transparent; padding: 10px; width: 90%; max-width: 400px;}
         #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
-        .close-win-btn { margin-top: 15px; background: #ffffff; color: #0f172a; border: none; padding: 8px 20px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.3); transition: 0.2s;}
-        .close-win-btn:active { transform: scale(0.95); }
 
         /* Ranks */
         .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 20px; padding-top: 30px; }
@@ -177,6 +194,7 @@
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4);}
         .prof-list-btn { background: var(--panel); border: 1px solid var(--border-color); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; box-sizing: border-box;}
         
+        /* Modals */
         .trx-modal-overlay, .pw-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; flex-direction: column; justify-content: flex-end; }
         .pw-modal-overlay { justify-content: center; align-items: center; }
         .trx-modal { background: #0f172a; width: 100%; border-radius: 25px 25px 0 0; padding: 20px 20px 30px 20px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto;}
@@ -215,7 +233,6 @@
             <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
             <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">0 ETB</h1>
         </div>
-        <button class="close-win-btn" onclick="closeWinnerOverlayAndGoHome()">ወደ ጨዋታው ተመለስ</button>
     </div>
 </div>
 
@@ -433,7 +450,6 @@
 <div id="ticket-page" class="page">
     <div class="ticket-top-section">
         
-        <!-- 🔥 New Top Badges (Balls Normal, Prize Cyan) Top Right 🔥 -->
         <div class="t-page-badges-container">
             <div class="t-badge-box"><span>Balls:</span><b id="t-page-balls">0/20</b></div>
             <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
@@ -457,12 +473,10 @@
         <p style="text-align: center; font-size: 12px; color: var(--text-gray); margin: 5px 0 0 0;" id="t-info">እስካሁን ካርቴላ አልገዙም</p>
     </div>
 
-    <!-- Ticket Master Board -->
     <div id="ticket-mb-container">
         <div id="ticket-master-board" class="mb-board"></div>
     </div>
     
-    <!-- Tickets List Grid -->
     <div id="ticket-list"></div>
 </div>
 
@@ -563,7 +577,6 @@
                 let data = await res.json();
                 if(data.success) { 
                     processLoginSuccess(data.user); 
-                    // 🔥 ሪፍሬሽ ሲደረግ ዳታውን በሙሉ ያመጣል 🔥
                     socket.emit('get_initial_data', data.user.phone); 
                 } else { logout(); }
             } catch(e) {
@@ -579,7 +592,6 @@
         if(st) st.innerText = isSoundOn ? '🔊' : '🔇';
     }
 
-    // Toggle the Masterboard in Ticket Page & Arrow Direction
     function toggleTicketMasterBoard() {
         const page = document.getElementById('ticket-page');
         const arrow = document.getElementById('mb-toggle-arrow');
@@ -592,9 +604,13 @@
         }
     }
 
-    function closeWinnerOverlayAndGoHome() { document.getElementById('bingo-overlay').style.display = 'none'; showPage('home'); }
     function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
-    function togglePass() { let x = document.getElementById("reg-pass"); let icon = document.getElementById("eye-icon"); if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; } }
+
+    function togglePass() {
+        let x = document.getElementById("reg-pass");
+        let icon = document.getElementById("eye-icon");
+        if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; }
+    }
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
     function closeDepositModal(e) { if(e && e.target.id !== 'dep-modal-overlay') return; document.getElementById('dep-modal').classList.remove('show'); setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300); }
@@ -718,8 +734,21 @@
         let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
         let data = await res.json();
         
-        if(data.success) { localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); processLoginSuccess(data.user); } 
-        else { alert(data.message); document.getElementById('start-btn').disabled = false; }
+        if(data.success) { 
+            if(isLoginMode) {
+                localStorage.setItem('bingo_user_phone', phone); 
+                localStorage.setItem('bingo_user_pass', pass); 
+                processLoginSuccess(data.user); 
+            } else {
+                alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)");
+                toggleAuthMode();
+            }
+        } 
+        else { 
+            alert(data.message || "ስህተት አጋጥሟል!"); 
+            document.getElementById('start-btn').disabled = false; 
+            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)";
+        }
     }
 
     function processLoginSuccess(userObj) {
@@ -797,11 +826,9 @@
         called = data.calledNumbers || [];
         userTicketsData = data.myTickets || [];
         
-        // Re-populate selected array from userTicketsData to allow UI match
         selected = userTicketsData.map(t => t.id);
-        pendingTicketsData = []; // Clear pendings since they are now bought
+        pendingTicketsData = []; 
 
-        // Restore game state visually
         document.getElementById('g-balls').innerText = called.length + "/20"; 
         document.getElementById('t-page-balls').innerText = called.length + "/20"; 
         
@@ -814,7 +841,6 @@
             document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
         }
         
-        // Re-render called numbers in boards
         document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
         document.getElementById('history-scroll-top').innerHTML = ''; 
         document.getElementById('ticket-history-bar').innerHTML = '';
@@ -861,7 +887,7 @@
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
                 document.getElementById('g-balls').innerText = "0/20"; 
-                document.getElementById('t-page-balls').innerText = "0/20"; // Reset Ticket page balls
+                document.getElementById('t-page-balls').innerText = "0/20"; 
                 called = []; 
                 
                 if (currentUser) {
@@ -879,12 +905,13 @@
             document.querySelector('.nt-status').innerText = "ጨዋታው በመካሄድ ላይ ነው";
 
             if (currentGameState !== "PLAYING") {
-                currentGameState = "PLAYING"; document.getElementById('bet-slip-popup').classList.remove('show');
+                currentGameState = "PLAYING"; 
+                document.getElementById('bet-slip-popup').classList.remove('show');
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
             called = data.calledNumbers || []; 
             document.getElementById('g-balls').innerText = called.length + "/20";
-            document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live
+            document.getElementById('t-page-balls').innerText = called.length + "/20"; 
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -896,7 +923,7 @@
         if (!isGameRunningLocally) return;
         called.push(num); 
         document.getElementById('g-balls').innerText = called.length + "/20"; 
-        document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live update
+        document.getElementById('t-page-balls').innerText = called.length + "/20"; 
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
