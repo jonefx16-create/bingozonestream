@@ -40,11 +40,14 @@
         .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
         .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--panel); padding: 25px; border-radius: 10px; width: 400px; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; overflow-y:auto; }
+        .modal-content { background: var(--panel); padding: 25px; border-radius: 10px; width: 450px; max-height: 80vh; overflow-y: auto; color: white; margin: 20px; }
         .grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; background: #000; padding: 10px; border-radius: 8px; text-align: center; margin: 15px 0;}
         .grid-preview div { background: var(--border); padding: 10px 0; border-radius: 4px; font-weight: bold; font-family: monospace; }
         .grid-preview .highlight { background: var(--faded-green); color: black; }
+        
+        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight:bold;}
+        .tx-tab-btn.active { background: var(--border); color: white;}
     </style>
 </head>
 <body>
@@ -61,7 +64,7 @@
     <div class="sidebar">
         <div class="sidebar-header">BINGO ADMIN</div>
         <button class="nav-btn active" onclick="switchTab('tab-pending', this)">⏳ Pending Requests</button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">📜 Financial History</button>
+        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 Transaction History</button>
         <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Registered Users</button>
         <button class="nav-btn" onclick="switchTab('tab-game-history', this)">🏆 Game History</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Mass Bonus</button>
@@ -78,15 +81,24 @@
         <div id="tab-pending" class="tab-content active">
             <div class="card"><table><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="pending-body"></tbody></table></div>
         </div>
+        
+        <!-- 🟢 Transaction History Tab Split -->
         <div id="tab-history-tx" class="tab-content">
+            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <button class="tx-tab-btn active" id="btn-dep" onclick="filterTransactions('deposit')">⬇️ Deposits</button>
+                <button class="tx-tab-btn" id="btn-wit" onclick="filterTransactions('withdraw')">⬆️ Withdrawals</button>
+            </div>
             <div class="card"><table><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody id="history-tx-body"></tbody></table></div>
         </div>
+
         <div id="tab-users" class="tab-content">
             <div class="card"><table><thead><tr><th>ID</th><th>Name</th><th>Phone Number</th><th>Main Bal</th><th>Play Bal</th><th>Action</th></tr></thead><tbody id="users-body"></tbody></table></div>
         </div>
+
         <div id="tab-game-history" class="tab-content">
             <div class="card"><table><thead><tr><th>Date</th><th>Game ID</th><th>Ticket #</th><th>Winner Name</th><th>Phone Number</th><th>Prize Won</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table></div>
         </div>
+
         <div id="tab-bonus" class="tab-content">
             <div style="display: flex; gap: 20px;">
                 <div class="card" style="flex: 1; border-left: 4px solid var(--faded-green);">
@@ -122,6 +134,7 @@
     </div>
 </div>
 
+<!-- 🟢 Winner Card Modal -->
 <div class="modal" id="history-modal">
     <div class="modal-content" style="text-align: center;">
         <h3 style="color: var(--faded-green); margin-top:0;">🏆 Winning Ticket</h3>
@@ -131,8 +144,22 @@
     </div>
 </div>
 
+<!-- 🟢 Game Details (Players & Tickets) Modal -->
+<div class="modal" id="game-details-modal">
+    <div class="modal-content" style="width: 600px;">
+        <h3 style="color: var(--purple); margin-top:0;" id="gd-title">🎮 Game Details</h3>
+        <p style="color: var(--text-gray); font-size:12px;">የተሳተፉ ሰዎች እና የገዙት ካርድ መጠን፡</p>
+        <div id="gd-players-list" style="margin-bottom: 15px;"></div>
+        <button class="action-btn btn-red" style="width: 100%;" onclick="document.getElementById('game-details-modal').style.display='none'">Close</button>
+    </div>
+</div>
+
 <script>
     let pass = "";
+    let allTransactions = []; 
+    let currentTxType = 'deposit'; 
+    let allGameHistories = [];
+
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText; }
 
@@ -146,25 +173,88 @@
             document.getElementById('users-body').innerHTML = users.map(u => `<tr><td>...${u._id.slice(-6)}</td><td>${u.name}</td><td>${u.phone}</td><td>${u.mainBalance.toFixed(2)}</td><td>${u.playBalance.toFixed(2)}</td><td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`).join('');
 
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            let txs = await tRes.json();
-            let phtml = "", hhtml = "";
-            txs.forEach(t => {
-                let d = new Date(t.date).toLocaleString(), cls = t.status==='Pending'?'bg-pending':t.status==='Approved'?'bg-approved':'bg-rejected';
-                let row = `<tr><td>${d}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td>${t.amount}</td><td><span class="badge ${cls}">${t.status}</span></td>`;
-                if(t.status === 'Pending') phtml += row + `<td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
-                else hhtml += row + `</tr>`;
+            allTransactions = await tRes.json();
+            
+            let phtml = "";
+            allTransactions.forEach(t => {
+                if(t.status === 'Pending') {
+                    let d = new Date(t.date).toLocaleString(), cls = 'bg-pending';
+                    phtml += `<tr><td>${d}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td>${t.amount}</td><td><span class="badge ${cls}">${t.status}</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
+                }
             });
-            document.getElementById('pending-body').innerHTML = phtml; document.getElementById('history-tx-body').innerHTML = hhtml;
+            document.getElementById('pending-body').innerHTML = phtml;
+            filterTransactions(currentTxType); // 🟢 የ Transaction ሠንጠረዥን መሳል
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            let hist = await hRes.json();
-            document.getElementById('game-history-body').innerHTML = hist.map(h => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.ticketId || 'N/A'}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>View Card</button></td></tr>`).join('');
+            allGameHistories = await hRes.json();
+            
+            // 🟢 Game ID Button አዲስ ንድፍ
+            document.getElementById('game-history-body').innerHTML = allGameHistories.map((h, idx) => 
+                `<tr><td>${new Date(h.date).toLocaleString()}</td>
+                <td><button class="btn-sm btn-purple" onclick="openGameDetails(${idx})">🔍 #${h.gameId}</button></td>
+                <td>${h.ticketId || 'N/A'}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td>
+                <td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`
+            ).join('');
 
             let pRes = await fetch('/api/admin/active-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             let p = await pRes.json();
             if(p) document.getElementById('promo-body').innerHTML = `<tr><td>${p.amount} ETB</td><td>${p.currentClaims} / ${p.maxUsers}</td><td>${p.claimedBy.length} users</td><td>${(new Date(p.expiresAt) < new Date() || !p.isActive) ? '<span class="badge bg-rejected">Expired</span>' : '<span class="badge bg-approved">Active</span>'}</td></tr>`;
             else document.getElementById('promo-body').innerHTML = '<tr><td colspan="4">No Active Mass Bonus</td></tr>'; 
         } catch (e) { console.log(e); }
+    }
+
+    // 🟢 Transaction Filter (Deposit / Withdraw)
+    function filterTransactions(type) {
+        currentTxType = type;
+        document.getElementById('btn-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
+        document.getElementById('btn-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn';
+        
+        let filtered = allTransactions.filter(t => t.type === type && t.status !== 'Pending');
+        document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
+            let d = new Date(t.date).toLocaleString();
+            let cls = t.status==='Approved'?'bg-approved':'bg-rejected';
+            // Withdraw ከሆነ ብሩ በ Orange (ብርቱካናማ) እንዲሆን
+            let amtStyle = t.type === 'withdraw' ? 'color: var(--orange); font-weight: bold;' : 'color: var(--faded-green); font-weight: bold;';
+            return `<tr><td>${d}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="${amtStyle}">${t.amount} ETB</td><td><span class="badge ${cls}">${t.status}</span></td></tr>`;
+        }).join('');
+    }
+
+    // 🟢 አዲስ: በጌም የተሳተፉ ሰዎችን ዝርዝር ማሳያ
+    function openGameDetails(index) {
+        let game = allGameHistories[index];
+        document.getElementById('gd-title').innerText = `🎮 Game #${game.gameId} Players Info`;
+        
+        let phtml = "";
+        if(game.playersData && game.playersData.length > 0) {
+            phtml = `<table><thead><tr><th>Name</th><th>Phone</th><th>Tickets Bought</th><th>View Cards</th></tr></thead><tbody>`;
+            game.playersData.forEach(p => {
+                phtml += `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td>
+                <td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`;
+            });
+            phtml += `</tbody></table>`;
+        } else {
+            phtml = `<div style="text-align:center; color: var(--text-gray); padding: 20px;">No player data recorded for this old game.</div>`;
+        }
+        document.getElementById('gd-players-list').innerHTML = phtml;
+        document.getElementById('game-details-modal').style.display = 'flex';
+    }
+
+    // የአንድ ተጫዋች ብዙ ካርዶችን ለማየት
+    function viewPlayerMultipleCards(ticketsData, called) {
+        document.getElementById('m-called').innerText = "Called Numbers: " + called.join(", "); 
+        let fullHtml = "";
+        ticketsData.forEach((ticket, i) => {
+            fullHtml += `<h4 style="margin:10px 0 0 0; color:var(--blue);">Ticket #${i+1}</h4><div class="grid-preview">`;
+            for(let r=0; r<5; r++){ 
+                for(let c=0; c<5; c++){ 
+                    let num = ticket.grid[c][r], isHit = called.includes(num) || (c===2 && r===2) ? "highlight" : ""; 
+                    fullHtml += `<div class="${isHit}">${(c===2 && r===2) ? "FREE" : num}</div>`; 
+                } 
+            }
+            fullHtml += `</div><hr style="border-color: var(--border);">`;
+        });
+        document.getElementById('m-grid').innerHTML = fullHtml; 
+        document.getElementById('history-modal').style.display = 'flex';
     }
 
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); } }
