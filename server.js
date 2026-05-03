@@ -99,7 +99,7 @@ app.post('/api/user/claim-mass-bonus', async (req, res) => {
     res.json({ success: true, message: `✅ እንኳን ደስ አሎት! የ ${bonus.amount} ETB ቦነስ አግኝተዋል።` });
 });
 
-// Refresh ሲደረግ የገዟቸውን ካርዶች መመለሻ
+// Refresh ሲደረግ የገዟቸውን ካርዶች መመለሻ (Persistence)
 app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     let p = activePlayers[req.params.phone];
     res.json(p ? { success: true, ticketsData: p.ticketsData } : { success: false });
@@ -155,7 +155,7 @@ app.post('/api/admin/ban-user', auth, async (req, res) => { await User.deleteOne
 // ==========================================
 let gameState = "WAITING";
 let timer = 40; 
-let activePlayers = {}; // Mapped by PHONE
+let activePlayers = {}; // Mapped by PHONE (For Refreshing)
 let totalPrizePool = 0; let totalTickets = 0;
 let calledNumbers = []; let currentDrawSequence = []; 
 let gameInterval; let gameId = Math.floor(Math.random() * 9000) + 1000;
@@ -226,7 +226,7 @@ function startGame() {
 }
 
 io.on('connection', (socket) => {
-    // 💡 ሪፍሬሽ ሲደረግ ለሁሉም ሰው እኩል ዳታ ወዲያው ይላካል
+    // 💡 ሪፍሬሽ ሲደረግ ለሁሉም ሰው እኩል ዳታ ወዲያው ይላካል (SYNC)
     socket.emit('game_status', { state: gameState, timer: gameState === "PLAYING" ? "LIVE" : timer, totalPrizePool, totalTickets, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
     
