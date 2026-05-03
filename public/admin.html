@@ -28,6 +28,13 @@
         /* 📱 ስልክ ላይ ሠንጠረዦች እንዳይበላሹ */
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         
+        /* 🟢 አዲስ: የ Live Data ስታቲስቲክስ ካርዶች ንድፍ */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: var(--panel); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.3s;}
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;}
+        .stat-card h2 { margin: 10px 0 0 0; font-size: 32px; font-weight: 900;}
+        
         input, select { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; outline: none; }
         label { font-size: 12px; color: var(--text-gray); margin-bottom: 5px; display: block; }
 
@@ -52,7 +59,6 @@
         .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight:bold;}
         .tx-tab-btn.active { background: var(--border); color: white;}
 
-        /* 📱 Mobile CSS (ለስልክ ማስተካከያ) */
         @media (max-width: 768px) {
             #dash-sec { flex-direction: column; }
             .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 10px 0; border-right: none; border-bottom: 1px solid var(--border); }
@@ -62,8 +68,6 @@
             .main-content { padding: 15px; }
             .card { padding: 15px; }
             .bonus-container { flex-direction: column; }
-            .modal-content { padding: 15px; }
-            .grid-preview div { padding: 5px 0; font-size: 12px; }
         }
     </style>
 </head>
@@ -80,10 +84,11 @@
 <div id="dash-sec" style="display: none;">
     <div class="sidebar">
         <div class="sidebar-header">BINGO ADMIN</div>
-        <button class="nav-btn active" onclick="switchTab('tab-pending', this)">⏳ Pending Requests</button>
+        <!-- 🟢 አዲስ: 1ኛ ላይ የተቀመጠው Live Stats & Data Tab -->
+        <button class="nav-btn active" onclick="switchTab('tab-live-data', this); loadLiveStats();">📊 Live Stats & Data</button>
+        <button class="nav-btn" onclick="switchTab('tab-pending', this)">⏳ Pending Requests</button>
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 Financial History</button>
         <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Registered Users</button>
-        <!-- 🟢 አዲስ: የጌም ተሳታፊዎችን ለማየት የተዘጋጀ Tab -->
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-game-history', this)">🏆 Winners History</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Mass Bonus</button>
@@ -92,12 +97,37 @@
 
     <div class="main-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 id="page-title" style="margin: 0; font-size: 18px;">⏳ Pending Requests</h2>
-            <button class="action-btn btn-blue" onclick="loadData()" style="padding: 8px 15px; font-size: 13px;">🔄 Refresh</button>
+            <h2 id="page-title" style="margin: 0; font-size: 18px;">📊 Live Stats & Data</h2>
+            <button class="action-btn btn-blue" onclick="loadData(); loadLiveStats();" style="padding: 8px 15px; font-size: 13px;">🔄 Refresh All</button>
+        </div>
+
+        <!-- 🟢 አዲስ: Live Stats & Data Tab -->
+        <div id="tab-live-data" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);">
+                    <h3>👥 Total Registered Users</h3>
+                    <h2 style="color: var(--blue);" id="stat-total-users">0</h2>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);">
+                    <h3>🔴 Live Players (Current)</h3>
+                    <h2 style="color: var(--faded-green);" id="stat-live-players">0</h2>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--purple);">
+                    <h3>💰 Current Game Prize</h3>
+                    <h2 style="color: var(--purple);" id="stat-live-prize">0 ETB</h2>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--orange);">
+                    <h3>⏳ Game Status</h3>
+                    <h2 style="color: var(--orange); font-size: 22px; margin-top:15px;" id="stat-game-state">WAITING</h2>
+                </div>
+            </div>
+            <div class="card" style="text-align: center; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);">
+                <p style="margin:0; color: var(--text-gray); font-size: 14px;">⚡ <b>Live Monitor:</b> ይህ መረጃ ፔጁን ሪፍሬሽ ሳያደርጉ <span style="color:var(--blue)">በየ 3 ሰከንዱ</span> ራሱን ያድሳል (Auto-update)።</p>
+            </div>
         </div>
 
         <!-- 🟢 Pending Requests Tab -->
-        <div id="tab-pending" class="tab-content active">
+        <div id="tab-pending" class="tab-content">
             <div style="margin-bottom: 15px; display: flex; gap: 10px;">
                 <button class="tx-tab-btn active" id="btn-pend-dep" onclick="filterPending('deposit')">⬇️ Deposits</button>
                 <button class="tx-tab-btn" id="btn-pend-wit" onclick="filterPending('withdraw')">⬆️ Withdrawals</button>
@@ -131,7 +161,7 @@
             </div>
         </div>
 
-        <!-- 🟢 አዲስ: Players & Bets Info Tab -->
+        <!-- 🟢 Players & Bets Info Tab -->
         <div id="tab-players" class="tab-content">
             <div class="card">
                 <h3 class="card-title">🕹️ Select Game to View Details</h3>
@@ -211,8 +241,23 @@
     let currentPendType = 'deposit';
     let currentHistType = 'deposit';
 
-    function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); }
+    function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText; }
+
+    // 🟢 አዲስ: በየ 3 ሰከንዱ Live Data የሚያመጣ ፈንክሽን
+    async function loadLiveStats() {
+        if(!pass || !document.getElementById('tab-live-data').classList.contains('active')) return;
+        try {
+            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            let data = await res.json();
+            document.getElementById('stat-total-users').innerText = data.totalUsers + " Users";
+            document.getElementById('stat-live-players').innerText = data.livePlayers + " Players";
+            document.getElementById('stat-live-prize').innerText = data.currentPrize + " ETB";
+            document.getElementById('stat-game-state').innerText = data.gameState + (data.gameState !== "WAITING" ? ` (#${data.gameId})` : "");
+        } catch(e) {}
+    }
+    // Auto-refresh every 3 seconds for Live Stats
+    setInterval(loadLiveStats, 3000);
 
     async function loadData() {
         try {
@@ -231,7 +276,6 @@
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allGameHistories = await hRes.json();
             
-            // Winners History Table (Button removed, just shows ID)
             document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => 
                 `<tr><td>${new Date(h.date).toLocaleString()}</td>
                 <td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
@@ -239,7 +283,6 @@
                 <td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`
             ).join('');
 
-            // Populate Players & Bets Dropdown
             let dropHtml = '<option value="">-- Select a Game --</option>';
             allGameHistories.forEach((h, idx) => {
                 dropHtml += `<option value="${idx}">Game #${h.gameId} - ${new Date(h.date).toLocaleString()} (Winner: ${h.winnerName})</option>`;
@@ -253,7 +296,6 @@
         } catch (e) { console.log(e); }
     }
 
-    // 🟢 Filter Pending
     function filterPending(type) {
         currentPendType = type;
         document.getElementById('btn-pend-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
@@ -265,7 +307,6 @@
         }).join('');
     }
 
-    // 🟢 Filter Financial History
     function filterHistoryTx(type) {
         currentHistType = type;
         document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
@@ -278,21 +319,14 @@
         }).join('');
     }
 
-    // 🟢 አዲስ: በተመረጠው ጌም ላይ የገቡ ተጫዋቾችን ማሳያ
     function renderGamePlayers(index) {
         if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; }
         let game = allGameHistories[index];
         let phtml = '';
         if(game.playersData && game.playersData.length > 0) {
             game.playersData.forEach(p => {
-                let betAmount = p.tickets * 10; // 10 ETB per ticket
-                phtml += `<tr>
-                    <td>${p.name}</td>
-                    <td>${p.phone}</td>
-                    <td>${p.tickets}</td>
-                    <td style="color:var(--faded-green); font-weight:bold;">${betAmount} ETB</td>
-                    <td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View All Cards</button></td>
-                </tr>`;
+                let betAmount = p.tickets * 10; 
+                phtml += `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${betAmount} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View All Cards</button></td></tr>`;
             });
         } else {
             phtml = `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved for this old game.</td></tr>`;
@@ -300,7 +334,6 @@
         document.getElementById('game-players-body').innerHTML = phtml;
     }
 
-    // የ 1 ተጫዋች ብዙ ካርዶችን ለማየት
     function viewPlayerMultipleCards(ticketsData, called) {
         document.getElementById('m-called').innerText = "✅ Called Numbers: " + called.join(", "); 
         let fullHtml = "";
