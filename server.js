@@ -13,6 +13,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Database Connection
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234"; // ቋሚው ፓስወርድ
+
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
@@ -22,7 +24,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, won: { type: Number, default: 0 },
-    status: { type: String, default: 'active' } // 🟢 'active' or 'banned'
+    status: { type: String, default: 'active' } // 'active' or 'banned'
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -32,7 +34,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
 
 const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
     gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
-    adminProfit: { type: Number, default: 0 }, // 🟢 የድርጅቱን ትርፍ ሴቭ ያደርጋል
+    adminProfit: { type: Number, default: 0 }, 
     ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
 }));
 
@@ -41,7 +43,7 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
 }));
 
-// 🟢 System Settings Database
+// System Settings Database
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" },
     ticketPrice: { type: Number, default: 10 },
@@ -105,7 +107,12 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 // ==========================================
 // 🔴 ADMIN APIs
 // ==========================================
-const auth = (req, res, next) => { if(req.body.password !== GLOBAL_SETTINGS.adminPass && req.body.adminPass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); next(); };
+// 🛠️ ማስተካከያ: ፓስወርዱ ዳታቤዝ ላይ ሎድ እስኪያደርግ እንዳይከለክል `ADMIN_PASS` ታክሏል።
+const auth = (req, res, next) => { 
+    const isPassValid = req.body.password === GLOBAL_SETTINGS.adminPass || req.body.adminPass === GLOBAL_SETTINGS.adminPass || req.body.password === ADMIN_PASS || req.body.adminPass === ADMIN_PASS;
+    if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
+    next(); 
+};
 
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
@@ -115,11 +122,10 @@ app.post('/api/admin/active-bonus', auth, async (req, res) => res.json(await Act
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
-    let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0); // 🟢 አጠቃላይ ትርፍ
+    let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
     res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, currentPrize: totalPrizePool, gameState: gameState, gameId: gameId, totalProfit: totalProfit, settings: GLOBAL_SETTINGS });
 });
 
-// 🟢 Settings Update
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
     if(req.body.newPass) s.adminPass = req.body.newPass;
@@ -189,7 +195,7 @@ async function declareWinner(player, ticket) {
     const user = await User.findOne({phone: player.phone});
     if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
     
-    let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; // 🟢 ትርፍ ስሌት (15%)
+    let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
     await GameHistory.create({ gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, prize: totalPrizePool, adminProfit, ticketPrice: GLOBAL_SETTINGS.ticketPrice, winningGrid: ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) });
     io.emit('game_winner', { winnerName: player.name, ticketId: ticket.id, prize: totalPrizePool, phone: player.phone, ticketGrid: ticket.grid, calledNumbers: [...calledNumbers] });
     setTimeout(startCountdown, 12000); 
@@ -232,7 +238,7 @@ io.on('connection', (socket) => {
             let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
             if (currentTickets + data.ticketCount > 4) { socket.emit('error_message', `በአንድ ጨዋታ ቢበዛ 4 ካርድ ብቻ ነው መያዝ የሚቻለው!`); return; }
 
-            const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice; // 🟢 Dynamic Price
+            const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice; 
             const user = await User.findOne({phone: data.phone});
             
             if(user && user.status === 'banned') return;
