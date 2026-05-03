@@ -11,64 +11,71 @@
         #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); position: absolute; z-index: 100; }
         .login-card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid var(--faded-green); text-align: center; width: 90%; max-width: 350px; }
         
-        #dash-sec { display: none; width: 100%; height: 100%; display: flex; flex-direction: row; }
+        #dash-sec { display: none; width: 100%; height: 100%; display: flex; flex-direction: row; position: relative; }
         
-        /* 🔥 MOBILE RESPONSIVE SIDEBAR 🔥 */
-        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s;}
+        /* 🔥 SIDEBAR CSS 🔥 */
+        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s ease; z-index: 1000;}
         .sidebar-header { text-align: center; color: var(--faded-green); font-size: 18px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;}
         .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
         .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
-        
+        .close-sidebar { display: none; background: transparent; border: none; color: white; font-size: 24px; position: absolute; top: 10px; right: 15px; cursor: pointer; }
+
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
+        
+        /* Top Header Area */
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px;}
+        
         .tab-content { display: none; animation: fadeIn 0.3s; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .card { background: var(--panel); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden;}
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px;}
         
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--panel); padding: 20px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
         .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase;}
         .stat-card h2 { margin: 10px 0 0 0; font-size: 28px; font-weight: 900;}
         
-        input, select, textarea { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
-        .search-bar { background-color: #050810; border: 1px solid var(--blue);}
+        input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
+        .search-bar { background-color: #050810; border: 1px solid var(--blue); flex: 1;}
+        .search-container { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;}
         
         button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         button.btn-red { background: var(--red); color: white; } 
         button.btn-blue { background: var(--blue); color: white; } 
         button.btn-purple { background: var(--purple); color: white; }
-        button.btn-orange { background: var(--orange); color: white; } /* NEW ORANGE BUTTON */
-        button.btn-sm { padding: 8px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+        button.btn-orange { background: var(--orange); color: white; }
+        button.btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; white-space: nowrap;}
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 650px; }
         th, td { padding: 12px; border-bottom: 1px solid var(--border); }
-        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; white-space: nowrap;}
+        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; white-space: nowrap; background: rgba(0,0,0,0.2);}
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); }
         .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
         .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
         
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;}
-        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;}
+        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: white; position: relative;}
         .grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; background: #000; padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0;}
         .grid-preview div { background: var(--border); padding: 8px 0; border-radius: 4px; font-weight: bold; font-family: monospace;}
         .grid-preview .highlight { background: var(--faded-green); color: black; }
 
-        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold;}
+        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold; white-space: nowrap;}
         .tx-tab-btn.active { background: var(--border); color: white;}
 
-        /* 🔥 MOBILE CSS 🔥 */
+        /* 🔥 MOBILE CSS: HAMBURGER MENU 🔥 */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
         @media (max-width: 768px) {
-            body { flex-direction: column; }
-            #dash-sec { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; flex-direction: row; padding: 10px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap; }
-            .sidebar-header { display: none; }
-            .nav-btn { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; font-size: 12px; }
-            .nav-btn.active { background: transparent; border-bottom-color: var(--faded-green); }
-            .main-content { padding: 15px; }
+            .menu-toggle-btn { display: inline-block; }
+            .sidebar { position: fixed; left: -260px; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
+            .sidebar.open { left: 0; }
+            .close-sidebar { display: block; }
+            .main-content { padding: 10px; width: 100vw;}
+            .header-top h2 { font-size: 16px; }
         }
     </style>
 </head>
@@ -82,9 +89,13 @@
     </div>
 </div>
 
+<div class="overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
+
 <div id="dash-sec">
-    <div class="sidebar">
-        <div class="sidebar-header">BINGO HABESHA ADMIN</div>
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <button class="close-sidebar" onclick="toggleSidebar()">✖</button>
+        <div class="sidebar-header">BINGO HABESHA<br><span style="font-size:12px; color:var(--text-gray);">Admin Panel</span></div>
         <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();">📊 Live & Analytics</button>
         <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Users & Passwords</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
@@ -100,15 +111,18 @@
     </div>
 
     <div class="main-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 id="page-title" style="margin: 0; font-size: 18px;">📊 Live & Analytics</h2>
-            <button class="action-btn btn-blue" onclick="loadData(); loadLiveStats();" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh Data</button>
+        <div class="header-top">
+            <div style="display: flex; align-items: center;">
+                <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+                <h2 id="page-title" style="margin: 0;">📊 Live & Analytics</h2>
+            </div>
+            <button class="action-btn btn-blue btn-sm" onclick="loadData(); loadLiveStats();" style="padding: 8px 12px;">🔄 Refresh Data</button>
         </div>
 
         <!-- 🟢 Live Stats -->
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Monthly Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Monthly Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>Total Company Profit</h3><h2 style="color: var(--faded-green);" id="stat-total-profit">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
@@ -118,19 +132,27 @@
             </div>
         </div>
 
-        <!-- 🟢 Registered Users (With Total Box and Password) -->
+        <!-- 🟢 Registered Users -->
         <div id="tab-users" class="tab-content">
             <div class="stat-card" style="border-color: var(--purple); max-width: 300px; margin-bottom: 20px;">
                 <h3 style="color: var(--purple);">Total Registered Users</h3>
                 <h2 id="box-total-reg">0</h2>
             </div>
-            <input type="text" class="search-bar" id="search-user" onkeyup="searchTable('search-user', 'users-body')" placeholder="🔍 Search Name or Phone...">
+            
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-user" onkeyup="searchTable('search-user', 'table-users')" placeholder="🔍 Search Name or Phone...">
+                <button class="action-btn" onclick="exportTableToCSV('table-users', 'Registered_Users.csv')" style="padding: 10px;">📥 Export Excel</button>
+            </div>
+            
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Action</th></tr></thead><tbody id="users-body"></tbody></table>
+                <table id="table-users">
+                    <thead><tr><th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Action</th></tr></thead>
+                    <tbody id="users-body"></tbody>
+                </table>
             </div></div>
         </div>
 
-        <!-- 🟢 Banned Users Tab -->
+        <!-- 🟢 Banned Users -->
         <div id="tab-banned" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table><thead><tr><th>Name</th><th>Phone Number</th><th>Status</th><th>Action</th></tr></thead><tbody id="banned-body"></tbody></table>
@@ -140,14 +162,17 @@
         <!-- 🟢 Invite & Earn (Referrals) -->
         <div id="tab-referral" class="tab-content">
             <h2 style="margin-top:0; color:var(--cyan);">🤝 Invite & Earn Leaderboard</h2>
+            <div class="search-container">
+                <button class="action-btn" onclick="exportTableToCSV('table-referrals', 'Referral_Leaderboard.csv')" style="padding: 10px;">📥 Export Excel</button>
+            </div>
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Referrer Phone</th><th>Total People Invited</th><th>Bonus Earned</th></tr></thead><tbody id="ref-body"></tbody></table>
+                <table id="table-referrals"><thead><tr><th>Referrer Phone</th><th>Total People Invited</th><th>Bonus Earned</th></tr></thead><tbody id="ref-body"></tbody></table>
             </div></div>
         </div>
 
         <!-- 🟢 Pending Requests -->
         <div id="tab-pending" class="tab-content">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto;">
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
                 <button class="tx-tab-btn active" id="btn-pend-dep" onclick="filterPending('deposit')">⬇️ Deposits</button>
                 <button class="tx-tab-btn" id="btn-pend-wit" onclick="filterPending('withdraw')">⬆️ Withdrawals</button>
             </div>
@@ -158,14 +183,17 @@
 
         <!-- 🟢 Financial History Tab -->
         <div id="tab-history-tx" class="tab-content">
-            <input type="text" class="search-bar" id="search-tx" onkeyup="searchTable('search-tx', 'history-tx-body')" placeholder="🔍 Search by Phone Number...">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto;">
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
                 <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTx('deposit')">⬇️ Deposits</button>
                 <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTx('withdraw')">⬆️ Withdrawals</button>
                 <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTx('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
             </div>
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-tx" onkeyup="searchTable('search-tx', 'table-history-tx')" placeholder="🔍 Search by Phone Number...">
+                <button class="action-btn" onclick="exportTableToCSV('table-history-tx', 'Financial_History.csv')" style="padding: 10px;">📥 Export Excel</button>
+            </div>
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody id="history-tx-body"></tbody></table>
+                <table id="table-history-tx"><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody id="history-tx-body"></tbody></table>
             </div></div>
         </div>
 
@@ -183,17 +211,18 @@
 
         <!-- 🟢 Winners History Tab -->
         <div id="tab-history" class="tab-content">
-            <input type="text" class="search-bar" id="search-history" onkeyup="searchTable('search-history', 'game-history-body')" placeholder="🔍 Search Winner by Phone...">
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-history" onkeyup="searchTable('search-history', 'table-winners')" placeholder="🔍 Search Winner by Phone...">
+                <button class="action-btn" onclick="exportTableToCSV('table-winners', 'Winners_History.csv')" style="padding: 10px;">📥 Export Excel</button>
+            </div>
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th><span style="color:var(--cyan);">Ticket ID</span></th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table>
+                <table id="table-winners"><thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th><span style="color:var(--cyan);">Ticket ID</span></th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table>
             </div></div>
         </div>
 
         <!-- 🟢 Manage Bonus -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                
-                <!-- Single Bonus -->
                 <div class="card" style="border-left: 4px solid var(--faded-green);">
                     <h3 style="margin-top:0; color:var(--faded-green);">👤 Single User Bonus</h3>
                     <input type="text" id="sb-phone" placeholder="User Phone (e.g. 0911...)">
@@ -201,7 +230,6 @@
                     <button class="action-btn" style="width:100%;" onclick="sendSingleBonus()">Send Bonus</button>
                 </div>
                 
-                <!-- Bulk Bonus (Comma Separated) -->
                 <div class="card" style="border-left: 4px solid var(--purple);">
                     <h3 style="margin-top:0; color:var(--purple);">🎁 Bulk List Bonus</h3>
                     <textarea id="b-phones" rows="3" style="width: 100%; background: #000; color: white; border: 1px solid var(--border); border-radius: 6px; padding: 10px;" placeholder="0911..., 0922..."></textarea>
@@ -209,7 +237,6 @@
                     <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
 
-                <!-- Mass Claim Airdrop -->
                 <div class="card" style="border-left: 4px solid var(--cyan);">
                     <h3 style="margin-top:0; color:var(--cyan);">🎁 Create Airdrop (Claim)</h3>
                     <div style="display:flex; gap:10px;">
@@ -291,9 +318,58 @@
     let currentPendType = 'deposit'; let currentHistType = 'deposit';
     let isGameCurrentlyPaused = false;
 
+    // 📱 Mobile Sidebar Toggle
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('mobile-overlay').classList.toggle('active');
+    }
+
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
-    function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText; }
-    function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
+    function switchTab(tabId, btn) { 
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+        document.getElementById(tabId).classList.add('active'); 
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
+        btn.classList.add('active'); 
+        document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim();
+        // Close sidebar on mobile after click
+        if(window.innerWidth <= 768) toggleSidebar();
+    }
+    
+    // 🔍 Dynamic Search
+    function searchTable(inputId, tableId) { 
+        let filter = document.getElementById(inputId).value.toLowerCase(); 
+        let rows = document.getElementById(tableId).getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        for (let i = 0; i < rows.length; i++) {
+            rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? '' : 'none';
+        }
+    }
+
+    // 📥 Export HTML Table to CSV
+    function exportTableToCSV(tableId, filename) {
+        let table = document.getElementById(tableId);
+        let rows = table.querySelectorAll('tr');
+        let csv = [];
+        for (let i = 0; i < rows.length; i++) {
+            // Ignore hidden rows (filtered out by search)
+            if(rows[i].style.display === 'none') continue;
+            let row = [], cols = rows[i].querySelectorAll('td, th');
+            // Remove the 'Action' column from export (usually the last column)
+            let limit = (tableId === 'table-users' || tableId === 'table-winners') ? cols.length - 1 : cols.length;
+            for (let j = 0; j < limit; j++) {
+                let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
+                data = data.replace(/"/g, '""'); // Escape quotes
+                row.push('"' + data + '"');
+            }
+            csv.push(row.join(','));
+        }
+        let csvFile = new Blob([csv.join('\n')], {type: 'text/csv'});
+        let downloadLink = document.createElement('a');
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+    }
 
     // Live Socket Updates
     socket.on('game_status', (data) => {
@@ -314,15 +390,11 @@
             isGameCurrentlyPaused = data.settings.isGamePaused;
             let pBtn = document.getElementById('btn-pause');
             
-            // Toggle colors: Green if Paused (ready to play), Orange if Playing (ready to pause)
             if(isGameCurrentlyPaused) { 
-                pBtn.innerText = "▶️ Resume Game"; 
-                pBtn.className = "action-btn"; // Green
+                pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; 
             } else { 
-                pBtn.innerText = "⏸️ Pause Game"; 
-                pBtn.className = "action-btn btn-orange"; // Orange
+                pBtn.innerText = "⏸️ Pause Game"; pBtn.className = "action-btn btn-orange"; 
             }
-            
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
         } catch(e) {}
     }
@@ -336,20 +408,16 @@
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
 
             let users = await uRes.json();
-            // Total Registered Count
             document.getElementById('box-total-reg').innerText = users.length;
             
             let activeHtml = "", bannedHtml = "", refCounts = {};
             users.forEach(u => {
                 let row = `<tr><td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td><td>${u.playBalance.toFixed(2)}</td><td>${u.mainBalance.toFixed(2)}</td>`;
-                
                 if(u.status === 'banned') {
                     bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`;
                 } else {
                     activeHtml += row + `<td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`;
                 }
-
-                // Referral Logic
                 if(u.referredBy && u.referredBy !== "") refCounts[u.referredBy] = (refCounts[u.referredBy] || 0) + 1;
             });
             document.getElementById('users-body').innerHTML = activeHtml; 
@@ -368,24 +436,19 @@
             // GAME HISTORY
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allGameHistories = await hRes.json();
-            
             document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => 
                 `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
-                <td>${h.winnerName}</td><td>${h.winnerPhone}</td>
-                <td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
-                <td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td>
-                <td style="color:var(--blue); font-weight:bold;">+${h.adminProfit || 0}</td>
+                <td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
+                <td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td><td style="color:var(--blue); font-weight:bold;">+${h.adminProfit || 0}</td>
                 <td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`
             ).join('');
 
-            // Fill Game Dropdown
             let dropHtml = '<option value="">-- Select a Game --</option>';
             allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; });
             document.getElementById('game-details-select').innerHTML = dropHtml;
         } catch (e) { console.log(e); }
     }
 
-    // Filters
     function filterPending(type) {
         currentPendType = type;
         document.getElementById('btn-pend-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
@@ -398,19 +461,16 @@
         document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
         document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn';
         document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span></td></tr>`).join('');
     }
 
-    // Render Players from dropdown
     function renderGamePlayers(index) {
         if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; }
         let game = allGameHistories[index];
         document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${p.tickets * (game.ticketPrice || 10)} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`;
     }
 
-    // Modal Grid Viewers
     function viewPlayerMultipleCards(ticketsData, called) {
         document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
         let fullHtml = "";
@@ -427,36 +487,6 @@
         let gHtml = `<div class="grid-preview">`; 
         for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; 
         document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; 
-    }
-
-    // BONUS FUNCTIONS
-    async function sendSingleBonus() {
-        let phone = document.getElementById('sb-phone').value; let amount = document.getElementById('sb-amt').value;
-        if(!phone || !amount) return alert("Fill all fields");
-        let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})});
-        let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value = ''; document.getElementById('sb-amt').value = ''; loadData(); }
-    }
-
-    async function sendBulkBonus() {
-        let phonesRaw = document.getElementById('b-phones').value; let amount = document.getElementById('mb-amt-bulk').value;
-        if(!phonesRaw || !amount) return alert("Fill all fields");
-        let phoneList = phonesRaw.split(',').map(p => p.trim()).filter(p => p.length > 0);
-        if(!confirm(`Send ${amount} ETB to ${phoneList.length} users?`)) return;
-        let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: phoneList, amount})});
-        let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value = ''; document.getElementById('mb-amt-bulk').value = ''; }
-    }
-
-    async function createMassBonus() {
-        let amount = document.getElementById('mb-amt').value; let maxUsers = document.getElementById('mb-users').value; let minutes = document.getElementById('mb-time').value;
-        if(!amount || !maxUsers || !minutes) return alert("Fill all fields");
-        let res = await fetch('/api/admin/create-mass-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, amount, usersLimit: maxUsers, minutes})});
-        let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('mb-amt').value = ''; document.getElementById('mb-users').value = ''; document.getElementById('mb-time').value = ''; }
-    }
-
-    async function sendTelegramPromo() {
-        let msg = document.getElementById('tg-msg').value; if(!msg) return alert("Enter a message");
-        let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message: msg})});
-        let data = await res.json(); alert(data.message); if(data.success) document.getElementById('tg-msg').value = '';
     }
 
     // Settings & Actions
