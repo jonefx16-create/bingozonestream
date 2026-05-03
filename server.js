@@ -13,40 +13,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Database Connection
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234"; 
+const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
-// ==========================================
-// 🗄️ MODELS 
-// ==========================================
+// MODELS
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
-    played: { type: Number, default: 0 }, won: { type: Number, default: 0 },
-    status: { type: String, default: 'active' } 
+    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
-    phone: String, type: String, amount: Number, method: String,
-    status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }
+    phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }
 }));
 
 const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
     gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
-    adminProfit: { type: Number, default: 0 }, 
-    ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
+    adminProfit: { type: Number, default: 0 }, ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 },
-    claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
+    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" },
-    ticketPrice: { type: Number, default: 10 },
-    isGamePaused: { type: Boolean, default: false }
+    adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }
 }));
 
 let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false };
@@ -102,7 +94,8 @@ app.get('/api/leaderboard', async (req, res) => { res.json({ success: true, lead
 // 🔴 ADMIN APIs
 // ==========================================
 const auth = (req, res, next) => { 
-    const isPassValid = req.body.password === GLOBAL_SETTINGS.adminPass || req.body.adminPass === GLOBAL_SETTINGS.adminPass || req.body.password === ADMIN_PASS || req.body.adminPass === ADMIN_PASS;
+    const pass = req.body.password || req.body.adminPass;
+    const isPassValid = pass === GLOBAL_SETTINGS.adminPass || pass === ADMIN_PASS;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
@@ -110,6 +103,7 @@ const auth = (req, res, next) => {
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(100)));
+app.post('/api/admin/active-bonus', auth, async (req, res) => res.json(await ActiveBonus.findOne({ isActive: true })));
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
@@ -133,7 +127,7 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
     let user = await User.findOne({ phone: oldPhone }); if (!user) return res.json({ success: false });
     if (oldPhone !== newPhone && newPhone) { user.phone = newPhone; await Transaction.updateMany({ phone: oldPhone }, { $set: { phone: newPhone } }); }
     if(password) user.password = password; user.mainBalance = Number(mainBalance); user.playBalance = Number(playBalance); await user.save();
-    res.json({ success: true });
+    res.json({ success: true, message: "User updated!" });
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
@@ -146,31 +140,22 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.updateOne({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.updateOne({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
-// 🔥 BONUS & TELEGRAM APIs 🔥
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     try {
         const user = await User.findOne({ phone: req.body.phone });
         if(!user) return res.json({ success: false, message: "ተጠቃሚ አልተገኘም!" });
         user.playBalance += Number(req.body.amount); await user.save();
-        io.emit('balance_updated', user.phone);
-        res.json({ success: true, message: "ቦነሱ በተሳካ ሁኔታ ተልኳል!" });
+        io.emit('balance_updated', user.phone); res.json({ success: true, message: "ቦነሱ ተልኳል!" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/api/admin/create-mass-bonus', auth, async (req, res) => {
-    try {
-        const { amount, usersLimit, minutes } = req.body;
-        let expiresAt = new Date(Date.now() + (minutes * 60000));
-        let newBonus = new ActiveBonus({ amount, maxUsers: usersLimit, expiresAt });
-        await newBonus.save();
-        io.emit('system_message', `🎁 አዲስ የ ${amount} ETB ቦነስ ተለቋል! ቀድመው ይውሰዱ!`);
-        res.json({ success: true, message: "Mass Bonus በተሳካ ሁኔታ ተፈጥሯል!" });
-    } catch(e) { res.status(500).json({ success: false }); }
-});
-
-app.post('/api/admin/broadcast-telegram', auth, (req, res) => {
-    console.log("Telegram Promo Broadcast: ", req.body.message);
-    res.json({ success: true, message: "ማስታወቂያው ወደ ቴሌግራም ቦት ተልኳል! (Integration ready)" });
+app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
+    let phones = req.body.phones; let amount = Number(req.body.amount); let count = 0;
+    for(let phone of phones) {
+        let u = await User.findOne({phone: phone.trim()});
+        if(u) { u.playBalance += amount; await u.save(); io.emit('balance_updated', u.phone); count++; }
+    }
+    res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
 app.post('/api/admin/finance-report', auth, async (req, res) => {
@@ -180,11 +165,7 @@ app.post('/api/admin/finance-report', auth, async (req, res) => {
     const games = await GameHistory.find();
     let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
     let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
-    const bonuses = await ActiveBonus.find();
-    let totalBonusCost = bonuses.reduce((sum, b) => sum + (b.amount * b.currentClaims), 0);
-    const users = await User.find();
-    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
-    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
+    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost: 0, totalUserBalances: 0 });
 });
 
 // ==========================================
@@ -248,13 +229,8 @@ function startCountdown() {
         
         if (timer <= 0) { 
             clearInterval(waitInterval); 
-            // ቢያንስ ከ1 ሰው በላይ ሲኖር (2+ Players) ይጀምራል
-            if(Object.keys(activePlayers).length > 1) {
-                startGame();
-            } else {
-                io.emit('system_message', "ጨዋታው ለመጀመር ቢያንስ 2 ተጫዋች ያስፈልጋል!");
-                startCountdown(); // Restart waiting
-            }
+            if(Object.keys(activePlayers).length > 1) { startGame(); } 
+            else { io.emit('system_message', "ጨዋታው ለመጀመር ቢያንስ 2 ተጫዋች ያስፈልጋል!"); startCountdown(); }
         }
     }, 1000);
 }
@@ -281,7 +257,7 @@ io.on('connection', (socket) => {
     socket.emit('game_status', { state: GLOBAL_SETTINGS.isGamePaused ? "PAUSED" : gameState, timer: gameState === "PLAYING" ? "LIVE" : timer, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
 
-    // 🔥 Fix for Refresh Issue 🔥
+    // 🔥 Sync Data on Refresh (ይህ የጠፉትን ካርቴላዎች ይመልሳል) 🔥
     socket.on('get_initial_data', (phone) => {
         let myData = activePlayers[phone];
         socket.emit('sync_data', {
@@ -328,6 +304,7 @@ io.on('connection', (socket) => {
     });
 });
 
+// Route ordering - Extremely Important!
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'public', 'finance.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
