@@ -6,7 +6,9 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: { origin: "*" }
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -45,7 +47,7 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
 }));
 
 // ==========================================
-// 🔵 USER APIs
+// 🔵 USER APIs (RESTORED MISSING APIs)
 // ==========================================
 app.post('/api/register', async (req, res) => {
     try {
@@ -69,6 +71,22 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/getUser/:phone', async (req, res) => {
     const user = await User.findOne({ phone: req.params.phone });
     res.json(user ? { success: true, user } : { success: false });
+});
+
+// RESTORED: User Transaction History API
+app.get('/api/user/transactions/:phone', async (req, res) => {
+    try {
+        const txs = await Transaction.find({ phone: req.params.phone }).sort({ date: -1 }).limit(30);
+        res.json({ success: true, txs });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// RESTORED: Leaderboard API
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const topUsers = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won');
+        res.json({ success: true, leaderboard: topUsers });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/request-tx', async (req, res) => {
@@ -116,34 +134,25 @@ app.post('/api/admin/transactions', auth, async (req, res) => { res.json(await T
 app.post('/api/admin/history', auth, async (req, res) => { res.json(await GameHistory.find().sort({ date: -1 }).limit(50)); });
 app.post('/api/admin/promos', auth, async (req, res) => { res.json(await PromoCode.find().sort({ expiresAt: -1 })); });
 
-// NEW: FULL EDIT USER API (Includes migrating phone history)
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
         const { oldPhone, newPhone, password, mainBalance, playBalance } = req.body;
         let user = await User.findOne({ phone: oldPhone });
         if (!user) return res.json({ success: false, message: "User not found!" });
 
-        // If admin changed the phone number
         if (oldPhone !== newPhone) {
             let existing = await User.findOne({ phone: newPhone });
             if (existing) return res.json({ success: false, message: "New phone number is already registered to someone else!" });
-            
             user.phone = newPhone;
-            // Migrate History
             await Transaction.updateMany({ phone: oldPhone }, { $set: { phone: newPhone } });
             await GameHistory.updateMany({ winnerPhone: oldPhone }, { $set: { winnerPhone: newPhone } });
-            // Update claims in promo codes
             await PromoCode.updateMany({ claimedBy: oldPhone }, { $set: { "claimedBy.$": newPhone } });
         }
 
-        user.password = password;
-        user.mainBalance = Number(mainBalance);
-        user.playBalance = Number(playBalance);
-        await user.save();
-
-        io.emit('balance_updated', user.phone);
+        user.password = password; user.mainBalance = Number(mainBalance); user.playBalance = Number(playBalance);
+        await user.save(); io.emit('balance_updated', user.phone);
         res.json({ success: true, message: "✅ User updated successfully!" });
-    } catch (e) { console.error(e); res.status(500).json({ success: false, message: "Server error" }); }
+    } catch (e) { res.status(500).json({ success: false, message: "Server error" }); }
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
@@ -175,10 +184,8 @@ app.post('/api/admin/create-promo', auth, async (req, res) => {
 });
 
 app.post('/api/admin/ban-user', auth, async (req, res) => {
-    try {
-        await User.deleteOne({ phone: req.body.phone });
-        res.json({ success: true });
-    } catch(e) { res.json({success:false}); }
+    try { await User.deleteOne({ phone: req.body.phone }); res.json({ success: true }); } 
+    catch(e) { res.json({success:false}); }
 });
 
 
@@ -257,8 +264,21 @@ function startGame() {
     }, 3000);
 }
 
+// 🟢 REFRESH RESUME LOGIC (State Persistence)
 io.on('connection', (socket) => {
-    socket.emit('game_status', { state: gameState, timer, totalPrizePool, totalTickets, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+    // When a user refreshes or connects, IMMEDIATELY send them the current real-time state.
+    socket.emit('game_status', { 
+        state: gameState, 
+        timer: gameState === "PLAYING" ? "LIVE" : timer, 
+        totalPrizePool, 
+        totalTickets, 
+        calledNumbers: [...calledNumbers], // Send the full array of called numbers so far
+        playersCount: Object.keys(activePlayers).length, 
+        gameId 
+    });
+    
+    socket.emit('update_taken_tickets', globalTakenTickets);
+    
     socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
             const bet = data.ticketCount * 10;
