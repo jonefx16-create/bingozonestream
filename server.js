@@ -33,9 +33,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
 
 const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
     gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
-    winningGrid: Array, calledNumbers: Array, 
-    playersData: Array, // 🟢 አዲስ: በጨዋታው የተሳተፉትን ሁሉንም ሰዎች እና ካርዳቸውን ሴቭ ያደርጋል
-    date: { type: Date, default: Date.now }
+    winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
@@ -115,6 +113,18 @@ app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Tra
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(50)));
 app.post('/api/admin/active-bonus', auth, async (req, res) => res.json(await ActiveBonus.findOne({ isActive: true })));
 
+// 🟢 አዲስ: የ Live ዳታ እና የአጠቃላይ መረጃ ማምጫ
+app.post('/api/admin/live-stats', auth, async (req, res) => {
+    const totalUsers = await User.countDocuments();
+    res.json({ 
+        totalUsers, 
+        livePlayers: Object.keys(activePlayers).length, 
+        currentPrize: totalPrizePool,
+        gameState: gameState,
+        gameId: gameId
+    });
+});
+
 app.post('/api/admin/create-mass-bonus', auth, async (req, res) => {
     await ActiveBonus.updateMany({}, { isActive: false }); 
     let expires = new Date(); expires.setMinutes(expires.getMinutes() + parseInt(req.body.timeMin));
@@ -191,13 +201,7 @@ async function declareWinner(player, ticket) {
     const user = await User.findOne({phone: player.phone});
     if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
     
-    // 🟢 አዲስ: የሁሉንም ተጫዋቾች ዳታ ሴቭ እንዲያደርግ ተስተካክሏል
-    await GameHistory.create({ 
-        gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, prize: totalPrizePool, 
-        winningGrid: ticket.grid, calledNumbers: [...calledNumbers],
-        playersData: Object.values(activePlayers) 
-    });
-    
+    await GameHistory.create({ gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, prize: totalPrizePool, winningGrid: ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) });
     io.emit('game_winner', { winnerName: player.name, ticketId: ticket.id, prize: totalPrizePool, phone: player.phone, ticketGrid: ticket.grid, calledNumbers: [...calledNumbers] });
     setTimeout(startCountdown, 12000); 
 }
@@ -220,9 +224,7 @@ function startGame() {
 
     gameInterval = setInterval(() => {
         if (gameState !== "PLAYING" || currentDrawSequence.length === 0) { clearInterval(gameInterval); if(gameState === "PLAYING") setTimeout(startCountdown, 5000); return; }
-        
         let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
-
         for (let player of Object.values(activePlayers)) {
             for (let i = 0; i < player.ticketsData.length; i++) {
                 if (serverCheckBingo(player.ticketsData[i].grid, calledNumbers)) { declareWinner(player, player.ticketsData[i]); return; }
@@ -238,10 +240,7 @@ io.on('connection', (socket) => {
     socket.on('buy_tickets', async (data) => {
         if (gameState === "WAITING") {
             let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
-            if (currentTickets + data.ticketCount > 4) {
-                socket.emit('error_message', `በአንድ ጨዋታ ቢበዛ 4 ካርድ ብቻ ነው መያዝ የሚቻለው! (አሁን ${currentTickets} ካርድ አለዎት)`);
-                return; 
-            }
+            if (currentTickets + data.ticketCount > 4) { socket.emit('error_message', `በአንድ ጨዋታ ቢበዛ 4 ካርድ ብቻ ነው መያዝ የሚቻለው!`); return; }
 
             const betAmount = data.ticketCount * 10; 
             const user = await User.findOne({phone: data.phone});
@@ -251,23 +250,13 @@ io.on('connection', (socket) => {
                 else { user.mainBalance -= (betAmount - user.playBalance); user.playBalance = 0; }
                 user.played += 1; await user.save();
                 
-                if (!activePlayers[data.phone]) {
-                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
-                } else {
-                    activePlayers[data.phone].tickets += data.ticketCount;
-                    activePlayers[data.phone].ticketsData = [...activePlayers[data.phone].ticketsData, ...data.ticketsData];
-                }
+                if (!activePlayers[data.phone]) { activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData }; } 
+                else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData = [...activePlayers[data.phone].ticketsData, ...data.ticketsData]; }
 
                 totalTickets += data.ticketCount; totalPrizePool = (totalTickets * 10) * 0.85; 
-                
-                if(data.ticketIds) {
-                    data.ticketIds.forEach(id => { if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id); });
-                    io.emit('update_taken_tickets', globalTakenTickets); 
-                }
+                if(data.ticketIds) { data.ticketIds.forEach(id => { if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id); }); io.emit('update_taken_tickets', globalTakenTickets); }
                 socket.emit('balance_updated', data.phone); 
-            } else {
-                socket.emit('error_message', "ለዚህ ካርድ የሚሆን በቂ ሂሳብ የሎትም!");
-            }
+            } else { socket.emit('error_message', "ለዚህ ካርድ የሚሆን በቂ ሂሳብ የሎትም!"); }
         }
     });
 });
