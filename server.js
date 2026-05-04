@@ -93,7 +93,7 @@ app.post('/api/user/change-password', async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => { res.json({ success: true, leaderboard: await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won') }); });
 
 // ==========================================
-// 🔴 ADMIN & FINANCE APIs
+// 🔴 ADMIN APIs
 // ==========================================
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
@@ -152,7 +152,6 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
 
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     let phones = req.body.phones; let amount = Number(req.body.amount); let count = 0;
-    // Log expense to DB
     await ActiveBonus.create({ amount, maxUsers: phones.length, currentClaims: phones.length });
     for(let phone of phones) {
         let u = await User.findOne({phone: phone.trim()});
@@ -161,47 +160,18 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
-// 🔥 የተስተካከለው የቴሌግራም መላኪያ ኮድ 🔥
-app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
-    try {
-        const { message } = req.body;
-        if (!message) return res.json({ success: false, message: "እባክዎ ሜሴጅ ያስገቡ!" });
-
-        // የራስህ ቶከን 
-        const BOT_TOKEN = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-        
-        // ⚠️ ማሳሰቢያ፡ እዚህ ላይ የራስህን የቴሌግራም ቻናል ዩዘርኔም አስገባ (ለምሳሌ: "@bingohabesha")
-        const CHAT_ID = "@bingohabeshazone"; 
-
-        const telegramURL = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-        
-        const response = await fetch(telegramURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" })
-        });
-
-        const data = await response.json();
-        if (data.ok) {
-            res.json({ success: true, message: "✅ ማስታወቂያው በተሳካ ሁኔታ ቴሌግራም ላይ ተለቋል!" });
-        } else {
-            res.json({ success: false, message: "❌ ቴሌግራም ላይ መላክ አልተቻለም: " + data.description });
-        }
-    } catch (e) {
-        console.error("Telegram API Error:", e);
-        res.status(500).json({ success: false, message: "የሰርቨር ስህተት አጋጥሟል!" });
-    }
-});
-
-// 🔥 Finance Raw Data for Filtering 🔥
-app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
-    try {
-        const txs = await Transaction.find({ status: 'Approved' });
-        const games = await GameHistory.find();
-        const bonuses = await ActiveBonus.find();
-        const users = await User.find();
-        res.json({ success: true, txs, games, bonuses, users });
-    } catch (e) { res.status(500).json({ success: false }); }
+app.post('/api/admin/finance-report', auth, async (req, res) => {
+    const txs = await Transaction.find({ status: 'Approved' });
+    let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
+    let totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((a, b) => a + b.amount, 0);
+    const games = await GameHistory.find();
+    let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
+    let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
+    const bonuses = await ActiveBonus.find();
+    let totalBonusCost = bonuses.reduce((sum, b) => sum + (b.amount * b.currentClaims), 0);
+    const users = await User.find();
+    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
+    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
 });
 
 // ==========================================
@@ -332,19 +302,14 @@ io.on('connection', (socket) => {
     });
 });
 
-// ==========================================
 // ======================================================
-// ✈️ TELEGRAM BOT INTEGRATION
-// ======================================================
-// ======================================================
-// ✈️ TELEGRAM BOT INTEGRATION (Webhook mode)
+// ✈️ TELEGRAM BOT INTEGRATION (Auto-Registration & Web Pass)
 // ======================================================
 const TelegramBot = require('node-telegram-bot-api');
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-const bot = new TelegramBot(telegramToken, { polling: false }); // polling: false እንዲሆን አድርግ
+const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
 
-// ሰርቨሩ ሲነሳ ዌብሁክ እንዲመዘገብ ማድረግ
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 
 app.post(`/bot${telegramToken}`, (req, res) => {
@@ -352,50 +317,75 @@ app.post(`/bot${telegramToken}`, (req, res) => {
     res.sendStatus(200);
 });
 
-// ቦቱ ሲጀመር ቋሚ በተኖችን እንዲያሳይ
-bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, "እንኳን ወደ Bingo Habesha በደህና መጡ! ከታች ካሉት በተኖች አንዱን ይምረጡ።", {
-        reply_markup: {
-            keyboard: [
-                [{ text: "🎮 ጌም ይጫወቱ" }, { text: "💰 ሂሳብ ማረጋገጫ" }],
-                [{ text: "📥 ገቢ ማድረግ" }, { text: "📤 ወጪ ማድረግ" }],
-                [{ text: "🤝 ጓደኛ ይጋብዙ" }, { text: "🆘 እርዳታ" }]
-            ],
-            resize_keyboard: true
-        }
-    });
+app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.json({ success: false, message: "እባክዎ ሜሴጅ ያስገቡ!" });
+        const CHAT_ID = "@bingohabeshazone"; 
+        const telegramURL = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
+        const response = await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" }) });
+        const data = await response.json();
+        if (data.ok) res.json({ success: true, message: "✅ ማስታወቂያው ቴሌግራም ላይ ተለቋል!" });
+        else res.json({ success: false, message: "❌ አልተቻለም: " + data.description });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// በተኖቹ ሲጫኑ የሚሰሩ ተግባራት
-bot.on('message', (msg) => {
+bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    const text = msg.text;
+    const opts = { reply_markup: { keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], resize_keyboard: true, one_time_keyboard: true } };
+    bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> በደህና መጡ!\n\nጌሙን ለመጀመር እባክዎ ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> የሚለውን ቁልፍ ይጫኑ።", { parse_mode: "HTML", ...opts });
+});
 
-    if (text === "🎮 ጌም ይጫወቱ") {
-        bot.sendMessage(chatId, "ጌሙን ለመጫወት ይህንን ይጫኑ፦", {
-            reply_markup: { inline_keyboard: [[{ text: "🎮 Play Bingo", web_app: { url: WEB_URL } }]] }
-        });
-    } else if (text === "💰 ሂሳብ ማረጋገጫ") {
-        bot.sendMessage(chatId, "ሂሳብዎን ለማየት ይህንን ይጫኑ፦", {
-            reply_markup: { inline_keyboard: [[{ text: "💰 ሂሳብ ይመልከቱ", web_app: { url: WEB_URL } }]] }
-        });
-    } else if (text === "📥 ገቢ ማድረግ") {
-        bot.sendMessage(chatId, "ገቢ ለማድረግ ይህንን ይጫኑ፦", {
-            reply_markup: { inline_keyboard: [[{ text: "📥 ገቢ ያድርጉ", web_app: { url: WEB_URL } }]] }
-        });
-    } else if (text === "📤 ወጪ ማድረግ") {
-        bot.sendMessage(chatId, "ወጪ ለማድረግ ይህንን ይጫኑ፦", {
-            reply_markup: { inline_keyboard: [[{ text: "📤 ወጪ ያድርጉ", web_app: { url: WEB_URL } }]] }
-        });
-    } else if (text === "🤝 ጓደኛ ይጋብዙ") {
-        bot.sendMessage(chatId, "ጓደኛ በመጋበዝ ይሸለሙ፦", {
-            reply_markup: { inline_keyboard: [[{ text: "🤝 ጋብዝ", web_app: { url: WEB_URL } }]] }
-        });
-    } else if (text === "🆘 እርዳታ") {
-        bot.sendMessage(chatId, "እርዳታ ከፈለጉ አድሚን ያናግሩ፦ @bingohabesh_support");
+bot.on('contact', async (msg) => {
+    const chatId = msg.chat.id;
+    const contact = msg.contact;
+    let phone = contact.phone_number;
+    if (phone.startsWith('251')) phone = '0' + phone.substring(3);
+    if (phone.startsWith('+251')) phone = '0' + phone.substring(4);
+    
+    let name = contact.first_name || "Bingo User";
+    const newPassword = Math.random().toString(36).slice(-6);
+
+    try {
+        let user = await User.findOne({ phone: phone });
+        if (!user) {
+            user = new User({ phone, name, password: newPassword, playBalance: 100 });
+            await user.save();
+        } else {
+            user.password = newPassword;
+            await user.save();
+        }
+
+        await bot.sendMessage(chatId, "እየመዘገብን ነው...", { reply_markup: { remove_keyboard: true } });
+        const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}`;
+
+        const menuOpts = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "🎮 ይጫወቱ", web_app: { url: WEB_URL } }],
+                    [{ text: "💰 ሂሳብ", web_app: { url: `${WEB_URL}/#wallet` } }, { text: "📥 ገቢ ለማድረግ", web_app: { url: `${WEB_URL}/#wallet` } }],
+                    [{ text: "📤 ወጪ ለማድረግ", web_app: { url: `${WEB_URL}/#wallet` } }, { text: "🔗 ጋብዝ & አግኝ", web_app: { url: WEB_URL } }],
+                    [{ text: "💎 VIP ክፍል", callback_data: "vip" }, { text: "🌟 Special Promoter", callback_data: "promoter" }],
+                    [{ text: "🆘 እርዳታ", url: "https://t.me/bingohabesh_support" }, { text: "📜 ደንቦች", callback_data: "rules" }]
+                ]
+            }
+        };
+        bot.sendMessage(chatId, successMsg, menuOpts);
+
+    } catch (error) {
+        bot.sendMessage(chatId, "❌ ይቅርታ፣ ሲስተሙ ላይ ችግር አጋጥሟል።");
     }
 });
 
+bot.on('callback_query', (query) => {
+    const chatId = query.message.chat.id;
+    if(query.data === 'vip') bot.sendMessage(chatId, "💎 VIP ክፍል በቅርቡ ይከፈታል!");
+    if(query.data === 'promoter') bot.sendMessage(chatId, "🌟 Special Promoter ለመሆን አድሚን ያናግሩ: @bingohabesh_support");
+    if(query.data === 'rules') bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።", { parse_mode: "HTML" });
+    bot.answerCallbackQuery(query.id);
+});
+
+// ==========================================
 // 🛣️ EXPLICIT ROUTING (Mobile Fix)
 // ==========================================
 app.get('/admin', (req, res) => {
