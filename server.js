@@ -333,6 +333,39 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
+// ======================================================
+// ✈️ TELEGRAM BOT INTEGRATION
+// ======================================================
+const TelegramBot = require('node-telegram-bot-api');
+const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+const bot = new TelegramBot(telegramToken, {polling: true});
+const WEB_URL = "https://bingohabesha.onrender.com";
+
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+    if (text === '/play') {
+        bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ እየሄዱ ነው...", {
+            reply_markup: { inline_keyboard: [[{ text: "ጌም ይጫወቱ", web_app: { url: WEB_URL } }]] }
+        });
+    } else if (text === '/account') {
+        bot.sendMessage(chatId, "💰 ሂሳብዎን ለመመልከት ይህንን ይጫኑ:", {
+            reply_markup: { inline_keyboard: [[{ text: "ሂሳብ ይመልከቱ", web_app: { url: WEB_URL } }]] }
+        });
+    } else if (text === '/deposit') {
+        bot.sendMessage(chatId, "📥 ገቢ ለማድረግ ይህንን ይጫኑ:", {
+            reply_markup: { inline_keyboard: [[{ text: "ገቢ ያድርጉ", web_app: { url: WEB_URL } }]] }
+        });
+    } else if (text === '/withdraw') {
+        bot.sendMessage(chatId, "📤 ወጪ ለማድረግ ይህንን ይጫኑ:", {
+            reply_markup: { inline_keyboard: [[{ text: "ወጪ ያድርጉ", web_app: { url: WEB_URL } }]] }
+        });
+    } else if (text === '/referral') {
+        bot.sendMessage(chatId, "🤝 ጓደኛ ይጋብዙ እና ይሸለሙ:", {
+            reply_markup: { inline_keyboard: [[{ text: "ጓደኛ ይጋብዙ", web_app: { url: WEB_URL } }]] }
+        });
+    }
+});
 // 🛣️ EXPLICIT ROUTING (Mobile Fix)
 // ==========================================
 app.get('/admin', (req, res) => {
