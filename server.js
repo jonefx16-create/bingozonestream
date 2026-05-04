@@ -13,17 +13,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
-// ==========================================
-// 🗄️ Database Connection
-// ==========================================
+// Database Connection
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
-// ==========================================
-// 📂 MODELS
-// ==========================================
+// MODELS
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
@@ -54,6 +50,12 @@ async function loadSettings() {
     GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused };
 }
 loadSettings();
+
+const bankAccounts = {
+    'TeleBirr': { num: '0933638022', name: 'Tsedey Abebe' },
+    'CBE': { num: '0988180301', name: 'Yohannes Aberham' },
+    'MPesa': { num: '251707896800', name: 'Yohannes Aberham' }
+};
 
 // ==========================================
 // 🔵 USER APIs
@@ -162,6 +164,20 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
         if(u) { u.playBalance += amount; await u.save(); io.emit('balance_updated', u.phone); count++; }
     }
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
+});
+
+app.post('/api/admin/finance-report', auth, async (req, res) => {
+    const txs = await Transaction.find({ status: 'Approved' });
+    let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
+    let totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((a, b) => a + b.amount, 0);
+    const games = await GameHistory.find();
+    let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
+    let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
+    const bonuses = await ActiveBonus.find();
+    let totalBonusCost = bonuses.reduce((sum, b) => sum + (b.amount * b.currentClaims), 0);
+    const users = await User.find();
+    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
+    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
 });
 
 app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
@@ -330,25 +346,35 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// A temporary storage for user states in Telegram (e.g. knowing when they are typing an amount)
 const botState = {};
 
-// The Persistent Keyboard
-const replyKeyboard = {
-    keyboard: [
-        [{ text: "🎮 ይጫወቱ", web_app: { url: WEB_URL } }],
-        [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
-        [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
-        [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
-        [{ text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
-    ],
-    resize_keyboard: true
+// 🔥 GENERATE DYNAMIC MENU FOR AUTO-LOGIN 🔥
+function getMainMenu(phone, password) {
+    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
+    return {
+        reply_markup: {
+            keyboard: [
+                [{ text: "🎮 Play (ወደ ጌም ግባ)", web_app: { url: playUrl } }],
+                [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
+                [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
+                [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
+                [{ text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
+            ],
+            resize_keyboard: true
+        }
+    };
+}
+
+const cancelKeyboard = {
+    reply_markup: {
+        keyboard: [[{ text: "🔙 ወደ ኋላ ተመለስ" }]],
+        resize_keyboard: true
+    }
 };
 
-// 1. START COMMAND
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    botState[chatId] = { step: 'idle' }; // Reset state
+    botState[chatId] = { step: 'idle' }; 
     const opts = { 
         reply_markup: { 
             keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], 
@@ -359,7 +385,6 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> በደህና መጡ!\n\nጌሙን ለመጀመር እባክዎ ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> የሚለውን ቁልፍ ይጫኑ።", { parse_mode: "HTML", ...opts });
 });
 
-// 2. CONTACT RECEIVED (Auto Register)
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const contact = msg.contact;
@@ -380,9 +405,9 @@ bot.on('contact', async (msg) => {
             await user.save();
         }
 
-        const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 ይጫወቱ</b> የሚለውን በመንካት ጌሙን መጀመር ይችላሉ!`;
+        const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን በመንካት በቀጥታ ወደ ጌሙ መግባት ይችላሉ!`;
 
-        bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", reply_markup: replyKeyboard });
+        bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         botState[chatId] = { phone: phone, step: 'idle' };
 
     } catch (error) {
@@ -390,7 +415,6 @@ bot.on('contact', async (msg) => {
     }
 });
 
-// 3. TEXT MESSAGE HANDLER (Bot Interactive Features)
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
@@ -400,11 +424,24 @@ bot.on('message', async (msg) => {
     let state = botState[chatId] || { step: 'idle' };
     let userPhone = state.phone;
 
+    // 🔥 BACK BUTTON LOGIC 🔥
+    if (text === "🔙 ወደ ኋላ ተመለስ") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            botState[chatId].step = 'idle';
+            bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል። ወደ ዋናው ማውጫ ተመልሰዋል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        } else {
+            botState[chatId] = { step: 'idle' };
+            bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል።", { reply_markup: { remove_keyboard: true } });
+        }
+        return;
+    }
+
     if (text === "💰 ሂሳብ") {
         if(!userPhone) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let user = await User.findOne({ phone: userPhone });
         if(user) {
-            bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n👤 ስም: ${user.name}\n📱 ስልክ: ${user.phone}\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና (ያሸነፉት) ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", reply_markup: replyKeyboard });
+            bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n👤 ስም: ${user.name}\n📱 ስልክ: ${user.phone}\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና (ያሸነፉት) ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         }
         state.step = 'idle';
 
@@ -423,36 +460,52 @@ bot.on('message', async (msg) => {
         state.step = 'idle';
 
     } else if (text === "🔗 ጋብዝ & አግኝ") {
-        bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", reply_markup: replyKeyboard });
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
     } else if (text === "💎 VIP ክፍል") {
-        bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", reply_markup: replyKeyboard });
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
     } else if (text === "🌟 Special Promoter") {
-        bot.sendMessage(chatId, "🌟 <b>Special Promoter:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesh_support", { parse_mode: "HTML", reply_markup: replyKeyboard });
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🌟 <b>Special Promoter:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesh_support", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
     } else if (text === "🆘 እርዳታ") {
-        bot.sendMessage(chatId, "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ወይም ችግር ካጋጠመዎት 24/7 የድጋፍ ቡድናችንን ማናገር ይችላሉ፦\n👉 @bingohabesh_support", { parse_mode: "HTML", reply_markup: replyKeyboard });
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ወይም ችግር ካጋጠመዎት 24/7 የድጋፍ ቡድናችንን ማናገር ይችላሉ፦\n👉 @bingohabesh_support", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
     } else if (text === "📜 ደንቦች") {
-        bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማንኛውም ህገ-ወጥ ድርጊት አካውንትዎ ይታገዳል።", { parse_mode: "HTML", reply_markup: replyKeyboard });
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማንኛውም ህገ-ወጥ ድርጊት አካውንትዎ ይታገዳል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
     } 
     // State machine for inputs
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text);
-        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):");
-        bot.sendMessage(chatId, "እባክዎ ክፍያ የፈጸሙበትን የ SMS ማረጋገጫ መልዕክት ኮፒ አድርገው እዚህ ይላኩ፦");
+        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
+        bot.sendMessage(chatId, "እባክዎ ክፍያ የፈጸሙበትን የ SMS ማረጋገጫ መልዕክት ኮፒ አድርገው እዚህ ይላኩ፦", cancelKeyboard);
         state.step = 'awaiting_dep_sms';
     } 
     else if (state.step === 'awaiting_dep_sms') {
         await new Transaction({ phone: state.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
-        bot.sendMessage(chatId, "✅ የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!\nአድሚን ሲያረጋግጥ ሂሳብዎ ይሞላል።", { reply_markup: replyKeyboard });
+        let u = await User.findOne({phone: state.phone});
+        bot.sendMessage(chatId, "✅ የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!\nአድሚን ሲያረጋግጥ ሂሳብዎ ይሞላል።", { ...getMainMenu(u.phone, u.password) });
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_amt') {
         state.amount = parseFloat(text);
-        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):");
+        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
         
         let u = await User.findOne({phone: state.phone});
-        if(u.mainBalance < state.amount) return bot.sendMessage(chatId, "❌ በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ብር የለም!\nእንደገና ይሞክሩ (ወይም /start ይበሉ)։", { reply_markup: replyKeyboard });
+        if(u.mainBalance < state.amount) return bot.sendMessage(chatId, "❌ በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ብር የለም!\nእንደገና ይሞክሩ (ወይም /start ይበሉ)։", { ...getMainMenu(u.phone, u.password) });
         
-        bot.sendMessage(chatId, "እባክዎ ገንዘቡ እንዲላክልዎ የሚፈልጉትን አካውንት/ስልክ ቁጥር ያስገቡ፦");
+        bot.sendMessage(chatId, "እባክዎ ገንዘቡ እንዲላክልዎ የሚፈልጉትን አካውንት/ስልክ ቁጥር ያስገቡ፦", cancelKeyboard);
         state.step = 'awaiting_wit_acc';
     } 
     else if (state.step === 'awaiting_wit_acc') {
@@ -461,9 +514,9 @@ bot.on('message', async (msg) => {
             u.mainBalance -= state.amount; 
             await u.save();
             await new Transaction({ phone: state.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: text }).save();
-            bot.sendMessage(chatId, "✅ የወጪ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!\nበቅርቡ ገንዘቡ ወደ አካውንትዎ ይላካል።", { reply_markup: replyKeyboard });
+            bot.sendMessage(chatId, "✅ የወጪ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!\nበቅርቡ ገንዘቡ ወደ አካውንትዎ ይላካል።", { ...getMainMenu(u.phone, u.password) });
         } else {
-            bot.sendMessage(chatId, "❌ በቂ ሂሳብ የለም!", { reply_markup: replyKeyboard });
+            bot.sendMessage(chatId, "❌ በቂ ሂሳብ የለም!", { ...getMainMenu(u.phone, u.password) });
         }
         state.step = 'idle';
     }
@@ -486,18 +539,18 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('dep_')) {
         state.method = data.split('_')[1];
         state.step = 'awaiting_dep_amt';
-        bot.sendMessage(chatId, `መረጡት ባንክ: <b>${state.method}</b>\n\nእባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👉 <b>${bankAccounts[state.method]}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> እዚህ ይፃፉልኝ (ለምሳሌ: 100):`, { parse_mode: "HTML" });
+        bot.sendMessage(chatId, `መረጡት ባንክ: <b>${state.method}</b>\n\nእባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👉 <b>${bankAccounts[state.method]}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> እዚህ ይፃፉልኝ (ለምሳሌ: 100):`, { parse_mode: "HTML", ...cancelKeyboard });
     }
     else if (data.startsWith('wit_')) {
         state.method = data.split('_')[1];
         state.step = 'awaiting_wit_amt';
-        bot.sendMessage(chatId, `መረጡት ባንክ: <b>${state.method}</b>\n\nእባክዎ ማውጣት የሚፈልጉትን የብር መጠን ያስገቡ (ቢያንስ 50 ብር):`, { parse_mode: "HTML" });
+        bot.sendMessage(chatId, `መረጡት ባንክ: <b>${state.method}</b>\n\nእባክዎ ማውጣት የሚፈልጉትን የብር መጠን ያስገቡ (ቢያንስ 50 ብር):`, { parse_mode: "HTML", ...cancelKeyboard });
     }
     bot.answerCallbackQuery(query.id);
 });
 
 // ==========================================
-// 🛣️ EXPLICIT ROUTING (Mobile Fix)
+// 🛣️ EXPLICIT ROUTING
 // ==========================================
 app.get('/admin', (req, res) => {
     let p = path.join(__dirname, 'public', 'admin.html');
