@@ -352,30 +352,49 @@ app.post(`/bot${telegramToken}`, (req, res) => {
     res.sendStatus(200);
 });
 
+// ቦቱ ሲጀመር ቋሚ በተኖችን እንዲያሳይ
+bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id, "እንኳን ወደ Bingo Habesha በደህና መጡ! ከታች ካሉት በተኖች አንዱን ይምረጡ።", {
+        reply_markup: {
+            keyboard: [
+                [{ text: "🎮 ጌም ይጫወቱ" }, { text: "💰 ሂሳብ ማረጋገጫ" }],
+                [{ text: "📥 ገቢ ማድረግ" }, { text: "📤 ወጪ ማድረግ" }],
+                [{ text: "🤝 ጓደኛ ይጋብዙ" }, { text: "🆘 እርዳታ" }]
+            ],
+            resize_keyboard: true
+        }
+    });
+});
+
+// በተኖቹ ሲጫኑ የሚሰሩ ተግባራት
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
-    if (text === '/play') {
-        bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ እየሄዱ ነው...", {
-            reply_markup: { inline_keyboard: [[{ text: "ጌም ይጫወቱ", web_app: { url: WEB_URL } }]] }
+
+    if (text === "🎮 ጌም ይጫወቱ") {
+        bot.sendMessage(chatId, "ጌሙን ለመጫወት ይህንን ይጫኑ፦", {
+            reply_markup: { inline_keyboard: [[{ text: "🎮 Play Bingo", web_app: { url: WEB_URL } }]] }
         });
-    } else if (text === '/account') {
-        bot.sendMessage(chatId, "💰 ሂሳብዎን ለመመልከት ይህንን ይጫኑ:", {
-            reply_markup: { inline_keyboard: [[{ text: "ሂሳብ ይመልከቱ", web_app: { url: WEB_URL } }]] }
+    } else if (text === "💰 ሂሳብ ማረጋገጫ") {
+        bot.sendMessage(chatId, "ሂሳብዎን ለማየት ይህንን ይጫኑ፦", {
+            reply_markup: { inline_keyboard: [[{ text: "💰 ሂሳብ ይመልከቱ", web_app: { url: WEB_URL } }]] }
         });
-    } else if (text === '/deposit') {
-        bot.sendMessage(chatId, "📥 ገቢ ለማድረግ ይህንን ይጫኑ:", {
-            reply_markup: { inline_keyboard: [[{ text: "ገቢ ያድርጉ", web_app: { url: WEB_URL } }]] }
+    } else if (text === "📥 ገቢ ማድረግ") {
+        bot.sendMessage(chatId, "ገቢ ለማድረግ ይህንን ይጫኑ፦", {
+            reply_markup: { inline_keyboard: [[{ text: "📥 ገቢ ያድርጉ", web_app: { url: WEB_URL } }]] }
         });
-    } else if (text === '/withdraw') {
-        bot.sendMessage(chatId, "📤 ወጪ ለማድረግ ይህንን ይጫኑ:", {
-            reply_markup: { inline_keyboard: [[{ text: "ወጪ ያድርጉ", web_app: { url: WEB_URL } }]] }
+    } else if (text === "📤 ወጪ ማድረግ") {
+        bot.sendMessage(chatId, "ወጪ ለማድረግ ይህንን ይጫኑ፦", {
+            reply_markup: { inline_keyboard: [[{ text: "📤 ወጪ ያድርጉ", web_app: { url: WEB_URL } }]] }
         });
-    } else if (text === '/referral') {
-        bot.sendMessage(chatId, "🤝 ጓደኛ ይጋብዙ እና ይሸለሙ:", {
-            reply_markup: { inline_keyboard: [[{ text: "ጓደኛ ይጋብዙ", web_app: { url: WEB_URL } }]] }
+    } else if (text === "🤝 ጓደኛ ይጋብዙ") {
+        bot.sendMessage(chatId, "ጓደኛ በመጋበዝ ይሸለሙ፦", {
+            reply_markup: { inline_keyboard: [[{ text: "🤝 ጋብዝ", web_app: { url: WEB_URL } }]] }
         });
+    } else if (text === "🆘 እርዳታ") {
+        bot.sendMessage(chatId, "እርዳታ ከፈለጉ አድሚን ያናግሩ፦ @bingohabesh_support");
     }
+});
 });
 // 🛣️ EXPLICIT ROUTING (Mobile Fix)
 // ==========================================
