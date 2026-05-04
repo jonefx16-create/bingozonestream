@@ -336,10 +336,21 @@ io.on('connection', (socket) => {
 // ======================================================
 // ✈️ TELEGRAM BOT INTEGRATION
 // ======================================================
+// ======================================================
+// ✈️ TELEGRAM BOT INTEGRATION (Webhook mode)
+// ======================================================
 const TelegramBot = require('node-telegram-bot-api');
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-const bot = new TelegramBot(telegramToken, {polling: true});
+const bot = new TelegramBot(telegramToken, { polling: false }); // polling: false እንዲሆን አድርግ
 const WEB_URL = "https://bingohabesha.onrender.com";
+
+// ሰርቨሩ ሲነሳ ዌብሁክ እንዲመዘገብ ማድረግ
+bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
+
+app.post(`/bot${telegramToken}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
 
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
