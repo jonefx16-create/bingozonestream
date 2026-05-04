@@ -161,9 +161,36 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
-app.post('/api/admin/broadcast-telegram', auth, (req, res) => {
-    console.log("Telegram Promo Broadcast: ", req.body.message);
-    res.json({ success: true, message: "ማስታወቂያው ወደ ቴሌግራም ቦት ተልኳል!" });
+// 🔥 የተስተካከለው የቴሌግራም መላኪያ ኮድ 🔥
+app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.json({ success: false, message: "እባክዎ ሜሴጅ ያስገቡ!" });
+
+        // የራስህ ቶከን 
+        const BOT_TOKEN = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+        
+        // ⚠️ ማሳሰቢያ፡ እዚህ ላይ የራስህን የቴሌግራም ቻናል ዩዘርኔም አስገባ (ለምሳሌ: "@bingohabesha")
+        const CHAT_ID = "@bingohabeshazone"; 
+
+        const telegramURL = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        
+        const response = await fetch(telegramURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" })
+        });
+
+        const data = await response.json();
+        if (data.ok) {
+            res.json({ success: true, message: "✅ ማስታወቂያው በተሳካ ሁኔታ ቴሌግራም ላይ ተለቋል!" });
+        } else {
+            res.json({ success: false, message: "❌ ቴሌግራም ላይ መላክ አልተቻለም: " + data.description });
+        }
+    } catch (e) {
+        console.error("Telegram API Error:", e);
+        res.status(500).json({ success: false, message: "የሰርቨር ስህተት አጋጥሟል!" });
+    }
 });
 
 // 🔥 Finance Raw Data for Filtering 🔥
