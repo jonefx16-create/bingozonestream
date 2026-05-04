@@ -395,7 +395,7 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, "እርዳታ ከፈለጉ አድሚን ያናግሩ፦ @bingohabesh_support");
     }
 });
-});
+
 // 🛣️ EXPLICIT ROUTING (Mobile Fix)
 // ==========================================
 app.get('/admin', (req, res) => {
