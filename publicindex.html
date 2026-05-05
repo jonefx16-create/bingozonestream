@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- 🔥 መፍትሄ 2: ቴሌግራም ዌብሳይቱን Cache እንዳያደርገው የሚከለክሉ ኮዶች -->
+    <!-- 🔥 ቴሌግራም ዌብሳይቱን በማስታወሻ እንዳያስቀምጥ የሚከለክሉ ኮዶች -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -576,7 +576,6 @@
 
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
-        // 🔥 መፍትሄ 3: ቴሌግራም ላይ የሚላከውን አዲሱን ሊንክ ማንበቢያ ኮድ
         const urlParams = new URLSearchParams(window.location.search);
         let urlPhone = urlParams.get('phone');
         let urlPass = urlParams.get('pass');
@@ -594,7 +593,6 @@
             
             localStorage.setItem('bingo_user_phone', urlPhone);
             localStorage.setItem('bingo_user_pass', urlPass);
-            // Replace Stateን አጥፍቼዋለሁ! ቴሌግራም አዲሱን ሊንክ አጥብቆ እንዲይዝ።
         }
 
         let savedPhone = localStorage.getItem('bingo_user_phone');
