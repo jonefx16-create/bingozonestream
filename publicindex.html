@@ -317,32 +317,20 @@
             <div style="color: #94a3b8; font-size: 13px; font-weight: bold; letter-spacing: 6px; margin-top: 5px; text-transform: uppercase;">BINGO HABESHA</div>
         </div>
         
-        <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
-        
-        <div class="input-group" id="name-group">
-            <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()">
-        </div>
+        <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ወደ አካውንትዎ ይግቡ</p>
         
         <div class="input-group">
             <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (09... ወይም 07...)" onkeyup="v()">
         </div>
         
         <div class="input-group">
-            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()">
+            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል" onkeyup="v()">
             <span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span>
         </div>
-
-        <div class="input-group" id="ref-group">
-            <input type="text" id="reg-ref" class="auth-input ref-input" placeholder="የጋበዝዎት ሰው ኮድ (ካለዎት)" onkeyup="v()">
-        </div>
         
-        <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
-            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
-            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
-        </div>
+        <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ግባ (LOGIN)</button>
         
-        <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
-        <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
+        <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="window.location.href='https://t.me/bingo_habesha_bot'" id="toggle-auth-text">አዲስ አካውንት በቴሌግራም ይክፈቱ (Register)</p>
         
         <button class="auth-help-btn" onclick="window.location.href='https://t.me/bingohabesha'">
             📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span>
@@ -569,7 +557,6 @@
     let currentUser = null;
     let pendingTicketsData = []; 
     let userTicketsData = []; 
-    let isLoginMode = false;
     let isGameRunningLocally = false;
     let currentGameState = null;
     let globalTakenTickets = []; 
@@ -641,7 +628,7 @@
                     }
                     socket.emit('get_initial_data', data.user.phone); 
                 } else { logout(); }
-            } catch(e) { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('start-btn').disabled = false; }
+            } catch(e) { document.getElementById('start-btn').innerText = "ግባ (LOGIN)"; document.getElementById('start-btn').disabled = false; }
         }
     };
 
@@ -739,63 +726,34 @@
         } catch(e) {}
     }
 
-    function toggleAuthMode() {
-        isLoginMode = !isLoginMode;
-        document.getElementById('name-group').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('ref-group').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
-        
-        if(isLoginMode) {
-            document.getElementById('start-btn').innerText = "ግባ (LOGIN)";
-            document.getElementById('auth-subtitle').innerText = "ወደ አካውንትዎ ይግቡ";
-            document.getElementById('toggle-auth-text').innerText = "አዲስ አካውንት ይክፈቱ (Register)";
-        } else {
-            document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
-            document.getElementById('auth-subtitle').innerText = "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
-            document.getElementById('toggle-auth-text').innerText = "አካውንት አለዎት? ይግቡ (Login)";
-        }
-        v();
-    }
-
     function v() { 
         let phone = document.getElementById('reg-phone').value.trim();
         let pass = document.getElementById('reg-pass').value.trim();
-        let name = document.getElementById('reg-name').value.trim();
         let btn = document.getElementById('start-btn');
         let phoneValid = (phone.startsWith('09') || phone.startsWith('07')) && phone.length === 10 && /^\d+$/.test(phone);
         let passValid = pass.length >= 4;
         
-        if(isLoginMode) { btn.disabled = !(phoneValid && passValid); } else {
-            let nameValid = name.length > 0; let c1 = document.getElementById('c1').checked; let c2 = document.getElementById('c2').checked;
-            btn.disabled = !(phoneValid && passValid && nameValid && c1 && c2);
-        }
+        btn.disabled = !(phoneValid && passValid); 
     }
 
     async function authAction() {
         let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
-        let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
 
         document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; 
         document.getElementById('start-btn').disabled = true;
         
-        let endpoint = isLoginMode ? '/api/login' : '/api/register';
-        let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
+        let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass}) });
         let data = await res.json();
         
         if(data.success) { 
-            if(isLoginMode) {
-                localStorage.setItem('bingo_user_phone', phone); 
-                localStorage.setItem('bingo_user_pass', pass); 
-                processLoginSuccess(data.user); 
-            } else {
-                alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)");
-                toggleAuthMode();
-            }
+            localStorage.setItem('bingo_user_phone', phone); 
+            localStorage.setItem('bingo_user_pass', pass); 
+            processLoginSuccess(data.user); 
         } 
         else { 
             alert(data.message || "ስህተት አጋጥሟል!"); 
             document.getElementById('start-btn').disabled = false; 
-            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)";
+            document.getElementById('start-btn').innerText = "ግባ (LOGIN)";
         }
     }
 
