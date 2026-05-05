@@ -185,16 +185,6 @@ app.post('/api/admin/finance-report', auth, async (req, res) => {
     res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
 });
 
-app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
-    try {
-        const txs = await Transaction.find({ status: 'Approved' });
-        const games = await GameHistory.find();
-        const bonuses = await ActiveBonus.find();
-        const users = await User.find();
-        res.json({ success: true, txs, games, bonuses, users });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
 // ==========================================
 // 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
@@ -282,6 +272,11 @@ io.on('connection', (socket) => {
     socket.emit('game_status', { state: GLOBAL_SETTINGS.isGamePaused ? "PAUSED" : gameState, timer: gameState === "PLAYING" ? "LIVE" : gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [...calledNumbers], playersCount: Object.keys(activePlayers).length, gameId });
     socket.emit('update_taken_tickets', globalTakenTickets); 
 
+    socket.on('get_initial_data', (phone) => {
+        let myData = activePlayers[phone];
+        socket.emit('sync_data', { gameState: gameState, globalTakenTickets: globalTakenTickets, calledNumbers: calledNumbers, myTickets: myData ? myData.ticketsData : [] });
+    });
+    
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused) return;
         if (gameState === "WAITING") {
@@ -378,7 +373,6 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> በደህና መጡ!\n\nጌሙን ለመጀመር እባክዎ ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> የሚለውን ቁልፍ ይጫኑ።", { parse_mode: "HTML", ...opts });
 });
 
-// 🟢 ቴሌግራም ላይ ስልክ ሲሰጡ የሚፈጠረው ማስተካከያ (ACCOUNT RETRIEVAL)
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const contact = msg.contact;
@@ -392,21 +386,18 @@ bot.on('contact', async (msg) => {
         let user = await User.findOne({ phone: phone });
         
         if (!user) {
-            // አዲስ ተጠቃሚ
             const newPassword = Math.random().toString(36).slice(-6);
             user = new User({ phone, name, password: newPassword, playBalance: 100 });
             await user.save();
-            const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 Play</b> የሚለውን በመንካት ወደ ጌሙ መግባት ይችላሉ!`;
+            const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን በመንካት በቀጥታ ወደ ጌሙ መግባት ይችላሉ!`;
             bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
-            // 🔥 የነበረ ተጠቃሚ (Inline Button 'አካውንት ላክልኝ')
+            // 🟢 ማስተካከያ: ቀድሞ የተመዘገበ ከሆነ የድሮ ዳታውን እንጂ አዲስ አይፈጥርም! 
             const existMsg = `⚠️ <b>ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል!</b>\n\nእባክዎ የድሮ አካውንትዎን እና የይለፍ ቃልዎን ለማግኘት ከታች ያለውን አዝራር ይጫኑ።`;
-            
-            // የድሮ ፓስወርዱን እንዲልክ በተን ይሰጠዋል
             bot.sendMessage(chatId, existMsg, { 
                 parse_mode: "HTML",
                 reply_markup: {
-                    inline_keyboard: [[{ text: "📩 የድሮ አካውንቴን ላክልኝ (Send Account)", callback_data: `send_acc_${phone}` }]]
+                    inline_keyboard: [[{ text: "📩 የድሮ አካውንቴን ላክልኝ (Get Account)", callback_data: `send_acc_${phone}` }]]
                 }
             });
         }
@@ -492,6 +483,7 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
     }
+    // 🟢 ማስተካከያ: የእርዳታ ሊንክ ወደ Support Bot እንዲወስድ
     else if (text === "🆘 እርዳታ") {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
@@ -548,12 +540,13 @@ bot.on('callback_query', async (query) => {
     if(!botState[chatId]) botState[chatId] = { step: 'idle' };
     let state = botState[chatId];
     
-    // 🟢 የድሮ አካውንት ሲጠይቅ
+    // 🟢 ማስተካከያ: የድሮ አካውንት ጠቅ ሲያደርግ
     if (data.startsWith('send_acc_')) {
         let phone = data.split('_')[2];
         let user = await User.findOne({ phone: phone });
         if(user) {
-            bot.sendMessage(chatId, `✅ <b>የእርስዎ የድሮ አካውንት አግኝተናል!</b>\n\n📱 ስልክ: ${user.phone}\n🔑 የይለፍ ቃል: ${user.password}\n\nወደ ጌሙ ለመግባት ከታች <b>🎮 Play</b> የሚለውን ይጫኑ።`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+            // የድሮ ፓስወርዱን አግኝቶ ከሊንኩ ጋር አብሮ ይልክለታል
+            bot.sendMessage(chatId, `✅ <b>የእርስዎ አካውንት መረጃ፡</b>\n\n📱 ስልክ: ${user.phone}\n🔑 የይለፍ ቃል: ${user.password}\n\nወደ ጌሙ ለመግባት ከታች ያለውን <b>🎮 Play</b> ይጫኑ ወይም በዌብሳይት ይግቡ።`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         }
     }
     else if (data.startsWith('dep_')) {
