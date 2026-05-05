@@ -338,11 +338,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
 const botState = {};
 
-// 🔥 መፍትሄ 1: VIP እና Promoter ከኪቦርዱ ጠፍተዋል።
-// 🔥 መፍትሄ 2: ሊንኩ ላይ በየሰከንዱ የሚቀያየር (Random) ቁጥር ተጨምሯል።
+// 🔥 100% አስተማማኝ መፍትሄ፡ አሁን ዌብሳይቱ መረጃውን ማንበብ እንዲችል
+// " ?phone=...&pass=...&t=... " የሚለውን አፃፃፍ ይጠቀማል።
 function getMainMenu(phone, password) {
-    let rnd = Math.floor(Math.random() * 10000000);
-    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}&r=${rnd}` : `${WEB_URL}/?r=${rnd}`;
+    let timeStamp = Date.now();
+    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}&t=${timeStamp}` : WEB_URL;
     
     return {
         reply_markup: {
