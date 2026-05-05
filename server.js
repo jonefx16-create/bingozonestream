@@ -338,14 +338,16 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
 const botState = {};
 
+// 🟢 Auto-Login Play Button & Keyboard Layout
 function getMainMenu(phone, password) {
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
         reply_markup: {
             keyboard: [
+                [{ text: "🎮 Play (ወደ ጌም ግባ)", web_app: { url: playUrl } }],
                 [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
                 [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
-                [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
+                [{ text: "🌟 Special Promoter" }],
                 [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
@@ -392,12 +394,10 @@ bot.on('contact', async (msg) => {
             const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን በመንካት በቀጥታ ወደ ጌሙ መግባት ይችላሉ!`;
             bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
-            const existMsg = `⚠️ <b>ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል!</b>\n\nእባክዎ የድሮ አካውንትዎን እና የይለፍ ቃልዎን ለማግኘት ከታች ያለውን አዝራር ይጫኑ።`;
+            const existMsg = `⚠️ <b>ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል!</b>\n\nወደ ጌሙ ለመግባት ከታች ያለውን <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን ይጫኑ።`;
             bot.sendMessage(chatId, existMsg, { 
                 parse_mode: "HTML",
-                reply_markup: {
-                    inline_keyboard: [[{ text: "📩 የድሮ አካውንቴን ላክልኝ (Get Account)", callback_data: `send_acc_${phone}` }]]
-                }
+                ...getMainMenu(user.phone, user.password)
             });
         }
         botState[chatId] = { phone: phone, step: 'idle' };
@@ -456,11 +456,6 @@ bot.on('message', async (msg) => {
             let u = await User.findOne({phone: userPhone});
             bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
-    } else if (text === "💎 VIP ክፍል") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
     } else if (text === "🌟 Special Promoter") {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
@@ -482,7 +477,6 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
     }
-    // 🟢 ማስተካከያ: የእርዳታ ሊንክ ወደ @bingohabesha እንዲወስድ
     else if (text === "🆘 እርዳታ") {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
