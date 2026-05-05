@@ -28,7 +28,6 @@
         .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
         .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
-        /* HIDE NAV & HEADER ON AUTH PAGE */
         body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
 
         /* Header */
@@ -62,6 +61,11 @@
         #game-page .jp-amount { font-size: 16px !important; }
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
+        /* 🔥 AM/EN Language Switch CSS 🔥 */
+        .lang-switch-box { display: flex; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); width: fit-content; position: absolute; right: 5px; top: -50px; z-index: 100;}
+        .lang-btn { padding: 4px 12px; font-size: 10px; font-weight: bold; border: none; cursor: pointer; transition: 0.3s; background: #000; color: #64748b;}
+        .lang-btn.active { background: #fff; color: #000; }
+
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
         .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
@@ -73,7 +77,6 @@
         .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
         .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; }
 
-        /* 🔥 STRICT HIDE FOR BET SLIP POPUP 🔥 */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 150%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; opacity: 0; visibility: hidden; pointer-events: none; }
         .bet-slip-popup.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; } 
         
@@ -84,7 +87,6 @@
         .preview-t-head { color: white; height: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px;}
         .preview-t-cell { background: #fff; height: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 8px; color: #000;}
 
-        /* Game Page Top Info */
         .top-info-wrapper { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 5px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;}
         .top-info-wrapper::-webkit-scrollbar { display: none; }
         .top-info-box { flex: 1; min-width: 60px; background: var(--panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 4px; text-align: center; }
@@ -107,7 +109,7 @@
         .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
-        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
+        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; position: relative;}
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
@@ -432,6 +434,12 @@
             <div id="master-board" class="mb-board"></div>
         </div>
         <div class="right-panel-stack">
+            <!-- 🔥 አዲሱ AM/EN Language Switch 🔥 -->
+            <div class="lang-switch-box">
+                <button id="lang-am" class="lang-btn active" onclick="setLang('am')">AM</button>
+                <button id="lang-en" class="lang-btn" onclick="setLang('en')">EN</button>
+            </div>
+
             <div class="caller-box" style="position: relative;">
                 <div id="caller-ball" class="caller-ball">--</div>
                 <div id="sound-toggle" onclick="toggleSound()" style="position: absolute; top: 8px; right: 8px; font-size: 16px; cursor: pointer; z-index: 10; background: #1e293b; border-radius: 50%; width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; border: 2px solid #4ade80; box-shadow: 0 0 8px rgba(0,0,0,0.7);">🔊</div>
@@ -602,7 +610,6 @@
                 if (data.success) {
                     processLoginSuccess(data.user);
                     
-                    // Fetch Active Tickets & History
                     let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
                     let tData = await tRes.json();
                     
@@ -633,7 +640,7 @@
                         }
                     }
                     socket.emit('get_initial_data', data.user.phone);
-                    return; // Stop here, no need for localStorage fallback
+                    return; 
                 } else {
                     document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
                     document.getElementById('start-btn').disabled = false;
@@ -705,6 +712,13 @@
         const arrow = document.getElementById('mb-toggle-arrow');
         page.classList.toggle('show-mb');
         if(page.classList.contains('show-mb')) { arrow.innerText = '▲'; } else { arrow.innerText = '▼'; }
+    }
+
+    function setLang(l) {
+        document.getElementById('lang-am').classList.remove('active');
+        document.getElementById('lang-en').classList.remove('active');
+        document.getElementById('lang-'+l).classList.add('active');
+        // Language specific logic can be added here if needed in future
     }
 
     function logout() { 
@@ -1000,7 +1014,6 @@
                     if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
-            // 🔥 FIXED: ONLY SHOW POPUP IF TICKETS ARE SELECTED 🔥
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
