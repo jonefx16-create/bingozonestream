@@ -122,7 +122,7 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 });
 
 // ==========================================
-// 🔴 ADMIN & FINANCE APIs
+// 🔴 ADMIN APIs
 // ==========================================
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
@@ -189,20 +189,6 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
-app.post('/api/admin/finance-report', auth, async (req, res) => {
-    const txs = await Transaction.find({ status: 'Approved' });
-    let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
-    let totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((a, b) => a + b.amount, 0);
-    const games = await GameHistory.find();
-    let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
-    let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
-    const bonuses = await ActiveBonus.find();
-    let totalBonusCost = bonuses.reduce((sum, b) => sum + (b.amount * b.currentClaims), 0);
-    const users = await User.find();
-    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
-    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
-});
-
 // 🔥 የተስተካከለው የቴሌግራም መላኪያ ኮድ (ለቻናልም ለተጠቃሚዎችም ይልካል) 🔥
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
@@ -229,18 +215,9 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         
         res.json({ success: true, message: `✅ ማስታወቂያው ለቻናሉ እና ለ ${sentCount} የቦት ተጠቃሚዎች ተልቋል!` });
     } catch (e) {
+        console.error("Telegram API Error:", e);
         res.status(500).json({ success: false, message: "የሰርቨር ስህተት አጋጥሟል!" });
     }
-});
-
-app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
-    try {
-        const txs = await Transaction.find({ status: 'Approved' });
-        const games = await GameHistory.find();
-        const bonuses = await ActiveBonus.find();
-        const users = await User.find();
-        res.json({ success: true, txs, games, bonuses, users });
-    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
@@ -394,9 +371,10 @@ function getMainMenu(phone, password) {
         reply_markup: {
             keyboard: [
                 [{ text: "🎮 ጌም ይጫወቱ" }],
-                [{ text: "💰 ሂሳብ ማረጋገጫ" }, { text: "📥 ገቢ ማድረግ" }],
-                [{ text: "📤 ወጪ ማድረግ" }, { text: "🤝 ጓደኛ ይጋብዙ" }],
-                [{ text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
+                [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
+                [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
+                [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
+                [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
         }
@@ -483,7 +461,7 @@ bot.on('message', async (msg) => {
         });
     }
 
-    if (text === "💰 ሂሳብ ማረጋገጫ") {
+    if (text === "💰 ሂሳብ") {
         if(!userPhone) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let user = await User.findOne({ phone: userPhone });
         if(user) {
@@ -507,18 +485,44 @@ bot.on('message', async (msg) => {
         });
         state.step = 'idle';
 
-    } else if (text === "🤝 ጓደኛ ይጋብዙ") {
+    } else if (text === "🔗 ጋብዝ & አግኝ") {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
             bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
-    } else if (text === "🆘 እርዳታ") {
+    } else if (text === "💎 VIP ክፍል") {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "🆘 <b>የደንበኞች እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ፣ የክፍያ መዘግየት ወይም ችግር ካጋጠመዎት 24/7 የድጋፍ ቡድናችንን ማናገር ይችላሉ። ከታች ያለውን ሊንክ ይጫኑ፦\n\n👉 @bingohabesh_support", { 
+            bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
+    } else if (text === "🌟 Special Promoter") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🌟 <b>Special Promoter:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
+    } 
+    else if (text === "📖 መመሪያ") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            let guideText = `📖 <b>የጨዋታው መመሪያ (How to Play):</b>\n\n` +
+                            `🎯 <b>ቢንጎ እንዴት ይጫወታሉ?</b>\n` +
+                            `1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 የሆነ ካርቴላ ይሰጥዎታል። መሀል ላይ ያለው (FREE) ነፃ ነው።\n` +
+                            `2️⃣ ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ በዕጣ ቁጥሮችን ይጠራል።\n` +
+                            `3️⃣ የተጠሩት ቁጥሮች እርስዎ ካርድ ላይ ካሉ ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።\n\n` +
+                            `🏆 <b>እንዴት ያሸንፋሉ?</b>\n` +
+                            `👉 የተጠቆሩት ቁጥሮች በአግድም፣ ወደ ታች፣ ወይም በማዕዘን (X ቅርፅ) ሙሉ መስመር ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።\n` +
+                            `👉 ሲስተሙ አሸናፊውን <b>በራሱ አውቆ</b> ጨዋታውን ያቆማል፣ ሽልማቱንም ወዲያውኑ ሂሳብዎ ላይ ያስገባል!\n\n` +
+                            `⚠️ <b>ማሳሰቢያ:</b> ይህ ጨዋታ ሙሉ በሙሉ <b>የዕድል ጨዋታ</b> ነው። አሸናፊው የሚለየው በሲስተሙ አውቶማቲክ የዕጣ አወጣጥ ብቻ ነው።`;
+            bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
+    }
+    else if (text === "🆘 እርዳታ") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🆘 <b>የደንበኞች እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ፣ የክፍያ መዘግየት ወይም ችግር ካጋጠመዎት 24/7 የድጋፍ ቡድናችንን ማናገር ይችላሉ። ከታች ያለውን ሊንክ ይጫኑ፦\n\n👉 @bingohabesha", { 
                 parse_mode: "HTML",
                 reply_markup: {
-                    inline_keyboard: [[{ text: "💬 አድሚኑን አሁን አናግር", url: "https://t.me/bingohabesh_support" }]]
+                    inline_keyboard: [[{ text: "💬 አድሚኑን አሁን አናግር", url: "https://t.me/bingohabesha" }]]
                 }
             });
             bot.sendMessage(chatId, "ወደ ዋናው ማውጫ ለመመለስ👇", getMainMenu(u.phone, u.password));
