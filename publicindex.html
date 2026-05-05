@@ -566,12 +566,17 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
-        // 🟢 ከ URL (ሊንክ) ላይ ስልክ እና ፓስወርድ መፈለግ (Query Params)
-        const urlParams = new URLSearchParams(window.location.search);
-        let urlPhone = urlParams.get('phone');
-        let urlPass = urlParams.get('pass');
-        
-        // 🔥 ዋናው መፍትሄ: አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ሙሉ በሙሉ ያጠፋል!
+        let urlPhone = null;
+        let urlPass = null;
+
+        // 🔥 መፍትሄ: ከ Path ላይ ቁጥር እና ፓስወርድ ማውጣት (ለምሳሌ: /play/09.../pass...)
+        let pathParts = window.location.pathname.split('/');
+        if (pathParts.length >= 4 && pathParts[1] === 'play') {
+            urlPhone = pathParts[2];
+            urlPass = pathParts[3];
+        }
+
+        // አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ሙሉ በሙሉ ያጠፋል!
         if (urlPhone && urlPass) {
             let oldPhone = localStorage.getItem('bingo_user_phone');
             
@@ -584,8 +589,9 @@
             
             localStorage.setItem('bingo_user_phone', urlPhone);
             localStorage.setItem('bingo_user_pass', urlPass);
-            // ሊንኩን ንፁህ ያደርጋል
-            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // ሊንኩን ንፁህ ያደርጋል (ወደ '/' ብቻ ይቀይረዋል)
+            window.history.replaceState({}, document.title, '/');
         }
 
         let savedPhone = localStorage.getItem('bingo_user_phone');
