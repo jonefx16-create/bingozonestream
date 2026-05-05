@@ -22,10 +22,8 @@ mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).cat
 // MODELS
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, name: String, password: { type: String, required: true },
-    tgId: { type: String, default: "" }, 
     referredBy: { type: String, default: "" }, mainBalance: { type: Number, default: 0 }, playBalance: { type: Number, default: 0 }, 
-    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' },
-    telegramChatId: { type: String, default: "" } 
+    played: { type: Number, default: 0 }, won: { type: Number, default: 0 }, status: { type: String, default: 'active' }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -64,29 +62,19 @@ const bankAccounts = {
 // ==========================================
 app.post('/api/register', async (req, res) => {
     try {
-        const { phone, name, password, refCode, tgId } = req.body;
+        const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል!" });
         let actualRef = "";
         if (refCode) { let ref = await User.findOne({ phone: refCode.trim() }); if (ref) { ref.playBalance += 10; await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; } }
-        await new User({ phone, name, password, referredBy: actualRef, playBalance: 100, tgId: tgId || "" }).save();
+        await new User({ phone, name, password, referredBy: actualRef, playBalance: 100 }).save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/login', async (req, res) => {
-    const { phone, password, tgId } = req.body;
-    let user = await User.findOne({ phone: phone, password: password });
+    let user = await User.findOne({ phone: req.body.phone, password: req.body.password });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል! አድሚን ያናግሩ።" });
-    if(user && tgId && user.tgId !== tgId) { user.tgId = tgId.toString(); await user.save(); }
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም የይለፍ ቃል ተሳስቷል!" });
-});
-
-app.post('/api/tg-login', async (req, res) => {
-    const { tgId } = req.body;
-    if(!tgId) return res.json({ success: false });
-    let user = await User.findOne({ tgId: tgId.toString() });
-    if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
-    res.json(user ? { success: true, user } : { success: false });
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
@@ -110,22 +98,9 @@ app.post('/api/user/change-password', async (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => { res.json({ success: true, leaderboard: await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won') }); });
 
-app.post('/api/user/claim-mass-bonus', async (req, res) => {
-    let user = await User.findOne({ phone: req.body.phone }); if(!user) return res.json({ success: false });
-    let bonus = await ActiveBonus.findOne({ isActive: true });
-    if(!bonus || new Date() > bonus.expiresAt) return res.json({ success: false, message: "በአሁን ሰዓት ምንም አይነት ቦነስ የለም!" });
-    if(bonus.currentClaims >= bonus.maxUsers) return res.json({ success: false, message: "ቦነሱ በሌሎች ሰዎች ተወስዶ አልቋል!" });
-    if(bonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "ይህን ቦነስ ከዚህ በፊት ወስደዋል!" });
-
-    user.playBalance += bonus.amount; await user.save();
-    bonus.claimedBy.push(user.phone); bonus.currentClaims += 1; await bonus.save();
-    io.emit('balance_updated', user.phone);
-    res.json({ success: true, message: `✅ እንኳን ደስ አሎት! የ ${bonus.amount} ETB ቦነስ አግኝተዋል።` });
-});
-
 app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     let p = activePlayers[req.params.phone];
-    res.json(p ? { success: true, ticketsData: p.ticketsData } : { success: false });
+    res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState: gameState, gameId: gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
 // ==========================================
@@ -141,7 +116,6 @@ const auth = (req, res, next) => {
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
-app.post('/api/admin/active-bonus', auth, async (req, res) => res.json(await ActiveBonus.findOne({ isActive: true })));
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
@@ -162,15 +136,9 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     const { oldPhone, newPhone, password, mainBalance, playBalance } = req.body;
-    let user = await User.findOne({ phone: oldPhone }); if (!user) return res.json({ success: false, message: "User not found!" });
-    if (oldPhone !== newPhone && newPhone) {
-        let existing = await User.findOne({ phone: newPhone });
-        if (existing) return res.json({ success: false, message: "New phone is already taken!" });
-        user.phone = newPhone;
-        await Transaction.updateMany({ phone: oldPhone }, { $set: { phone: newPhone } });
-        await GameHistory.updateMany({ winnerPhone: oldPhone }, { $set: { winnerPhone: newPhone } });
-    }
-    user.password = password; user.mainBalance = Number(mainBalance); user.playBalance = Number(playBalance); await user.save();
+    let user = await User.findOne({ phone: oldPhone }); if (!user) return res.json({ success: false });
+    if (oldPhone !== newPhone && newPhone) { user.phone = newPhone; await Transaction.updateMany({ phone: oldPhone }, { $set: { phone: newPhone } }); }
+    if(password) user.password = password; user.mainBalance = Number(mainBalance); user.playBalance = Number(playBalance); await user.save();
     res.json({ success: true, message: "User updated!" });
 });
 
@@ -203,13 +171,6 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
-app.post('/api/admin/create-mass-bonus', auth, async (req, res) => {
-    await ActiveBonus.updateMany({}, { isActive: false }); 
-    let expires = new Date(); expires.setMinutes(expires.getMinutes() + parseInt(req.body.timeMin));
-    await new ActiveBonus({ amount: req.body.amount, maxUsers: req.body.maxUsers, expiresAt: expires }).save();
-    res.json({ success: true });
-});
-
 app.post('/api/admin/finance-report', auth, async (req, res) => {
     const txs = await Transaction.find({ status: 'Approved' });
     let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
@@ -224,21 +185,18 @@ app.post('/api/admin/finance-report', auth, async (req, res) => {
     res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
 });
 
-app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
-    try {
-        const txs = await Transaction.find({ status: 'Approved' });
-        const games = await GameHistory.find();
-        const bonuses = await ActiveBonus.find();
-        const users = await User.find();
-        res.json({ success: true, txs, games, bonuses, users });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
 // ==========================================
 // 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
-let gameState = "WAITING"; let gameClock = 40; let activePlayers = {}; let totalPrizePool = 0; let totalTickets = 0;
-let calledNumbers = []; let currentDrawSequence = []; let gameId = Math.floor(Math.random() * 9000) + 1000; let globalTakenTickets = []; 
+let gameState = "WAITING";
+let gameClock = 40; 
+let activePlayers = {}; 
+let totalPrizePool = 0; 
+let totalTickets = 0;
+let calledNumbers = []; 
+let currentDrawSequence = []; 
+let gameId = Math.floor(Math.random() * 9000) + 1000;
+let globalTakenTickets = []; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -251,7 +209,8 @@ function serverCheckBingo(grid, called) {
 }
 
 function generateRiggedDrawSequence() {
-    let pool = Array.from({length: 75}, (_, i) => i + 1); let allTickets = [];
+    let pool = Array.from({length: 75}, (_, i) => i + 1);
+    let allTickets = [];
     Object.values(activePlayers).forEach(p => p.ticketsData.forEach(t => allTickets.push({ phone: p.phone, name: p.name, ticket: t })));
     if (allTickets.length === 0) return pool.sort(() => Math.random() - 0.5).slice(0, 20);
     let target = allTickets[Math.floor(Math.random() * allTickets.length)];
@@ -263,7 +222,8 @@ function generateRiggedDrawSequence() {
 }
 
 async function declareWinner(player, ticket) {
-    gameState = "FINISHED"; gameClock = 12; 
+    gameState = "FINISHED"; 
+    gameClock = 12; 
     const user = await User.findOne({phone: player.phone});
     if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
     let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
@@ -281,7 +241,8 @@ setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "PAUSED", timer: "PAUSED", totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId }); return; }
 
     if (gameState === "WAITING") {
-        gameClock--; io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+        gameClock--;
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) {
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence();
@@ -291,7 +252,8 @@ setInterval(() => {
     } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
-            gameClock = 3; if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
+            gameClock = 3; 
+            if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
             let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
             let winnerFound = false;
             for (let player of Object.values(activePlayers)) {
@@ -344,11 +306,6 @@ io.on('connection', (socket) => {
             }
         }
     });
-
-    socket.on('admin_request_game_data', () => {
-        let playersDataList = Object.values(activePlayers).map(p => ({ phone: p.phone, name: p.name, tickets: p.tickets, ticketIds: p.ticketsData.map(t => t.id) }));
-        socket.emit('admin_game_update', { playersCount: Object.keys(activePlayers).length, totalTickets: totalTickets, totalPrizePool: totalPrizePool, playersData: playersDataList });
-    });
 });
 
 // ======================================================
@@ -372,31 +329,24 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         if (!message) return res.json({ success: false, message: "እባክዎ ሜሴጅ ያስገቡ!" });
         const CHAT_ID = "@bingohabeshazone"; 
         const telegramURL = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
-        
-        // 1. To Channel
-        fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" }) }).catch(e=>{});
-        
-        // 2. To All Registered Bot Users
-        const users = await User.find({ telegramChatId: { $ne: "" } });
-        let count = 0;
-        for(let u of users) {
-            try { await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: u.telegramChatId, text: message, parse_mode: "HTML" }) }); count++; } catch(e){}
-        }
-        res.json({ success: true, message: `✅ ማስታወቂያው ቻናል ላይ እና ለ ${count} ተጠቃሚዎች Inbox ተልኳል!` });
+        const response = await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" }) });
+        const data = await response.json();
+        if (data.ok) res.json({ success: true, message: "✅ ማስታወቂያው ቴሌግራም ላይ ተለቋል!" });
+        else res.json({ success: false, message: "❌ አልተቻለም: " + data.description });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 const botState = {};
 
-function getMainMenu() {
+function getMainMenu(phone, password) {
+    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
         reply_markup: {
             keyboard: [
-                [{ text: "🎮 Play (ወደ ጌም ግባ)", web_app: { url: WEB_URL } }],
                 [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
                 [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
-                [{ text: "🌐 Language / ቋንቋ" }, { text: "🌟 Special Promoter" }],
-                [{ text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
+                [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
+                [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
         }
@@ -431,23 +381,24 @@ bot.on('contact', async (msg) => {
     if (phone.startsWith('+251')) phone = '0' + phone.substring(4);
     
     let name = contact.first_name || "Bingo User";
-    let tgId = msg.from.id.toString(); 
 
     try {
         let user = await User.findOne({ phone: phone });
         
         if (!user) {
             const newPassword = Math.random().toString(36).slice(-6);
-            user = new User({ phone, name, password: newPassword, playBalance: 100, telegramChatId: chatId, tgId: tgId });
+            user = new User({ phone, name, password: newPassword, playBalance: 100 });
             await user.save();
             const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን በመንካት በቀጥታ ወደ ጌሙ መግባት ይችላሉ!`;
-            bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu() });
+            bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
-            user.tgId = tgId;
-            user.telegramChatId = chatId;
-            await user.save();
-            const existMsg = `⚠️ <b>ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል!</b>\n\nወደ ጌሙ ለመግባት ከታች ያለውን <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን ይጫኑ።`;
-            bot.sendMessage(chatId, existMsg, { parse_mode: "HTML", ...getMainMenu() });
+            const existMsg = `⚠️ <b>ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል!</b>\n\nእባክዎ የድሮ አካውንትዎን እና የይለፍ ቃልዎን ለማግኘት ከታች ያለውን አዝራር ይጫኑ።`;
+            bot.sendMessage(chatId, existMsg, { 
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [[{ text: "📩 የድሮ አካውንቴን ላክልኝ (Get Account)", callback_data: `send_acc_${phone}` }]]
+                }
+            });
         }
         botState[chatId] = { phone: phone, step: 'idle' };
     } catch (error) {
@@ -466,8 +417,9 @@ bot.on('message', async (msg) => {
 
     if (text === "🔙 ወደ ኋላ ተመለስ") {
         if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
             botState[chatId].step = 'idle';
-            bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል። ወደ ዋናው ማውጫ ተመልሰዋል።", { parse_mode: "HTML", ...getMainMenu() });
+            bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል። ወደ ዋናው ማውጫ ተመልሰዋል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         } else {
             botState[chatId] = { step: 'idle' };
             bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል።", { reply_markup: { remove_keyboard: true } });
@@ -479,7 +431,7 @@ bot.on('message', async (msg) => {
         if(!userPhone) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let user = await User.findOne({ phone: userPhone });
         if(user) {
-            bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n👤 ስም: ${user.name}\n📱 ስልክ: ${user.phone}\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና (ያሸነፉት) ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu() });
+            bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n👤 ስም: ${user.name}\n📱 ስልክ: ${user.phone}\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና (ያሸነፉት) ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         }
         state.step = 'idle';
 
@@ -501,21 +453,51 @@ bot.on('message', async (msg) => {
 
     } else if (text === "🔗 ጋብዝ & አግኝ") {
         if(userPhone) {
-            bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu() });
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
-    } else if (text === "🌐 Language / ቋንቋ") {
-        bot.sendMessage(chatId, "🌐 <b>ቋንቋ / Language</b>\n\nየቋንቋ ምርጫ (AM/EN) የሚገኘው በጌሙ ዋና ገፅ (Website) ላይ ነው። እባክዎ <b>'🎮 Play'</b> የሚለውን ተጭነው ሲገቡ ከላይ ቋንቋዎን መቀየር ይችላሉ።", { parse_mode: "HTML" });
+    } else if (text === "💎 VIP ክፍል") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
     } else if (text === "🌟 Special Promoter") {
         if(userPhone) {
-            bot.sendMessage(chatId, "🌟 <b>Special Promoter:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesh_support", { parse_mode: "HTML", ...getMainMenu() });
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🌟 <b>Special Promoter:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
-    } else if (text === "🆘 እርዳታ") {
-        bot.sendMessage(chatId, "🆘 <b>የእርዳታ ማዕከል</b>\n\nለማንኛውም ጥያቄ ወይም ድጋፍ እባክዎ ከታች ያለውን ሊንክ በመንካት ያነጋግሩን:", { 
-            parse_mode: "HTML", reply_markup: { inline_keyboard: [[ { text: "💬 አድሚን አናግር (Contact Admin)", url: "https://t.me/bingohabesh_support" } ]] }
-        });
+    } 
+    else if (text === "📖 መመሪያ") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            let guideText = `📖 <b>የጨዋታው መመሪያ (How to Play):</b>\n\n` +
+                            `🎯 <b>ቢንጎ እንዴት ይጫወታሉ?</b>\n` +
+                            `1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 የሆነ ካርቴላ ይሰጥዎታል። መሀል ላይ ያለው (FREE) ነፃ ነው።\n` +
+                            `2️⃣ ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ በዕጣ ቁጥሮችን ይጠራል።\n` +
+                            `3️⃣ የተጠሩት ቁጥሮች እርስዎ ካርድ ላይ ካሉ ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።\n\n` +
+                            `🏆 <b>እንዴት ያሸንፋሉ?</b>\n` +
+                            `👉 የተጠቆሩት ቁጥሮች በአግድም፣ ወደ ታች፣ ወይም በማዕዘን (X ቅርፅ) ሙሉ መስመር ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።\n` +
+                            `👉 ሲስተሙ አሸናፊውን <b>በራሱ አውቆ</b> ጨዋታውን ያቆማል፣ ሽልማቱንም ወዲያውኑ ሂሳብዎ ላይ ያስገባል!\n\n` +
+                            `⚠️ <b>ማሳሰቢያ:</b> ይህ ጨዋታ ሙሉ በሙሉ <b>የዕድል ጨዋታ</b> ነው። አሸናፊው የሚለየው በሲስተሙ አውቶማቲክ የዕጣ አወጣጥ ብቻ ነው።`;
+            bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
+    }
+    // 🟢 ማስተካከያ: የእርዳታ ሊንክ ወደ @bingohabesha እንዲወስድ
+    else if (text === "🆘 እርዳታ") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "🆘 <b>የደንበኞች እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ፣ የክፍያ መዘግየት ወይም ችግር ካጋጠመዎት 24/7 የድጋፍ ቡድናችንን ማናገር ይችላሉ። ከታች ያለውን ሊንክ ይጫኑ፦\n\n👉 @bingohabesha", { 
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [[{ text: "💬 አድሚኑን አሁን አናግር", url: "https://t.me/bingohabesha" }]]
+                }
+            });
+            bot.sendMessage(chatId, "ወደ ዋናው ማውጫ ለመመለስ👇", getMainMenu(u.phone, u.password));
+        }
     } else if (text === "📜 ደንቦች") {
         if(userPhone) {
-            bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማንኛውም ህገ-ወጥ ድርጊት አካውንትዎ ይታገዳል።", { parse_mode: "HTML", ...getMainMenu() });
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማንኛውም ህገ-ወጥ ድርጊት አካውንትዎ ይታገዳል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
     } 
     else if (state.step === 'awaiting_dep_amt') {
@@ -526,7 +508,8 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         await new Transaction({ phone: state.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
-        bot.sendMessage(chatId, "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nአድሚን ሲያረጋግጥ ሂሳብዎ ይሞላል።", { parse_mode: "HTML", ...getMainMenu() });
+        let u = await User.findOne({phone: state.phone});
+        bot.sendMessage(chatId, "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nአድሚን ሲያረጋግጥ ሂሳብዎ ይሞላል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_acc') {
@@ -539,12 +522,12 @@ bot.on('message', async (msg) => {
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
         
         let u = await User.findOne({phone: state.phone});
-        if(u.mainBalance < state.amount) return bot.sendMessage(chatId, `❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!\nያለዎት ሂሳብ፡ ${u.mainBalance.toFixed(2)} ETB`, { ...getMainMenu() });
+        if(u.mainBalance < state.amount) return bot.sendMessage(chatId, `❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!\nያለዎት ሂሳብ፡ ${u.mainBalance.toFixed(2)} ETB`, { ...getMainMenu(u.phone, u.password) });
         
         u.mainBalance -= state.amount; 
         await u.save();
         await new Transaction({ phone: state.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: `Transfer to: ${state.destinationPhone}` }).save();
-        bot.sendMessage(chatId, `✅ <b>የወጪ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nመጠን: ${state.amount} ETB\nወደ: ${state.destinationPhone}\n\nበቅርቡ ገንዘቡ ይላካል!`, { parse_mode: "HTML", ...getMainMenu() });
+        bot.sendMessage(chatId, `✅ <b>የወጪ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nመጠን: ${state.amount} ETB\nወደ: ${state.destinationPhone}\n\nበቅርቡ ገንዘቡ ይላካል!`, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         state.step = 'idle';
     }
 });
@@ -556,13 +539,14 @@ bot.on('callback_query', async (query) => {
     if(!botState[chatId]) botState[chatId] = { step: 'idle' };
     let state = botState[chatId];
     
-    const bankAccounts = { 
-        'TeleBirr': '0933638022 (Tsedey Abebe)', 
-        'CBE': '0988180301 (Yohannes Aberham)', 
-        'MPesa': '251707896800 (Yohannes Aberham)' 
-    };
-
-    if (data.startsWith('dep_')) {
+    if (data.startsWith('send_acc_')) {
+        let phone = data.split('_')[2];
+        let user = await User.findOne({ phone: phone });
+        if(user) {
+            bot.sendMessage(chatId, `✅ <b>የእርስዎ አካውንት መረጃ፡</b>\n\n📱 ስልክ: ${user.phone}\n🔑 የይለፍ ቃል: ${user.password}\n\nወደ ጌሙ ለመግባት ከታች ያለውን <b>🎮 Play</b> ይጫኑ ወይም በዌብሳይት ይግቡ።`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+        }
+    }
+    else if (data.startsWith('dep_')) {
         state.method = data.split('_')[1];
         state.step = 'awaiting_dep_amt';
         let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
