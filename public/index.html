@@ -566,7 +566,7 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
-        // 🟢 ከ URL (ሊንክ) ላይ ስልክ እና ፓስወርድ መፈለግ
+        // 🟢 ከ URL (ሊንክ) ላይ ስልክ እና ፓስወርድ መፈለግ (Query Params)
         const urlParams = new URLSearchParams(window.location.search);
         let urlPhone = urlParams.get('phone');
         let urlPass = urlParams.get('pass');
@@ -577,8 +577,7 @@
             
             // የተለየ አካውንት (ስልክ) ከሆነ የድሮውን ዳታ በሙሉ አጥፋ
             if (oldPhone && oldPhone !== urlPhone) {
-                localStorage.removeItem('bingo_user_phone');
-                localStorage.removeItem('bingo_user_pass');
+                localStorage.clear(); // 100% Wipe Old Cache
                 userTicketsData = [];
                 selected = [];
             }
