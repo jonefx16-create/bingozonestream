@@ -338,10 +338,10 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
 const botState = {};
 
-// 🔥 መፍትሄ: ሊንኩ Query Parameters ይጠቀማል። ከ URL ላይ ዳታ ማንበብ ቀላል ነው!
+// 🔥 መፍትሄ: ሊንኩ እንደ አዲስ ዌብሳይት ይፈጠራል
 function getMainMenu(phone, password) {
     let timeStamp = Date.now();
-    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}&t=${timeStamp}` : WEB_URL;
+    let playUrl = (phone && password) ? `${WEB_URL}/play/${phone}/${password}?t=${timeStamp}` : WEB_URL;
     
     return {
         reply_markup: {
@@ -559,6 +559,11 @@ bot.on('callback_query', async (query) => {
 // ==========================================
 // 🛣️ EXPLICIT ROUTING
 // ==========================================
+app.get('/play/:phone/:pass', (req, res) => {
+    let p = path.join(__dirname, 'public', 'index.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.get('/admin', (req, res) => {
     let p = path.join(__dirname, 'public', 'admin.html');
     if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'admin.html'));
