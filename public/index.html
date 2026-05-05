@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO HABESHA - LIVE ULTIMATE</title>
+    <!-- 🔥 የቴሌግራም አውቶ ሎጊን ስክሪፕት 🔥 -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
@@ -582,19 +584,68 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
-        // 🟢 ከ URL (ሊንክ) ላይ ስልክ እና ፓስወርድ መፈለግ
-        const urlParams = new URLSearchParams(window.location.search);
-        let urlPhone = urlParams.get('phone');
-        let urlPass = urlParams.get('pass');
-        
-        // አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ያጠፋል!
-        if (urlPhone && urlPass) {
-            localStorage.setItem('bingo_user_phone', urlPhone);
-            localStorage.setItem('bingo_user_pass', urlPass);
-            // ሊንኩን ንፁህ ያደርጋል
-            window.history.replaceState({}, document.title, window.location.pathname);
+        // 1. ቴሌግራም WebApp መሆኑን ማረጋገጥ እና Auto-Login ማድረግ
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+            const tgId = tgUser.id.toString();
+            
+            document.getElementById('start-btn').innerText = "በቴሌግራም እየገባ ነው...";
+            document.getElementById('start-btn').disabled = true;
+            try {
+                let res = await fetch('/api/telegram-login', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ telegramId: tgId }) 
+                });
+                let data = await res.json();
+                
+                if (data.success) {
+                    processLoginSuccess(data.user);
+                    
+                    // Fetch Active Tickets & History
+                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
+                    let tData = await tRes.json();
+                    
+                    if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); 
+                        renderGridTakenStates(); 
+                        
+                        if(tData.calledNumbers && tData.calledNumbers.length > 0) {
+                            called = tData.calledNumbers;
+                            called.forEach(num => {
+                                let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
+                                let ballText = bHeads[colIdx] + "-" + num;
+                                let topH = document.getElementById('history-scroll-top'); 
+                                let tickH = document.getElementById('ticket-history-bar');
+                                if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
+                                let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
+                                let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
+                                topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
+                            });
+
+                            called.forEach(num => {
+                                document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+                                let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
+                                let tmbCell = document.getElementById('tmb-' + num); if(tmbCell) tmbCell.classList.add('called');
+                            });
+                        }
+                    }
+                    socket.emit('get_initial_data', data.user.phone);
+                    return; // Stop here, no need for localStorage fallback
+                } else {
+                    document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
+                    document.getElementById('start-btn').disabled = false;
+                    alert(data.message || "Please register via Telegram bot first!");
+                }
+            } catch(e) {
+                document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
+                document.getElementById('start-btn').disabled = false;
+            }
         }
 
+        // 2. Fallback to LocalStorage (for standard browsers outside Telegram)
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
         
@@ -608,14 +659,12 @@
                 if(data.success) { 
                     processLoginSuccess(data.user); 
                     
-                    // ዳታ መመለሻ
                     let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
                     let tData = await tRes.json();
                     
                     if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
                         userTicketsData = tData.ticketsData;
                         renderConfirmedTickets(); 
-                        
                         renderGridTakenStates(); 
                         
                         if(tData.calledNumbers && tData.calledNumbers.length > 0) {
@@ -658,7 +707,12 @@
         if(page.classList.contains('show-mb')) { arrow.innerText = '▲'; } else { arrow.innerText = '▼'; }
     }
 
-    function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
+    function logout() { 
+        localStorage.removeItem('bingo_user_phone'); 
+        localStorage.removeItem('bingo_user_pass'); 
+        window.location.href = "/"; 
+    }
+    
     function togglePass() { let x = document.getElementById("reg-pass"); let icon = document.getElementById("eye-icon"); if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; } }
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
