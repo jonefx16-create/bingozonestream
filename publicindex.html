@@ -260,14 +260,13 @@
         <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 20px;">Min: 50 ETB | Max: 100,000 ETB</span>
         
-        <span class="trx-label">የከፈሉበት ማረጋገጫ (SMS / ፎቶ)</span>
-        <textarea id="m-dep-sms" class="trx-input" style="height: 50px; resize: none; margin-bottom: 5px;" placeholder="የክፍያ ማረጋገጫ SMS"></textarea>
+        <span class="trx-label">የከፈሉበት ማረጋገጫ (SMS)</span>
+        <textarea id="m-dep-sms" class="trx-input" style="height: 60px; resize: none; margin-bottom: 20px;" placeholder="ከባንክ የተላከሎትን SMS እዚህ Paste ያድርጉ"></textarea>
         
-        <div style="background:#020617; border: 1px dashed #334155; border-radius:8px; padding: 10px; margin-bottom: 20px; text-align:center;">
-            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:5px;">ወይም Screenshot (ፎቶ) ያስገቡ</span>
-            <input type="file" id="m-dep-file" accept="image/*" style="font-size:11px; color:white; width:100%;">
-        </div>
         <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ጨርስ</button>
+        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
+            📞 <span>እርዳታ ያስፈልጎታል?</span>
+        </button>
     </div>
 </div>
 
@@ -287,6 +286,9 @@
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
         <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn">ወጪ ጠይቅ</button>
+        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
+            📞 <span>እርዳታ ያስፈልጎታል?</span>
+        </button>
     </div>
 </div>
 
@@ -342,7 +344,7 @@
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
         <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
         
-        <button class="auth-help-btn" onclick="window.location.href='https://t.me/Bingohabesha'">
+        <button class="auth-help-btn" onclick="window.location.href='https://t.me/bingohabesha'">
             📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span>
         </button>
     </div>
@@ -509,12 +511,26 @@
 <!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
     <h3 style="text-align:center; margin-top: 0; font-size: 16px;">👤 የእኔ ፕሮፋይል</h3>
+    
     <div class="profile-stat-box" style="padding: 15px; margin-bottom: 10px;">
         <div id="prof-avatar" class="prof-avatar-circle">U</div>
         <h2 id="prof-name" style="margin: 0; color: white; font-size: 16px;">User Name</h2>
         <p id="prof-phone" style="color: var(--text-gray); margin-top: 4px; font-size: 11px;">09...</p>
         <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
+
+    <!-- Bot Link Section -->
+    <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border: 1px solid var(--faded-green); border-radius: 12px; padding: 12px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+        <div>
+            <div style="font-size: 11px; color: var(--faded-green); font-weight: bold; margin-bottom: 4px;">🤖 በቴሌግራም ቦት ይጫወቱ</div>
+            <div style="font-size: 13px; color: white; font-family: monospace;">t.me/bingo_habesha_bot</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button style="background: var(--faded-green); color: black; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; box-shadow: 0 2px 5px rgba(74,222,128,0.3);" onclick="window.location.href='https://t.me/bingo_habesha_bot'">ክፈት</button>
+            <button style="background: #334155; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;" onclick="navigator.clipboard.writeText('https://t.me/bingo_habesha_bot'); alert('ሊንኩ ኮፒ ተደርጓል!')">Copy</button>
+        </div>
+    </div>
+
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue); padding: 12px;">
             <div style="font-size: 10px; color: var(--text-gray);">የተጫወቱት (Played)</div>
@@ -526,7 +542,7 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/Bingohabesha'">
+        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
@@ -563,18 +579,19 @@
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
-    buildMasterBoard();
-    buildTicketMasterBoard();
-
     window.onload = async () => {
-        // 🔥 AUTO-LOGIN FROM TELEGRAM 🔥
+        buildMasterBoard(); buildTicketMasterBoard(); initGrid();
+        
+        // 🟢 ከ URL (ሊንክ) ላይ ስልክ እና ፓስወርድ መፈለግ
         const urlParams = new URLSearchParams(window.location.search);
-        const tgPhone = urlParams.get('phone');
-        const tgPass = urlParams.get('pass');
-
-        if(tgPhone && tgPass) {
-            localStorage.setItem('bingo_user_phone', tgPhone);
-            localStorage.setItem('bingo_user_pass', tgPass);
+        let urlPhone = urlParams.get('phone');
+        let urlPass = urlParams.get('pass');
+        
+        // አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ያጠፋል!
+        if (urlPhone && urlPass) {
+            localStorage.setItem('bingo_user_phone', urlPhone);
+            localStorage.setItem('bingo_user_pass', urlPass);
+            // ሊንኩን ንፁህ ያደርጋል
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
@@ -582,19 +599,49 @@
         let savedPass = localStorage.getItem('bingo_user_pass');
         
         if(savedPhone && savedPass) {
-            document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)";
+            document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)"; 
             document.getElementById('start-btn').disabled = true;
             try {
                 let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: savedPhone, password: savedPass}) });
                 let data = await res.json();
+                
                 if(data.success) { 
                     processLoginSuccess(data.user); 
+                    
+                    // ዳታ መመለሻ
+                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
+                    let tData = await tRes.json();
+                    
+                    if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); 
+                        
+                        renderGridTakenStates(); 
+                        
+                        if(tData.calledNumbers && tData.calledNumbers.length > 0) {
+                            called = tData.calledNumbers;
+                            called.forEach(num => {
+                                let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
+                                let ballText = bHeads[colIdx] + "-" + num;
+                                let topH = document.getElementById('history-scroll-top'); 
+                                let tickH = document.getElementById('ticket-history-bar');
+                                if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
+                                let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
+                                let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
+                                topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
+                            });
+
+                            called.forEach(num => {
+                                document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+                                let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
+                                let tmbCell = document.getElementById('tmb-' + num); if(tmbCell) tmbCell.classList.add('called');
+                            });
+                        }
+                    }
                     socket.emit('get_initial_data', data.user.phone); 
                 } else { logout(); }
-            } catch(e) {
-                document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
-                document.getElementById('start-btn').disabled = false;
-            }
+            } catch(e) { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('start-btn').disabled = false; }
         }
     };
 
@@ -641,8 +688,7 @@
         if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
         if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!");
         
-        let fileInput = document.getElementById('m-dep-file').files[0];
-        if(!smsText && !fileInput) return alert("እባክዎ የSMS ማረጋገጫ ወይም ፎቶ ያስገቡ!");
+        if(!smsText) return alert("እባክዎ የSMS ማረጋገጫ ያስገቡ!");
 
         let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
         
@@ -650,7 +696,7 @@
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); 
             alert(data.message); 
-            document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; document.getElementById('m-dep-file').value = ''; closeDepositModal();
+            document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal();
         } catch(e) {}
         btn.innerText = "ጨርስ";
     }
@@ -763,7 +809,7 @@
         document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
         updateUIBalance();
         document.getElementById('auth-page').classList.remove('active-page'); document.getElementById('navbar').style.display = 'flex'; document.getElementById('global-header').style.display = 'flex';
-        initGrid(); handleHomeNav();
+        handleHomeNav();
     }
 
     async function fetchUpdatedBalance() {
@@ -1125,6 +1171,7 @@
 </script>
 </body>
 </html>
+
 
 
 
