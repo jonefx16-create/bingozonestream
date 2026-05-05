@@ -340,7 +340,11 @@ const botState = {};
 
 // 🟢 Auto-Login Play Button & Keyboard Layout
 function getMainMenu(phone, password) {
-    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
+    // 🔥 እዚህ ጋር ነው በየሰከንዱ የሚቀያየር ቁጥር (Timestamp) የተጨመረው!
+    // ቴሌግራም የድሮውን ዌብሳይት እንዳያስታውስ (Cache እንዳያደርግ) ይረዳል።
+    let timeStamp = Date.now();
+    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}&t=${timeStamp}` : WEB_URL;
+    
     return {
         reply_markup: {
             keyboard: [
@@ -571,4 +575,3 @@ app.get('*', (req, res) => {
 });
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
-
