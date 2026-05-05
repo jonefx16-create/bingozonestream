@@ -23,7 +23,6 @@
 
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
         
-        /* Top Header Area */
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px;}
         
@@ -67,7 +66,6 @@
         .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold; white-space: nowrap;}
         .tx-tab-btn.active { background: var(--border); color: white;}
 
-        /* 🔥 MOBILE CSS: HAMBURGER MENU 🔥 */
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
@@ -177,7 +175,7 @@
                 <button class="tx-tab-btn" id="btn-pend-wit" onclick="filterPending('withdraw')">⬆️ Withdrawals</button>
             </div>
             <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="pending-body"></tbody></table>
+                <table id="table-pending"><thead><tr><th>Date</th><th>Phone</th><th>Amount</th><th>Status</th><th>Details</th><th>Action</th></tr></thead><tbody id="pending-body"></tbody></table>
             </div></div>
         </div>
 
@@ -236,16 +234,6 @@
                     <input type="number" id="mb-amt-bulk" placeholder="Amount per person">
                     <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
-
-                <div class="card" style="border-left: 4px solid var(--cyan);">
-                    <h3 style="margin-top:0; color:var(--cyan);">🎁 Create Airdrop (Claim)</h3>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1"><input type="number" id="mb-amt" placeholder="Amount (ETB)"></div>
-                        <div style="flex:1"><input type="number" id="mb-users" placeholder="Max Users"></div>
-                    </div>
-                    <input type="number" id="mb-time" placeholder="Expires In (Minutes)">
-                    <button class="action-btn btn-blue" style="width:100%;" onclick="createMassBonus()">Create Airdrop</button>
-                </div>
             </div>
         </div>
 
@@ -253,7 +241,7 @@
         <div id="tab-telegram" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
                 <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Broadcast</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ወደ ቴሌግራም ቻናልዎ ወይም ግሩፕዎ ማስታወቂያ ይላኩ።</p>
+                <p style="font-size:12px; color:var(--text-gray);">ወደ ቴሌግራም ቻናልዎ እና ለቦት ተጠቃሚዎች ማስታወቂያ ይላኩ።</p>
                 <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
                 <button class="action-btn btn-blue" style="width:100%;" onclick="sendTelegramPromo()">Broadcast to Telegram</button>
             </div>
@@ -311,6 +299,21 @@
     </div>
 </div>
 
+<!-- 🔥 SMS DETAILS MODAL 🔥 -->
+<div class="modal" id="sms-modal">
+    <div class="modal-content" style="max-width: 400px; text-align: left;">
+        <h3 style="color: var(--blue); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ</h3>
+        <p><b>📱 ስልክ:</b> <span id="sms-phone"></span></p>
+        <p><b>🏦 ባንክ:</b> <span id="sms-bank" style="text-transform:uppercase;"></span></p>
+        <p><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: bold;"></span> ETB</p>
+        <div style="background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px;">
+            <span style="font-size: 11px; color: var(--text-gray);">✉️ የባንክ ማረጋገጫ (SMS Text):</span>
+            <p id="sms-text" style="font-size: 13px; font-family: monospace; word-wrap: break-word; color: white; margin: 5px 0 0 0;"></p>
+        </div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
+    </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
@@ -318,24 +321,22 @@
     let currentPendType = 'deposit'; let currentHistType = 'deposit';
     let isGameCurrentlyPaused = false;
 
-    // 📱 Mobile Sidebar Toggle
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('mobile-overlay').classList.toggle('active');
     }
 
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
+    
     function switchTab(tabId, btn) { 
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
         document.getElementById(tabId).classList.add('active'); 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
         btn.classList.add('active'); 
         document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim();
-        // Close sidebar on mobile after click
         if(window.innerWidth <= 768) toggleSidebar();
     }
     
-    // 🔍 Dynamic Search
     function searchTable(inputId, tableId) { 
         let filter = document.getElementById(inputId).value.toLowerCase(); 
         let rows = document.getElementById(tableId).getElementsByTagName('tbody')[0].getElementsByTagName('tr');
@@ -344,20 +345,17 @@
         }
     }
 
-    // 📥 Export HTML Table to CSV
     function exportTableToCSV(tableId, filename) {
         let table = document.getElementById(tableId);
         let rows = table.querySelectorAll('tr');
         let csv = [];
         for (let i = 0; i < rows.length; i++) {
-            // Ignore hidden rows (filtered out by search)
             if(rows[i].style.display === 'none') continue;
             let row = [], cols = rows[i].querySelectorAll('td, th');
-            // Remove the 'Action' column from export (usually the last column)
-            let limit = (tableId === 'table-users' || tableId === 'table-winners') ? cols.length - 1 : cols.length;
+            let limit = (tableId === 'table-users' || tableId === 'table-winners' || tableId === 'table-pending') ? cols.length - 1 : cols.length;
             for (let j = 0; j < limit; j++) {
                 let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
-                data = data.replace(/"/g, '""'); // Escape quotes
+                data = data.replace(/"/g, '""'); 
                 row.push('"' + data + '"');
             }
             csv.push(row.join(','));
@@ -371,7 +369,6 @@
         downloadLink.click();
     }
 
-    // Live Socket Updates
     socket.on('game_status', (data) => {
         if(!document.getElementById('tab-live').classList.contains('active')) return;
         document.getElementById('stat-live-players').innerText = data.playersCount;
@@ -382,7 +379,7 @@
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             let data = await res.json();
-            document.getElementById('stat-total-users').innerText = data.totalUsers; // Monthly Users
+            document.getElementById('stat-total-users').innerText = data.totalUsers; 
             document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB";
             document.getElementById('stat-live-players').innerText = data.livePlayers;
             document.getElementById('stat-game-state').innerText = data.gameState;
@@ -402,7 +399,6 @@
 
     async function loadData() {
         try {
-            // USERS & BANNED USERS
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
@@ -423,17 +419,14 @@
             document.getElementById('users-body').innerHTML = activeHtml; 
             document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
 
-            // Referrals Table
             let refHtml = "";
             for (const [refPhone, count] of Object.entries(refCounts)) { refHtml += `<tr><td style="color:var(--cyan); font-weight:bold;">${refPhone}</td><td>${count} People</td><td style="color:var(--faded-green); font-weight:bold;">${count * 10} ETB</td></tr>`; }
             document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="3" style="text-align:center;">No referrals yet.</td></tr>`;
 
-            // TRANSACTIONS
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allTransactions = await tRes.json();
             filterPending(currentPendType); filterHistoryTx(currentHistType);
 
-            // GAME HISTORY
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allGameHistories = await hRes.json();
             document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => 
@@ -449,11 +442,23 @@
         } catch (e) { console.log(e); }
     }
 
+    // 🔥 POPUP SHOW SMS DETAILS 🔥
+    function showTxDetailsModal(phone, method, amount, sms) {
+        document.getElementById('sms-phone').innerText = phone;
+        document.getElementById('sms-bank').innerText = method;
+        document.getElementById('sms-amount').innerText = amount;
+        document.getElementById('sms-text').innerText = sms;
+        document.getElementById('sms-modal').style.display = 'flex';
+    }
+
     function filterPending(type) {
         currentPendType = type;
         document.getElementById('btn-pend-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn';
         document.getElementById('btn-pend-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        document.getElementById('pending-body').innerHTML = allTransactions.filter(t => t.type === type && t.status === 'Pending').map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td style="${t.type === 'withdraw'?'color:var(--orange);':'color:var(--faded-green);'} font-weight:bold;">${t.amount}</td><td><span class="badge bg-pending">${t.status}</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;">No pending requests</td></tr>`;
+        document.getElementById('pending-body').innerHTML = allTransactions.filter(t => t.type === type && t.status === 'Pending').map(t => {
+            let safeSMS = (t.smsText || "No SMS Provided").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="font-weight:bold; color:${type==='withdraw'?'var(--orange)':'var(--faded-green)'};">${t.amount} ETB</td><td><span class="badge bg-pending">${t.status}</span></td><td><button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ዝርዝር እይ</button></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
+        }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending requests</td></tr>`;
     }
 
     function filterHistoryTx(type) {
@@ -489,20 +494,25 @@
         document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; 
     }
 
-    // Settings & Actions
     async function updateSettings(type) {
         let payload = { password: pass };
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return; payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; }
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return; payload.ticketPrice = pr; }
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); alert("✅ Saved!");
     }
-    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     
+    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); } }
+    
     function openEditModal(phone, passw, main, play) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('edit-user-modal').style.display = 'flex'; }
     async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, password: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value }; await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); document.getElementById('edit-user-modal').style.display='none'; loadData(); }
+    
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
+    
+    async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amount = document.getElementById('sb-amt').value; if(!phone || !amount) return alert("Fill all fields"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value = ''; document.getElementById('sb-amt').value = ''; loadData(); } }
+    async function sendBulkBonus() { let phonesRaw = document.getElementById('b-phones').value; let amount = document.getElementById('mb-amt-bulk').value; if(!phonesRaw || !amount) return alert("Fill all fields"); let phoneList = phonesRaw.split(',').map(p => p.trim()).filter(p => p.length > 0); if(!confirm(`Send ${amount} ETB to ${phoneList.length} users?`)) return; let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: phoneList, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value = ''; document.getElementById('mb-amt-bulk').value = ''; } }
+    async function sendTelegramPromo() { let msg = document.getElementById('tg-msg').value; if(!msg) return alert("Enter a message"); let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message: msg})}); let data = await res.json(); alert(data.message); if(data.success) document.getElementById('tg-msg').value = ''; }
 
 </script>
 </body>
