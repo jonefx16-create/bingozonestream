@@ -338,10 +338,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
 const botState = {};
 
-// 🔥 መፍትሄ: ሊንኩ እንደ አዲስ ዌብሳይት ይፈጠራል
+// 🔥 መፍትሄ 1: VIP እና Promoter ከኪቦርዱ ጠፍተዋል።
+// 🔥 መፍትሄ 2: ሊንኩ ላይ በየሰከንዱ የሚቀያየር (Random) ቁጥር ተጨምሯል።
 function getMainMenu(phone, password) {
-    let timeStamp = Date.now();
-    let playUrl = (phone && password) ? `${WEB_URL}/play/${phone}/${password}?t=${timeStamp}` : WEB_URL;
+    let rnd = Math.floor(Math.random() * 10000000);
+    let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}&r=${rnd}` : `${WEB_URL}/?r=${rnd}`;
     
     return {
         reply_markup: {
@@ -349,7 +350,6 @@ function getMainMenu(phone, password) {
                 [{ text: "🎮 Play (ወደ ጌም ግባ)", web_app: { url: playUrl } }],
                 [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
                 [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
-                [{ text: "🌟 Special Promoter" }],
                 [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
@@ -458,11 +458,6 @@ bot.on('message', async (msg) => {
             let u = await User.findOne({phone: userPhone});
             bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
-    } else if (text === "🌟 Special Promoter") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "🌟 <b>Special Promoter:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
     } 
     else if (text === "📖 መመሪያ") {
         if(userPhone) {
@@ -559,11 +554,6 @@ bot.on('callback_query', async (query) => {
 // ==========================================
 // 🛣️ EXPLICIT ROUTING
 // ==========================================
-app.get('/play/:phone/:pass', (req, res) => {
-    let p = path.join(__dirname, 'public', 'index.html');
-    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 app.get('/admin', (req, res) => {
     let p = path.join(__dirname, 'public', 'admin.html');
     if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'admin.html'));
