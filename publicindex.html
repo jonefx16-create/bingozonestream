@@ -17,14 +17,11 @@
         .input-group { margin-bottom: 12px; position: relative; }
         .auth-input { width: 100%; padding: 14px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: 0.3s; }
         .auth-input:focus { border-color: var(--faded-green); outline: none; box-shadow: 0 0 8px rgba(74,222,128,0.3); background: rgba(0,0,0,0.8); }
-        .ref-input { background: rgba(74, 222, 128, 0.05); border-color: rgba(74, 222, 128, 0.2); }
-        .ref-input::placeholder { color: #6ee7b7; opacity: 0.7; }
         .auth-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--faded-green), #059669); color: #000; border: none; border-radius: 12px; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 4px 15px rgba(74,222,128,0.4);}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; background: #334155; color: #94a3b8;}
         .eye-icon { position: absolute; right: 15px; top: 14px; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.2s; }
         .eye-icon:hover { opacity: 1; }
         .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
-        .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
         /* HIDE NAV & HEADER ON AUTH PAGE */
         body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
@@ -574,8 +571,18 @@
         let urlPhone = urlParams.get('phone');
         let urlPass = urlParams.get('pass');
         
-        // አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ያጠፋል!
+        // 🔥 ዋናው መፍትሄ: አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ሙሉ በሙሉ ያጠፋል!
         if (urlPhone && urlPass) {
+            let oldPhone = localStorage.getItem('bingo_user_phone');
+            
+            // የተለየ አካውንት (ስልክ) ከሆነ የድሮውን ዳታ በሙሉ አጥፋ
+            if (oldPhone && oldPhone !== urlPhone) {
+                localStorage.removeItem('bingo_user_phone');
+                localStorage.removeItem('bingo_user_pass');
+                userTicketsData = [];
+                selected = [];
+            }
+            
             localStorage.setItem('bingo_user_phone', urlPhone);
             localStorage.setItem('bingo_user_pass', urlPass);
             // ሊንኩን ንፁህ ያደርጋል
