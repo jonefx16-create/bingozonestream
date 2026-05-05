@@ -338,10 +338,8 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
 const botState = {};
 
-// 🟢 Auto-Login Play Button & Keyboard Layout
+// 🔥 መፍትሄ: ሊንኩ Query Parameters ይጠቀማል። ከ URL ላይ ዳታ ማንበብ ቀላል ነው!
 function getMainMenu(phone, password) {
-    // 🔥 እዚህ ጋር ነው በየሰከንዱ የሚቀያየር ቁጥር (Timestamp) የተጨመረው!
-    // ቴሌግራም የድሮውን ዌብሳይት እንዳያስታውስ (Cache እንዳያደርግ) ይረዳል።
     let timeStamp = Date.now();
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}&t=${timeStamp}` : WEB_URL;
     
