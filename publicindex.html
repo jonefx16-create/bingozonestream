@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 🔥 መፍትሄ 2: ቴሌግራም ዌብሳይቱን Cache እንዳያደርገው የሚከለክሉ ኮዶች -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>BINGO HABESHA - LIVE ULTIMATE</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
@@ -564,18 +570,17 @@
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
     window.onload = async () => {
-        buildMasterBoard(); buildTicketMasterBoard(); initGrid();
-        
-        let urlPhone = null;
-        let urlPass = null;
-
-        // 🔥 መፍትሄ: ከ Path ላይ ቁጥር እና ፓስወርድ ማውጣት (ለምሳሌ: /play/09.../pass...)
-        let pathParts = window.location.pathname.split('/');
-        if (pathParts.length >= 4 && pathParts[1] === 'play') {
-            urlPhone = pathParts[2];
-            urlPass = pathParts[3];
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.expand();
         }
 
+        buildMasterBoard(); buildTicketMasterBoard(); initGrid();
+        
+        // 🔥 መፍትሄ 3: ቴሌግራም ላይ የሚላከውን አዲሱን ሊንክ ማንበቢያ ኮድ
+        const urlParams = new URLSearchParams(window.location.search);
+        let urlPhone = urlParams.get('phone');
+        let urlPass = urlParams.get('pass');
+        
         // አዲስ ቁጥር በሊንክ ከመጣ፣ የድሮውን ሎካል ስቶሬጅ ሙሉ በሙሉ ያጠፋል!
         if (urlPhone && urlPass) {
             let oldPhone = localStorage.getItem('bingo_user_phone');
@@ -589,9 +594,7 @@
             
             localStorage.setItem('bingo_user_phone', urlPhone);
             localStorage.setItem('bingo_user_pass', urlPass);
-            
-            // ሊንኩን ንፁህ ያደርጋል (ወደ '/' ብቻ ይቀይረዋል)
-            window.history.replaceState({}, document.title, '/');
+            // Replace Stateን አጥፍቼዋለሁ! ቴሌግራም አዲሱን ሊንክ አጥብቆ እንዲይዝ።
         }
 
         let savedPhone = localStorage.getItem('bingo_user_phone');
@@ -657,7 +660,16 @@
         if(page.classList.contains('show-mb')) { arrow.innerText = '▲'; } else { arrow.innerText = '▼'; }
     }
 
-    function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); location.reload(); }
+    function logout() { 
+        localStorage.removeItem('bingo_user_phone'); 
+        localStorage.removeItem('bingo_user_pass'); 
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.close(); 
+        } else {
+            location.reload(); 
+        }
+    }
+    
     function togglePass() { let x = document.getElementById("reg-pass"); let icon = document.getElementById("eye-icon"); if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; } }
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
