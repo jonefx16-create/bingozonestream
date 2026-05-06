@@ -1,16 +1,4 @@
-<!DOCTYPE html>
-<html lang="am">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>BINGO HABESHA - LIVE ULTIMATE</title>
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
+
         body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
         .active-page { display: block; }
@@ -22,16 +10,19 @@
         .input-group { margin-bottom: 12px; position: relative; }
         .auth-input { width: 100%; padding: 14px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: 0.3s; }
         .auth-input:focus { border-color: var(--faded-green); outline: none; box-shadow: 0 0 8px rgba(74,222,128,0.3); background: rgba(0,0,0,0.8); }
+        .ref-input { background: rgba(74, 222, 128, 0.05); border-color: rgba(74, 222, 128, 0.2); }
+        .ref-input::placeholder { color: #6ee7b7; opacity: 0.7; }
         .auth-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--faded-green), #059669); color: #000; border: none; border-radius: 12px; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 4px 15px rgba(74,222,128,0.4);}
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; background: #334155; color: #94a3b8;}
         .eye-icon { position: absolute; right: 15px; top: 14px; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.2s; }
         .eye-icon:hover { opacity: 1; }
         .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
         /* HIDE NAV & HEADER ON AUTH PAGE */
         body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
 
-        /* Header - 🔥 AM/EN Button Added 🔥 */
+        /* Header */
         .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .hdr-user-sec { display: flex; align-items: center; gap: 8px; }
         .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
@@ -266,7 +257,7 @@
         <textarea id="m-dep-sms" class="trx-input" style="height: 60px; resize: none; margin-bottom: 20px;" placeholder="ከባንክ የተላከሎትን SMS እዚህ Paste ያድርጉ"></textarea>
         
         <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ጨርስ</button>
-        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="openExternalLink('https://t.me/bingohabesha')">
+        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             📞 <span>እርዳታ ያስፈልጎታል?</span>
         </button>
     </div>
@@ -288,7 +279,7 @@
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
         <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn">ወጪ ጠይቅ</button>
-        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="openExternalLink('https://t.me/bingohabesha')">
+        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             📞 <span>እርዳታ ያስፈልጎታል?</span>
         </button>
     </div>
@@ -319,22 +310,34 @@
             <div style="color: #94a3b8; font-size: 13px; font-weight: bold; letter-spacing: 6px; margin-top: 5px; text-transform: uppercase;">BINGO HABESHA</div>
         </div>
         
-        <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ወደ አካውንትዎ ይግቡ</p>
+        <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
+        
+        <div class="input-group" id="name-group">
+            <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()">
+        </div>
         
         <div class="input-group">
             <input type="tel" id="reg-phone" class="auth-input" placeholder="ስልክ ቁጥር (09... ወይም 07...)" onkeyup="v()">
         </div>
         
         <div class="input-group">
-            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል" onkeyup="v()">
+            <input type="password" id="reg-pass" class="auth-input" placeholder="የይለፍ ቃል (ቢያንስ 4 ፊደል/ቁጥር)" onkeyup="v()">
             <span class="eye-icon" id="eye-icon" onclick="togglePass()">👁️</span>
         </div>
+
+        <div class="input-group" id="ref-group">
+            <input type="text" id="reg-ref" class="auth-input ref-input" placeholder="የጋበዝዎት ሰው ኮድ (ካለዎት)" onkeyup="v()">
+        </div>
         
-        <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ግባ (LOGIN)</button>
+        <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
+            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
+            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
+        </div>
         
-        <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="openExternalLink('https://t.me/bingo_habesha_bot')" id="toggle-auth-text">አዲስ አካውንት በቴሌግራም ይክፈቱ (Register)</p>
+        <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
+        <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
         
-        <button class="auth-help-btn" onclick="openExternalLink('https://t.me/bingohabesha')">
+        <button class="auth-help-btn" onclick="window.location.href='https://t.me/bingohabesha'">
             📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span>
         </button>
     </div>
@@ -348,8 +351,6 @@
             <div id="hdr-name" class="name">User</div>
             <div id="hdr-phone" class="phone">09...</div>
         </div>
-        <!-- 🔥 ቋንቋ መቀየሪያ 🔥 -->
-        <button id="lang-btn" onclick="toggleLanguage()" style="background: var(--faded-green); color: black; border: none; border-radius: 4px; font-size: 9px; font-weight: bold; padding: 4px 8px; margin-left: 10px; cursor: pointer;">EN</button>
     </div>
     <div class="hdr-wallets-right">
         <div class="pill-wallet">
@@ -427,7 +428,7 @@
                 <div id="sound-toggle" onclick="toggleSound()" style="position: absolute; top: 8px; right: 8px; font-size: 16px; cursor: pointer; z-index: 10; background: #1e293b; border-radius: 50%; width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; border: 2px solid #4ade80; box-shadow: 0 0 8px rgba(0,0,0,0.7);">🔊</div>
             </div>
             <div class="tickets-history-box">
-                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;" class="my-t-title">የእኔ ካርቴላ (My Ticket)</div>
+                <div style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
             <div class="live-circle-badge">
@@ -449,7 +450,7 @@
             <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
         </div>
         
-        <h3 style="text-align:left; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;" class="my-t-main-title">የእኔ ካርቴላዎች</h3>
+        <h3 style="text-align:left; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
         
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;">
@@ -459,7 +460,7 @@
         </div>
 
         <div style="text-align: center; margin-top: 5px;">
-            <button onclick="toggleTicketMasterBoard()" id="mb-btn" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
+            <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
                 👁️ ሙሉ ቦርድ እይ (Master Board) <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span>
             </button>
         </div>
@@ -518,7 +519,7 @@
             <div style="font-size: 13px; color: white; font-family: monospace;">t.me/bingo_habesha_bot</div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <button style="background: var(--faded-green); color: black; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; box-shadow: 0 2px 5px rgba(74,222,128,0.3);" onclick="openExternalLink('https://t.me/bingo_habesha_bot')">ክፈት</button>
+            <button style="background: var(--faded-green); color: black; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; box-shadow: 0 2px 5px rgba(74,222,128,0.3);" onclick="window.location.href='https://t.me/bingo_habesha_bot'">ክፈት</button>
             <button style="background: #334155; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;" onclick="navigator.clipboard.writeText('https://t.me/bingo_habesha_bot'); alert('ሊንኩ ኮፒ ተደርጓል!')">Copy</button>
         </div>
     </div>
@@ -534,7 +535,7 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="openExternalLink('https://t.me/bingohabesha')">
+        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
@@ -547,91 +548,21 @@
 </div>
 
 <nav id="navbar" class="bottom-nav" style="display: none;">
-    <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span class="n-txt">Home</span></div>
-    <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span class="n-txt">Ticket</span></div>
-    <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span><span class="n-txt">Wallet</span></div>
-    <div class="nav-item" onclick="loadLeaderboard()"><span class="nav-icon">🏆</span><span class="n-txt">Rank</span></div>
-    <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">👤</span><span class="n-txt">Profile</span></div>
+    <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span>Home</span></div>
+    <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span>Ticket</span></div>
+    <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span><span>Wallet</span></div>
+    <div class="nav-item" onclick="loadLeaderboard()"><span class="nav-icon">🏆</span><span>Rank</span></div>
+    <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">👤</span><span>Profile</span></div>
 </nav>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    // 🔥 WebApp External Link Opener 🔥
-    function openExternalLink(url) {
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink && url.includes('t.me')) {
-            window.Telegram.WebApp.openTelegramLink(url);
-        } else {
-            window.open(url, '_blank');
-        }
-    }
-
-    // 🔥 ቋንቋ መቀየሪያ (AM/EN) 🔥
-    let isAmharic = true;
-    function toggleLanguage() {
-        isAmharic = !isAmharic;
-        document.getElementById('lang-btn').innerText = isAmharic ? "EN" : "AM";
-        
-        // Home Page
-        if(document.querySelector('.gs-left')) document.querySelector('.gs-left').innerText = isAmharic ? "ካርቴላ ይምረጡ (10 ብር)" : "Select Card (10 ETB)";
-        if(document.getElementById('lbl-sel-tickets')) document.getElementById('lbl-sel-tickets').innerText = isAmharic ? "የመረጧቸው ካርቴላዎች: " : "Selected Cards: ";
-        
-        let betBtn = document.getElementById('bet-btn');
-        if(betBtn && !betBtn.disabled && !betBtn.innerText.includes("REGISTERED")) {
-            betBtn.innerText = isAmharic ? "BET NOW (ወራረድ)" : "BET NOW";
-        }
-        
-        // Game & Ticket Page
-        if(document.querySelector('.my-t-title')) document.querySelector('.my-t-title').innerText = isAmharic ? "የእኔ ካርቴላ (My Ticket)" : "My Tickets";
-        if(document.querySelector('.my-t-main-title')) document.querySelector('.my-t-main-title').innerText = isAmharic ? "የእኔ ካርቴላዎች" : "My Tickets";
-        
-        let mbBtn = document.getElementById('mb-btn');
-        if(mbBtn) {
-            let arrow = document.getElementById('mb-toggle-arrow').outerHTML;
-            mbBtn.innerHTML = (isAmharic ? "👁️ ሙሉ ቦርድ እይ (Master Board) " : "👁️ View Master Board ") + arrow;
-        }
-
-        // Bottom Nav
-        let navTxts = document.querySelectorAll('.n-txt');
-        if(navTxts.length >= 5) {
-            navTxts[0].innerText = isAmharic ? "Home" : "Home";
-            navTxts[1].innerText = isAmharic ? "Ticket" : "Ticket";
-            navTxts[2].innerText = isAmharic ? "Wallet" : "Wallet";
-            navTxts[3].innerText = isAmharic ? "Rank" : "Rank";
-            navTxts[4].innerText = isAmharic ? "Profile" : "Profile";
-        }
-        
-        // Dynamic Texts
-        let ntStatus = document.querySelector('.nt-status');
-        if(ntStatus) {
-            if (currentGameState === "WAITING") {
-                ntStatus.innerText = isAmharic ? "ጨዋታው ሊጀምር ነው" : "Game is starting soon";
-            } else if (currentGameState === "PLAYING") {
-                ntStatus.innerText = isAmharic ? "ጨዋታው በመካሄድ ላይ ነው" : "Game is running";
-            }
-        }
-        
-        let tInfo = document.getElementById('t-info');
-        if(tInfo) {
-            if(userTicketsData.length === 0) {
-                tInfo.innerText = isAmharic ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
-            } else {
-                tInfo.innerText = isAmharic ? "የገዙት ካርቴላ ብዛት: " + userTicketsData.length : "Tickets bought: " + userTicketsData.length;
-            }
-        }
-    }
-
-
-    let tgUser = null;
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-        tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-        window.Telegram.WebApp.expand();
-    }
-
     const socket = io();
     let selected = [], called = []; 
     let currentUser = null;
     let pendingTicketsData = []; 
     let userTicketsData = []; 
+    let isLoginMode = false;
     let isGameRunningLocally = false;
     let currentGameState = null;
     let globalTakenTickets = []; 
@@ -644,90 +575,115 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
-        document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)"; 
-        document.getElementById('start-btn').disabled = true;
-
-        if (tgUser && tgUser.id) {
+        // 1. ቴሌግራም WebApp መሆኑን ማረጋገጥ እና Auto-Login ማድረግ
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+            const tgId = tgUser.id.toString();
+            
+            document.getElementById('start-btn').innerText = "በቴሌግራም እየገባ ነው...";
+            document.getElementById('start-btn').disabled = true;
             try {
-                let res = await fetch('/api/tg-login', { 
+                let res = await fetch('/api/telegram-login', { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ tgId: tgUser.id.toString() }) 
+                    body: JSON.stringify({ telegramId: tgId }) 
                 });
                 let data = await res.json();
                 
                 if (data.success) {
-                    localStorage.setItem('bingo_user_phone', data.user.phone);
-                    localStorage.setItem('bingo_user_pass', data.user.password);
-                    performLogin(data);
-                    return; 
+                    processLoginSuccess(data.user);
+                    
+                    // Fetch Active Tickets & History
+                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
+                    let tData = await tRes.json();
+                    
+                    if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); 
+                        renderGridTakenStates(); 
+                        
+                        if(tData.calledNumbers && tData.calledNumbers.length > 0) {
+                            called = tData.calledNumbers;
+                            called.forEach(num => {
+                                let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
+                                let ballText = bHeads[colIdx] + "-" + num;
+                                let topH = document.getElementById('history-scroll-top'); 
+                                let tickH = document.getElementById('ticket-history-bar');
+                                if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
+                                let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
+                                let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
+                                topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
+                            });
+
+                            called.forEach(num => {
+                                document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+                                let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
+                                let tmbCell = document.getElementById('tmb-' + num); if(tmbCell) tmbCell.classList.add('called');
+                            });
+                        }
+                    }
+                    socket.emit('get_initial_data', data.user.phone);
+                    return; // Stop here, no need for localStorage fallback
                 } else {
-                    document.getElementById('start-btn').innerText = "ግባ (LOGIN)"; 
+                    document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
                     document.getElementById('start-btn').disabled = false;
+                    alert(data.message || "Please register via Telegram bot first!");
                 }
-            } catch (error) {
-                console.error("TG API Error:", error);
+            } catch(e) {
+                document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
+                document.getElementById('start-btn').disabled = false;
             }
         }
 
+        // 2. Fallback to LocalStorage (for standard browsers outside Telegram)
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
         
         if(savedPhone && savedPass) {
+            document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)"; 
+            document.getElementById('start-btn').disabled = true;
             try {
                 let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: savedPhone, password: savedPass}) });
                 let data = await res.json();
                 
                 if(data.success) { 
-                    performLogin(data);
-                } else { 
-                    logout(); 
-                }
-            } catch(e) { 
-                document.getElementById('start-btn').innerText = "ግባ (LOGIN)"; 
-                document.getElementById('start-btn').disabled = false; 
-            }
-        } else {
-            document.getElementById('start-btn').innerText = "ግባ (LOGIN)"; 
-            document.getElementById('start-btn').disabled = false;
+                    processLoginSuccess(data.user); 
+                    
+                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
+                    let tData = await tRes.json();
+                    
+                    if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); 
+                        renderGridTakenStates(); 
+                        
+                        if(tData.calledNumbers && tData.calledNumbers.length > 0) {
+                            called = tData.calledNumbers;
+                            called.forEach(num => {
+                                let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
+                                let ballText = bHeads[colIdx] + "-" + num;
+                                let topH = document.getElementById('history-scroll-top'); 
+                                let tickH = document.getElementById('ticket-history-bar');
+                                if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
+                                let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
+                                let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
+                                topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
+                            });
+
+                            called.forEach(num => {
+                                document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
+                                let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
+                                let tmbCell = document.getElementById('tmb-' + num); if(tmbCell) tmbCell.classList.add('called');
+                            });
+                        }
+                    }
+                    socket.emit('get_initial_data', data.user.phone); 
+                } else { logout(); }
+            } catch(e) { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('start-btn').disabled = false; }
         }
     };
-
-    async function performLogin(data) {
-        processLoginSuccess(data.user); 
-        
-        let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
-        let tData = await tRes.json();
-        
-        if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
-            userTicketsData = tData.ticketsData;
-            renderConfirmedTickets(); 
-            
-            renderGridTakenStates(); 
-            
-            if(tData.calledNumbers && tData.calledNumbers.length > 0) {
-                called = tData.calledNumbers;
-                called.forEach(num => {
-                    let colIdx = num <= 15 ? 0 : num <= 30 ? 1 : num <= 45 ? 2 : num <= 60 ? 3 : 4;
-                    let ballText = bHeads[colIdx] + "-" + num;
-                    let topH = document.getElementById('history-scroll-top'); 
-                    let tickH = document.getElementById('ticket-history-bar');
-                    if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
-                    
-                    let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
-                    let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
-                    topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
-                });
-
-                called.forEach(num => {
-                    document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
-                    let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
-                    let tmbCell = document.getElementById('tmb-' + num); if(tmbCell) tmbCell.classList.add('called');
-                });
-            }
-        }
-        socket.emit('get_initial_data', data.user.phone); 
-    }
 
     function toggleSound() {
         isSoundOn = !isSoundOn;
@@ -739,21 +695,13 @@
         const page = document.getElementById('ticket-page');
         const arrow = document.getElementById('mb-toggle-arrow');
         page.classList.toggle('show-mb');
-        if(page.classList.contains('show-mb')) { 
-            arrow.innerText = '▲'; 
-        } else { 
-            arrow.innerText = '▼'; 
-        }
+        if(page.classList.contains('show-mb')) { arrow.innerText = '▲'; } else { arrow.innerText = '▼'; }
     }
 
     function logout() { 
         localStorage.removeItem('bingo_user_phone'); 
         localStorage.removeItem('bingo_user_pass'); 
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.close(); 
-        } else {
-            location.reload(); 
-        }
+        window.location.href = "/"; 
     }
     
     function togglePass() { let x = document.getElementById("reg-pass"); let icon = document.getElementById("eye-icon"); if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; } }
@@ -836,34 +784,63 @@
         } catch(e) {}
     }
 
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('name-group').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('ref-group').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('terms-box').style.display = isLoginMode ? 'none' : 'block';
+        
+        if(isLoginMode) {
+            document.getElementById('start-btn').innerText = "ግባ (LOGIN)";
+            document.getElementById('auth-subtitle').innerText = "ወደ አካውንትዎ ይግቡ";
+            document.getElementById('toggle-auth-text').innerText = "አዲስ አካውንት ይክፈቱ (Register)";
+        } else {
+            document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
+            document.getElementById('auth-subtitle').innerText = "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
+            document.getElementById('toggle-auth-text').innerText = "አካውንት አለዎት? ይግቡ (Login)";
+        }
+        v();
+    }
+
     function v() { 
         let phone = document.getElementById('reg-phone').value.trim();
         let pass = document.getElementById('reg-pass').value.trim();
+        let name = document.getElementById('reg-name').value.trim();
         let btn = document.getElementById('start-btn');
         let phoneValid = (phone.startsWith('09') || phone.startsWith('07')) && phone.length === 10 && /^\d+$/.test(phone);
         let passValid = pass.length >= 4;
         
-        btn.disabled = !(phoneValid && passValid); 
+        if(isLoginMode) { btn.disabled = !(phoneValid && passValid); } else {
+            let nameValid = name.length > 0; let c1 = document.getElementById('c1').checked; let c2 = document.getElementById('c2').checked;
+            btn.disabled = !(phoneValid && passValid && nameValid && c1 && c2);
+        }
     }
 
     async function authAction() {
         let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
+        let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
 
         document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; 
         document.getElementById('start-btn').disabled = true;
         
-        let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass}) });
+        let endpoint = isLoginMode ? '/api/login' : '/api/register';
+        let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
         let data = await res.json();
         
         if(data.success) { 
-            localStorage.setItem('bingo_user_phone', phone); 
-            localStorage.setItem('bingo_user_pass', pass); 
-            processLoginSuccess(data.user); 
+            if(isLoginMode) {
+                localStorage.setItem('bingo_user_phone', phone); 
+                localStorage.setItem('bingo_user_pass', pass); 
+                processLoginSuccess(data.user); 
+            } else {
+                alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)");
+                toggleAuthMode();
+            }
         } 
         else { 
             alert(data.message || "ስህተት አጋጥሟል!"); 
             document.getElementById('start-btn').disabled = false; 
-            document.getElementById('start-btn').innerText = "ግባ (LOGIN)";
+            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)";
         }
     }
 
@@ -936,6 +913,7 @@
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) { await fetchUpdatedBalance(); if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory(); } });
 
+    // 🔥 SYNC DATA ON REFRESH 🔥
     socket.on('sync_data', (data) => {
         globalTakenTickets = data.globalTakenTickets || [];
         called = data.calledNumbers || [];
@@ -951,11 +929,9 @@
         
         if(userTicketsData.length > 0) {
             renderConfirmedTickets();
-            let tInfo = document.getElementById('t-info');
-            if(tInfo) tInfo.innerText = isAmharic ? "የገዙት ካርቴላ ብዛት: " + userTicketsData.length : "Tickets bought: " + userTicketsData.length;
+            document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + userTicketsData.length;
         } else {
-            let tInfo = document.getElementById('t-info');
-            if(tInfo) tInfo.innerText = isAmharic ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
+            document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
         }
         
         document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
@@ -993,9 +969,7 @@
             isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
-            
-            let ntStatus = document.querySelector('.nt-status');
-            if(ntStatus) ntStatus.innerText = isAmharic ? "ጨዋታው ሊጀምር ነው" : "Game is starting soon";
+            document.querySelector('.nt-status').innerText = "ጨዋታው ሊጀምር ነው";
             
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
@@ -1013,16 +987,14 @@
                     userTicketsData = []; pendingTicketsData = []; selected = []; globalTakenTickets = []; 
                     initGrid(); updateBetPreview(); 
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
-                    
-                    let tInfo = document.getElementById('t-info');
-                    if(tInfo) tInfo.innerText = isAmharic ? "እስካሁን ካርቴላ አልገዙም" : "You haven't bought tickets yet";
-                    
+                    document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
                     if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
+            // 🔥 FIXED: ONLY SHOW POPUP IF TICKETS ARE SELECTED 🔥
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
-                document.getElementById('bet-btn').innerText = isAmharic ? "BET NOW (ወራረድ)" : "BET NOW"; 
+                document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
                 document.getElementById('bet-slip-popup').classList.add('show');
             } else {
                 document.getElementById('bet-slip-popup').classList.remove('show');
@@ -1030,9 +1002,7 @@
             
         } else if (data.state === "PLAYING") {
             isGameRunningLocally = true; document.getElementById('timer').innerText = "LIVE 🔴"; 
-            
-            let ntStatus = document.querySelector('.nt-status');
-            if(ntStatus) ntStatus.innerText = isAmharic ? "ጨዋታው በመካሄድ ላይ ነው" : "Game is running";
+            document.querySelector('.nt-status').innerText = "ጨዋታው በመካሄድ ላይ ነው";
 
             if (currentGameState !== "PLAYING") {
                 currentGameState = "PLAYING"; 
@@ -1041,7 +1011,7 @@
             }
             called = data.calledNumbers || []; 
             document.getElementById('g-balls').innerText = called.length + "/20";
-            document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+            document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -1053,7 +1023,7 @@
         if (!isGameRunningLocally) return;
         called.push(num); 
         document.getElementById('g-balls').innerText = called.length + "/20"; 
-        document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+        document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live update
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
@@ -1147,8 +1117,7 @@
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('bet-slip-popup').classList.remove('show'); document.getElementById('grid-sel-count').innerText = "0"; 
-            document.getElementById('bet-btn').innerText = isAmharic ? "BET NOW (ወራረድ)" : "BET NOW"; 
-            document.getElementById('bet-btn').disabled = false;
+            document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; document.getElementById('bet-btn').disabled = false;
             renderGridTakenStates();
         }, 800);
     }
@@ -1184,8 +1153,7 @@
             card.innerHTML = htmlMain; miniCard.innerHTML = htmlMini; 
             list.appendChild(card); gameList.appendChild(miniCard);
         }); 
-        let tInfo = document.getElementById('t-info');
-        if(tInfo) tInfo.innerText = isAmharic ? "የገዙት ካርቴላ ብዛት: " + userTicketsData.length : "Tickets bought: " + userTicketsData.length;
+        document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + userTicketsData.length;
     }
 
     function buildMasterBoard() {
@@ -1247,6 +1215,6 @@
     }
 </script>
 </body>
-</html>
+</html>`));
 
 
