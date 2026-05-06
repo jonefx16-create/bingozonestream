@@ -122,7 +122,7 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 });
 
 // ==========================================
-// 🔴 ADMIN APIs
+// 🔴 ADMIN & FINANCE APIs
 // ==========================================
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
@@ -189,35 +189,18 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `Bonus sent to ${count} users!` });
 });
 
-// 🔥 የተስተካከለው የቴሌግራም መላኪያ ኮድ (ለቻናልም ለተጠቃሚዎችም ይልካል) 🔥
-app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
-    try {
-        const { message } = req.body;
-        if (!message) return res.json({ success: false, message: "እባክዎ ሜሴጅ ያስገቡ!" });
-
-        const BOT_TOKEN = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-        const telegramURL = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-        
-        // 1. ወደ ቻናል ላክ
-        try {
-            await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: "@bingohabeshazone", text: message, parse_mode: "HTML" }) });
-        } catch(e) { console.log("Channel broadcast error"); }
-        
-        // 2. ወደ ቦት ተጠቃሚዎች ላክ
-        const users = await User.find({ telegramId: { $ne: "", $exists: true } });
-        let sentCount = 0;
-        for (let u of users) {
-            try {
-                await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: u.telegramId, text: message, parse_mode: "HTML" }) });
-                sentCount++;
-            } catch(e) {}
-        }
-        
-        res.json({ success: true, message: `✅ ማስታወቂያው ለቻናሉ እና ለ ${sentCount} የቦት ተጠቃሚዎች ተልቋል!` });
-    } catch (e) {
-        console.error("Telegram API Error:", e);
-        res.status(500).json({ success: false, message: "የሰርቨር ስህተት አጋጥሟል!" });
-    }
+app.post('/api/admin/finance-report', auth, async (req, res) => {
+    const txs = await Transaction.find({ status: 'Approved' });
+    let totalDeposit = txs.filter(t => t.type === 'deposit').reduce((a, b) => a + b.amount, 0);
+    let totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((a, b) => a + b.amount, 0);
+    const games = await GameHistory.find();
+    let totalGameProfit = games.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
+    let totalPrizesPaid = games.reduce((sum, g) => sum + (g.prize || 0), 0);
+    const bonuses = await ActiveBonus.find();
+    let totalBonusCost = bonuses.reduce((sum, b) => sum + (b.amount * b.currentClaims), 0);
+    const users = await User.find();
+    let totalUserBalances = users.reduce((sum, u) => sum + u.mainBalance + u.playBalance, 0);
+    res.json({ success: true, totalDeposit, totalWithdraw, totalGameProfit, totalPrizesPaid, totalBonusCost, totalUserBalances });
 });
 
 // ==========================================
@@ -363,17 +346,31 @@ app.post(`/bot${telegramToken}`, (req, res) => {
     res.sendStatus(200);
 });
 
+app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.json({ success: false, message: "እባክዎ ሜሴጅ ያስገቡ!" });
+        const CHAT_ID = "@bingohabeshazone"; 
+        const telegramURL = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
+        const response = await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" }) });
+        const data = await response.json();
+        if (data.ok) res.json({ success: true, message: "✅ ማስታወቂያው ቴሌግራም ላይ ተለቋል!" });
+        else res.json({ success: false, message: "❌ አልተቻለም: " + data.description });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
 const botState = {};
 
+// 🔥 VIP Button Removed from here
 function getMainMenu(phone, password) {
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
         reply_markup: {
             keyboard: [
-                [{ text: "🎮 ጌም ይጫወቱ" }],
+                [{ text: "🎮 ጌም ይጫወቱ" }], 
                 [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
                 [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
-                [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
+                [{ text: "🌟 Special Promoter" }], 
                 [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
@@ -457,7 +454,7 @@ bot.on('message', async (msg) => {
         let u = await User.findOne({ telegramId: msg.from.id.toString() });
         let playUrl = (u) ? `${WEB_URL}/?phone=${u.phone}&pass=${u.password}` : WEB_URL;
         bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ እየሄዱ ነው...", {
-            reply_markup: { inline_keyboard: [[{ text: "🎮 Play Bingo", web_app: { url: playUrl } }]] }
+            reply_markup: { inline_keyboard: [[{ text: "🎮 አሁኑኑ ይጫወቱ", web_app: { url: playUrl } }]] }
         });
     }
 
@@ -489,11 +486,6 @@ bot.on('message', async (msg) => {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
             bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
-    } else if (text === "💎 VIP ክፍል") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
     } else if (text === "🌟 Special Promoter") {
         if(userPhone) {
