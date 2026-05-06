@@ -107,7 +107,7 @@
         .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
-        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; position: relative;}
+        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
@@ -130,12 +130,6 @@
         .history-top-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); align-items: center; scrollbar-width: none; flex-shrink: 0; min-height: 45px;}
         .history-top-bar::-webkit-scrollbar { display: none; }
         .hist-top-ball { min-width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--faded-green); background: rgba(74, 222, 128, 0.1); color: var(--faded-green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); flex-shrink: 0;}
-
-        /* 🔥 አዲሱ የቋንቋ መቀየሪያ CSS 🔥 */
-        .lang-toggle-wrapper { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 2px; padding-right: 2px; z-index: 10; }
-        .lang-switch { display: flex; background: #000; border: 1px solid #334155; border-radius: 12px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .lang-opt { padding: 3px 8px; font-size: 9px; font-weight: 900; color: #94a3b8; transition: all 0.3s; }
-        .lang-opt.active { background: #ffffff; color: #000000; }
 
         /* 🟢 TICKETS PAGE STYLES 🟢 */
         #ticket-page.active-page { display: flex !important; flex-direction: column; height: calc(100svh - 60px); overflow: hidden; padding: 8px; box-sizing: border-box; }
@@ -426,10 +420,11 @@
 <!-- 3. GAME PAGE -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
-        <div class="top-info-box"><div class="info-title">#Game round</div><div class="info-val" id="g-id">#---</div></div>
-        <div class="top-info-box"><div class="info-title">Bet</div><div class="info-val">10.00</div></div>
-        <div class="top-info-box prize-box"><div class="info-title prize-title">Prize Pool</div><div class="info-val highlight" id="g-prize">0.00</div></div>
-        <div class="top-info-box"><div class="info-title">Balls</div><div class="info-val" id="g-balls">0/20</div></div>
+        <!-- 🔥 ጽሁፎችን ለመቀየር id ተጨምሯል 🔥 -->
+        <div class="top-info-box"><div class="info-title" id="g-lbl-round">#ዙር (Round)</div><div class="info-val" id="g-id">#---</div></div>
+        <div class="top-info-box"><div class="info-title" id="g-lbl-bet">መወራረጃ</div><div class="info-val">10.00</div></div>
+        <div class="top-info-box prize-box"><div class="info-title prize-title" id="g-lbl-prize">ሽልማት (Prize)</div><div class="info-val highlight" id="g-prize">0.00</div></div>
+        <div class="top-info-box"><div class="info-title" id="g-lbl-balls">እጣ (Balls)</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
     <div id="history-scroll-top" class="history-top-bar"></div>
     
@@ -448,11 +443,11 @@
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
             
-            <!-- 🔥 አዲሱ የቋንቋ መቀየሪያ (Language Toggle) 🔥 -->
-            <div class="lang-toggle-wrapper">
-                <div class="lang-switch" onclick="toggleGameLang()">
-                    <div id="lang-am" class="lang-opt active">AM</div>
-                    <div id="lang-en" class="lang-opt">EN</div>
+            <!-- 🔥 አዲሱ የቋንቋ መቀየሪያ (Language Toggler) 🔥 -->
+            <div style="display: flex; justify-content: flex-end; padding-right: 5px; margin-bottom: 4px; z-index: 50;">
+                <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">
+                    <div id="btn-am" onclick="setLang('AM')" style="background: white; color: black; padding: 5px 10px; font-size: 11px; font-weight: 900; cursor: pointer;">AM</div>
+                    <div id="btn-en" onclick="setLang('EN')" style="background: black; color: white; padding: 5px 10px; font-size: 11px; font-weight: 900; cursor: pointer;">EN</div>
                 </div>
             </div>
 
@@ -592,29 +587,36 @@
     let currentGameState = null;
     let globalTakenTickets = []; 
     let isSoundOn = true;
-    let currentGameLang = 'AM'; // 🔥 የቋንቋ ማስታወሻ 🔥
 
     const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
-    // 🔥 የቋንቋ መቀየሪያ ፈንክሽን 🔥
-    function toggleGameLang() {
-        currentGameLang = currentGameLang === 'AM' ? 'EN' : 'AM';
+    // 🔥 ሙሉ ቋንቋውን የሚቀይረው ፈንክሽን 🔥
+    function setLang(lang) {
+        let btnAm = document.getElementById('btn-am');
+        let btnEn = document.getElementById('btn-en');
         
-        let amBtn = document.getElementById('lang-am');
-        let enBtn = document.getElementById('lang-en');
-        
-        if (currentGameLang === 'EN') {
-            enBtn.classList.add('active');
-            amBtn.classList.remove('active');
-            document.getElementById('lbl-my-ticket').innerText = "My Tickets";
-            document.getElementById('lbl-derash-game').innerText = "JACKPOT";
-        } else {
-            amBtn.classList.add('active');
-            enBtn.classList.remove('active');
+        if(lang === 'AM') {
+            btnAm.style.background = 'white'; btnAm.style.color = 'black';
+            btnEn.style.background = 'black'; btnEn.style.color = 'white';
+            
+            document.getElementById('g-lbl-round').innerText = "#ዙር (Round)";
+            document.getElementById('g-lbl-bet').innerText = "መወራረጃ";
+            document.getElementById('g-lbl-prize').innerText = "ሽልማት (Prize)";
+            document.getElementById('g-lbl-balls').innerText = "እጣ (Balls)";
             document.getElementById('lbl-my-ticket').innerText = "የእኔ ካርቴላ (My Ticket)";
             document.getElementById('lbl-derash-game').innerText = "ደራሽ";
+        } else {
+            btnEn.style.background = 'white'; btnEn.style.color = 'black';
+            btnAm.style.background = 'black'; btnAm.style.color = 'white';
+            
+            document.getElementById('g-lbl-round').innerText = "Game Round";
+            document.getElementById('g-lbl-bet').innerText = "Bet Amount";
+            document.getElementById('g-lbl-prize').innerText = "Prize Pool";
+            document.getElementById('g-lbl-balls').innerText = "Called Balls";
+            document.getElementById('lbl-my-ticket').innerText = "My Tickets";
+            document.getElementById('lbl-derash-game').innerText = "JACKPOT";
         }
     }
 
