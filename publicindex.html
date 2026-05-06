@@ -28,6 +28,7 @@
         .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
         .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
+        /* HIDE NAV & HEADER ON AUTH PAGE */
         body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
 
         /* Header */
@@ -43,6 +44,11 @@
         .pill-wallet span.title.main { color: var(--gold); }
         .pill-wallet span.amt { color: white; font-size: 11px; font-weight: 900; font-family: monospace;}
 
+        /* 🔥 AM/EN Language Switch CSS 🔥 */
+        .lang-switch-container { display: flex; background: #000; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; width: fit-content; margin-top: 2px; align-self: flex-end;}
+        .lang-btn { background: #000; color: #94a3b8; border: none; padding: 3px 12px; font-size: 9px; font-weight: bold; cursor: pointer; transition: 0.3s; outline: none;}
+        .lang-btn.active { background: #ffffff; color: #000000; }
+
         /* Timer Box */
         .new-timer-box { background: #111521; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); }
         .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -57,14 +63,9 @@
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
         .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; margin-top: 1px;}
-        #game-page .live-circle-badge { width: 90px !important; height: 90px !important; margin: 0 auto; position: relative !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); z-index: 5;}
+        #game-page .live-circle-badge { width: 90px !important; height: 90px !important; margin: 0 auto; position: relative !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
         #game-page .jp-amount { font-size: 16px !important; }
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-
-        /* 🔥 AM/EN Language Switch CSS 🔥 */
-        .lang-switch-wrapper { display: flex; background: #000; border: 1px solid #334155; border-radius: 12px; overflow: hidden; margin: 0 auto 10px auto; width: fit-content; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 10;}
-        .lang-btn { background: #000; color: #64748b; border: none; padding: 4px 12px; font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .lang-btn.active { background: #fff; color: #000; }
 
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
@@ -111,7 +112,7 @@
         .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
-        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; position: relative;}
+        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
@@ -372,6 +373,11 @@
         <div class="pill-wallet">
             <span class="title main">MAIN WALLET</span><span class="amt" id="hdr-main-balance">0.00</span>
         </div>
+        <!-- 🔥 AM/EN Toggle 🔥 -->
+        <div class="lang-switch-container" style="display: flex; background: #000; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; width: fit-content; margin-top: 4px; align-self: flex-end;">
+            <button id="lang-am" class="lang-btn active" style="background: #ffffff; color: #000000; border: none; padding: 3px 10px; font-size: 9px; font-weight: bold; cursor: pointer; transition: 0.3s; outline: none;" onclick="setLang('am')">AM</button>
+            <button id="lang-en" class="lang-btn" style="background: #000; color: #94a3b8; border: none; padding: 3px 10px; font-size: 9px; font-weight: bold; cursor: pointer; transition: 0.3s; outline: none;" onclick="setLang('en')">EN</button>
+        </div>
     </div>
 </div>
 
@@ -436,12 +442,6 @@
             <div id="master-board" class="mb-board"></div>
         </div>
         <div class="right-panel-stack">
-            <!-- 🔥 AM/EN Language Switch 🔥 -->
-            <div class="lang-switch-wrapper">
-                <button id="lang-am" class="lang-btn active" onclick="setLang('am')">AM</button>
-                <button id="lang-en" class="lang-btn" onclick="setLang('en')">EN</button>
-            </div>
-
             <div class="caller-box" style="position: relative;">
                 <div id="caller-ball" class="caller-ball">--</div>
                 <div id="sound-toggle" onclick="toggleSound()" style="position: absolute; top: 8px; right: 8px; font-size: 16px; cursor: pointer; z-index: 10; background: #1e293b; border-radius: 50%; width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; border: 2px solid #4ade80; box-shadow: 0 0 8px rgba(0,0,0,0.7);">🔊</div>
@@ -594,6 +594,7 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
+        // 1. ቴሌግራም WebApp መሆኑን ማረጋገጥ እና Auto-Login ማድረግ
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
             const tgId = tgUser.id.toString();
@@ -652,6 +653,7 @@
             }
         }
 
+        // 2. Fallback to LocalStorage (for standard browsers outside Telegram)
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
         
@@ -714,9 +716,13 @@
     }
 
     function setLang(l) {
-        document.getElementById('lang-am').classList.remove('active');
-        document.getElementById('lang-en').classList.remove('active');
-        document.getElementById('lang-'+l).classList.add('active');
+        document.getElementById('lang-am').style.background = '#000';
+        document.getElementById('lang-am').style.color = '#94a3b8';
+        document.getElementById('lang-en').style.background = '#000';
+        document.getElementById('lang-en').style.color = '#94a3b8';
+        
+        document.getElementById('lang-'+l).style.background = '#ffffff';
+        document.getElementById('lang-'+l).style.color = '#000000';
     }
 
     function logout() { 
@@ -753,9 +759,11 @@
 
         if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
         if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!");
+        
         if(!smsText) return alert("እባክዎ የSMS ማረጋገጫ ያስገቡ!");
 
         let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
+        
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); 
@@ -923,6 +931,7 @@
         document.getElementById('hdr-main-balance').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
         document.getElementById('hdr-play-balance').innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
         document.getElementById('main-bal').innerText = (parseFloat(currentUser.mainBalance) || 0).toFixed(2);
+        
         let playEl = document.getElementById('play-bal');
         if(playEl) playEl.innerText = (parseFloat(currentUser.playBalance) || 0).toFixed(2);
     }
@@ -977,6 +986,7 @@
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
         let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
+        
         let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = data.totalPrizePool.toFixed(2) + " ETB";
         
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
