@@ -429,11 +429,11 @@
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
             </div>
 
-            <!-- 🔥 AM/EN TOGGLE 🔥 -->
+            <!-- 🔥 AM/EN TOGGLE (በጌም ፔጅ ላይ ተጨምሯል) 🔥 -->
             <div style="display: flex; justify-content: center; margin-bottom: 2px; z-index: 10;">
-                <div style="background: #e2e8f0; border-radius: 12px; display: flex; overflow: hidden; border: 1px solid var(--border-color);">
-                    <button id="lang-am" onclick="switchLang('AM')" style="background: var(--faded-green); color: white; border: none; padding: 4px 12px; font-size: 10px; font-weight: 900; cursor: pointer; transition: 0.2s;">AM</button>
-                    <button id="lang-en" onclick="switchLang('EN')" style="background: transparent; color: black; border: none; padding: 4px 12px; font-size: 10px; font-weight: 900; cursor: pointer; transition: 0.2s;">EN</button>
+                <div style="background: #1e293b; border-radius: 12px; display: flex; overflow: hidden; border: 1px solid var(--faded-green);">
+                    <button id="lang-am" onclick="switchLang('AM')" style="background: var(--faded-green); color: black; border: none; padding: 4px 12px; font-size: 10px; font-weight: 900; cursor: pointer; transition: 0.2s;">AM</button>
+                    <button id="lang-en" onclick="switchLang('EN')" style="background: transparent; color: white; border: none; padding: 4px 12px; font-size: 10px; font-weight: 900; cursor: pointer; transition: 0.2s;">EN</button>
                 </div>
             </div>
 
@@ -586,14 +586,14 @@
         
         if(isAmharic) {
             amBtn.style.background = 'var(--faded-green)';
-            amBtn.style.color = 'white';
+            amBtn.style.color = 'black';
             enBtn.style.background = 'transparent';
-            enBtn.style.color = 'black';
+            enBtn.style.color = 'white';
         } else {
             enBtn.style.background = 'var(--faded-green)';
-            enBtn.style.color = 'white';
+            enBtn.style.color = 'black';
             amBtn.style.background = 'transparent';
-            amBtn.style.color = 'black';
+            amBtn.style.color = 'white';
         }
         
         updateLanguageTexts();
