@@ -148,13 +148,14 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        // 1. የብር መጠኑን ከሜሴጁ ማውጣት (ያለውን Balance ትቶ የተቀበሉትን ETB 50.00 ያወጣል)
-        let amountMatch = message.match(/(?:received|transfer of)?\s*ETB\s*([\d,]+(?:\.\d+)?)/i);
+        // 1. የብር መጠንን ከየትኛውም አይነት ሜሴጅ ማውጣት
+        let amountMatch = message.match(/(?:received|transferred|transfer of|ETB)\s*([\d,]+(?:\.\d+)?)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
 
-        // 2. የትራንዛክሽን ቁጥር (TxRef/ID) ማውጣት (ምሳሌ: DE62LPG866)
-        let txMatch = message.match(/(?:transaction number|txn id|ref|transaction|id)[\s:]+([A-Z0-9]{8,15})/i);
-        let txRef = txMatch ? txMatch[1].toUpperCase() : "";
+        // 2. ትራንዛክሽን ኮድን ከሁለቱም ሜሴጅ አይነት (From Bank OR From User) ማውጣት
+        // ይሄ regex ሁለቱንም DE60LS8LYI አይነት ኮድ ይለያል
+        let txMatch = message.match(/([A-Z0-9]{8,15})/i); 
+        let txRef = txMatch ? txMatch[1].toUpperCase().trim() : "";
 
         // ትክክለኛ ብር እና ትራንዛክሽን ቁጥር ካገኘ ብቻ ሪከርድ ያደርጋል
         if(amount > 0 && txRef.length > 5) {
