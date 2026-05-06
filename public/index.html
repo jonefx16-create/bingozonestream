@@ -107,7 +107,7 @@
         .mb-cell.called { background: #22c55e !important; color: #ffffff !important; font-weight: 900; border: 1px solid #16a34a; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
         .mb-cell.current { background: #059669 !important; color: white !important; font-weight: 900; z-index: 2; transform: scale(1.05); box-shadow: 0 0 15px #10b981; border: 2px solid white;}
         
-        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; }
+        #game-page .right-panel-stack { width: 53%; flex: 0 0 53%; display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 5px; position: relative;}
         .caller-box { height: 15%; min-height: 65px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111827, #0f172a); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.4); flex-shrink: 0; position: relative;}
         .caller-ball { width: 8.5vh; height: 8.5vh; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 3vh; font-weight: 900; border: 5px solid var(--faded-green); box-shadow: 0 0 25px rgba(74, 222, 128, 0.7), inset 0 0 10px rgba(74, 222, 128, 0.4);}
         
@@ -373,6 +373,15 @@
 
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
+    
+    <!-- 🔥 አዲሱ የቋንቋ መቀየሪያ እዚህ ገብቷል (ከባላንሱ ስር፣ ከደራሹ በላይ፣ ቀኝ ጠርዝ ላይ) 🔥 -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 5px;">
+        <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+            <div id="btn-am" onclick="setLang('AM')" style="background: white; color: black; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">AM</div>
+            <div id="btn-en" onclick="setLang('EN')" style="background: black; color: white; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">EN</div>
+        </div>
+    </div>
+
     <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
             <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
@@ -387,20 +396,20 @@
             <div class="nt-value" id="timer">00:40</div> 
         </div>
         <div class="nt-right">
-            <div class="nt-badge">ደራሽ</div>
+            <div class="nt-badge" id="h-lbl-derash">ደራሽ</div>
             <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
         </div>
     </div>
 
     <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px; z-index: 1000;">
         <div class="live-indicator"><span class="dot"></span> LIVE</div>
-        <div style="font-size:8px; color:#94a3b8; font-weight:bold;">ደራሽ</div>
+        <div style="font-size:8px; color:#94a3b8; font-weight:bold;" id="h-lbl-derash-badge">ደራሽ</div>
         <div class="jp-amount"><span id="h-jp-amt-2">0</span></div>
         <div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
     </div>
     
     <div class="grid-subtitle-row" style="margin-top: 15px;">
-        <div class="gs-left">ካርቴላ ይምረጡ (10 ብር)</div>
+        <div class="gs-left" id="h-lbl-select">ካርቴላ ይምረጡ (10 ብር)</div>
         <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div>
     </div>
 
@@ -420,7 +429,6 @@
 <!-- 3. GAME PAGE -->
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
-        <!-- 🔥 ጽሁፎችን ለመቀየር id ተጨምሯል 🔥 -->
         <div class="top-info-box"><div class="info-title" id="g-lbl-round">#ዙር (Round)</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title" id="g-lbl-bet">መወራረጃ</div><div class="info-val">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title prize-title" id="g-lbl-prize">ሽልማት (Prize)</div><div class="info-val highlight" id="g-prize">0.00</div></div>
@@ -441,14 +449,6 @@
             <div class="tickets-history-box">
                 <div id="lbl-my-ticket" style="color: var(--faded-green); font-size: 11px; font-weight: bold; margin-bottom: 2px;">የእኔ ካርቴላ (My Ticket)</div>
                 <div id="game-mini-tickets" class="game-mini-tickets"></div>
-            </div>
-            
-            <!-- 🔥 አዲሱ የቋንቋ መቀየሪያ (Language Toggler) 🔥 -->
-            <div style="display: flex; justify-content: flex-end; padding-right: 5px; margin-bottom: 4px; z-index: 50;">
-                <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">
-                    <div id="btn-am" onclick="setLang('AM')" style="background: white; color: black; padding: 5px 10px; font-size: 11px; font-weight: 900; cursor: pointer;">AM</div>
-                    <div id="btn-en" onclick="setLang('EN')" style="background: black; color: white; padding: 5px 10px; font-size: 11px; font-weight: 900; cursor: pointer;">EN</div>
-                </div>
             </div>
 
             <div class="live-circle-badge">
@@ -601,22 +601,50 @@
             btnAm.style.background = 'white'; btnAm.style.color = 'black';
             btnEn.style.background = 'black'; btnEn.style.color = 'white';
             
+            // ጌም ፔጅ
             document.getElementById('g-lbl-round').innerText = "#ዙር (Round)";
             document.getElementById('g-lbl-bet').innerText = "መወራረጃ";
             document.getElementById('g-lbl-prize').innerText = "ሽልማት (Prize)";
             document.getElementById('g-lbl-balls').innerText = "እጣ (Balls)";
             document.getElementById('lbl-my-ticket').innerText = "የእኔ ካርቴላ (My Ticket)";
             document.getElementById('lbl-derash-game').innerText = "ደራሽ";
+
+            // ሆም ፔጅ (Page 1)
+            document.getElementById('h-lbl-derash').innerText = "ደራሽ";
+            document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ";
+            document.getElementById('h-lbl-select').innerText = "ካርቴላ ይምረጡ (10 ብር)";
+            document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
+            
+            let status = document.querySelector('.nt-status');
+            if(status.innerText.includes("Starting") || status.innerText.includes("ሊጀምር")) {
+                status.innerText = "ጨዋታው ሊጀምር ነው";
+            } else if(status.innerText.includes("LIVE") || status.innerText.includes("በመካሄድ")) {
+                status.innerText = "ጨዋታው በመካሄድ ላይ ነው";
+            }
         } else {
             btnEn.style.background = 'white'; btnEn.style.color = 'black';
             btnAm.style.background = 'black'; btnAm.style.color = 'white';
             
+            // Game Page
             document.getElementById('g-lbl-round').innerText = "Game Round";
             document.getElementById('g-lbl-bet').innerText = "Bet Amount";
             document.getElementById('g-lbl-prize').innerText = "Prize Pool";
             document.getElementById('g-lbl-balls').innerText = "Called Balls";
             document.getElementById('lbl-my-ticket').innerText = "My Tickets";
             document.getElementById('lbl-derash-game').innerText = "JACKPOT";
+
+            // Home Page (Page 1)
+            document.getElementById('h-lbl-derash').innerText = "JACKPOT";
+            document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT";
+            document.getElementById('h-lbl-select').innerText = "Select Tickets (10 ETB)";
+            document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
+            
+            let status = document.querySelector('.nt-status');
+            if(status.innerText.includes("ሊጀምር") || status.innerText.includes("Starting")) {
+                status.innerText = "Game is Starting";
+            } else if(status.innerText.includes("በመካሄድ") || status.innerText.includes("LIVE")) {
+                status.innerText = "Game is LIVE";
+            }
         }
     }
 
@@ -1017,7 +1045,7 @@
             isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
-            document.querySelector('.nt-status').innerText = "ጨዋታው ሊጀምር ነው";
+            document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
             
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
@@ -1050,7 +1078,7 @@
             
         } else if (data.state === "PLAYING") {
             isGameRunningLocally = true; document.getElementById('timer').innerText = "LIVE 🔴"; 
-            document.querySelector('.nt-status').innerText = "ጨዋታው በመካሄድ ላይ ነው";
+            document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is LIVE" : "ጨዋታው በመካሄድ ላይ ነው";
 
             if (currentGameState !== "PLAYING") {
                 currentGameState = "PLAYING"; 
