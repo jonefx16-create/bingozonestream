@@ -50,6 +50,17 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }
 }));
 
+// ======================================================
+// 🔥 1. 24/7 AUTOMATIC DEPOSIT SYSTEM MODEL 🔥
+// ======================================================
+const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
+    rawText: String,
+    txRef: String,
+    amount: Number,
+    isUsed: { type: Boolean, default: false },
+    dateReceived: { type: Date, default: Date.now }
+}));
+
 let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
@@ -104,7 +115,12 @@ app.post('/api/request-tx', async (req, res) => {
     const { phone, type, amount, method, sms } = req.body; let user = await User.findOne({phone}); if(!user) return res.json({success: false, message: "ተጠቃሚው አልተገኘም!"});
     if(type === 'withdraw' && user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
     if(type === 'withdraw') { user.mainBalance -= amount; await user.save(); }
-    await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save(); res.json({ success: true, message: "✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!" });
+    await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save(); 
+    
+    // 🔥 ተጠቃሚው በዌብሳይት ገቢ ሲያደርግ ወዲያውኑ አውቶማቲክ ቼክ እንዲያደርግ ጨምሬዋለሁ
+    if(type === 'deposit') { autoApprovePendingDeposits(); }
+
+    res.json({ success: true, message: "✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!" });
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { res.json({ success: true, txs: await Transaction.find({ phone: req.params.phone }).sort({ date: -1 }).limit(30) }); });
@@ -121,6 +137,81 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     let p = activePlayers[req.params.phone];
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState: gameState, gameId: gameId, globalTakenTickets: [...globalTakenTickets] });
 });
+
+// ======================================================
+// 🔥 2. 24/7 AUTOMATIC DEPOSIT SYSTEM APIs & LOGIC 🔥
+// ======================================================
+
+// አይፎንዎ ሜሴጅ ሲደርሰው በቀጥታ ወደዚህ API ይልከዋል
+app.post('/api/webhook/iphone-sms', async (req, res) => {
+    try {
+        const { secret, message } = req.body;
+        
+        // ይህ ሚስጥራዊ ኮድ የሌላ ሰው ስልክ እንዳይልክብዎት ይከላከላል (Security)
+        if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
+
+        // የብር መጠኑን ከሜሴጁ ማውጣት (Basic Extract logic for Telebirr/CBE)
+        let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*ETB/i) || message.match(/ETB\s*(\d+(?:\.\d{1,2})?)/i);
+        let amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+
+        // የትራንዛክሽን ቁጥር (TxRef/ID) ማውጣት (ምሳሌ: 7A2B3C4D...)
+        let txMatch = message.match(/(?:Txn ID|Ref|Transaction|ID)[:\s]+([A-Z0-9]+)/i);
+        let txRef = txMatch ? txMatch[1] : message.substring(0, 15); // ካላገኘ የመጀመሪያዎቹን 15 ፊደሎች ይይዛል
+
+        if(amount > 0) {
+            await new BankSMS({ rawText: message, txRef: txRef, amount: amount }).save();
+            await autoApprovePendingDeposits(); // ልክ ሜሴጅ እንደገባ አዲስ የተጠየቁ ዲፖዚቶች ካሉ ያጣራል
+        }
+
+        res.json({ success: true, message: "SMS Received successfully" });
+    } catch (e) {
+        console.log("SMS Webhook Error:", e);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ደንበኛው ከላከው ጋር እያመሳሰለ አውቶማቲክ Approve የሚያደርግ ፈንክሽን
+async function autoApprovePendingDeposits() {
+    // ገና Approve ያልተደረጉ ጥያቄዎችን እና ያልተጠቀምንባቸውን ትክክለኛ የባንክ ሜሴጆች ማምጣት
+    const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
+    const unusedSMS = await BankSMS.find({ isUsed: false });
+
+    for (let tx of pendingTxs) {
+        for (let sms of unusedSMS) {
+            // ደንበኛው የሞላው SMS/TxRef ሲስተሙ ከአይፎንዎ ከተቀበለው SMS ጋር ከተመሳሰለ እና መጠኑም ትክክል ከሆነ
+            let userSMS = (tx.smsText || "").toUpperCase();
+            
+            if (userSMS.includes(sms.txRef.toUpperCase()) && tx.amount === sms.amount) {
+                // 1. Transaction Approve ማድረግ
+                tx.status = 'Approved';
+                await tx.save();
+
+                // 2. SMS እንደተጠቀመንበት ማረጋገጥ (እንዳይደገም)
+                sms.isUsed = true;
+                await sms.save();
+
+                // 3. የደንበኛውን ሂሳብ ላይ ብር መሙላት
+                let user = await User.findOne({ phone: tx.phone });
+                if (user) {
+                    user.playBalance += tx.amount;
+                    await user.save();
+                    io.emit('balance_updated', tx.phone);
+                }
+                break; // ወደ ሚቀጥለው Transaction እለፍ
+            }
+        }
+    }
+}
+
+const originalRequestTx = app._router.stack.find(r => r.route && r.route.path === '/api/request-tx');
+if(originalRequestTx) {
+    // ልክ ተጠቃሚው ገቢ እንዳደረገ ወዲያውኑ እንዲያጣራ Timeout እንሰጠዋለን
+    app.post('/api/trigger-auto-check', async (req, res) => {
+        await autoApprovePendingDeposits();
+        res.json({ success: true });
+    });
+}
+
 
 // ==========================================
 // 🔴 ADMIN & FINANCE APIs
@@ -539,8 +630,12 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         await new Transaction({ phone: state.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
+        
+        // 🔥 ተጠቃሚው ቴሌግራም ላይ SMS ሲልክ ወዲያውኑ አውቶማቲክ ቼክ እንዲያደርግ ጨምሬዋለሁ
+        await autoApprovePendingDeposits();
+
         let u = await User.findOne({phone: state.phone});
-        bot.sendMessage(chatId, "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nአድሚን ሲያረጋግጥ ሂሳብዎ ይሞላል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        bot.sendMessage(chatId, "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nአድሚን ሲያረጋግጥ ሂሳብዎ ይሞላል። (ወይም ሲስተሙ ራሱ አውቶማቲክ ይሞላል)", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_acc') {
@@ -607,4 +702,17 @@ app.get('*', (req, res) => {
     if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// ======================================================
+// 🔥 3. በየ 1 ደቂቃው አውቶማቲክ ቼክ እንዲያደርግ (CRON JOB) 🔥
+// (ሜሴጁ የዘገየ ቢሆንም ራሱ እያጣራ አፕሩቭ ያደርጋል)
+// ======================================================
+setInterval(async () => {
+    try {
+        await autoApprovePendingDeposits();
+    } catch (error) {
+        console.log("Auto Approve Loop Error:", error);
+    }
+}, 60000); // 60000ms = 1 minute
+
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
+
