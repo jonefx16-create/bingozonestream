@@ -19,7 +19,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
-// MODELS
+// MODELS (🔥 telegramId ተጨምሯል 🔥)
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
     telegramId: { type: String, default: "" }, 
@@ -84,6 +84,7 @@ app.post('/api/login', async (req, res) => {
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም የይለፍ ቃል ተሳስቷል!" });
 });
 
+// 🔥 አዲሱ የቴሌግራም አውቶ ሎጊን API 🔥
 app.post('/api/telegram-login', async (req, res) => {
     const { telegramId } = req.body;
     let user = await User.findOne({ telegramId: telegramId.toString() });
@@ -361,16 +362,15 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
 const botState = {};
 
-// 🔥 VIP Button Removed from here
 function getMainMenu(phone, password) {
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
         reply_markup: {
             keyboard: [
-                [{ text: "🎮 ጌም ይጫወቱ" }], 
+                [{ text: "🎮 ጌም ይጫወቱ" }], // 🔥 ጌም ይጫወቱ የሚለውን ጨምሬዋለሁ
                 [{ text: "💰 ሂሳብ" }, { text: "📥 ገቢ ማድረግ" }],
                 [{ text: "📤 ወጪ ማድረግ" }, { text: "🔗 ጋብዝ & አግኝ" }],
-                [{ text: "🌟 Special Promoter" }], 
+                [{ text: "💎 VIP ክፍል" }, { text: "🌟 Special Promoter" }],
                 [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
@@ -398,6 +398,7 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> በደህና መጡ!\n\nጌሙን ለመጀመር እባክዎ ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> የሚለውን ቁልፍ ይጫኑ።", { parse_mode: "HTML", ...opts });
 });
 
+// 🔥 Contact ሲያጋራ Telegram ID ጭምር ይመዘግባል 🔥
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const telegramId = msg.from.id.toString(); 
@@ -415,12 +416,12 @@ bot.on('contact', async (msg) => {
             const newPassword = Math.random().toString(36).slice(-6);
             user = new User({ phone, name, password: newPassword, telegramId: telegramId, playBalance: 100 });
             await user.save();
-            const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 ጌም ይጫወቱ</b> የሚለውን በመንካት በቀጥታ ወደ ጌሙ መግባት ይችላሉ!`;
+            const successMsg = `🎉 ምዝገባው ተሳክቷል!\n\n👤 ስም: ${name}\n📱 ስልክ: ${phone}\n🔑 Web Pass: ${newPassword}\n\nአሁን ከታች <b>🎮 Play (ወደ ጌም ግባ)</b> የሚለውን በመንካት በቀጥታ ወደ ጌሙ መግባት ይችላሉ!`;
             bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
-            user.telegramId = telegramId; 
+            user.telegramId = telegramId; // የድሮ አካውንት ከሆነ አዲሱን ቴሌግራም አይዲ ያያይზለታል
             await user.save();
-            const existMsg = `✅ <b>እንኳን በደህና መጡ!</b>\n\nአካውንትዎ ተገናኝቷል። ወደ ጌሙ ለመግባት ከታች <b>🎮 ጌም ይጫወቱ</b> ይጫኑ።`;
+            const existMsg = `✅ <b>እንኳን በደህና መጡ!</b>\n\nአካውንትዎ ተገናኝቷል። ወደ ጌሙ ለመግባት ከታች <b>🎮 Play</b> ይጫኑ።`;
             bot.sendMessage(chatId, existMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         }
         botState[chatId] = { phone: phone, step: 'idle' };
@@ -454,7 +455,7 @@ bot.on('message', async (msg) => {
         let u = await User.findOne({ telegramId: msg.from.id.toString() });
         let playUrl = (u) ? `${WEB_URL}/?phone=${u.phone}&pass=${u.password}` : WEB_URL;
         bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ እየሄዱ ነው...", {
-            reply_markup: { inline_keyboard: [[{ text: "🎮 አሁኑኑ ይጫወቱ", web_app: { url: playUrl } }]] }
+            reply_markup: { inline_keyboard: [[{ text: "🎮 ጌም ይጫወቱ", web_app: { url: playUrl } }]] }
         });
     }
 
@@ -486,6 +487,11 @@ bot.on('message', async (msg) => {
         if(userPhone) {
             let u = await User.findOne({phone: userPhone});
             bot.sendMessage(chatId, "🔗 <b>ጋብዝ እና አግኝ:</b>\n\nጓደኛዎን ሲጋብዙ የ 10 ብር ቦነስ ያገኛሉ! የጋበዙት ሰው ሲመዘገብ የርስዎን ስልክ ቁጥር <b>'የጋበዝዎት ሰው ኮድ'</b> በሚለው ቦታ ላይ እንዲያስገባ ያድርጉ።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        }
+    } else if (text === "💎 VIP ክፍል") {
+        if(userPhone) {
+            let u = await User.findOne({phone: userPhone});
+            bot.sendMessage(chatId, "💎 <b>VIP ክፍል:</b>\n\nይህ ክፍል በቅርቡ የሚከፈት ሲሆን ከፍተኛ ተጫዋቾችን ብቻ የሚያስተናግድ ልዩ የቢንጎ ክፍል ነው።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
         }
     } else if (text === "🌟 Special Promoter") {
         if(userPhone) {
