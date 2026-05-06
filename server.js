@@ -95,7 +95,6 @@ app.post('/api/login', async (req, res) => {
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም የይለፍ ቃል ተሳስቷል!" });
 });
 
-// 🔥 አዲሱ የቴሌግራም አውቶ ሎጊን API 🔥
 app.post('/api/telegram-login', async (req, res) => {
     const { telegramId } = req.body;
     let user = await User.findOne({ telegramId: telegramId.toString() });
@@ -117,7 +116,7 @@ app.post('/api/request-tx', async (req, res) => {
     if(type === 'withdraw') { user.mainBalance -= amount; await user.save(); }
     await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save(); 
     
-    // 🔥 ተጠቃሚው በዌብሳይት ገቢ ሲያደርግ ወዲያውኑ አውቶማቲክ ቼክ እንዲያደርግ ጨምሬዋለሁ
+    // ተጠቃሚው በዌብሳይት ገቢ ሲያደርግ ወዲያውኑ አውቶማቲክ ቼክ እንዲያደርግ
     if(type === 'deposit') { autoApprovePendingDeposits(); }
 
     res.json({ success: true, message: "✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!" });
@@ -147,23 +146,26 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         const { secret, message } = req.body;
         
-        // ይህ ሚስጥራዊ ኮድ የሌላ ሰው ስልክ እንዳይልክብዎት ይከላከላል (Security)
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        // የብር መጠኑን ከሜሴጁ ማውጣት (Basic Extract logic for Telebirr/CBE)
-        let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*ETB/i) || message.match(/ETB\s*(\d+(?:\.\d{1,2})?)/i);
-        let amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+        // 1. የብር መጠኑን ከሜሴጁ ማውጣት (ያለውን Balance ትቶ የተቀበሉትን ETB 50.00 ያወጣል)
+        let amountMatch = message.match(/(?:received|transfer of)?\s*ETB\s*([\d,]+(?:\.\d+)?)/i);
+        let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
 
-        // የትራንዛክሽን ቁጥር (TxRef/ID) ማውጣት (ምሳሌ: 7A2B3C4D...)
-        let txMatch = message.match(/(?:Txn ID|Ref|Transaction|ID)[:\s]+([A-Z0-9]+)/i);
-        let txRef = txMatch ? txMatch[1] : message.substring(0, 15); // ካላገኘ የመጀመሪያዎቹን 15 ፊደሎች ይይዛል
+        // 2. የትራንዛክሽን ቁጥር (TxRef/ID) ማውጣት (ምሳሌ: DE62LPG866)
+        let txMatch = message.match(/(?:transaction number|txn id|ref|transaction|id)[\s:]+([A-Z0-9]{8,15})/i);
+        let txRef = txMatch ? txMatch[1].toUpperCase() : "";
 
-        if(amount > 0) {
-            await new BankSMS({ rawText: message, txRef: txRef, amount: amount }).save();
-            await autoApprovePendingDeposits(); // ልክ ሜሴጅ እንደገባ አዲስ የተጠየቁ ዲፖዚቶች ካሉ ያጣራል
+        // ትክክለኛ ብር እና ትራንዛክሽን ቁጥር ካገኘ ብቻ ሪከርድ ያደርጋል
+        if(amount > 0 && txRef.length > 5) {
+            let exists = await BankSMS.findOne({ txRef: txRef });
+            if(!exists) {
+                await new BankSMS({ rawText: message, txRef: txRef, amount: amount }).save();
+                await autoApprovePendingDeposits(); // አዲስ የተጠየቁ ዲፖዚቶች ካሉ ያጣራል
+            }
         }
 
-        res.json({ success: true, message: "SMS Received successfully" });
+        res.json({ success: true, message: "SMS Received & Processed", amount: amount, txRef: txRef });
     } catch (e) {
         console.log("SMS Webhook Error:", e);
         res.status(500).json({ error: "Server Error" });
@@ -172,13 +174,11 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
 
 // ደንበኛው ከላከው ጋር እያመሳሰለ አውቶማቲክ Approve የሚያደርግ ፈንክሽን
 async function autoApprovePendingDeposits() {
-    // ገና Approve ያልተደረጉ ጥያቄዎችን እና ያልተጠቀምንባቸውን ትክክለኛ የባንክ ሜሴጆች ማምጣት
     const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
     const unusedSMS = await BankSMS.find({ isUsed: false });
 
     for (let tx of pendingTxs) {
         for (let sms of unusedSMS) {
-            // ደንበኛው የሞላው SMS/TxRef ሲስተሙ ከአይፎንዎ ከተቀበለው SMS ጋር ከተመሳሰለ እና መጠኑም ትክክል ከሆነ
             let userSMS = (tx.smsText || "").toUpperCase();
             
             if (userSMS.includes(sms.txRef.toUpperCase()) && tx.amount === sms.amount) {
@@ -205,13 +205,11 @@ async function autoApprovePendingDeposits() {
 
 const originalRequestTx = app._router.stack.find(r => r.route && r.route.path === '/api/request-tx');
 if(originalRequestTx) {
-    // ልክ ተጠቃሚው ገቢ እንዳደረገ ወዲያውኑ እንዲያጣራ Timeout እንሰጠዋለን
     app.post('/api/trigger-auto-check', async (req, res) => {
         await autoApprovePendingDeposits();
         res.json({ success: true });
     });
 }
-
 
 // ==========================================
 // 🔴 ADMIN & FINANCE APIs
@@ -631,7 +629,7 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_dep_sms') {
         await new Transaction({ phone: state.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
         
-        // 🔥 ተጠቃሚው ቴሌግራም ላይ SMS ሲልክ ወዲያውኑ አውቶማቲክ ቼክ እንዲያደርግ ጨምሬዋለሁ
+        // 🔥 ተጠቃሚው ቴሌግራም ላይ SMS ሲልክ ወዲያውኑ አውቶማቲክ ቼክ እንዲያደርግ
         await autoApprovePendingDeposits();
 
         let u = await User.findOne({phone: state.phone});
@@ -704,7 +702,6 @@ app.get('*', (req, res) => {
 
 // ======================================================
 // 🔥 3. በየ 1 ደቂቃው አውቶማቲክ ቼክ እንዲያደርግ (CRON JOB) 🔥
-// (ሜሴጁ የዘገየ ቢሆንም ራሱ እያጣራ አፕሩቭ ያደርጋል)
 // ======================================================
 setInterval(async () => {
     try {
@@ -715,4 +712,5 @@ setInterval(async () => {
 }, 60000); // 60000ms = 1 minute
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
+
 
