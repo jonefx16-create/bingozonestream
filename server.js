@@ -91,7 +91,6 @@ async function autoApprovePendingDeposits() {
             for (let sms of unusedSMS) {
                 let bankRef = sms.txRef.toUpperCase();
                 
-                // ማረጋገጫ፡ ቋንቋው ምንም ይሁን ምን፣ የባንኩ ትራንዛክሽን ቁጥር (Ref) ተጫዋቹ ከላከው ሜሴጅ ውስጥ ካለ ብቻ ነው የሚያልፈው።
                 if (userMsg.includes(bankRef)) {
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
@@ -127,16 +126,13 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        // ባንኩ የላከልህ የገቢ ሜሴጅ መሆኑን በአማርኛም በእንግሊዘኛም ማረጋገጥ
         let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
 
-        // መጠን ማውጣት (በኢትዮጵያ ባንኮች ፎርማት)
         let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || 
                           message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:\.\d{1,2})?)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
 
-        // የትራንዛክሽን ቁጥር ማውጣት (አማርኛ እና እንግሊዝኛ)
         let txMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]+)/i);
         let txRef = txMatch ? txMatch[1] : null;
 
@@ -379,6 +375,7 @@ io.on('connection', (socket) => {
 // ======================================================
 // ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
 // ======================================================
+const TelegramBot = require('node-telegram-bot-api');
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -388,7 +385,7 @@ app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); re
 
 const botState = {};
 
-// 🔥 የአማላይ Welcome Text
+// 🔥 Welcome Text
 const WELCOME_TEXT = `🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>`;
 
 function getProfileText(user) {
@@ -402,7 +399,6 @@ function getProfileText(user) {
            `🎁 በእርስዎ ሊንክ ለሚመዘገብ ሰው ሁሉ 10 ብር ያገኛሉ!`;
 }
 
-// 🔥 የተስተካከለ እና ያማረ የ Keyboard አቀማመጥ (VIP ጠፍቷል)
 function getMainMenu(phone, password) {
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
@@ -423,7 +419,6 @@ const cancelKeyboard = {
     reply_markup: { keyboard: [[{ text: "🔙 ወደ ኋላ ተመለስ" }]], resize_keyboard: true }
 };
 
-// 🔥 Start ሲባል Welcome Text ያሳያል (Profile አያሳይም)
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     const refCode = match[1]; 
@@ -502,7 +497,6 @@ bot.on('message', async (msg) => {
             reply_markup: { inline_keyboard: [[{ text: "🎮 ጌም ይጫወቱ (PLAY)", web_app: { url: playUrl } }]] }
         });
     }
-    // 🔥 ፕሮፋይል አሁን የራሱ አዝራር አለው
     else if (text === "👤 ፕሮፋይል") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, getProfileText(user), { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
@@ -527,36 +521,58 @@ bot.on('message', async (msg) => {
         });
         state.step = 'idle';
     } 
-    // 🔥 የጋብዝ ሊንኩ በደንብ ተስተካክሏል
+    // 🔥 የተስተካከለው የጋብዝ ሊንክ እና Preview 
     else if (text === "🔗 ጋብዝ & አግኝ (Invite)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let refLink = `https://t.me/bingo_habesha_bot?start=${user.phone}`;
-        let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn):</b>\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ <b>10 ብር ቦነስ</b> ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n<code>${refLink}</code>`;
-        bot.sendMessage(chatId, msgText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+        let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn)</b>\n\nበቢንጎ ሀበሻ ይጫወቱ ይዝናኑ፣ በተጨማሪ ሽልማቶች ይንበሸበሹ! 🎁\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ <b>10 ብር ቦነስ</b> ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n${refLink}`;
+        
+        // disable_web_page_preview: false በማድረግ ቴሌግራም ላይ Preview Box እንዲመጣ አደረግን
+        bot.sendMessage(chatId, msgText, { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user.phone, user.password) });
     } 
     else if (text === "🗣 አስተዋውቅ") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🗣 <b>አስተዋውቅ እና አግኝ:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
+    // 🔥 የተስተካከለው የጨዋታ መመሪያ 
     else if (text === "📖 መመሪያ") {
         if(!user) return;
-        let guideText = `📖 <b>የጨዋታው መመሪያ:</b>\n\n🎯 <b>እንዴት ይጫወታሉ?</b>\n1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ ካርቴላ ይሰጥዎታል።\n2️⃣ ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል።\n3️⃣ ሲስተሙ ራሱ ያጠቁርልዎታል (መንካት አይጠበቅብዎትም)።\n\n🏆 ሙሉ መስመር ሲሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።`;
+        let guideText = `📖 <b>የጨዋታው መመሪያ (How to Play):</b>\n\n` +
+                        `🎯 <b>እንዴት ይጫወታሉ?</b>\n` +
+                        `1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል። (መሀል ላይ ያለው FREE ነው)\n` +
+                        `2️⃣ ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል።\n` +
+                        `3️⃣ ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።\n\n` +
+                        `🏆 <b>እንዴት ያሸንፋሉ? (BINGO መቼ ይዘጋል?)</b>\n` +
+                        `የተጠሩት ቁጥሮች በካርቴላዎ ላይ:\n` +
+                        `👉 <b>በአግድም</b> (5 ቁጥር)\n` +
+                        `👉 <b>ወደ ታች</b> (5 ቁጥር)\n` +
+                        `👉 <b>በማዕዘን / X ቅርፅ</b> (5 ቁጥር)\n` +
+                        `ሙሉ መስመር ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ። አሸናፊው ሲገኝ ጨዋታው በራሱ ተዘግቶ ሽልማቱ ሂሳብዎ ላይ ይገባል!`;
         bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     }
     else if (text === "🆘 እርዳታ") {
         if(!user) return;
         bot.sendMessage(chatId, "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ካጋጠመዎት አድሚኑን ያናግሩ:\n👉 @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
+    // 🔥 የተስተካከለው የደንብ ፅሁፍ (የዲፖዚት ህግን ጨምሮ)
     else if (text === "📜 ደንቦች") {
         if(!user) return;
-        bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማጭበርበር መሞከር ያስግዳል!", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+        let rulesText = `📜 <b>የጨዋታው ደንቦች:</b>\n\n` +
+            `1️⃣ <b>የገቢ (Deposit) ደንብ:</b>\n` +
+            `👉 ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr)\n` +
+            `👉 ከ ንግድ ባንክ ወደ ንግድ ባንክ (CBE to CBE) ብቻ ያስገቡ።\n` +
+            `⚠️ ይህንን ሳያደርጉ ቀርተው ክፍያዎ ቢዘገይ ድርጅቱ ሀላፊነት አይወስድም።\n\n` +
+            `2️⃣ <b>የማረጋገጫ (SMS) ደንብ:</b> ገቢ ሲያደርጉ የደረሰዎትን ትክክለኛ የባንክ ማረጋገጫ ፅሁፍ (SMS/TxRef) በትክክል ያስገቡ። የተሳሳተ ወይም ሀሰተኛ መረጃ ማስገባት አካውንትዎን ያስግዳል!\n\n` +
+            `3️⃣ <b>እድሜ:</b> ተጫዋቾች ከ 21 ዓመት በላይ መሆን አለባቸው።\n\n` +
+            `4️⃣ <b>ቦነስ:</b> የቦነስ ብር ለመጫወቻ ብቻ የሚያገለግል ሲሆን ወጪ (Withdraw) አይደረግም።`;
+        bot.sendMessage(chatId, rulesText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
     
     // Deposit / Withdraw Inputs
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text);
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
-        bot.sendMessage(chatId, `✅ መጠን: <b>${state.amount} ETB</b>\n\nእባክዎ ክፍያ የፈጸሙበትን የ <b>SMS ማረጋገጫ (Tx Ref)</b> አሁን እዚህ ይላኩ፦`, { parse_mode: "HTML", ...cancelKeyboard });
+        bot.sendMessage(chatId, `✅ መጠን: <b>${state.amount} ETB</b>\n\nእባክዎ ክፍያ የፈጸሙበትን የ <b>ትክክለኛውን የባንክ SMS ማረጋገጫ (Tx Ref) ፅሁፍ</b> አሁን እዚህ ይላኩ፦`, { parse_mode: "HTML", ...cancelKeyboard });
         state.step = 'awaiting_dep_sms';
     } 
     else if (state.step === 'awaiting_dep_sms') {
