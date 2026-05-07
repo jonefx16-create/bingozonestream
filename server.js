@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const fs = require('fs');
 const { Server } = require('socket.io');
+const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const server = http.createServer(app);
@@ -13,14 +14,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
-// Database Connection
+// ==========================================
+// 🔵 DATABASE CONNECTION
+// ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
-// 🔵 MODELS (Existing + New BankSMS)
+// 🔵 MODELS
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
@@ -75,7 +78,7 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🟢 AUTOMATIC APPROVAL LOGIC
+// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
@@ -89,7 +92,6 @@ async function autoApprovePendingDeposits() {
                 let bankRef = sms.txRef.toUpperCase();
                 
                 if (userMsg.includes(bankRef)) {
-                    
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
                         let actualAmount = sms.amount;
@@ -371,23 +373,17 @@ io.on('connection', (socket) => {
 });
 
 // ======================================================
-// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
+// ✈️ TELEGRAM BOT INTEGRATION (FIXED STATELESS BUTTONS)
 // ======================================================
-const TelegramBot = require('node-telegram-bot-api');
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
-
-app.post(`/bot${telegramToken}`, (req, res) => {
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
-});
+app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 
 const botState = {};
 
-// 🔥 የፕሮፋይል ፅሁፍ ማሳያ ፎርማት 
 function getProfileText(user) {
     return `👤 <b>የእርስዎ ፕሮፋይል መረጃ</b>\n\n` +
            `🔹 <b>ስም:</b> ${user.name}\n` +
@@ -395,11 +391,10 @@ function getProfileText(user) {
            `🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n` +
            `💰 <b>የሂሳብ መጠን:</b>\n` +
            `   ➖ መጫወቻ ሂሳብ (Play): <b>${user.playBalance.toFixed(2)} ETB</b>\n` +
-           `   ➖ ዋና ሂሳብ (Main): <b>${user.mainBalance.toFixed(2)} ETB</b>\n` +
-           `   🎁 የተጋበዘ ቦነስ: በእርስዎ ሊንክ ለሚገባ ሰው 10 ETB ያገኛሉ!`;
+           `   ➖ ዋና ሂሳብ (Main): <b>${user.mainBalance.toFixed(2)} ETB</b>\n\n` +
+           `🎁 በእርስዎ ሊንክ ለሚመዘገብ ሰው ሁሉ 10 ብር ያገኛሉ!`;
 }
 
-// 🔥 አዲሱ የቁልፎች አቀማመጥ (VIP ጠፍቷል፣ Profile እና Promote ተጨምሯል)
 function getMainMenu(phone, password) {
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
@@ -417,42 +412,29 @@ function getMainMenu(phone, password) {
 }
 
 const cancelKeyboard = {
-    reply_markup: {
-        keyboard: [[{ text: "🔙 ወደ ኋላ ተመለስ" }]],
-        resize_keyboard: true
-    }
+    reply_markup: { keyboard: [[{ text: "🔙 ወደ ኋላ ተመለስ" }]], resize_keyboard: true }
 };
 
-// 🔥 ቀድሞ የተመዘገበ ተጫዋች start ሲል (የጋበዘውን ሰው ኮድ ጭምር ያስታውሳል)
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
     const chatId = msg.chat.id;
-    const refCode = match[1]; // ሪፈራል ካለ 
+    const refCode = match[1]; 
     let user = await User.findOne({ telegramId: msg.from.id.toString() });
 
     if(user) {
-        // የተመዘገበ ከሆነ ቀጥታ ፕሮፋይሉን ያመጣል
         bot.sendMessage(chatId, `👋 እንኳን ደህና መጡ!\n\n${getProfileText(user)}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } else {
-        // አዲስ ከሆነ ስልክ ይጠይቃል
         botState[chatId] = { step: 'idle', refCode: refCode };
-        const opts = { 
+        bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> መጡ!\n\nጌሙን ለመጀመር ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> ይጫኑ።", { 
             parse_mode: "HTML",
-            reply_markup: { 
-                keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], 
-                resize_keyboard: true, 
-                one_time_keyboard: true 
-            } 
-        };
-        bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> መጡ!\n\nጌሙን ለመጀመር እባክዎ ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> የሚለውን ቁልፍ ይጫኑ።", opts);
+            reply_markup: { keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], resize_keyboard: true, one_time_keyboard: true } 
+        });
     }
 });
 
-// 🔥 ስልክ ቁጥር ሲያጋራ እና ሲመዘገብ
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const telegramId = msg.from.id.toString(); 
-    const contact = msg.contact;
-    let phone = contact.phone_number;
+    let phone = msg.contact.phone_number;
     if (phone.startsWith('251')) phone = '0' + phone.substring(3);
     if (phone.startsWith('+251')) phone = '0' + phone.substring(4);
 
@@ -464,7 +446,6 @@ bot.on('contact', async (msg) => {
             const newPassword = Math.random().toString(36).slice(-6);
             let actualRef = "";
 
-            // የጋበዘው ሰው ካለ ቦነስ መስጠት
             if (state.refCode) {
                 let refUser = await User.findOne({ phone: state.refCode });
                 if (refUser) {
@@ -475,21 +456,15 @@ bot.on('contact', async (msg) => {
                 }
             }
 
-            user = new User({ phone, name: contact.first_name || "User", password: newPassword, telegramId: telegramId, referredBy: actualRef, playBalance: 100 });
-            await user.save();
-            
-            // አዲስ ሲመዘገብ የሚመጣው መልዕክት እና ፕሮፋይል
-            const successMsg = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው በተሳካ ሁኔታ ተጠናቋል። አሁን መጫወት ይችላሉ!\n\n${getProfileText(user)}`;
-            bot.sendMessage(chatId, successMsg, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+            user = await User.create({ phone, name: msg.contact.first_name || "User", password: newPassword, telegramId: telegramId, referredBy: actualRef, playBalance: 100 });
+            bot.sendMessage(chatId, `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n${getProfileText(user)}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
             user.telegramId = telegramId; 
             await user.save();
             bot.sendMessage(chatId, `✅ አካውንትዎ ተገናኝቷል!\n\n${getProfileText(user)}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         }
-        botState[chatId] = { phone: phone, step: 'idle' };
-    } catch (error) {
-        bot.sendMessage(chatId, "❌ ይቅርታ፣ ሲስተሙ ላይ ችግር አጋጥሟል።");
-    }
+        botState[chatId] = { step: 'idle' };
+    } catch (error) { bot.sendMessage(chatId, "❌ ይቅርታ፣ ችግር አጋጥሟል።"); }
 });
 
 bot.on('message', async (msg) => {
@@ -497,100 +472,76 @@ bot.on('message', async (msg) => {
     const text = msg.text;
     
     if(!text || text.startsWith('/start') || msg.contact) return;
-    
+
+    // 🔥 ዋናው መፍትሄ፡ በእያንዳንዱ ሜሴጅ ጊዜ ዳታቤዝ ላይ ተጫዋቹን ፈልጎ ያመጣል (Never loses state)
+    const telegramId = msg.from.id.toString();
+    let user = await User.findOne({ telegramId: telegramId });
     let state = botState[chatId] || { step: 'idle' };
-    let userPhone = state.phone;
 
     if (text === "🔙 ወደ ኋላ ተመለስ") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            botState[chatId].step = 'idle';
-            bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        botState[chatId] = { step: 'idle' };
+        if(user) {
+            bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል።", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
-            botState[chatId] = { step: 'idle' };
             bot.sendMessage(chatId, "❌ ትዕዛዙ ተቋርጧል።", { reply_markup: { remove_keyboard: true } });
         }
         return;
     }
 
     if (text === "🎮 ጌም ይጫወቱ") {
-        let u = await User.findOne({ telegramId: msg.from.id.toString() });
-        let playUrl = (u) ? `${WEB_URL}/?phone=${u.phone}&pass=${u.password}` : WEB_URL;
-        bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ እየሄዱ ነው...", {
-            reply_markup: { inline_keyboard: [[{ text: "🎮 ጌም ይጫወቱ", web_app: { url: playUrl } }]] }
+        let playUrl = (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL;
+        bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ ለመግባት ከታች ይጫኑ👇", {
+            reply_markup: { inline_keyboard: [[{ text: "🎮 ጌም ይጫወቱ (PLAY)", web_app: { url: playUrl } }]] }
         });
     }
-
-    // 🔥 አዲሱ Profile ቁልፍ
-    if (text === "👤 ፕሮፋይል") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, getProfileText(u), { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
+    else if (text === "👤 ፕሮፋይል") {
+        if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
+        bot.sendMessage(chatId, getProfileText(user), { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     }
-
     else if (text === "💰 ሂሳብ") {
-        if(userPhone) {
-            let user = await User.findOne({ phone: userPhone });
-            bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
-        }
+        if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
+        bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    
     else if (text === "📥 ገቢ ማድረግ") {
-        if(!userPhone) return;
+        if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>", { 
             parse_mode: "HTML",
             reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBE", callback_data:"dep_CBE"}], [{text:"🟢 MPesa", callback_data:"dep_MPesa"}]] } 
         });
         state.step = 'idle';
     } 
-    
     else if (text === "📤 ወጪ ማድረግ") {
-        if(!userPhone) return;
+        if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>", { 
             parse_mode: "HTML",
             reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBE", callback_data:"wit_CBE"}], [{text:"🟢 MPesa", callback_data:"wit_MPesa"}]] } 
         });
         state.step = 'idle';
     } 
-    
-    // 🔥 Referral Link Generator
     else if (text === "🔗 ጋብዝ & አግኝ") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            let refLink = `https://t.me/bingo_habesha_bot?start=${u.phone}`;
-            let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn):</b>\n\nይህንን የእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ 10 ብር ቦነስ ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n<code>${refLink}</code>`;
-            bot.sendMessage(chatId, msgText, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
+        if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
+        let refLink = `https://t.me/bingo_habesha_bot?start=${user.phone}`;
+        let msgText = `🔗 <b>ጋብዝ እና አግኝ:</b>\n\nይህንን የእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ 10 ብር ቦነስ ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n<code>${refLink}</code>`;
+        bot.sendMessage(chatId, msgText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    
-    // 🔥 የተስተካከለው Special Promoter (አስተዋውቅ እና አግኝ)
     else if (text === "🗣 አስተዋውቅ እና አግኝ") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "🗣 <b>አስተዋውቅ እና አግኝ:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
+        if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
+        bot.sendMessage(chatId, "🗣 <b>አስተዋውቅ እና አግኝ:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    
     else if (text === "📖 መመሪያ") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            let guideText = `📖 <b>የጨዋታው መመሪያ:</b>\n\n🎯 <b>እንዴት ይጫወታሉ?</b>\n1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ ካርቴላ ይሰጥዎታል።\n2️⃣ ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል።\n3️⃣ ሲስተሙ ራሱ ያጠቁርልዎታል (መንካት አይጠበቅብዎትም)።\n\n🏆 ሙሉ መስመር ሲሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።`;
-            bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
+        if(!user) return;
+        let guideText = `📖 <b>የጨዋታው መመሪያ:</b>\n\n🎯 <b>እንዴት ይጫወታሉ?</b>\n1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ ካርቴላ ይሰጥዎታል።\n2️⃣ ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል።\n3️⃣ ሲስተሙ ራሱ ያጠቁርልዎታል (መንካት አይጠበቅብዎትም)።\n\n🏆 ሙሉ መስመር ሲሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።`;
+        bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     }
     else if (text === "🆘 እርዳታ") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ካጋጠመዎት አድሚኑን ያናግሩ:\n👉 @bingohabesha", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
+        if(!user) return;
+        bot.sendMessage(chatId, "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ካጋጠመዎት አድሚኑን ያናግሩ:\n👉 @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
     else if (text === "📜 ደንቦች") {
-        if(userPhone) {
-            let u = await User.findOne({phone: userPhone});
-            bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማጭበርበር መሞከር ያስግዳል!", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        }
+        if(!user) return;
+        bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማጭበርበር መሞከር ያስግዳል!", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
+    
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text);
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
@@ -598,10 +549,11 @@ bot.on('message', async (msg) => {
         state.step = 'awaiting_dep_sms';
     } 
     else if (state.step === 'awaiting_dep_sms') {
-        await new Transaction({ phone: state.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
-        let u = await User.findOne({phone: state.phone});
-        bot.sendMessage(chatId, "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።", { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
-        await autoApprovePendingDeposits();
+        if(user) {
+            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
+            bot.sendMessage(chatId, "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+            await autoApprovePendingDeposits();
+        }
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_acc') {
@@ -613,15 +565,17 @@ bot.on('message', async (msg) => {
         state.amount = parseFloat(text);
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
         
-        let u = await User.findOne({phone: state.phone});
-        if(u.mainBalance < state.amount) return bot.sendMessage(chatId, `❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!`, { ...getMainMenu(u.phone, u.password) });
-        
-        u.mainBalance -= state.amount; 
-        await u.save();
-        await new Transaction({ phone: state.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: `Transfer to: ${state.destinationPhone}` }).save();
-        bot.sendMessage(chatId, `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${state.amount} ETB\nወደ: ${state.destinationPhone}\n\nበቅርቡ ይላካል!`, { parse_mode: "HTML", ...getMainMenu(u.phone, u.password) });
+        if(user) {
+            if(user.mainBalance < state.amount) return bot.sendMessage(chatId, `❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!`, { ...getMainMenu(user.phone, user.password) });
+            user.mainBalance -= state.amount; 
+            await user.save();
+            await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: `Transfer to: ${state.destinationPhone}` }).save();
+            bot.sendMessage(chatId, `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${state.amount} ETB\nወደ: ${state.destinationPhone}\n\nበቅርቡ ይላካል!`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+        }
         state.step = 'idle';
     }
+
+    botState[chatId] = state;
 });
 
 bot.on('callback_query', async (query) => {
@@ -642,6 +596,7 @@ bot.on('callback_query', async (query) => {
         state.step = 'awaiting_wit_acc';
         bot.sendMessage(chatId, `🏦 ባንክ: <b>${state.method}</b>\n\nገንዘቡ እንዲላክልዎ የሚፈልጉትን <b>ስልክ ቁጥር ወይም አካውንት</b> ያስገቡ፦`, { parse_mode: "HTML", ...cancelKeyboard });
     }
+    botState[chatId] = state;
     bot.answerCallbackQuery(query.id);
 });
 
