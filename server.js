@@ -36,7 +36,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     played: { type: Number, default: 0 }, 
     won: { type: Number, default: 0 }, 
     status: { type: String, default: 'active' },
-    language: { type: String, default: 'am' } // የቋንቋ መለያ (am, en, or, ti)
+    language: { type: String, default: 'am' } 
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -120,7 +120,7 @@ async function autoApprovePendingDeposits() {
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK (Received)
+// 🔵 IPHONE SMS WEBHOOK
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
@@ -205,7 +205,7 @@ app.post('/api/request-tx', async (req, res) => {
     
     await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
     if(type === 'deposit') { await autoApprovePendingDeposits(); }
-    res.json({ success: true, message: "✅ የገቢ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
+    res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
@@ -340,9 +340,6 @@ setInterval(() => {
     }
 }, 1000);
 
-// ==========================================
-// 🔵 SOCKET.IO HANDLERS
-// ==========================================
 io.on('connection', (socket) => {
     socket.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
     socket.on('get_initial_data', (phone) => {
@@ -368,7 +365,7 @@ io.on('connection', (socket) => {
 });
 
 // ======================================================
-// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
+// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION (MULTI-LANGUAGE)
 // ======================================================
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
@@ -379,7 +376,7 @@ app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); re
 
 const botState = {};
 
-// 🌐 TRANSLATIONS (የቋንቋ ትርጉሞች)
+// 🌐 COMPLETE TRANSLATION DICTIONARY
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -394,19 +391,34 @@ const t = {
         btn_help: "🆘 እርዳታ",
         btn_rules: "📜 ደንቦች",
         btn_lang: "🌐 ቋንቋ (Language)",
-        btn_back: "🔙 ተመለስ (Back)",
+        btn_back: "🔙 ወደ ኋላ ተመለስ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ",
         err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።",
         err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
         profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>",
         wit_msg: "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>",
-        invite_msg: (l) => `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn)</b>\n\nይህንን ሊንክ ለጓደኛዎ ይላኩ። ጓደኛዎ ሲመዘገብ <b>እርስዎም 10 ብር፣ ጓደኛዎም 10 ብር</b> ያገኛላችሁ!\n\n👇 ሊንክዎ:\n${l}`,
+        invite_msg: (l) => `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn)</b>\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ <b>እርስዎም 10 ብር፣ ጓደኛዎም 10 ብር</b> የመጫወቻ ቦነስ ያገኛላችሁ!\n\n👇 የጋብዝ ሊንክዎ:\n${l}`,
+        promo_msg: "🗣 <b>አስተዋውቅ እና አግኝ:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha",
+        guide_msg: `📖 <b>የጨዋታው መመሪያ (How to Play):</b>\n\n1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል።\n2️⃣ ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል።\n3️⃣ ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።\n\n🏆 <b>እንዴት ያሸንፋሉ?</b>\nየተጠሩት ቁጥሮች በአግድም፣ ወደ ታች ወይም በማዕዘን (X ቅርፅ) ሙሉ መስመር ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።`,
+        help_msg: "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ካጋጠመዎት አድሚኑን ያናግሩ:\n👉 @bingohabesha",
+        rules_msg: `📜 <b>የጨዋታው ደንቦች:</b>\n\n1️⃣ <b>የሂሳብ ደንቦች:</b>\n🟢 <b>መጫወቻ ሂሳብ (Play Balance):</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን በፍፁም ወጪ (Withdraw) ማድረግ አይቻልም።\n🟡 <b>ዋና ሂሳብ (Main Balance):</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።\n\n2️⃣ <b>የገቢ ደንብ:</b>\n👉 ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr)\n👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBEBirr to CBEBirr) ብቻ ያስገቡ።\n\n3️⃣ <b>ማረጋገጫ:</b> ገቢ ሲያደርጉ የደረሰዎትን ትክክለኛ የባንክ (SMS/TxRef) በትክክል ያስገቡ።\n4️⃣ <b>እድሜ:</b> ተጫዋቾች ከ 21 ዓመት በላይ መሆን አለባቸው።`,
         choose_lang: "እባክዎ ቋንቋ ይምረጡ (Please choose language):",
-        lang_set: "✅ ቋንቋ በተሳካ ሁኔታ ተቀይሯል!"
+        lang_set: "✅ ቋንቋ በተሳካ ሁኔታ ተቀይሯል!",
+        warn_telebirr: "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr) ብቻ ያስገቡ!\n\n",
+        warn_cbebirr: "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBEBirr to CBEBirr) ብቻ ያስገቡ!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 ባንክ: <b>${method}</b>\n\n${warning}እባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👤 ስም: <b>${name}</b>\n👉 ቁጥር: <b>${num}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> ብቻ እዚህ ይፃፉልኝ (ምሳሌ: 100):`,
+        wit_info: (method) => `🏦 ባንክ: <b>${method}</b>\n\nገንዘቡ እንዲላክልዎ የሚፈልጉትን <b>ስልክ ቁጥር ወይም አካውንት</b> ያስገቡ፦`,
+        invalid_amt: "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):",
+        enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nእባክዎ ክፍያ የፈጸሙበትን የ <b>ትክክለኛውን የባንክ SMS ማረጋገጫ (Tx Ref) ፅሁፍ</b> አሁን እዚህ ይላኩ፦`,
+        dep_success: "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።",
+        enter_wit_amt: (acc) => `✅ አካውንት: <b>${acc}</b>\n\nማውጣት የሚፈልጉትን መጠን ያስገቡ (ቢያንስ 50 ብር):`,
+        insufficient: "❌ በዋና ሂሳብዎ (Main Balance) ላይ በቂ ብር የለም!",
+        wit_success: (amt, acc) => `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${amt} ETB\nወደ: ${acc}\n\nበቅርቡ ይላካል!`
     },
     en: {
-        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform. Play, Win, and Withdraw instantly!\n\n👇 <b>Choose an option below:</b>",
+        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 and most trusted BINGO platform. Play now, Win, and Withdraw instantly!\n\n👇 <b>Choose an option below:</b>",
         btn_play: "🎮 PLAY BINGO",
         btn_profile: "👤 Profile",
         btn_balance: "💰 Balance",
@@ -423,15 +435,30 @@ const t = {
         err_reg_first: "Please register first by sending /start.",
         err_cancel: "❌ Action cancelled.",
         profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n🔑 <b>Password:</b> <code>${u.password}</code>\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>Wallet Balance:</b>\n\n🟢 Play Balance: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Main Balance: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Choose a bank to Deposit:</b>",
         wit_msg: "🏦 <b>Choose a bank to Withdraw:</b>",
-        invite_msg: (l) => `🔗 <b>Invite & Earn</b>\n\nShare this link. When a friend joins, <b>you both get 10 ETB</b> Play Bonus!\n\n👇 Your Link:\n${l}`,
+        invite_msg: (l) => `🔗 <b>Invite & Earn</b>\n\nShare this link with your friends. When a friend joins, <b>both YOU and YOUR FRIEND get a 10 ETB</b> Play Bonus!\n\n👇 Your Link:\n${l}`,
+        promo_msg: "🗣 <b>Promote:</b>\n\nIf you want to earn extra income as an official promoter, please contact: @bingohabesha",
+        guide_msg: `📖 <b>How to Play:</b>\n\n1️⃣ When you buy a ticket, you get a 5x5 card.\n2️⃣ The system calls a number every 3 seconds.\n3️⃣ The system automatically daubs your card (no clicking needed).\n\n🏆 <b>How to Win:</b>\nIf your called numbers form a full line (Horizontal, Vertical, or Diagonal X), you win <b>BINGO!</b>`,
+        help_msg: "🆘 <b>Support:</b>\n\nFor any questions, contact Admin:\n👉 @bingohabesha",
+        rules_msg: `📜 <b>Game Rules:</b>\n\n1️⃣ <b>Wallet Rules:</b>\n🟢 <b>Play Balance:</b> Used ONLY for buying tickets. Cannot be withdrawn.\n🟡 <b>Main Balance:</b> Winnings go here. You can withdraw this anytime.\n\n2️⃣ <b>Deposit Rule:</b>\n👉 Send Telebirr to Telebirr ONLY.\n👉 Send CBEBirr to CBEBirr ONLY.\n\n3️⃣ <b>Verification:</b> You must send the exact correct Bank SMS/TxRef when depositing.\n4️⃣ <b>Age:</b> Must be 21+ years old.`,
         choose_lang: "Please choose your language:",
-        lang_set: "✅ Language changed successfully!"
+        lang_set: "✅ Language changed successfully!",
+        warn_telebirr: "⚠️ <b>WARNING:</b> Please send from Telebirr to Telebirr ONLY!\n\n",
+        warn_cbebirr: "⚠️ <b>WARNING:</b> Please send from CBEBirr to CBEBirr ONLY!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 Bank: <b>${method}</b>\n\n${warning}Please send the money to:\n👤 Name: <b>${name}</b>\n👉 Account/Phone: <b>${num}</b>\n\nThen type ONLY the <b>amount you sent</b> here (e.g., 100):`,
+        wit_info: (method) => `🏦 Bank: <b>${method}</b>\n\nPlease enter the <b>Account or Phone number</b> you want to withdraw to:`,
+        invalid_amt: "❌ Invalid Amount. Enter at least 50 ETB:",
+        enter_sms: (amt) => `✅ Amount: <b>${amt} ETB</b>\n\nNow, please paste the exact <b>Bank SMS (Tx Ref) text</b> of your payment here:`,
+        dep_success: "✅ <b>Deposit Request Sent!</b>\n\nIt will be automatically approved in seconds.",
+        enter_wit_amt: (acc) => `✅ Account: <b>${acc}</b>\n\nEnter the withdrawal amount (Min 50 ETB):`,
+        insufficient: "❌ Insufficient Main Balance to withdraw!",
+        wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\n\nAmount: ${amt} ETB\nTo: ${acc}\n\nWill be processed shortly!`
     },
     or: {
         welcome: "🎉 <b>Baga nagaan gara BINGO HABESHA dhuftan!</b> 🎉\n\nFilannoo 1ffaa fi amansiisaa BINGO Itoophiyaa. Tapha, Mo'adhu, fi Battalumatti baasi!\n\n👇 <b>Filannoo armaan gadii filadhu:</b>",
-        btn_play: "🎮 Tapadhu (PLAY)",
+        btn_play: "🎮 Tapadhu (PLAY BINGO)",
         btn_profile: "👤 Pirofaayilii",
         btn_balance: "💰 Herrega",
         btn_deposit: "📥 Galchuu (Deposit)",
@@ -447,14 +474,29 @@ const t = {
         err_reg_first: "Mee dura /start tuquun galmaa'i.",
         err_cancel: "❌ Hojiin haqameera.",
         profile_text: (u) => `👤 <b>Pirofaayilii Kee</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n🔑 <b>Jecha Iccitii:</b> <code>${u.password}</code>\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Herrega Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Herrega Taphaa (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Herrega Muummee (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Baankii galchuuf barbaaddu filadhu:</b>",
         wit_msg: "🏦 <b>Baankii baasuuf barbaaddu filadhu:</b>",
-        invite_msg: (l) => `🔗 <b>Afeeri & Argadhu</b>\n\nHiriyaa kee afeeri. Yeroo isaan galmaa'an <b>lachuun keessan 10 ETB</b> argattu!\n\n👇 Liinkii Kee:\n${l}`,
+        invite_msg: (l) => `🔗 <b>Afeeri fi Argadhu</b>\n\nLiinkii kana hiriyaa keetiif ergi. Yeroo isaan galmaa'an <b>lachuun keessan Boonasii 10 ETB</b> ni argattu!\n\n👇 Liinkii Kee:\n${l}`,
+        promo_msg: "🗣 <b>Beeksisi fi Argadhu:</b>\n\nGalii dabalataa argachuu yoo barbaadde, maaloo admin dubbisi: @bingohabesha",
+        guide_msg: `📖 <b>Akkaataa Tapha:</b>\n\n1️⃣ Kaardii yoo bittan kaardii 5x5 isiniif kennama.\n2️⃣ Siistamni sekoondii 3 keessatti lakkoofsa waama.\n3️⃣ Siistamni ofumaan isiniif guuta.\n\n🏆 <b>Akkaataa Mo'atan:</b>\nYoo sarara guutuu (Dalga, Gadee ykn X) guuttan <b>BINGO!</b> jettanii mo'attu.`,
+        help_msg: "🆘 <b>Gargaarsa:</b>\n\nGaaffii kamiyyuu yoo qabaattan admin dubbisaa:\n👉 @bingohabesha",
+        rules_msg: `📜 <b>Seera Taphaa:</b>\n\n1️⃣ <b>Seera Herregaa:</b>\n🟢 <b>Herrega Taphaa:</b> Kaardii bituuf qofa tajaajila. Baasuu hin dandeessan.\n🟡 <b>Herrega Muummee:</b> Galiin mo'attanii asitti seena. Yeroo barbaaddan baasuu dandeessu.\n\n2️⃣ <b>Seera Galchuu:</b>\n👉 Telebirr irraa gara Telebirr QOFA ergaa.\n👉 CBEBirr irraa gara CBEBirr QOFA ergaa.\n\n3️⃣ <b>Mirkaneessa:</b> SMS ykn TxRef sirrii ta'e galchuu qabdu.\n4️⃣ <b>Umrii:</b> Waggaa 21 fi isaa ol ta'uu qaba.`,
         choose_lang: "Afaan filadhu (Choose language):",
-        lang_set: "✅ Afaan sirriitti jijjiirameera!"
+        lang_set: "✅ Afaan sirriitti jijjiirameera!",
+        warn_telebirr: "⚠️ <b>HUBACHIISA:</b> Maaloo Telebirr irraa gara Telebirr qofa ergaa!\n\n",
+        warn_cbebirr: "⚠️ <b>HUBACHIISA:</b> Maaloo CBEBirr irraa gara CBEBirr qofa ergaa!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Maaloo qarshii gara herrega kanaatti ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\nSana booda <b>hamma qarshii ergitan qofa</b> asitti barreessaa (Fkn: 100):`,
+        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa bilbilaa ykn herrega qarshiin akka isiniif ergamu barbaaddan barreessaa:`,
+        invalid_amt: "❌ Hamma dogoggoraa. Yoo xiqqaate 50 ETB galchaa:",
+        enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma maaloo <b>SMS Baankii (Tx Ref) sirrii</b> ta'e asitti ergaa:`,
+        dep_success: "✅ <b>Gaaffiin Galchuu ergameera!</b>\n\nSekoondii muraasa keessatti ofumaan ni mirkanaa'a.",
+        enter_wit_amt: (acc) => `✅ Herrega: <b>${acc}</b>\n\nHamma baasuuf barbaaddan galchaa (Min 50 ETB):`,
+        insufficient: "❌ Herrega Muummee keessatti qarshiin ga'aan hin jiru!",
+        wit_success: (amt, acc) => `✅ <b>Gaaffiin Baasuu ergameera!</b>\n\nHamma: ${amt} ETB\nGara: ${acc}\n\nYeroo dhiyootti ni ergama!`
     },
     ti: {
-        welcome: "🎉 <b>እንቋዕ ናብ BINGO HABESHA ብደሓን መጻእኩም!</b> 🎉\n\nናይ ኢትዮጵያ #1 ፕላትፎርም ቢንጎ። ጻወት፣ ዕወት፣ ብኡ ንብኡ ድማ ገንዘብካ ኣውጽእ!\n\n👇 <b>ካብዞም ዝስዕቡ ኣማራጺታት ምረጽ፡</b>",
+        welcome: "🎉 <b>እንቋዕ ናብ BINGO HABESHA ብደሓን መጻእኩም!</b> 🎉\n\nናይ ኢትዮጵያ #1ን እሙንን ፕላትፎርም ቢንጎ። ሕጂ ጻወት፣ ዕወት፣ ብኡ ንብኡ ድማ ገንዘብካ ኣውጽእ!\n\n👇 <b>ካብዞም ዝስዕቡ ኣማራጺታት ምረጽ፡</b>",
         btn_play: "🎮 ጻወት (PLAY BINGO)",
         btn_profile: "👤 ፕሮፋይል",
         btn_balance: "💰 ሕሳብ",
@@ -471,16 +513,31 @@ const t = {
         err_reg_first: "በጃኹም ቅድም /start ኢልኩም ተመዝገቡ።",
         err_cancel: "❌ ትእዛዝ ተቋሪጹ።",
         profile_text: (u) => `👤 <b>ናይ መለለዪ ሓበሬታ</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልኪ:</b> ${u.phone}\n🔑 <b>መሕለፊ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጻወቲ ሕሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ቀንዲ ሕሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ ሕሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ ሕሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>ገንዘብ ንምእታው ኣየናይ ባንኪ ትመርጽ?</b>",
         wit_msg: "🏦 <b>ካብ ኣየናይ ባንኪ ክተውጽእ ትደሊ?</b>",
-        invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nነዚ ሊንክ ንዓርክኹም ስደዱሉ። ንሱ ምስ ዝምዝገብ <b>ንስኹም 10 ብር፡ ንሱ ድማ 10 ብር</b> ክትረኽቡ ኢኹም!\n\n👇 ናይ መዕደሚ ሊንክ:\n${l}`,
+        invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን (Invite & Earn)</b>\n\nነዚ ሊንክ ንዓርክኹም ስደዱሉ። ንሱ ምስ ዝምዝገብ <b>ንስኹም 10 ብር፡ ንሱ ድማ 10 ብር</b> ናይ መጻወቲ ቦነስ ክትረኽቡ ኢኹም!\n\n👇 ናይ መዕደሚ ሊንክ:\n${l}`,
+        promo_msg: "🗣 <b>ኣፋልጥን ረኸብን:</b>\n\nተወሳኺ ኣታዊ ክትረኽቡ እንተደሊኹም ንኣድሚን ኣዘራርቡ: @bingohabesha",
+        guide_msg: `📖 <b>መምርሒ ጸወታ:</b>\n\n1️⃣ ካርድ ክትገዝኡ ከለኹም ናይ 5x5 ካርቴላ ይዋሃበኩም።\n2️⃣ ጸወታ ምስ ጀመረ ሲስተም ኣብ ነፍሲ ወከፍ 3 ሰከንድ ቁጽሪ ይጽውዕ።\n3️⃣ ሲስተም ባዕሉ የመልክተልኩም (ምትንኻፍ ኣየድልን)።\n\n🏆 <b>ከመይ ጌርኩም ትዕወቱ?</b>\nዝተጸውዑ ቁጽሪታት ብኣግድም፣ ንታሕቲ ወይ ብመስቀላዊ (X ቅርጺ) ምሉእ መስመር እንተሰሪሖም <b>BINGO!</b> ኢልኩም ትዕወቱ።`,
+        help_msg: "🆘 <b>ሓገዝ:</b>\n\nዝኾነ ሕቶ እንተሃልዩኩም ንኣድሚን ኣዘራርቡ:\n👉 @bingohabesha",
+        rules_msg: `📜 <b>ሕግታት ጸወታ:</b>\n\n1️⃣ <b>ሕግታት ሕሳብ:</b>\n🟢 <b>መጻወቲ ሕሳብ (Play Balance):</b> ካርድ ንምግዛእ ጥራይ ዘገልግል ኮይኑ ፈጺሙ ኣይወጽእን።\n🟡 <b>ቀንዲ ሕሳብ (Main Balance):</b> ተጻዊትኩም ምስ እትዕወቱ ዝኣትወሉ ኮይኑ ኣብ ዝደለኹሞ ግዜ ከተውጽእዎ ትኽእሉ።\n\n2️⃣ <b>ናይ ምእታው ሕጊ:</b>\n👉 ካብ ቴሌብር ናብ ቴሌብር ጥራይ።\n👉 ካብ CBEBirr ናብ CBEBirr ጥራይ ኣእትዉ።\n\n3️⃣ <b>መረጋገጺ:</b> ገንዘብ ክተእትዉ ከለኹም ዝመጸኩም ትኽክለኛ ናይ ባንኪ SMS ብትኽክል ኣእትዉ።\n4️⃣ <b>ዕድመ:</b> ተጻወቲ ልዕሊ 21 ዓመት ክኾኑ ኣለዎም።`,
         choose_lang: "በጃኹም ቋንቋ ምረጹ (Choose language):",
-        lang_set: "✅ ቋንቋ ብትኽክል ተቐይሩ ኣሎ!"
+        lang_set: "✅ ቋንቋ ብትኽክል ተቐይሩ ኣሎ!",
+        warn_telebirr: "⚠️ <b>መተሓሳሰቢ፡</b> በጃኹም ካብ ቴሌብር ናብ ቴሌብር ጥራይ ስደዱ!\n\n",
+        warn_cbebirr: "⚠️ <b>መተሓሳሰቢ፡</b> በጃኹም ካብ CBEBirr ናብ CBEBirr ጥራይ ስደዱ!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 ባንኪ: <b>${method}</b>\n\n${warning}በጃኹም ነቲ ገንዘብ ናብዚ ኣእትዉ:\n👤 ስም: <b>${name}</b>\n👉 ቁጽሪ: <b>${num}</b>\n\nድሕሪኡ <b>ዘእተኹሞ መጠን ገንዘብ</b> ጥራይ ኣብዚ ጽሓፉ (ንኣብነት: 100):`,
+        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\nገንዘቡ ክስደደልኩም ትደልይዎ <b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`,
+        invalid_amt: "❌ ትኽክለኛ መጠን ኣእትዉ (እንተወሓደ 50 ብር):",
+        enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nሕጂ በጃኹም ዝኸፈልኩምሉ <b>ትኽክለኛ ናይ ባንኪ SMS (Tx Ref) ጽሑፍ</b> ኣብዚ ስደዱ፦`,
+        dep_success: "✅ <b>ናይ ምእታው ሕቶኹም ብትኽክል ተላኢኹ!</b>\n\nኣብ ውሽጢ ካልኢታት ብባዕሉ ክጸድቕ እዩ።",
+        enter_wit_amt: (acc) => `✅ ኣካውንት: <b>${acc}</b>\n\nከተውጽእዎ እትደልዩ መጠን ኣእትዉ (እንተወሓደ 50 ብር):`,
+        insufficient: "❌ ኣብ ቀንዲ ሕሳብኩም (Main Balance) እኹል ገንዘብ የለን!",
+        wit_success: (amt, acc) => `✅ <b>ናይ ምውጻእ ሕቶ ተላኢኹ!</b>\n\nመጠን: ${amt} ETB\nናብ: ${acc}\n\nኣብ ቀረባ ግዜ ክስደድ እዩ!`
     }
 };
 
 function getLang(user) {
-    return user && user.language ? t[user.language] : t['am'];
+    return user && user.language && t[user.language] ? t[user.language] : t['am'];
 }
 
 function getMainMenu(user) {
@@ -569,7 +626,7 @@ bot.on('message', async (msg) => {
     let ln = getLang(user);
     let state = botState[chatId] || { step: 'idle' };
 
-    // 🔙 BACK BUTTON MATCHING
+    // 🔙 BACK BUTTON
     if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back) {
         botState[chatId] = { step: 'idle' };
         if(user) {
@@ -580,7 +637,7 @@ bot.on('message', async (msg) => {
         return;
     }
 
-    // 🌐 LANGUAGE SETTINGS
+    // 🌐 LANGUAGE BUTTON
     if (text === t.am.btn_lang || text === t.en.btn_lang || text === t.or.btn_lang || text === t.ti.btn_lang) {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first);
         bot.sendMessage(chatId, ln.choose_lang, {
@@ -606,7 +663,7 @@ bot.on('message', async (msg) => {
     }
     else if (text === t.am.btn_balance || text === t.en.btn_balance || text === t.or.btn_balance || text === t.ti.btn_balance) {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first);
-        bot.sendMessage(chatId, `💰 <b>Balance:</b>\n\n🟢 Play: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 Main: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user) });
+        bot.sendMessage(chatId, ln.balance_text(user), { parse_mode: "HTML", ...getMainMenu(user) });
     } 
     else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text === t.or.btn_deposit || text === t.ti.btn_deposit) {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first);
@@ -631,51 +688,51 @@ bot.on('message', async (msg) => {
     } 
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo) {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first);
-        bot.sendMessage(chatId, "🗣 <b>Promote:</b> Contact Admin for promo deals: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user) });
+        bot.sendMessage(chatId, ln.promo_msg, { parse_mode: "HTML", ...getMainMenu(user) });
     } 
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide) {
         if(!user) return;
-        bot.sendMessage(chatId, `📖 <b>How to Play:</b>\n1. Buy a 5x5 card.\n2. System calls numbers.\n3. Match 5 horizontally, vertically, or diagonally to win BINGO!`, { parse_mode: "HTML", ...getMainMenu(user) });
+        bot.sendMessage(chatId, ln.guide_msg, { parse_mode: "HTML", ...getMainMenu(user) });
     }
     else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help) {
         if(!user) return;
-        bot.sendMessage(chatId, "🆘 <b>Support:</b> @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user) });
+        bot.sendMessage(chatId, ln.help_msg, { parse_mode: "HTML", ...getMainMenu(user) });
     } 
     else if (text === t.am.btn_rules || text === t.en.btn_rules || text === t.or.btn_rules || text === t.ti.btn_rules) {
         if(!user) return;
-        bot.sendMessage(chatId, `📜 <b>Rules:</b>\n1. Use only matching bank apps (e.g., Telebirr to Telebirr, CBEBirr to CBEBirr).\n2. Submit correct TX SMS.\n3. Must be 21+.`, { parse_mode: "HTML", ...getMainMenu(user) });
+        bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) });
     } 
     
     // ACTION STATES
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text);
-        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ Invalid Amount. Min 50 ETB:", cancelKeyboard(ln));
-        bot.sendMessage(chatId, `✅ <b>${state.amount} ETB</b>\n\n👉 Please paste your Bank SMS / TxRef here:`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
+        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt, cancelKeyboard(ln));
+        bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) });
         state.step = 'awaiting_dep_sms';
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) {
             await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save();
-            bot.sendMessage(chatId, "✅ <b>Deposit Request Sent!</b>", { parse_mode: "HTML", ...getMainMenu(user) });
+            bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) });
             await autoApprovePendingDeposits();
         }
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_acc') {
         state.destinationPhone = text.trim();
-        bot.sendMessage(chatId, `✅ Account: <b>${state.destinationPhone}</b>\n\nEnter withdrawal amount (Min 50 ETB):`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
+        bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone), { parse_mode: "HTML", ...cancelKeyboard(ln) });
         state.step = 'awaiting_wit_amt';
     }
     else if (state.step === 'awaiting_wit_amt') {
         state.amount = parseFloat(text);
-        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ Invalid Amount. Min 50 ETB:", cancelKeyboard(ln));
+        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt, cancelKeyboard(ln));
         
         if(user) {
-            if(user.mainBalance < state.amount) return bot.sendMessage(chatId, `❌ Insufficient Main Balance!`, { ...getMainMenu(user) });
+            if(user.mainBalance < state.amount) return bot.sendMessage(chatId, ln.insufficient, { ...getMainMenu(user) });
             user.mainBalance -= state.amount; 
             await user.save();
             await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: `Transfer to: ${state.destinationPhone}` }).save();
-            bot.sendMessage(chatId, `✅ <b>Withdrawal Request Sent!</b>\n\nAmount: ${state.amount} ETB\nTo: ${state.destinationPhone}`, { parse_mode: "HTML", ...getMainMenu(user) });
+            bot.sendMessage(chatId, ln.wit_success(state.amount, state.destinationPhone), { parse_mode: "HTML", ...getMainMenu(user) });
         }
         state.step = 'idle';
     }
@@ -710,15 +767,15 @@ bot.on('callback_query', async (query) => {
         let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
         
         let warningText = "";
-        if(state.method === 'TeleBirr') warningText = "⚠️ Use Telebirr to Telebirr ONLY!\n\n";
-        else if(state.method === 'CBEBirr') warningText = "⚠️ Use CBEBirr to CBEBirr ONLY!\n\n";
+        if(state.method === 'TeleBirr') warningText = ln.warn_telebirr;
+        else if(state.method === 'CBEBirr') warningText = ln.warn_cbebirr;
 
-        bot.sendMessage(chatId, `🏦 Bank: <b>${state.method}</b>\n\n${warningText}Send money to:\n👤 Name: <b>${accInfo.name}</b>\n👉 Acc/Phone: <b>${accInfo.num}</b>\n\nThen type the amount you sent (e.g., 100):`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
+        bot.sendMessage(chatId, ln.bank_info(state.method, warningText, accInfo.name, accInfo.num), { parse_mode: "HTML", ...cancelKeyboard(ln) });
     }
     else if (data.startsWith('wit_')) {
         state.method = data.split('_')[1];
         state.step = 'awaiting_wit_acc';
-        bot.sendMessage(chatId, `🏦 Bank: <b>${state.method}</b>\n\nEnter the phone number or account you want to receive money on:`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
+        bot.sendMessage(chatId, ln.wit_info(state.method), { parse_mode: "HTML", ...cancelKeyboard(ln) });
     }
     botState[chatId] = state;
     bot.answerCallbackQuery(query.id);
