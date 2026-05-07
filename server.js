@@ -163,9 +163,15 @@ app.post('/api/register', async (req, res) => {
         let actualRef = "";
         if (refCode) { 
             let ref = await User.findOne({ phone: refCode.trim() }); 
-            if (ref) { ref.playBalance += 10; await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; } 
+            if (ref) { 
+                ref.playBalance += 10; // ጋባዡ 10 ብር ያገኛል
+                await ref.save(); 
+                io.emit('balance_updated', ref.phone); 
+                actualRef = ref.phone; 
+            } 
         }
-        await new User({ phone, name, password, referredBy: actualRef, playBalance: 100 }).save();
+        // አዲስ ለሚመዘገበው ተጫዋች የ 10 ብር ቦነስ ይሰጣል
+        await new User({ phone, name, password, referredBy: actualRef, playBalance: 10 }).save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -394,7 +400,7 @@ function getProfileText(user) {
            `💰 <b>የሂሳብ መጠን:</b>\n` +
            `   ➖ መጫወቻ ሂሳብ (Play): <b>${user.playBalance.toFixed(2)} ETB</b>\n` +
            `   ➖ ዋና ሂሳብ (Main): <b>${user.mainBalance.toFixed(2)} ETB</b>\n\n` +
-           `🎁 በእርስዎ ሊንክ ለሚመዘገብ ሰው ሁሉ 10 ብር ያገኛሉ!`;
+           `🎁 በእርስዎ ሊንክ ለሚመዘገብ ሰው ሁሉ እርስዎ 10 ብር እንዲሁም ጓደኛዎ 10 ብር ያገኛሉ!`;
 }
 
 function getMainMenu(phone, password) {
@@ -451,14 +457,15 @@ bot.on('contact', async (msg) => {
             if (state.refCode) {
                 let refUser = await User.findOne({ phone: state.refCode });
                 if (refUser) {
-                    refUser.playBalance += 10;
+                    refUser.playBalance += 10; // ጋባዡ 10 ብር ያገኛል
                     await refUser.save();
                     io.emit('balance_updated', refUser.phone);
                     actualRef = refUser.phone;
                 }
             }
 
-            user = await User.create({ phone, name: msg.contact.first_name || "User", password: newPassword, telegramId: telegramId, referredBy: actualRef, playBalance: 100 });
+            // አዲስ ተመዝጋቢ በ 10 ብር Play Balance ይጀምራል
+            user = await User.create({ phone, name: msg.contact.first_name || "User", password: newPassword, telegramId: telegramId, referredBy: actualRef, playBalance: 10 });
             bot.sendMessage(chatId, `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n${WELCOME_TEXT}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
             user.telegramId = telegramId; 
@@ -501,7 +508,7 @@ bot.on('message', async (msg) => {
     }
     else if (text === "💰 ሂሳብ") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
-        bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+        bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
     else if (text === "📥 ገቢ ማድረግ (Deposit)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
@@ -522,7 +529,7 @@ bot.on('message', async (msg) => {
     else if (text === "🔗 ጋብዝ & አግኝ (Invite)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let refLink = `https://t.me/bingo_habesha_bot?start=${user.phone}`;
-        let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn)</b>\n\nበቢንጎ ሀበሻ ይጫወቱ ይዝናኑ፣ በተጨማሪ ሽልማቶች ይንበሸበሹ! 🎁\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ <b>10 ብር ቦነስ</b> ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n${refLink}`;
+        let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn)</b>\n\nበቢንጎ ሀበሻ ይጫወቱ ይዝናኑ፣ በተጨማሪ ሽልማቶች ይንበሸበሹ! 🎁\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ <b>እርስዎም 10 ብር፣ ጓደኛዎም 10 ብር</b> የመጫወቻ ቦነስ (Play Balance) ያገኛላችሁ!\n\n👇 የጋብዝ ሊንክዎ:\n${refLink}`;
         bot.sendMessage(chatId, msgText, { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user.phone, user.password) });
     } 
     else if (text === "🗣 አስተዋውቅ") {
@@ -541,7 +548,7 @@ bot.on('message', async (msg) => {
                         `👉 <b>በአግድም</b> (5 ቁጥር)\n` +
                         `👉 <b>ወደ ታች</b> (5 ቁጥር)\n` +
                         `👉 <b>በማዕዘን / X ቅርፅ</b> (5 ቁጥር)\n` +
-                        `ሙሉ መስመር ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ። አሸናፊው ሲገኝ ጨዋታው በራሱ ተዘግቶ ሽልማቱ ሂሳብዎ ላይ ይገባል!`;
+                        `ሙሉ መስመር ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ። አሸናፊው ሲገኝ ጨዋታው በራሱ ተዘግቶ ሽልማቱ ዋና ሂሳብዎ ላይ ይገባል!`;
         bot.sendMessage(chatId, guideText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     }
     else if (text === "🆘 እርዳታ") {
@@ -551,13 +558,15 @@ bot.on('message', async (msg) => {
     else if (text === "📜 ደንቦች") {
         if(!user) return;
         let rulesText = `📜 <b>የጨዋታው ደንቦች:</b>\n\n` +
-            `1️⃣ <b>የገቢ (Deposit) ደንብ:</b>\n` +
+            `1️⃣ <b>የሂሳብ (Wallet) ደንቦች:</b>\n` +
+            `🟢 <b>መጫወቻ ሂሳብ (Play Balance):</b> ይህ ሂሳብ ካርድ ገዝቶ ጌም ለመጫወት ብቻ የሚያገለግል ሲሆን በፍፁም ወጪ (Withdraw) ማድረግ አይቻልም። (ከቦነስ እና ዲፖዚት የሚገኝ ነው)\n` +
+            `🟡 <b>ዋና ሂሳብ (Main Balance):</b> ይህ ሂሳብ ጌሙን ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ (Withdraw) ማድረግ ይችላሉ፣ ወይም ወደ መጫወቻነት ሊጠቀሙበት ይችላሉ።\n\n` +
+            `2️⃣ <b>የገቢ (Deposit) ደንብ:</b>\n` +
             `👉 ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr)\n` +
             `👉 ከ ንግድ ባንክ ወደ ንግድ ባንክ (CBE to CBE) ብቻ ያስገቡ።\n` +
             `⚠️ ይህንን ሳያደርጉ ቀርተው ክፍያዎ ቢዘገይ ድርጅቱ ሀላፊነት አይወስድም።\n\n` +
-            `2️⃣ <b>የማረጋገጫ (SMS) ደንብ:</b> ገቢ ሲያደርጉ የደረሰዎትን ትክክለኛ የባንክ ማረጋገጫ ፅሁፍ (SMS/TxRef) በትክክል ያስገቡ። የተሳሳተ ወይም ሀሰተኛ መረጃ ማስገባት አካውንትዎን ያስግዳል!\n\n` +
-            `3️⃣ <b>እድሜ:</b> ተጫዋቾች ከ 21 ዓመት በላይ መሆን አለባቸው።\n\n` +
-            `4️⃣ <b>ቦነስ:</b> የቦነስ ብር ለመጫወቻ ብቻ የሚያገለግል ሲሆን ወጪ (Withdraw) አይደረግም።`;
+            `3️⃣ <b>የማረጋገጫ (SMS) ደንብ:</b> ገቢ ሲያደርጉ የደረሰዎትን ትክክለኛ የባንክ ማረጋገጫ ፅሁፍ (SMS/TxRef) በትክክል ያስገቡ። የተሳሳተ ወይም ሀሰተኛ መረጃ ማስገባት አካውንትዎን ያስግዳል!\n\n` +
+            `4️⃣ <b>እድሜ:</b> ተጫዋቾች ከ 21 ዓመት በላይ መሆን አለባቸው።`;
         bot.sendMessage(chatId, rulesText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
     
@@ -608,7 +617,13 @@ bot.on('callback_query', async (query) => {
         state.method = data.split('_')[1];
         state.step = 'awaiting_dep_amt';
         let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
-        bot.sendMessage(chatId, `🏦 ባንክ: <b>${state.method}</b>\n\nእባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👤 ስም: <b>${accInfo.name}</b>\n👉 ቁጥር: <b>${accInfo.num}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> ብቻ እዚህ ይፃፉልኝ (ምሳሌ: 100):`, { parse_mode: "HTML", ...cancelKeyboard });
+        
+        // 🚨 የተቀየረበት ቦታ (የባንክ ማሳሰቢያ)
+        let warningText = "";
+        if(state.method === 'TeleBirr') warningText = "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr) ብቻ ያስገቡ!\n\n";
+        else if(state.method === 'CBE') warningText = "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ንግድ ባንክ ወደ ንግድ ባንክ (CBE to CBE) ብቻ ያስገቡ!\n\n";
+
+        bot.sendMessage(chatId, `🏦 ባንክ: <b>${state.method}</b>\n\n${warningText}እባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👤 ስም: <b>${accInfo.name}</b>\n👉 ቁጥር: <b>${accInfo.num}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> ብቻ እዚህ ይፃፉልኝ (ምሳሌ: 100):`, { parse_mode: "HTML", ...cancelKeyboard });
     }
     else if (data.startsWith('wit_')) {
         state.method = data.split('_')[1];
