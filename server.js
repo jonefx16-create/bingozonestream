@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const fs = require('fs');
 const { Server } = require('socket.io');
-const TelegramBot = require('node-telegram-bot-api');
+const TelegramBot = require('node-telegram-bot-api'); // አንዴ ብቻ ከላይ ተጠርቷል
 
 const app = express();
 const server = http.createServer(app);
@@ -257,17 +257,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
-    try {
-        const { message } = req.body;
-        if (!message) return res.json({ success: false });
-        const CHAT_ID = "@bingohabeshazone"; 
-        const telegramURL = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
-        await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" }) });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
 // ==========================================
 // 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
@@ -375,7 +364,6 @@ io.on('connection', (socket) => {
 // ======================================================
 // ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
 // ======================================================
-const TelegramBot = require('node-telegram-bot-api');
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -385,7 +373,17 @@ app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); re
 
 const botState = {};
 
-// 🔥 Welcome Text
+app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.json({ success: false });
+        const CHAT_ID = "@bingohabeshazone"; 
+        const telegramURL = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
+        await fetch(telegramURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: "HTML" }) });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
 const WELCOME_TEXT = `🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>`;
 
 function getProfileText(user) {
@@ -521,20 +519,16 @@ bot.on('message', async (msg) => {
         });
         state.step = 'idle';
     } 
-    // 🔥 የተስተካከለው የጋብዝ ሊንክ እና Preview 
     else if (text === "🔗 ጋብዝ & አግኝ (Invite)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let refLink = `https://t.me/bingo_habesha_bot?start=${user.phone}`;
         let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn)</b>\n\nበቢንጎ ሀበሻ ይጫወቱ ይዝናኑ፣ በተጨማሪ ሽልማቶች ይንበሸበሹ! 🎁\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ <b>10 ብር ቦነስ</b> ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n${refLink}`;
-        
-        // disable_web_page_preview: false በማድረግ ቴሌግራም ላይ Preview Box እንዲመጣ አደረግን
         bot.sendMessage(chatId, msgText, { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user.phone, user.password) });
     } 
     else if (text === "🗣 አስተዋውቅ") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🗣 <b>አስተዋውቅ እና አግኝ:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    // 🔥 የተስተካከለው የጨዋታ መመሪያ 
     else if (text === "📖 መመሪያ") {
         if(!user) return;
         let guideText = `📖 <b>የጨዋታው መመሪያ (How to Play):</b>\n\n` +
@@ -554,7 +548,6 @@ bot.on('message', async (msg) => {
         if(!user) return;
         bot.sendMessage(chatId, "🆘 <b>እርዳታ (Support):</b>\n\nማንኛውም ጥያቄ ካጋጠመዎት አድሚኑን ያናግሩ:\n👉 @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    // 🔥 የተስተካከለው የደንብ ፅሁፍ (የዲፖዚት ህግን ጨምሮ)
     else if (text === "📜 ደንቦች") {
         if(!user) return;
         let rulesText = `📜 <b>የጨዋታው ደንቦች:</b>\n\n` +
@@ -568,7 +561,6 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, rulesText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
     
-    // Deposit / Withdraw Inputs
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text);
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
@@ -628,20 +620,11 @@ bot.on('callback_query', async (query) => {
 });
 
 // ==========================================
-// 🛣️ EXPLICIT ROUTING
+// 🛣️ ROUTES
 // ==========================================
-app.get('/admin', (req, res) => {
-    let p = path.join(__dirname, 'public', 'admin.html');
-    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'admin.html'));
-});
-app.get('/finance', (req, res) => {
-    let p = path.join(__dirname, 'public', 'finance.html');
-    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'finance.html'));
-});
-app.get('*', (req, res) => {
-    let p = path.join(__dirname, 'public', 'index.html');
-    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
