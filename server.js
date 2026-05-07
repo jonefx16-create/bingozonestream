@@ -91,6 +91,7 @@ async function autoApprovePendingDeposits() {
             for (let sms of unusedSMS) {
                 let bankRef = sms.txRef.toUpperCase();
                 
+                // ማረጋገጫ፡ ቋንቋው ምንም ይሁን ምን፣ የባንኩ ትራንዛክሽን ቁጥር (Ref) ተጫዋቹ ከላከው ሜሴጅ ውስጥ ካለ ብቻ ነው የሚያልፈው።
                 if (userMsg.includes(bankRef)) {
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
@@ -126,13 +127,16 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
+        // ባንኩ የላከልህ የገቢ ሜሴጅ መሆኑን በአማርኛም በእንግሊዘኛም ማረጋገጥ
         let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
 
+        // መጠን ማውጣት (በኢትዮጵያ ባንኮች ፎርማት)
         let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || 
                           message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:\.\d{1,2})?)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
 
+        // የትራንዛክሽን ቁጥር ማውጣት (አማርኛ እና እንግሊዝኛ)
         let txMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]+)/i);
         let txRef = txMatch ? txMatch[1] : null;
 
@@ -373,7 +377,7 @@ io.on('connection', (socket) => {
 });
 
 // ======================================================
-// ✈️ TELEGRAM BOT INTEGRATION (FIXED STATELESS BUTTONS)
+// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
 // ======================================================
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
@@ -383,6 +387,9 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 
 const botState = {};
+
+// 🔥 የአማላይ Welcome Text
+const WELCOME_TEXT = `🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>`;
 
 function getProfileText(user) {
     return `👤 <b>የእርስዎ ፕሮፋይል መረጃ</b>\n\n` +
@@ -395,15 +402,16 @@ function getProfileText(user) {
            `🎁 በእርስዎ ሊንክ ለሚመዘገብ ሰው ሁሉ 10 ብር ያገኛሉ!`;
 }
 
+// 🔥 የተስተካከለ እና ያማረ የ Keyboard አቀማመጥ (VIP ጠፍቷል)
 function getMainMenu(phone, password) {
     let playUrl = (phone && password) ? `${WEB_URL}/?phone=${phone}&pass=${password}` : WEB_URL;
     return {
         reply_markup: {
             keyboard: [
-                [{ text: "🎮 ጌም ይጫወቱ" }], 
+                [{ text: "🎮 ጌም ይጫወቱ (PLAY BINGO)" }], 
                 [{ text: "👤 ፕሮፋይል" }, { text: "💰 ሂሳብ" }],
-                [{ text: "📥 ገቢ ማድረግ" }, { text: "📤 ወጪ ማድረግ" }],
-                [{ text: "🔗 ጋብዝ & አግኝ" }, { text: "🗣 አስተዋውቅ እና አግኝ" }],
+                [{ text: "📥 ገቢ ማድረግ (Deposit)" }, { text: "📤 ወጪ (Withdraw)" }],
+                [{ text: "🔗 ጋብዝ & አግኝ (Invite)" }, { text: "🗣 አስተዋውቅ" }],
                 [{ text: "📖 መመሪያ" }, { text: "🆘 እርዳታ" }, { text: "📜 ደንቦች" }]
             ],
             resize_keyboard: true
@@ -415,13 +423,14 @@ const cancelKeyboard = {
     reply_markup: { keyboard: [[{ text: "🔙 ወደ ኋላ ተመለስ" }]], resize_keyboard: true }
 };
 
+// 🔥 Start ሲባል Welcome Text ያሳያል (Profile አያሳይም)
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     const refCode = match[1]; 
     let user = await User.findOne({ telegramId: msg.from.id.toString() });
 
     if(user) {
-        bot.sendMessage(chatId, `👋 እንኳን ደህና መጡ!\n\n${getProfileText(user)}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+        bot.sendMessage(chatId, WELCOME_TEXT, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } else {
         botState[chatId] = { step: 'idle', refCode: refCode };
         bot.sendMessage(chatId, "👋 እንኳን ወደ <b>BINGO HABESHA</b> መጡ!\n\nጌሙን ለመጀመር ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> ይጫኑ።", { 
@@ -457,11 +466,11 @@ bot.on('contact', async (msg) => {
             }
 
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: newPassword, telegramId: telegramId, referredBy: actualRef, playBalance: 100 });
-            bot.sendMessage(chatId, `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n${getProfileText(user)}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+            bot.sendMessage(chatId, `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n${WELCOME_TEXT}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
             user.telegramId = telegramId; 
             await user.save();
-            bot.sendMessage(chatId, `✅ አካውንትዎ ተገናኝቷል!\n\n${getProfileText(user)}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
+            bot.sendMessage(chatId, `✅ አካውንትዎ ተገናኝቷል!\n\n${WELCOME_TEXT}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         }
         botState[chatId] = { step: 'idle' };
     } catch (error) { bot.sendMessage(chatId, "❌ ይቅርታ፣ ችግር አጋጥሟል።"); }
@@ -473,7 +482,6 @@ bot.on('message', async (msg) => {
     
     if(!text || text.startsWith('/start') || msg.contact) return;
 
-    // 🔥 ዋናው መፍትሄ፡ በእያንዳንዱ ሜሴጅ ጊዜ ዳታቤዝ ላይ ተጫዋቹን ፈልጎ ያመጣል (Never loses state)
     const telegramId = msg.from.id.toString();
     let user = await User.findOne({ telegramId: telegramId });
     let state = botState[chatId] || { step: 'idle' };
@@ -488,12 +496,13 @@ bot.on('message', async (msg) => {
         return;
     }
 
-    if (text === "🎮 ጌም ይጫወቱ") {
+    if (text === "🎮 ጌም ይጫወቱ (PLAY BINGO)") {
         let playUrl = (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL;
         bot.sendMessage(chatId, "🎮 ወደ ጌም መጫወቻ ገጽ ለመግባት ከታች ይጫኑ👇", {
             reply_markup: { inline_keyboard: [[{ text: "🎮 ጌም ይጫወቱ (PLAY)", web_app: { url: playUrl } }]] }
         });
     }
+    // 🔥 ፕሮፋይል አሁን የራሱ አዝራር አለው
     else if (text === "👤 ፕሮፋይል") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, getProfileText(user), { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
@@ -502,7 +511,7 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ: <b>${user.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ: <b>${user.mainBalance.toFixed(2)} ETB</b>`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    else if (text === "📥 ገቢ ማድረግ") {
+    else if (text === "📥 ገቢ ማድረግ (Deposit)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>", { 
             parse_mode: "HTML",
@@ -510,7 +519,7 @@ bot.on('message', async (msg) => {
         });
         state.step = 'idle';
     } 
-    else if (text === "📤 ወጪ ማድረግ") {
+    else if (text === "📤 ወጪ (Withdraw)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>", { 
             parse_mode: "HTML",
@@ -518,13 +527,14 @@ bot.on('message', async (msg) => {
         });
         state.step = 'idle';
     } 
-    else if (text === "🔗 ጋብዝ & አግኝ") {
+    // 🔥 የጋብዝ ሊንኩ በደንብ ተስተካክሏል
+    else if (text === "🔗 ጋብዝ & አግኝ (Invite)") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         let refLink = `https://t.me/bingo_habesha_bot?start=${user.phone}`;
-        let msgText = `🔗 <b>ጋብዝ እና አግኝ:</b>\n\nይህንን የእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ 10 ብር ቦነስ ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n<code>${refLink}</code>`;
+        let msgText = `🔗 <b>ጋብዝ እና አግኝ (Invite & Earn):</b>\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ የ <b>10 ብር ቦነስ</b> ያገኛሉ!\n\n👇 የጋብዝ ሊንክዎ:\n<code>${refLink}</code>`;
         bot.sendMessage(chatId, msgText, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
-    else if (text === "🗣 አስተዋውቅ እና አግኝ") {
+    else if (text === "🗣 አስተዋውቅ") {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🗣 <b>አስተዋውቅ እና አግኝ:</b>\n\nልዩ አስተዋዋቂ በመሆን ተጨማሪ ገቢ ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
@@ -542,6 +552,7 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, "📜 <b>የጨዋታው ህጎች:</b>\n\n1. እድሜዎ ከ 21 በላይ መሆን አለበት።\n2. የቦነስ ብር ወጪ አይደረግም፣ መጫወቻ ብቻ ነው።\n3. ለማጭበርበር መሞከር ያስግዳል!", { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
     } 
     
+    // Deposit / Withdraw Inputs
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text);
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard);
@@ -601,11 +612,20 @@ bot.on('callback_query', async (query) => {
 });
 
 // ==========================================
-// 🛣️ ROUTES
+// 🛣️ EXPLICIT ROUTING
 // ==========================================
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/admin', (req, res) => {
+    let p = path.join(__dirname, 'public', 'admin.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'admin.html'));
+});
+app.get('/finance', (req, res) => {
+    let p = path.join(__dirname, 'public', 'finance.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'finance.html'));
+});
+app.get('*', (req, res) => {
+    let p = path.join(__dirname, 'public', 'index.html');
+    if(fs.existsSync(p)) res.sendFile(p); else res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
