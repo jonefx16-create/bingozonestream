@@ -73,7 +73,7 @@ loadSettings();
 
 const bankAccounts = {
     'TeleBirr': { num: '0933638022', name: 'Tsedey Abebe' },
-    'CBE': { num: '0988180301', name: 'Yohannes Aberham' },
+    'CBEBirr': { num: '0988180301', name: 'Yohannes Aberham' },
     'MPesa': { num: '251707896800', name: 'Yohannes Aberham' }
 };
 
@@ -164,13 +164,12 @@ app.post('/api/register', async (req, res) => {
         if (refCode) { 
             let ref = await User.findOne({ phone: refCode.trim() }); 
             if (ref) { 
-                ref.playBalance += 10; // ጋባዡ 10 ብር ያገኛል
+                ref.playBalance += 10; 
                 await ref.save(); 
                 io.emit('balance_updated', ref.phone); 
                 actualRef = ref.phone; 
             } 
         }
-        // አዲስ ለሚመዘገበው ተጫዋች የ 10 ብር ቦነስ ይሰጣል
         await new User({ phone, name, password, referredBy: actualRef, playBalance: 10 }).save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -457,14 +456,13 @@ bot.on('contact', async (msg) => {
             if (state.refCode) {
                 let refUser = await User.findOne({ phone: state.refCode });
                 if (refUser) {
-                    refUser.playBalance += 10; // ጋባዡ 10 ብር ያገኛል
+                    refUser.playBalance += 10;
                     await refUser.save();
                     io.emit('balance_updated', refUser.phone);
                     actualRef = refUser.phone;
                 }
             }
 
-            // አዲስ ተመዝጋቢ በ 10 ብር Play Balance ይጀምራል
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: newPassword, telegramId: telegramId, referredBy: actualRef, playBalance: 10 });
             bot.sendMessage(chatId, `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n${WELCOME_TEXT}`, { parse_mode: "HTML", ...getMainMenu(user.phone, user.password) });
         } else {
@@ -514,7 +512,7 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>", { 
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBE", callback_data:"dep_CBE"}], [{text:"🟢 MPesa", callback_data:"dep_MPesa"}]] } 
+            reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"dep_CBEBirr"}], [{text:"🟢 MPesa", callback_data:"dep_MPesa"}]] } 
         });
         state.step = 'idle';
     } 
@@ -522,7 +520,7 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።");
         bot.sendMessage(chatId, "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>", { 
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBE", callback_data:"wit_CBE"}], [{text:"🟢 MPesa", callback_data:"wit_MPesa"}]] } 
+            reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}], [{text:"🟢 MPesa", callback_data:"wit_MPesa"}]] } 
         });
         state.step = 'idle';
     } 
@@ -563,7 +561,7 @@ bot.on('message', async (msg) => {
             `🟡 <b>ዋና ሂሳብ (Main Balance):</b> ይህ ሂሳብ ጌሙን ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ (Withdraw) ማድረግ ይችላሉ፣ ወይም ወደ መጫወቻነት ሊጠቀሙበት ይችላሉ።\n\n` +
             `2️⃣ <b>የገቢ (Deposit) ደንብ:</b>\n` +
             `👉 ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr)\n` +
-            `👉 ከ ንግድ ባንክ ወደ ንግድ ባንክ (CBE to CBE) ብቻ ያስገቡ።\n` +
+            `👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBEBirr to CBEBirr) ብቻ ያስገቡ።\n` +
             `⚠️ ይህንን ሳያደርጉ ቀርተው ክፍያዎ ቢዘገይ ድርጅቱ ሀላፊነት አይወስድም።\n\n` +
             `3️⃣ <b>የማረጋገጫ (SMS) ደንብ:</b> ገቢ ሲያደርጉ የደረሰዎትን ትክክለኛ የባንክ ማረጋገጫ ፅሁፍ (SMS/TxRef) በትክክል ያስገቡ። የተሳሳተ ወይም ሀሰተኛ መረጃ ማስገባት አካውንትዎን ያስግዳል!\n\n` +
             `4️⃣ <b>እድሜ:</b> ተጫዋቾች ከ 21 ዓመት በላይ መሆን አለባቸው።`;
@@ -618,10 +616,9 @@ bot.on('callback_query', async (query) => {
         state.step = 'awaiting_dep_amt';
         let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
         
-        // 🚨 የተቀየረበት ቦታ (የባንክ ማሳሰቢያ)
         let warningText = "";
         if(state.method === 'TeleBirr') warningText = "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr) ብቻ ያስገቡ!\n\n";
-        else if(state.method === 'CBE') warningText = "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ንግድ ባንክ ወደ ንግድ ባንክ (CBE to CBE) ብቻ ያስገቡ!\n\n";
+        else if(state.method === 'CBEBirr') warningText = "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBEBirr to CBEBirr) ብቻ ያስገቡ!\n\n";
 
         bot.sendMessage(chatId, `🏦 ባንክ: <b>${state.method}</b>\n\n${warningText}እባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👤 ስም: <b>${accInfo.name}</b>\n👉 ቁጥር: <b>${accInfo.num}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> ብቻ እዚህ ይፃፉልኝ (ምሳሌ: 100):`, { parse_mode: "HTML", ...cancelKeyboard });
     }
