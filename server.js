@@ -79,31 +79,47 @@ const bankAccounts = {
 // 🟢 AUTOMATIC APPROVAL LOGIC
 // ==========================================
 async function autoApprovePendingDeposits() {
-    const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
-    const unusedSMS = await BankSMS.find({ isUsed: false });
+    try {
+        const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
+        const unusedSMS = await BankSMS.find({ isUsed: false });
 
-    for (let tx of pendingTxs) {
-        for (let sms of unusedSMS) {
-            let userInput = (tx.smsText || "").toUpperCase();
-            // ትራንዛክሽን ቁጥሩ እና መጠኑ ከተመሳሰለ
-            if (userInput.includes(sms.txRef.toUpperCase()) && tx.amount === sms.amount) {
-                tx.status = 'Approved';
-                await tx.save();
+        for (let tx of pendingTxs) {
+            let userMsg = (tx.smsText || "").toUpperCase();
+            
+            for (let sms of unusedSMS) {
+                let bankRef = sms.txRef.toUpperCase();
+                
+                // 🔍 ማረጋገጫ፡ ተጫዋቹ የላከው ሜሴጅ ውስጥ የትራንዛክሽን ቁጥሩ (Ref) ካለ ብቻ!
+                // (የብር መጠኑን አያመሳስልም፣ ምክንያቱም ባንኩ የላከውን ትክክለኛ ብር ነው የምንጠቀመው)
+                if (userMsg.includes(bankRef)) {
+                    
+                    let user = await User.findOne({ phone: tx.phone });
+                    if (user) {
+                        let actualAmount = sms.amount; // እውነተኛው ከባንክ የመጣው ብር
+                        
+                        // 🎁 ቦነስ፡ ትክክለኛው ብር 100 እና ከዚያ በላይ ከሆነ 30 ብር ቦነስ
+                        let bonus = (actualAmount >= 100) ? 30 : 0;
+                        let totalCredit = actualAmount + bonus;
 
-                sms.isUsed = true;
-                await sms.save();
+                        // ትራንዛክሽኑን በትክክለኛው የባንክ ብር መጠን እናስተካክለዋለን (ተጫዋቹ የዋሸው ይሰረዛል)
+                        tx.amount = actualAmount; 
+                        tx.status = 'Approved';
+                        await tx.save();
 
-                let user = await User.findOne({ phone: tx.phone });
-                if (user) {
-                    user.playBalance += tx.amount;
-                    await user.save();
-                    io.emit('balance_updated', tx.phone);
-                    console.log(`✅ አውቶማቲክ አፕሩቭ ተደርጓል፡ ${tx.phone} (${tx.amount} ETB)`);
+                        sms.isUsed = true;
+                        await sms.save();
+
+                        user.playBalance += totalCredit;
+                        await user.save();
+                        
+                        io.emit('balance_updated', tx.phone);
+                        console.log(`✅ አውቶማቲክ አፕሩቭ፡ ${tx.phone} | የገባው ብር፡ ${actualAmount} | ቦነስ፡ ${bonus}`);
+                    }
+                    break;
                 }
-                break;
             }
         }
-    }
+    } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
 // ==========================================
@@ -116,19 +132,32 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        // የብር መጠን ማውጫ (Regex)
-        let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr)/i) || 
-                          message.match(/(?:ETB|ብር|birr)\s*(\d+(?:\.\d{1,2})?)/i);
+        // ባንኩ የላከልህ Received (ገቢ) መሆኑን በአማርኛም በእንግሊዘኛም ማረጋገጥ
+        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account/i.test(message);
+        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
+
+        // መጠን ማውጣት (በኢትዮጵያ ባንኮች ፎርማት)
+        let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || 
+                          message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:\.\d{1,2})?)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
 
-        // የትራንዛክሽን ቁጥር ማውጫ
-        let txMatch = message.match(/(?:Ref|ID|Txn|Transaction)[:\s#-]+([A-Z0-9]+)/i);
+        // Ref ማውጣት (Amharic and English tags)
+        let txMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]+)/i);
         let txRef = txMatch ? txMatch[1] : null;
 
+        // አንዳንዴ Ref የሚል ፅሁፍ ከሌለ፣ ትላልቅ ቁጥርና ፊደል ያለውን ይፈልጋል (ምሳሌ FT2345...)
+        if(!txRef) {
+            let fallbackMatch = message.match(/\b([A-Z0-9]{8,15})\b/);
+            if(fallbackMatch) txRef = fallbackMatch[1];
+        }
+
         if(amount > 0 && txRef) {
-            await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
-            console.log(`📩 አዲስ የባንክ SMS ደርሷል፡ Ref=${txRef}, Amount=${amount}`);
-            await autoApprovePendingDeposits(); // ወዲያውኑ ቼክ አድርግ
+            const exists = await BankSMS.findOne({ txRef: txRef });
+            if (!exists) {
+                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                console.log(`📩 New Official Bank SMS: Ref=${txRef}, Amount=${amount}`);
+                await autoApprovePendingDeposits(); // ወዲያውኑ ቼክ አድርግ
+            }
         }
         res.json({ success: true });
     } catch (e) {
