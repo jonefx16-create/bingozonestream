@@ -77,31 +77,23 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 100% BUG-FREE & ANTI-SCAM 🔥)
+// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
-        // ገና ጥቅም ላይ ያልዋሉ የባንክ ሜሴጆችን እናወጣለን
-        let unusedSMS = await BankSMS.find({ isUsed: false });
-
-        if (pendingTxs.length > 0 || unusedSMS.length > 0) {
-            console.log(`🔍 Checking ${pendingTxs.length} Pending Txs against ${unusedSMS.length} Unused SMS...`);
-        }
+        const unusedSMS = await BankSMS.find({ isUsed: false });
 
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
             
+            // የደንበኛውን ፅሁፍ ኮዶች እንሰበስባለን
             let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
             userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
-            let matchedSMSIndex = -1;
+            let matchedSMS = null;
 
-            // 1 ደረሰኝ ለ 1 ትራንዛክሽን ብቻ እንዲሆን በውስጥ ሉፕ እናጣራለን
-            for (let i = 0; i < unusedSMS.length; i++) {
-                let sms = unusedSMS[i];
-                if (sms.isUsed) continue; // አስቀድሞ ከተጠቀመንበት ይዘለዋል
-
+            for (let sms of unusedSMS) {
                 let bankMsg = (sms.rawText || "").toUpperCase();
                 let bankRef = (sms.txRef || "").toUpperCase();
                 let isMatch = false;
@@ -111,46 +103,34 @@ async function autoApprovePendingDeposits() {
                 } 
                 else {
                     for (let uRef of userPossibleRefs) {
-                        if (uRef.length >= 6 && !uRef.startsWith("09") && !uRef.startsWith("07")) {
-                            if (bankMsg.includes(uRef)) {
-                                isMatch = true; break;
-                            }
+                        if (uRef.length >= 6 && bankMsg.includes(uRef)) {
+                            isMatch = true; break;
                         }
                     }
                 }
 
                 if (isMatch) {
-                    matchedSMSIndex = i; break; 
+                    matchedSMS = sms; break; 
                 }
             }
 
-            if (matchedSMSIndex !== -1) {
-                let matchedSMS = unusedSMS[matchedSMSIndex];
-                
+            if (matchedSMS) {
+                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
-                    // 🔥 ANTI-SCAM LOGIC: ደንበኛው የሞላውን ትተን እውነተኛውን የባንክ ብር ብቻ እንወስዳለን
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
                     
-                    // 🔥 20% BONUS LOGIC: የገባው ብር >= 100 ከሆነ ቦነስ ይሰጣል
+                    // 🔥 ቦነስ ሎጂክ: ከ 100 ብር በላይ 20% ቦነስ፣ ከ100 በታች 0
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
 
-                    console.log(`✅ MATCH FOUND! Admin got ${actualReceivedAmount} ETB. Adding ${totalCredit} (with ${bonus} bonus) to ${tx.phone}`);
-
-                    // ትራንዛክሽኑን ወደ ትክክለኛው ብር ቀይረን አፅድቀን ሴቭ እናደርጋለን
                     tx.amount = actualReceivedAmount; 
                     tx.status = 'Approved';
                     await tx.save();
 
-                    // ደረሰኙን አንዴ ስለተጠቀምንበት "isUsed: true" እናደርገዋለን (1 ደረሰኝ ለ 1 ብቻ)
                     matchedSMS.isUsed = true;
                     await matchedSMS.save();
-                    
-                    // ከላይ ካለው የአሁኑ ሉፕ ውስጥ እናጠፋዋለን (ተመሳሳዩን ሜሴጅ ድጋሚ እንዳያገኘው)
-                    unusedSMS.splice(matchedSMSIndex, 1);
 
-                    // ለተጠቃሚው ብሩን 'Play Balance' ላይ እንሞላለን
                     user.playBalance += totalCredit;
                     await user.save();
                     
@@ -161,13 +141,36 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
+// 🛡️ የገባው SMS ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ ፋንክሽን
+async function isSmsAlreadyUsed(userInputSms) {
+    if (!userInputSms) return false;
+    let msg = userInputSms.toUpperCase();
+    
+    let possibleRefs = msg.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g) || [];
+    let exactMatch = msg.replace(/\s+/g, '');
+    if (exactMatch.length >= 6) possibleRefs.push(exactMatch);
+
+    for (let ref of possibleRefs) {
+        if (ref.length < 6) continue;
+        // 1. ባንክ SMS ውስጥ ከገባና ጥቅም ላይ ከዋለ
+        let inBankSms = await BankSMS.findOne({ txRef: ref, isUsed: true });
+        if (inBankSms) return true;
+        // 2. በሌላ ሰው ወይም በዚሁ ሰው ቀድሞ Pending ወይም Approved ሆኖ ከተላከ
+        let inTx = await Transaction.findOne({ 
+            type: 'deposit', 
+            smsText: { $regex: ref, $options: "i" },
+            status: { $in: ['Approved', 'Pending'] }
+        });
+        if (inTx) return true;
+    }
+    return false;
+}
+
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK 
+// 🔵 IPHONE SMS WEBHOOK (🔥 THE MAGIC FIX 🔥)
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
-        console.log("📥 [WEBHOOK RECEIVED]:", req.body);
-        
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
@@ -182,24 +185,17 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
             txRef = matches[0].toUpperCase(); 
         }
 
-        console.log(`🔍 Extracted -> Amount: ${amount}, TxRef: ${txRef}`);
-
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
-                console.log(`✅ Real Code [${txRef}] Saved! Running Auto-Approve...`);
                 await autoApprovePendingDeposits(); 
-            } else {
-                console.log(`⚠️ SMS with Code [${txRef}] already exists.`);
             }
             res.json({ success: true, amount, txRef });
         } else {
-            console.log("❌ Failed to extract valid Alphanumeric TxRef.");
             res.json({ success: false, msg: "Could not extract data" });
         }
     } catch (e) { 
-        console.log("❌ Webhook Error:", e);
         res.status(500).json({ error: "Server Error" }); 
     }
 });
@@ -251,20 +247,38 @@ app.get('/api/getUser/:phone', async (req, res) => {
 app.post('/api/request-tx', async (req, res) => {
     const { phone, type, amount, method, sms } = req.body; 
     let user = await User.findOne({phone}); if(!user) return res.json({success: false, message: "User not found!"});
+    
     if(type === 'withdraw') {
         if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
         user.mainBalance -= amount; await user.save();
     }
+
+    // 🔥 DUPLICATE SMS CHECK
+    if(type === 'deposit') {
+        let isUsed = await isSmsAlreadyUsed(sms);
+        if (isUsed) {
+            return res.json({ success: false, message: "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+        }
+    }
+
     await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
     
-    // ደንበኛው ጥያቄ ሲልክ ወዲያውኑ ቼክ ያደርጋል
     if(type === 'deposit') { await autoApprovePendingDeposits(); }
     
     res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
-    res.json({ success: true, txs: await Transaction.find({ phone: req.params.phone }).sort({ date: -1 }).limit(30) }); 
+    // 🔥 HISTORY FIX: ተቀማጭ(Deposit) Play Wallet ላይ ሲገባ (Approved) ብቻ ሂስትሪ ላይ ይመዘገባል!
+    const txs = await Transaction.find({
+        phone: req.params.phone,
+        $or: [
+            { type: 'withdraw' },
+            { type: 'deposit', status: 'Approved' } 
+        ]
+    }).sort({ date: -1 }).limit(30);
+
+    res.json({ success: true, txs }); 
 });
 
 app.get('/api/user/my-active-tickets/:phone', (req, res) => {
@@ -312,6 +326,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
+            // 🔥 Admin ማኑዋል አፕሩቭ ሲያደርግም የቦነስ ሎጂክ ይሰራል (>=100 ብር = 20%)
             let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
@@ -664,11 +679,15 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
-            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save(); 
-            bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) }); 
-            
-            // ደንበኛው ቦት ላይ SMS ሲልክ ፔንዲንግ ቼክ ያደርጋል
-            await autoApprovePendingDeposits(); 
+            // 🔥 DUPLICATE SMS CHECK IN BOT
+            let isUsed = await isSmsAlreadyUsed(text);
+            if (isUsed) {
+                bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
+            } else {
+                await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save(); 
+                bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) }); 
+                await autoApprovePendingDeposits(); 
+            }
         }
         state.step = 'idle';
     } 
@@ -742,7 +761,6 @@ app.get('*', (req, res) => {
 // ==========================================
 // 🔥 የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
 // ==========================================
-// በየ 30 ሰከንዱ ራሱን ችሎ Pending ያጣራል
 setInterval(async () => {
     try {
         await autoApprovePendingDeposits();
