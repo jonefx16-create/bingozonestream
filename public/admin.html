@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Admin Dashboard - Bingo Habesha</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --cyan: #06b6d4; }
+        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --cyan: #06b6d4; --gold: #fbbf24; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
         #login-sec { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); z-index: 9999; }
@@ -104,6 +104,7 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
+        <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
         <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Control</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
     </div>
@@ -225,7 +226,6 @@
                     <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
 
-                <!-- 🔥 NEW: PROMO BONUS WITH "VIEW CLAIMED USERS" BUTTON 🔥 -->
                 <div class="card" style="border-left: 4px solid var(--orange); grid-column: span 2;">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Telegram Broadcast</h3>
                     <p style="font-size:11px; color:gray;">ቦነስ ፈጥረው በቀጥታ ወደ ቴሌግራም ቦት ማስታወቂያ ይላኩ። ተጠቃሚዎች የ "🎁 Claim Bonus" በተንን ሲነኩ ቦነሱ ይሰጣቸዋል።</p>
@@ -244,6 +244,21 @@
             </div>
         </div>
 
+        <div id="tab-telegram" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
+                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
+                <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
+                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
+                <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
+                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
+                <textarea id="tg-msg" rows="6" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo()">Broadcast to Bot</button>
+                    <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
+                </div>
+            </div>
+        </div>
+
         <div id="tab-settings" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 
@@ -258,7 +273,6 @@
                     <div style="display:flex; gap:10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
                 </div>
                 
-                <!-- 🔥 DEPOSIT BONUS SETTINGS BOX 🔥 -->
                 <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width:280px;">
                     <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
                     <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን ቦነስ እዚህ ይቆጣጠሩ።</p>
@@ -298,7 +312,7 @@
                     </div>
 
                     <div class="card" style="border-left: 4px solid var(--red);">
-                        <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone</h3>
+                        <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone (Reset System)</h3>
                         <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ሁሉም ዳታዎች ይጠፋሉ። እንደ አዲስ ይጀምራል።</p>
                         <button class="action-btn btn-red" style="width: 100%;" onclick="factoryReset()">🗑️ Delete All Data (Reset)</button>
                     </div>
@@ -328,7 +342,6 @@
     </div>
 </div>
 
-<!-- 🔥 NEW: CLAIMED USERS MODAL 🔥 -->
 <div class="modal" id="claimed-users-modal">
     <div class="modal-content" style="max-width: 350px;">
         <h3 style="color: var(--orange); margin-top:0;">🎁 የወሰዱ ሰዎች ዝርዝር</h3>
@@ -385,6 +398,8 @@
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
             if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
+            
+            // Set Default values for the Bonus Box if empty
             if(!document.getElementById('set-dep-min').value) {
                 document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted;
                 document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount;
@@ -455,7 +470,11 @@
         currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
+            let smsBtn = ''; 
+            if(t.type === 'deposit') { 
+                let safeSMS = encodeURIComponent(t.smsText || "No SMS"); 
+                smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; 
+            }
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
     }
@@ -505,6 +524,29 @@
         document.querySelector('#tab-bonus .btn-orange').innerText = "Create Promo & Broadcast to Telegram";
     }
 
+    async function sendTelegramPromo() { 
+        let msg = document.getElementById('tg-msg').value; 
+        let fileInput = document.getElementById('tg-photo-file');
+        if(!msg) return alert("Enter a message"); 
+
+        document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው (Sending)..."; 
+
+        if (fileInput.files.length > 0) {
+            let reader = new FileReader();
+            reader.readAsDataURL(fileInput.files[0]);
+            reader.onload = async function () { sendPayloadToTelegram(msg, reader.result); };
+        } else { sendPayloadToTelegram(msg, ""); }
+    }
+
+    async function sendPayloadToTelegram(message, photoUrl) {
+        try {
+            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
+            let data = await res.json(); alert(data.message || "Sent successfully to bot users!"); 
+            if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo-file').value = ''; }
+        } catch(e) { alert("Error sending message."); }
+        document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
+    }
+
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
     
     function openEditModal(phone, passw, main, play, won) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('eu-won').value = won; document.getElementById('edit-user-modal').style.display = 'flex'; }
@@ -514,6 +556,7 @@
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     
+    // 🔥 NEW SETTINGS UPDATER FOR DEPOSIT BONUS 🔥
     async function updateSettings(type) { 
         let payload = { adminPass: pass }; 
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
@@ -535,6 +578,7 @@
     }
 
     async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); loadData(); loadLiveStats(); }
+    async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
 </script>
 </body>
 </html>
