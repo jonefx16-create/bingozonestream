@@ -8,6 +8,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const server = http.createServer(app);
+// ጨምረን የ upload መጠን ከፍ አድርገናል (ለፎቶ አፕሎድ እንዲረዳ)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const io = new Server(server, { cors: { origin: "*" } });
@@ -199,6 +200,7 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
+// 🔥 SYSTEM AUTOMATIC RANKING LOGIC (የሲስተሙ አውቶማቲክ ራንክ አሰራር እዚህ ነው) 🔥
 app.get('/api/leaderboard', async (req, res) => { 
     try {
         let leaderboard = await User.find().sort({ won: -1, playBalance: -1 }).limit(10).select('name won playBalance'); 
@@ -260,6 +262,7 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
     await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance, won });
     res.json({ success: true });
 });
+
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
@@ -373,10 +376,14 @@ setInterval(() => {
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
-            if(Object.keys(activePlayers).length > 0) { 
+            // 🔥 ከ 1 ተጫዋች በላይ ካለ (ቢያንስ 2 ሰው) ብቻ ጌሙ ይጀምራል 🔥
+            if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-            } else { gameClock = GLOBAL_SETTINGS.gameTimer; }
+            } else { 
+                // ሰው ከሌለ ወደ ተስተካከለው ሰከንድ (ለምሳሌ 40) ይመለሳል
+                gameClock = GLOBAL_SETTINGS.gameTimer; 
+            }
         }
     } else if (gameState === "PLAYING") {
         gameClock--;
