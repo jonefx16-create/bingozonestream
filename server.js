@@ -77,45 +77,72 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 በጥልቀት የተስተካከለ 🔥)
+// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 SUPER MATCHER 🔥)
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
+        if (pendingTxs.length > 0 || unusedSMS.length > 0) {
+            console.log(`🔍 Checking ${pendingTxs.length} Pending Txs against ${unusedSMS.length} Unused SMS...`);
+        }
+
         for (let tx of pendingTxs) {
-            // ተጠቃሚው ያስገባውን ኮድ Spaces አጥፍተን ወደ ትልቅ ፊደል እንቀይራለን
-            let userMsg = (tx.smsText || "").toUpperCase().replace(/\s+/g, '');
+            let userMsg = (tx.smsText || "").toUpperCase();
             
+            // ደንበኛው ያስገባውን ትራንዛክሽን ኮድ ሊሆን የሚችል ፅሁፍ እናወጣለን (ከ 6 ፊደል በላይ የሆነ)
+            let userPossibleRefs = userMsg.match(/\b[A-Z0-9]{6,15}\b/g) || [];
+            userPossibleRefs.push(userMsg.replace(/\s+/g, '')); // ሙሉ ፅሁፉን ያለ Space እንጨምረዋለን
+
+            let matchedSMS = null;
+
             for (let sms of unusedSMS) {
-                let bankRef = (sms.txRef || "").toUpperCase().replace(/\s+/g, '');
-                
-                // የባንኩ ትራንዛክሽን ኮድ ቢያንስ ከ 5 ፊደል በላይ መሆን አለበት
-                // ከተጠቃሚው ፅሁፍ ውስጥ የባንኩ ኮድ ከተገኘ፣ ያፀድቀዋል!
+                let bankMsg = (sms.rawText || "").toUpperCase();
+                let bankRef = (sms.txRef || "").toUpperCase();
+                let isMatch = false;
+
+                // 1. መጀመሪያ ዌብሁኩ ያወጣውን ኮድ (bankRef) ደንበኛው መጻፉን እናረጋግጣለን
                 if (bankRef && bankRef.length >= 5 && userMsg.includes(bankRef)) {
-                    let user = await User.findOne({ phone: tx.phone });
-                    if (user) {
-                        // ተጠቃሚው የሞላውን ብር ትተን፣ ከአይፎን የመጣውን ትክክለኛ የባንክ ብር እንወስዳለን
-                        let actualAmount = sms.amount;
-                        
-                        // 20% የዲፖዚት ቦነስ ስሌት (ከ 100 ብር በላይ ከሆነ)
-                        let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
-                        let totalCredit = actualAmount + bonus;
-
-                        tx.amount = actualAmount; 
-                        tx.status = 'Approved';
-                        await tx.save();
-
-                        sms.isUsed = true;
-                        await sms.save();
-
-                        user.playBalance += totalCredit;
-                        await user.save();
-                        
-                        io.emit('balance_updated', tx.phone);
+                    isMatch = true;
+                } 
+                // 2. ካልሆነ ደግሞ (Cross-check)፣ ደንበኛው የጻፈው ኮድ የባንኩ ኦሪጂናል ሜሴጅ ውስጥ ካለ እናረጋግጣለን
+                else {
+                    for (let uRef of userPossibleRefs) {
+                        if (uRef.length >= 6 && bankMsg.includes(uRef) && !uRef.startsWith("09") && !uRef.startsWith("07")) {
+                            isMatch = true;
+                            break;
+                        }
                     }
-                    break; // አግኝቶ ካፀደቀ በኋላ ለዚህ ትራንዛክሽን ማፈላለጉን ያቆማል
+                }
+
+                if (isMatch) {
+                    matchedSMS = sms;
+                    break; 
+                }
+            }
+
+            // ማች ካደረገ እና ካገኘው ያፀድቃል
+            if (matchedSMS) {
+                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
+                
+                let user = await User.findOne({ phone: tx.phone });
+                if (user) {
+                    let actualAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
+                    let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
+                    let totalCredit = actualAmount + bonus;
+
+                    tx.amount = actualAmount; 
+                    tx.status = 'Approved';
+                    await tx.save();
+
+                    matchedSMS.isUsed = true;
+                    await matchedSMS.save();
+
+                    user.playBalance += totalCredit;
+                    await user.save();
+                    
+                    io.emit('balance_updated', tx.phone);
                 }
             }
         }
@@ -127,39 +154,55 @@ async function autoApprovePendingDeposits() {
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
+        console.log("📥 [WEBHOOK RECEIVED]:", req.body);
+        
         const { secret, message } = req.body;
-        if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
+        if(secret !== "Bingo1234Secure") {
+            console.log("❌ Webhook Unauthorized!");
+            return res.status(401).json({ error: "Unauthorized" });
+        }
 
-        // CBE, Telebirr, MPesa, Zemen መሆናቸውን የሚያረጋግጡ ቃላት
-        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account|credited|transfer of/i.test(message);
-        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
+        if (!message) {
+            console.log("❌ Webhook Empty Message!");
+            return res.json({ success: false, msg: "Empty message" });
+        }
 
-        // ትክክለኛውን የብር መጠን ነቅሶ ማውጣት
+        // የገባውን የብር መጠን ነቅሶ ማውጣት
         let amountMatch = message.match(/(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i) || message.match(/([\d,]+(?:\.\d+)?)/);
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
-        // ትክክለኛውን Transaction ID ነቅሶ ማውጣት (የበለጠ የተሻሻለ Regex)
+        // የገባውን የትራንዛክሽን ኮድ ነቅሶ ማውጣት
         let txRef = "";
         let txMatch = message.match(/(?:Ref(?:erence)?\s*No|ID|Txn(?: ID)?|Transaction(?: No)?|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]{6,15})/i);
         if(txMatch) {
             txRef = txMatch[1].toUpperCase();
         } else {
-            // ፎልባክ፡ ቢያንስ አንድ ፊደል እና አንድ ቁጥር ያለው ከ 6 እስከ 15 ርዝመት ያለውን ኮድ ይፈልጋል (ስልክ ቁጥርን እና ቀንን ያስቀራል)
+            // ቢያንስ 1 ፊደል እና 1 ቁጥር ያለው ኮድ ይፈልጋል
             let fallbackMatch = message.match(/\b(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{6,15}\b/i); 
             if(fallbackMatch) txRef = fallbackMatch[0].toUpperCase(); 
         }
 
-        if(amount > 0 && txRef.length >= 5) {
-            // ደረሰኙ ድጋሚ እንዳይገባ እና Fake እንዳይሆን ይከላከላል
+        console.log(`🔍 Extracted -> Amount: ${amount}, TxRef: ${txRef}`);
+
+        // የባንክ ሜሴጅ መሆኑን አረጋግጦ ይመዘግባል
+        if(amount > 0 || txRef.length >= 5) {
             const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
-                // አዲስ SMS ሲገባ ወዲያውኑ ፔንዲንግ ያለውን ቼክ ያደርጋል
+                console.log("✅ SMS Saved to Database! Running Auto-Approve...");
                 await autoApprovePendingDeposits(); 
+            } else {
+                console.log("⚠️ SMS already exists in database.");
             }
+            res.json({ success: true, amount, txRef });
+        } else {
+            console.log("❌ Could not extract Amount or TxRef from message.");
+            res.json({ success: false, msg: "Could not extract data" });
         }
-        res.json({ success: true, amount, txRef });
-    } catch (e) { res.status(500).json({ error: "Server Error" }); }
+    } catch (e) { 
+        console.log("❌ Webhook Error:", e);
+        res.status(500).json({ error: "Server Error" }); 
+    }
 });
 
 // ==========================================
@@ -474,7 +517,7 @@ const t = {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
         btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።", err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
-        profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>", wit_msg: "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>",
         invite_msg: (l) => `🔗 <b>ጋብዝ እና አግኝ</b>\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ <b>እርስዎም 10 ብር፣ ጓደኛዎም 10 ብር</b> የመጫወቻ ቦነስ ያገኛላችሁ!\n\n👇 የጋብዝ ሊንክዎ:\n${l}`,
@@ -698,7 +741,7 @@ app.get('*', (req, res) => {
 });
 
 // ==========================================
-// 🔥 የጠፋው የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
+// 🔥 የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
 // ==========================================
 // በየ 30 ሰከንዱ ራሱን ችሎ Pending ያጣራል
 setInterval(async () => {
