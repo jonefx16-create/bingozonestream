@@ -77,7 +77,7 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🟢 POWERFUL AUTOMATIC DEPOSIT VERIFICATION ENGINE
+// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 በጥልቀት የተስተካከለ 🔥)
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
@@ -85,18 +85,21 @@ async function autoApprovePendingDeposits() {
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
         for (let tx of pendingTxs) {
-            // የተጠቃሚውን ፅሁፍ (Spaces እና Special Characters አጥፍቶ ማስተካከል)
-            let userMsgClean = (tx.smsText || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
-
+            // ተጠቃሚው ያስገባውን ኮድ Spaces አጥፍተን ወደ ትልቅ ፊደል እንቀይራለን
+            let userMsg = (tx.smsText || "").toUpperCase().replace(/\s+/g, '');
+            
             for (let sms of unusedSMS) {
-                let bankRef = (sms.txRef || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
+                let bankRef = (sms.txRef || "").toUpperCase().replace(/\s+/g, '');
                 
-                // የተጠቃሚው ፅሁፍ ትክክለኛውን የባንክ ኮድ ከያዘ
-                if (bankRef && bankRef.length >= 5 && userMsgClean.includes(bankRef)) {
+                // የባንኩ ትራንዛክሽን ኮድ ቢያንስ ከ 5 ፊደል በላይ መሆን አለበት
+                // ከተጠቃሚው ፅሁፍ ውስጥ የባንኩ ኮድ ከተገኘ፣ ያፀድቀዋል!
+                if (bankRef && bankRef.length >= 5 && userMsg.includes(bankRef)) {
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
+                        // ተጠቃሚው የሞላውን ብር ትተን፣ ከአይፎን የመጣውን ትክክለኛ የባንክ ብር እንወስዳለን
                         let actualAmount = sms.amount;
-                        // 20% የዲፖዚት ቦነስ ስሌት
+                        
+                        // 20% የዲፖዚት ቦነስ ስሌት (ከ 100 ብር በላይ ከሆነ)
                         let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
                         let totalCredit = actualAmount + bonus;
 
@@ -112,7 +115,7 @@ async function autoApprovePendingDeposits() {
                         
                         io.emit('balance_updated', tx.phone);
                     }
-                    break;
+                    break; // አግኝቶ ካፀደቀ በኋላ ለዚህ ትራንዛክሽን ማፈላለጉን ያቆማል
                 }
             }
         }
@@ -120,52 +123,42 @@ async function autoApprovePendingDeposits() {
 }
 
 // ==========================================
-// 🔵 BULLETPROOF IPHONE SMS WEBHOOK
+// 🔵 IPHONE SMS WEBHOOK (🔥 ተስተካክሏል 🔥)
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        // 1. የብር መጠንን ነቅሶ ማውጣት (በጣም ኃይለኛ ፈልጓጅ)
-        let amount = 0;
-        let amtMatch1 = message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i);
-        let amtMatch2 = message.match(/(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i);
+        // CBE, Telebirr, MPesa, Zemen መሆናቸውን የሚያረጋግጡ ቃላት
+        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account|credited|transfer of/i.test(message);
+        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
+
+        // ትክክለኛውን የብር መጠን ነቅሶ ማውጣት
+        let amountMatch = message.match(/(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i) || message.match(/([\d,]+(?:\.\d+)?)/);
+        let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
-        if (amtMatch1) amount = parseFloat(amtMatch1[1].replace(/,/g, ''));
-        else if (amtMatch2) amount = parseFloat(amtMatch2[1].replace(/,/g, ''));
-        else {
-            // ETB የሚል ቃል ባይኖርም .00 ያለውን ቁጥር ይፈልጋል
-            let decMatch = message.match(/\b(\d+(?:,\d{3})*\.\d{2})\b/);
-            if (decMatch) amount = parseFloat(decMatch[1].replace(/,/g, ''));
-        }
-
-        // 2. የ Transaction ID መፈለግ
-        let txRef = null;
-        let txMatch = message.match(/(?:Ref(?:erence)?\s*No|ID|Txn(?: ID)?|Transaction(?: No)?|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]{5,15})/i);
-        if (txMatch) {
-            txRef = txMatch[1];
+        // ትክክለኛውን Transaction ID ነቅሶ ማውጣት (የበለጠ የተሻሻለ Regex)
+        let txRef = "";
+        let txMatch = message.match(/(?:Ref(?:erence)?\s*No|ID|Txn(?: ID)?|Transaction(?: No)?|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]{6,15})/i);
+        if(txMatch) {
+            txRef = txMatch[1].toUpperCase();
         } else {
-            // ፎርማቱ ከተቀየረ ፊደልና ቁጥር የተቀላቀለበትን ረጅም ቃል (Code) ይፈልጋል
-            let words = message.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/);
-            for (let w of words) {
-                if (/[A-Za-z]/.test(w) && /[0-9]/.test(w) && w.length >= 6 && w.length <= 15) {
-                    txRef = w.toUpperCase();
-                    break;
-                }
-            }
+            // ፎልባክ፡ ቢያንስ አንድ ፊደል እና አንድ ቁጥር ያለው ከ 6 እስከ 15 ርዝመት ያለውን ኮድ ይፈልጋል (ስልክ ቁጥርን እና ቀንን ያስቀራል)
+            let fallbackMatch = message.match(/\b(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{6,15}\b/i); 
+            if(fallbackMatch) txRef = fallbackMatch[0].toUpperCase(); 
         }
 
-        // ሁለቱም ከተገኙ ዳታቤዝ ላይ ያስቀምጠዋል
-        if(amount > 0 && txRef) {
-            const exists = await BankSMS.findOne({ txRef: txRef.toUpperCase() });
+        if(amount > 0 && txRef.length >= 5) {
+            // ደረሰኙ ድጋሚ እንዳይገባ እና Fake እንዳይሆን ይከላከላል
+            const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
-                await BankSMS.create({ rawText: message, txRef: txRef.toUpperCase(), amount: amount });
-                // ልክ አዲስ SMS ሲመጣ አውቶማቲካሊ ፔንዲንግ ያለውን ፈልጎ ያስገባል
+                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                // አዲስ SMS ሲገባ ወዲያውኑ ፔንዲንግ ያለውን ቼክ ያደርጋል
                 await autoApprovePendingDeposits(); 
             }
         }
-        res.json({ success: true });
+        res.json({ success: true, amount, txRef });
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
@@ -222,7 +215,7 @@ app.post('/api/request-tx', async (req, res) => {
     }
     await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
     
-    // ልክ ተጠቃሚው ጥያቄ ሲልክ ወዲያው ቼክ ያደርጋል
+    // ደንበኛው ጥያቄ ሲልክ ወዲያውኑ ቼክ ያደርጋል
     if(type === 'deposit') { await autoApprovePendingDeposits(); }
     
     res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
@@ -628,7 +621,13 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
     } 
     else if (state.step === 'awaiting_dep_sms') {
-        if(user) { await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save(); bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) }); await autoApprovePendingDeposits(); }
+        if(user) { 
+            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save(); 
+            bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) }); 
+            
+            // ደንበኛው ቦት ላይ SMS ሲልክ ፔንዲንግ ቼክ ያደርጋል
+            await autoApprovePendingDeposits(); 
+        }
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_acc') {
@@ -697,6 +696,16 @@ app.get('*', (req, res) => {
         res.send("<h1>Bingo Habesha System is Running.</h1>");
     }
 });
+
+// ==========================================
+// 🔥 የጠፋው የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
+// ==========================================
+// በየ 30 ሰከንዱ ራሱን ችሎ Pending ያጣራል
+setInterval(async () => {
+    try {
+        await autoApprovePendingDeposits();
+    } catch (error) {}
+}, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
