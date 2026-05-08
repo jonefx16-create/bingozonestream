@@ -66,18 +66,18 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
-    // 🔥 NEW: Deposit Bonus Control
     depBonusPercent: { type: Number, default: 20 },
     depBonusMinAmount: { type: Number, default: 200 },
-    happyHourStart: { type: Number, default: 12 }, // 12:00
-    happyHourEnd: { type: Number, default: 16 }    // 4:00 (16:00)
+    depBonusTimeRestricted: { type: Boolean, default: false },
+    happyHourStart: { type: Number, default: 12 }, 
+    happyHourEnd: { type: Number, default: 16 }    
 }));
 
-let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusPercent: 20, depBonusMinAmount: 200, happyHourStart: 12, happyHourEnd: 16 };
+let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusPercent: 20, depBonusMinAmount: 200, depBonusTimeRestricted: false, happyHourStart: 12, happyHourEnd: 16 };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, depBonusPercent: s.depBonusPercent || 20, depBonusMinAmount: s.depBonusMinAmount || 200, happyHourStart: s.happyHourStart || 12, happyHourEnd: s.happyHourEnd || 16 };
+    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, depBonusPercent: s.depBonusPercent || 20, depBonusMinAmount: s.depBonusMinAmount || 200, depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart || 12, happyHourEnd: s.happyHourEnd || 16 };
 }
 loadSettings();
 
@@ -86,15 +86,18 @@ const bankAccounts = {
     'CBEBirr': { num: '0988180301', name: 'Yohannes Aberham' }
 };
 
-// 🟢 NEW HELPER: Check if currently in Happy Hour
+// 🟢 Check Happy Hour
 function isHappyHour() {
     let currentHour = new Date().getHours();
     return currentHour >= GLOBAL_SETTINGS.happyHourStart && currentHour < GLOBAL_SETTINGS.happyHourEnd;
 }
 
+// 🟢 Calculate Bonus Based on Setting
 function calculateDepositBonus(amount) {
-    if (isHappyHour() && amount >= GLOBAL_SETTINGS.depBonusMinAmount) {
-        return amount * (GLOBAL_SETTINGS.depBonusPercent / 100);
+    if (amount >= GLOBAL_SETTINGS.depBonusMinAmount) {
+        if (!GLOBAL_SETTINGS.depBonusTimeRestricted || isHappyHour()) {
+            return amount * (GLOBAL_SETTINGS.depBonusPercent / 100);
+        }
     }
     return 0;
 }
@@ -109,8 +112,7 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
-            
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g) || [];
             userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
             let matchedSMS = null;
@@ -136,7 +138,7 @@ async function autoApprovePendingDeposits() {
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    let bonus = calculateDepositBonus(actualReceivedAmount); // 🔥 DYNAMIC BONUS 🔥
+                    let bonus = calculateDepositBonus(actualReceivedAmount); 
                     let totalCredit = actualReceivedAmount + bonus;
 
                     tx.amount = actualReceivedAmount; 
@@ -160,9 +162,9 @@ async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
     try {
         let msg = userInputSms.toUpperCase();
-        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g) || [];
         let stripped = msg.replace(/[^A-Z0-9]/gi, '');
-        if (stripped.length >= 6 && stripped.length <= 15 && !/^\d+$/.test(stripped) && !/^[A-Z]+$/.test(stripped)) {
+        if (stripped.length >= 6 && stripped.length <= 20 && !/^[A-Z]+$/.test(stripped)) {
             if(!refs.includes(stripped)) refs.push(stripped);
         }
         if (refs.length === 0) return false; 
@@ -190,8 +192,12 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
         let txRef = "";
-        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
-        if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
+        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
+        if (explicitMatch) { txRef = explicitMatch[1].toUpperCase(); } 
+        else {
+            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g);
+            if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
+        }
 
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
@@ -296,8 +302,8 @@ app.get('/api/leaderboard', async (req, res) => {
 // 🔴 ADMIN & FINANCE APIs
 // ==========================================
 const auth = (req, res, next) => { 
-    const pass = req.body.password || req.body.adminPass;
-    const isPassValid = pass === GLOBAL_SETTINGS.adminPass || pass === ADMIN_PASS;
+    const pass = req.body.adminPass || req.body.password;
+    const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
@@ -352,7 +358,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
-            let bonus = calculateDepositBonus(actualAmount); // 🔥 DYNAMIC BONUS 🔥
+            let bonus = calculateDepositBonus(actualAmount); 
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
         }
@@ -370,9 +376,10 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
-    // 🔥 UPDATE BONUS PARAMS 🔥
+    // UPDATE DEPOSIT BONUS PARAMS
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
+    if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
     if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
     if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
 
@@ -416,7 +423,7 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
-// 🔥 PROMO & TELEGRAM BROADCAST (WITH CLAIM PROMO OPTION) 🔥
+// 🔥 PROMO & TELEGRAM BROADCAST 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -453,6 +460,15 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     }
 });
 
+// 🟢 NEW API: To Fetch Who Claimed The Promo Bonus
+app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
+    try {
+        let activeBonus = await ActiveBonus.findOne().sort({ date: -1 });
+        if(!activeBonus) return res.json({ success: false, message: "No bonus history found." });
+        res.json({ success: true, claimedBy: activeBonus.claimedBy, amount: activeBonus.amount, max: activeBonus.maxUsers });
+    } catch(e) { res.json({ success: false }); }
+});
+
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
         const { message, photoUrl } = req.body;
@@ -462,11 +478,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         for (let u of users) {
             try {
                 let sentMsg;
-                if (photoUrl && photoUrl.trim() !== "") {
-                    sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                } else { 
-                    sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); 
-                }
+                if (photoUrl && photoUrl.startsWith('data:image')) {
+                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
+                } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
                 lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
             } catch(e) {} 
         }
@@ -615,7 +631,7 @@ const t = {
         enter_wit_amt: (acc) => `✅ አካውንት: <b>${acc}</b>\n\nማውጣት የሚፈልጉትን መጠን ያስገቡ (ቢያንስ 50 ብር):`, insufficient: "❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!", wit_success: (amt, acc) => `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${amt} ETB\nወደ: ${acc}\n\nበቅርቡ ይላካል!`
     },
     en: {
-        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
+        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.",
         btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back",
         share_contact: "📱 Share Contact", err_reg_first: "Register first by sending /start.", err_cancel: "❌ Action cancelled.",
         profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n🔑 <b>Password:</b> <code>${u.password}</code>\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
@@ -766,7 +782,6 @@ bot.on('callback_query', async (query) => {
     let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
     if(data.startsWith('lang_')) { if(user) { user.language = data.split('_')[1]; await user.save(); ln = getLang(user); bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); } bot.answerCallbackQuery(query.id); return; }
     
-    // 🔥 INLINE CLAIM BONUS LOGIC 🔥
     if (data === 'claim_promo') {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
         
