@@ -84,6 +84,10 @@ async function autoApprovePendingDeposits() {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
+        if (pendingTxs.length > 0 || unusedSMS.length > 0) {
+            console.log(`🔍 Checking ${pendingTxs.length} Pending Txs against ${unusedSMS.length} Unused SMS...`);
+        }
+
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
             
@@ -118,6 +122,7 @@ async function autoApprovePendingDeposits() {
                 console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
+                    // 🔥 AUTO-CORRECT: የተጫዋቹን ፎርም ሰርዞ እውነተኛውን ከባንክ የመጣውን መጠን ይጠቀማል
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
                     
                     // 🔥 ቦነስ ሎጂክ: ከ 100 ብር በላይ 20% ቦነስ፣ ከ100 በታች 0
@@ -171,13 +176,17 @@ async function isSmsAlreadyUsed(userInputSms) {
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
+        console.log("📥 [WEBHOOK RECEIVED]:", req.body);
+        
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
 
+        // 1. የብር መጠን ማውጣት
         let amountMatch = message.match(/(?:ETB|ብር|birr|Birr)\s*([\d,]+(?:\.\d+)?)/i) || message.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር|birr|Birr)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
+        // 2. ትክክለኛውን ኮድ ማውጣት (The Magic Regex)
         let txRef = "";
         let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
         
@@ -185,17 +194,24 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
             txRef = matches[0].toUpperCase(); 
         }
 
+        console.log(`🔍 Extracted -> Amount: ${amount}, TxRef: ${txRef}`);
+
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                console.log(`✅ Real Code [${txRef}] Saved! Running Auto-Approve...`);
                 await autoApprovePendingDeposits(); 
+            } else {
+                console.log(`⚠️ SMS with Code [${txRef}] already exists.`);
             }
             res.json({ success: true, amount, txRef });
         } else {
+            console.log("❌ Failed to extract valid Alphanumeric TxRef.");
             res.json({ success: false, msg: "Could not extract data" });
         }
     } catch (e) { 
+        console.log("❌ Webhook Error:", e);
         res.status(500).json({ error: "Server Error" }); 
     }
 });
@@ -253,11 +269,12 @@ app.post('/api/request-tx', async (req, res) => {
         user.mainBalance -= amount; await user.save();
     }
 
-    // 🔥 DUPLICATE SMS CHECK
+    // 🔥 DUPLICATE SMS CHECK (WEB) 🔥
     if(type === 'deposit') {
         let isUsed = await isSmsAlreadyUsed(sms);
         if (isUsed) {
-            return res.json({ success: false, message: "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+            // በተጠቃሚው ጥያቄ መሰረት የተስተካከለ ፅሁፍ
+            return res.json({ success: false, message: "❌ ይህ sms አገልግሎት ላይ ውሏል!" });
         }
     }
 
@@ -679,10 +696,10 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
-            // 🔥 DUPLICATE SMS CHECK IN BOT
+            // 🔥 DUPLICATE SMS CHECK IN BOT (FIXED BUG) 🔥
             let isUsed = await isSmsAlreadyUsed(text);
             if (isUsed) {
-                bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
+                bot.sendMessage(chatId, "❌ ይህ sms (TxRef) አገልግሎት ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
             } else {
                 await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save(); 
                 bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) }); 
@@ -768,7 +785,6 @@ setInterval(async () => {
 }, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
-
 
 
 
