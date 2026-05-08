@@ -8,9 +8,11 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const server = http.createServer(app);
+// ጨምረን የ upload መጠን ከፍ አድርገናል (ለፎቶ አፕሎድ እንዲረዳ)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
@@ -108,7 +110,6 @@ async function autoApprovePendingDeposits() {
                         await user.save();
                         
                         io.emit('balance_updated', tx.phone);
-                        console.log(`✅ አውቶማቲክ አፕሩቭ፡ ${tx.phone} | ብር፡ ${actualAmount}`);
                     }
                     break;
                 }
@@ -285,7 +286,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     res.json({ success: true, message: "✅ Promo Created! Users can now claim it in the bot." });
 });
 
-// TELEGRAM BROADCAST
+// 🔥 TELEGRAM BROADCAST (WITH BASE64 PHOTO UPLOAD FIX) 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -297,11 +298,25 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         if (!message) return res.json({ success: false, message: "No message entered." });
         const users = await User.find({ telegramId: { $ne: "" } });
         lastBroadcasts = []; let count = 0;
+        
         for (let u of users) {
             try {
                 let sentMsg;
-                if (photoUrl && photoUrl.trim() !== "") sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                else sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" });
+                // If it's an uploaded file (Base64)
+                if (photoUrl && photoUrl.startsWith('data:image')) {
+                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, "");
+                    let photoBuffer = Buffer.from(base64Data, 'base64');
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
+                } 
+                // If it's a regular URL link
+                else if (photoUrl && photoUrl.startsWith('http')) {
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                } 
+                // Text only
+                else {
+                    sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" });
+                }
+                
                 lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id });
                 count++;
             } catch(e) {} 
@@ -309,6 +324,7 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
     } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
 });
+
 app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
     try {
         if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." });
@@ -493,9 +509,7 @@ function getMainMenu(user) {
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
 
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
-    const chatId = msg.chat.id;
-    let user = await User.findOne({ telegramId: msg.from.id.toString() });
-    let ln = getLang(user);
+    const chatId = msg.chat.id; let user = await User.findOne({ telegramId: msg.from.id.toString() }); let ln = getLang(user);
     if(user) { bot.sendMessage(chatId, ln.welcome, { parse_mode: "HTML", ...getMainMenu(user) }); } 
     else {
         botState[chatId] = { step: 'idle', refCode: match[1] };
@@ -601,30 +615,35 @@ bot.on('callback_query', async (query) => {
 });
 
 // ==========================================
-// 🛣️ ROUTES (SMART FILE FINDER - FIX FOR "NOT FOUND")
+// 🛣️ ROUTES (MAINTENANCE INJECTOR + ROUTING)
 // ==========================================
 app.get('/admin', (req, res) => {
-    let rootPath = path.join(__dirname, 'admin.html');
-    let pubPath = path.join(__dirname, 'public', 'admin.html');
-    if (fs.existsSync(rootPath)) res.sendFile(rootPath);
-    else if (fs.existsSync(pubPath)) res.sendFile(pubPath);
-    else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም! (File Not Found)</h2><p>እባክዎ 'admin.html' የሚባለውን ፋይል 'server.js' ካለበት ፎልደር ውስጥ በትክክል ማስቀመጥዎን ያረጋግጡ።</p>");
+    let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
+    if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>");
 });
 
 app.get('/finance', (req, res) => {
-    let rootPath = path.join(__dirname, 'finance.html');
-    let pubPath = path.join(__dirname, 'public', 'finance.html');
-    if (fs.existsSync(rootPath)) res.sendFile(rootPath);
-    else if (fs.existsSync(pubPath)) res.sendFile(pubPath);
-    else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም! (File Not Found)</h2><p>እባክዎ 'finance.html' የሚባለውን ፋይል 'server.js' ካለበት ፎልደር ውስጥ በትክክል ማስቀመጥዎን ያረጋግጡ።</p>");
+    let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html');
+    if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>");
 });
 
 app.get('*', (req, res) => {
-    let rootPath = path.join(__dirname, 'index.html');
-    let pubPath = path.join(__dirname, 'public', 'index.html');
-    if (fs.existsSync(rootPath)) res.sendFile(rootPath);
-    else if (fs.existsSync(pubPath)) res.sendFile(pubPath);
-    else res.send("<h1>Bingo Habesha System is Running.</h1><p>Index file not found.</p>");
+    let target = fs.existsSync(path.join(__dirname, 'index.html')) ? path.join(__dirname, 'index.html') : path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(target)) {
+        let html = fs.readFileSync(target, 'utf8');
+        // 🔥 MAINTENANCE OVERLAY INJECTION 🔥
+        if (GLOBAL_SETTINGS.isGamePaused) {
+            let overlay = `<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:20px;box-sizing:border-box;">
+                <h1 style="color:#ea580c;font-size:45px;margin-bottom:10px;font-family:sans-serif;">⚠️ ጥገና ላይ ነን!</h1>
+                <p style="font-size:20px;color:#cbd5e1;font-family:sans-serif;margin-top:0;">(MAINTENANCE)</p>
+                <p style="font-size:16px;color:#94a3b8;max-width:500px;line-height:1.6;font-family:sans-serif;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
+            </div>`;
+            html = html.replace('<body>', '<body>' + overlay);
+        }
+        res.send(html);
+    } else {
+        res.send("<h1>Bingo Habesha System is Running.</h1>");
+    }
 });
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
