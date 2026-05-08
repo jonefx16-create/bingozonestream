@@ -8,7 +8,6 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const server = http.createServer(app);
-// ጨምረን የ upload መጠን ከፍ አድርገናል (ለፎቶ አፕሎድ እንዲረዳ)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const io = new Server(server, { cors: { origin: "*" } });
@@ -90,7 +89,8 @@ async function autoApprovePendingDeposits() {
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
                         let actualAmount = sms.amount;
-                        let bonus = (actualAmount >= 100) ? 30 : 0;
+                        // 🔥 20% አውቶማቲክ ቦነስ ስሌት እዚህ ተስተካክሏል 🔥
+                        let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
                         let totalCredit = actualAmount + bonus;
 
                         tx.amount = actualAmount; 
@@ -200,9 +200,10 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
+// 🔥 SYSTEM AUTOMATIC RANKING LOGIC (ያሸነፉትን በስርዓት ፈልጎ ያወጣል) 🔥
 app.get('/api/leaderboard', async (req, res) => { 
     try {
-        let leaderboard = await User.find().sort({ won: -1, playBalance: -1 }).limit(10).select('name won playBalance'); 
+        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1, playBalance: -1 }).limit(10).select('name won playBalance'); 
         res.json({ success: true, leaderboard }); 
     } catch(e) { res.json({ success: false }); }
 });
@@ -238,7 +239,13 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     const tx = await Transaction.findById(req.body.txId); const user = await User.findOne({phone: tx.phone});
     if (req.body.action === 'Approve') { 
         tx.status = 'Approved'; 
-        if(tx.type === 'deposit') user.playBalance += tx.amount; 
+        if(tx.type === 'deposit') {
+            // 🔥 ማኑዋል አፕሩቭ ሲደረግም ቦነሱ እንዲሰራ ተስተካክሏል 🔥
+            let actualAmount = tx.amount;
+            let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
+            let totalCredit = actualAmount + bonus;
+            user.playBalance += totalCredit;
+        }
     } else { 
         tx.status = 'Rejected'; 
         if(tx.type === 'withdraw') user.mainBalance += tx.amount; 
@@ -257,8 +264,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
 });
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
-    const { oldPhone, newPhone, password, mainBalance, playBalance, won } = req.body;
-    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance, won });
+    const { oldPhone, newPhone, password, mainBalance, playBalance } = req.body;
+    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance });
     res.json({ success: true });
 });
 
@@ -385,6 +392,7 @@ setInterval(() => {
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
+            // 🔥 ከ 1 ተጫዋች በላይ ካለ (ቢያንስ 2 ሰው) ብቻ ጌሙ ይጀምራል 🔥
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
@@ -432,7 +440,6 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-// 🔥 ቋሚ የቢንጎ እና የአንበሳ ፎቶ ሊንክ 🔥
 const WELCOME_PHOTO_URL = "https://i.ibb.co/JjkpWv1X/bingo-habesha.jpg";
 
 const t = {
@@ -500,7 +507,6 @@ function getMainMenu(user) {
 }
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
 
-// 🔥 አዲስ፡ በ Start ጊዜ ፎቶ መላክ 🔥
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
     const chatId = msg.chat.id; let user = await User.findOne({ telegramId: msg.from.id.toString() }); let ln = getLang(user);
     if(user) { 
@@ -514,7 +520,6 @@ bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
     }
 });
 
-// 🔥 አዲስ፡ ስልክ ከላኩ በኋላ ፕሮፋይልን ከፎቶ ጋር መላክ 🔥
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id; let phone = msg.contact.phone_number;
     if (phone.startsWith('251')) phone = '0' + phone.substring(3); if (phone.startsWith('+251')) phone = '0' + phone.substring(4);
@@ -563,7 +568,6 @@ bot.on('message', async (msg) => {
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play) {
         bot.sendMessage(chatId, "🎮 BINGO HABESHA", { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
-    // 🔥 አዲስ፡ ፕሮፋይል ሲጠይቅ በፎቶ መላክ 🔥
     else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
