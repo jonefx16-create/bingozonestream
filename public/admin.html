@@ -256,13 +256,23 @@
                     <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds - የጌም ሰከንድ)</label>
                     <div style="display:flex; gap:10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
                 </div>
-                <div class="card" style="flex: 1; border-left: 4px solid var(--blue); min-width:280px;">
-                    <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
-                    <label>New Admin Password</label>
-                    <input type="text" id="set-pass" placeholder="Enter new password">
-                    <button class="action-btn btn-blue" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('password')">Change Password</button>
-                    <hr style="border-color: var(--border);">
-                    <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
+                
+                <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
+                    <div class="card" style="border-left: 4px solid var(--blue);">
+                        <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
+                        <label>New Admin Password</label>
+                        <input type="text" id="set-pass" placeholder="Enter new password">
+                        <button class="action-btn btn-blue" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('password')">Change Password</button>
+                        <hr style="border-color: var(--border);">
+                        <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
+                    </div>
+
+                    <!-- 🔥 አዲሱ ማጥፊያ BUTTON እዚህ አለ 🔥 -->
+                    <div class="card" style="border-left: 4px solid var(--red);">
+                        <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone (Reset System)</h3>
+                        <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ሲስተሙ ላይ ያሉ ተጠቃሚዎች፣ ሂሳቦች፣ አሸናፊዎች እና ሁሉም ዳታዎች ይጠፋሉ። እንደ አዲስ ይጀምራል።</p>
+                        <button class="action-btn btn-red" style="width: 100%;" onclick="factoryReset()">🗑️ Delete All Data (Reset)</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -329,7 +339,7 @@
     async function loadLiveStats() {
         if(!pass || !document.getElementById('tab-live').classList.contains('active')) return;
         try {
-            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); let data = await res.json();
+            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
@@ -341,7 +351,7 @@
 
     async function loadData() {
         try {
-            let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
             let users = await uRes.json(); document.getElementById('box-total-reg').innerText = users.length;
@@ -361,10 +371,10 @@
             }
             document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="4" style="text-align:center;">No referrals yet.</td></tr>`;
 
-            let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allTransactions = await tRes.json(); populatePendingDeposits(); populatePendingWithdraws(); filterHistoryTx(currentHistType);
 
-            let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
+            let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allGameHistories = await hRes.json();
             document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td><td style="color:var(--blue); font-weight:bold;">+${h.adminProfit || 0}</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`).join('');
             let dropHtml = '<option value="">-- Select a Game --</option>'; allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
@@ -418,7 +428,7 @@
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     function viewHistory(grid, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let gHtml = `<div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; }
     
-    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
+    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
     
     async function sendDirectBonus() {
         let phone = document.getElementById('direct-phone').value.trim();
@@ -427,12 +437,12 @@
 
         if(phone) {
             if(!confirm(`እርግጠኛ ነዎት ${amount} ETB ለስልክ ቁጥር ${phone} መላክ ይፈልጋሉ?`)) return;
-            let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})});
+            let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount})});
             let data = await res.json();
             alert(data.message);
         } else {
             if(!confirm(`⚠️ ማስጠንቀቂያ፡ ለሁሉም ተጠቃሚዎች በአንዴ ${amount} ETB ሊልኩ ነው! እርግጠኛ ነዎት?`)) return;
-            let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: "ALL", amount})});
+            let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: "ALL", amount})});
             let data = await res.json();
             alert(data.message);
         }
@@ -440,6 +450,19 @@
         document.getElementById('direct-amount').value = '';
     }
     
+    // 🔥 አዲስ፡ ዳታቤዝ ማጥፊያ ፈንክሽን 🔥
+    async function factoryReset() {
+        if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return;
+        let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡");
+        if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!");
+        
+        let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
+        let data = await res.json();
+        alert(data.message);
+        loadData();
+        loadLiveStats();
+    }
+
     async function sendTelegramPromo() { 
         let msg = document.getElementById('tg-msg').value; 
         let fileInput = document.getElementById('tg-photo-file');
@@ -462,7 +485,7 @@
 
     async function sendPayloadToTelegram(message, photoUrl) {
         try {
-            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message, photoUrl})}); 
+            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
             let data = await res.json(); 
             alert(data.message || "Sent successfully to bot users!"); 
             if(data.success) { 
@@ -473,11 +496,10 @@
         document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
     }
 
-    async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
+    async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
     
-    // 🔥 TICKET PRICE እና GAME TIMER ማስተካከያ 🔥
     async function updateSettings(type) { 
-        let payload = { password: pass }; 
+        let payload = { adminPass: pass }; 
         if(type === 'password') { 
             let np = document.getElementById('set-pass').value; 
             if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); 
@@ -497,8 +519,8 @@
         alert("✅ Saved!"); 
     }
 
-    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
-    async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); } }
+    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
+    async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
     
     function openEditModal(phone, passw, main, play, won) { 
         document.getElementById('eu-oldPhone').value = phone; 
@@ -525,8 +547,8 @@
         loadData(); 
     }
     
-    async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
-    async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
+    async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
+    async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
 </script>
 </body>
 </html>
