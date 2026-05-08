@@ -390,8 +390,19 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+        
         if (gameClock <= 0) { 
-            if(Object.keys(activePlayers).length > 1) { gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); } else { gameClock = 40; }
+            // 🔥 አሁን 1 ሰው ( > 0 ) ብቻውንም ጌሙን ማስጀመር ይችላል (ቴስት ለማድረግ ይመቻል)
+            if(Object.keys(activePlayers).length > 0) { 
+                gameState = "PLAYING"; 
+                gameClock = 3; 
+                currentDrawSequence = generateRiggedDrawSequence(); 
+                
+                // 🔥 ዋናው መፍትሄ፡ 00 ሲደርስ ጌሙ መጀመሩን ወዲያው ለተጫዋቾች ይልካል (Refresh ማድረግ አይጠበቅባቸውም)
+                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+            } else { 
+                gameClock = 40; 
+            }
         }
     } else if (gameState === "PLAYING") {
         gameClock--;
