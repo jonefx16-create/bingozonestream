@@ -212,13 +212,23 @@
 
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <!-- 🔥 EXISTING: CLAIMABLE PROMO BONUS 🔥 -->
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Claimable Promo Bonus</h3>
-                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ለተወሰኑ ሰዎች እና ለተወሰነ ደቂቃ ብቻ የሚቆይ ቦነስ ይፍጠሩ።</p>
+                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ተጠቃሚዎች ቦት ላይ ገብተው Claim የሚያደርጉትን የተገደበ ቦነስ ይፍጠሩ።</p>
                     <input type="number" id="cb-max-users" placeholder="ለስንት ሰው? (ምሳሌ: 300)">
                     <input type="number" id="cb-amount" placeholder="የብር መጠን (ምሳሌ: 10 ETB)">
                     <input type="number" id="cb-minutes" placeholder="የሚቆየው ለስንት ደቂቃ? (ምሳሌ: 60)">
-                    <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Claimable Promo</button>
+                    <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Promo Bonus</button>
+                </div>
+                
+                <!-- 🔥 NEW: DIRECT BULK/SINGLE BONUS 🔥 -->
+                <div class="card" style="border-left: 4px solid var(--purple);">
+                    <h3 style="margin-top:0; color:var(--purple);">🎁 Direct Bonus (ቀጥታ መላኪያ)</h3>
+                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ያለ ምንም ፕሮሞ ለተጠቃሚዎች አካውንት ላይ ቀጥታ ቦነስ ለመላክ። <br><span style="color:var(--cyan);">ማሳሰቢያ፡ ስልክ ቁጥር ካልፃፉ ለሁሉም በአንድ ጊዜ ይላካል።</span></p>
+                    <input type="text" id="direct-phone" placeholder="የተጠቃሚ ስልክ (ለሁሉም ከሆነ ባዶ ይተውት)">
+                    <input type="number" id="direct-amount" placeholder="የብር መጠን (ምሳሌ: 15 ETB)">
+                    <button class="action-btn btn-purple" style="width:100%; margin-top: 10px;" onclick="sendDirectBonus()">Send Direct Bonus</button>
                 </div>
             </div>
         </div>
@@ -229,7 +239,6 @@
                 <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
                 <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
                 
-                <!-- NEW FILE UPLOAD INPUT -->
                 <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
                 <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
                 
@@ -275,7 +284,6 @@
     <div class="modal-content" style="text-align: center;"><h3 style="color: var(--faded-green); margin-top:0;">🎟️ Player Tickets</h3><p id="m-called" style="font-size: 12px; color: var(--text-gray); word-wrap: break-word;"></p><div id="m-grid" style="text-align: left;"></div><button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button></div>
 </div>
 
-<!-- 🔥 ENLARGED SMS MODAL 🔥 -->
 <div class="modal" id="sms-modal">
     <div class="modal-content" style="max-width: 600px; text-align: left;">
         <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ (Deposit)</h3>
@@ -357,7 +365,6 @@
         document.getElementById('sms-phone').innerText = phone; 
         document.getElementById('sms-bank').innerText = method; 
         document.getElementById('sms-amount').innerText = amount; 
-        // 🔥 መፍትሄ 1፡ SMS ዲኮድ ይደረጋል (Encoded የነበረው ይመለሳል)
         document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); 
         document.getElementById('sms-modal').style.display = 'flex'; 
     }
@@ -367,7 +374,6 @@
     function populatePendingDeposits() {
         let deps = allTransactions.filter(t => t.type === 'deposit' && t.status === 'Pending');
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
-            // 🔥 መፍትሄ 1፡ SMS ቴክስቱ እንዳይቋረጥ (Break እንዳያደርግ) ደህንነቱ በተጠበቀ encodeURIComponent ይጠቀለላል
             let safeSMS = encodeURIComponent(t.smsText || "No SMS Provided");
             let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${t.amount} ETB</td>
@@ -390,7 +396,6 @@
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
             let smsBtn = ''; 
-            // 🔥 መፍትሄ 1፡ በ History ውስጥም አድሚን SMS ቴክስቱን በተመሳሳይ መንገድ encodeURIComponent በመጠቀም ያየዋል
             if(t.type === 'deposit') { 
                 let safeSMS = encodeURIComponent(t.smsText || "No SMS"); 
                 smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; 
@@ -405,7 +410,27 @@
     
     async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
     
-    // 🔥 TELEGRAM BROADCAST WITH PHOTO UPLOAD LOGIC 🔥
+    // 🔥 NEW: DIRECT BONUS LOGIC 🔥
+    async function sendDirectBonus() {
+        let phone = document.getElementById('direct-phone').value.trim();
+        let amount = document.getElementById('direct-amount').value;
+        if(!amount) return alert("እባክዎ የብር መጠን ያስገቡ!");
+
+        if(phone) {
+            if(!confirm(`እርግጠኛ ነዎት ${amount} ETB ለስልክ ቁጥር ${phone} መላክ ይፈልጋሉ?`)) return;
+            let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})});
+            let data = await res.json();
+            alert(data.message);
+        } else {
+            if(!confirm(`⚠️ ማስጠንቀቂያ፡ ለሁሉም ተጠቃሚዎች በአንዴ ${amount} ETB ሊልኩ ነው! እርግጠኛ ነዎት?`)) return;
+            let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: "ALL", amount})});
+            let data = await res.json();
+            alert(data.message);
+        }
+        document.getElementById('direct-phone').value = '';
+        document.getElementById('direct-amount').value = '';
+    }
+    
     async function sendTelegramPromo() { 
         let msg = document.getElementById('tg-msg').value; 
         let fileInput = document.getElementById('tg-photo-file');
@@ -452,4 +477,3 @@
 </script>
 </body>
 </html>
-
