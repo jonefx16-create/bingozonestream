@@ -59,15 +59,30 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
 }));
 
+// 🔥 FIXED: DYNAMIC BONUS SETTINGS ADDED HERE 🔥
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 }
+    adminPass: { type: String, default: "bingo1234" }, 
+    ticketPrice: { type: Number, default: 10 }, 
+    isGamePaused: { type: Boolean, default: false }, 
+    gameTimer: { type: Number, default: 40 },
+    dynMinDep: { type: Number, default: 100 },       
+    dynBonusPct: { type: Number, default: 20 },      
+    dynPromoActive: { type: Boolean, default: true } 
 }));
 
-let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40 };
+let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, dynMinDep: 100, dynBonusPct: 20, dynPromoActive: true };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40 };
+    GLOBAL_SETTINGS = { 
+        adminPass: s.adminPass, 
+        ticketPrice: s.ticketPrice, 
+        isGamePaused: s.isGamePaused, 
+        gameTimer: s.gameTimer || 40,
+        dynMinDep: s.dynMinDep || 100,
+        dynBonusPct: s.dynBonusPct || 20,
+        dynPromoActive: s.dynPromoActive !== undefined ? s.dynPromoActive : true
+    };
 }
 loadSettings();
 
@@ -91,8 +106,7 @@ async function autoApprovePendingDeposits() {
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
             
-            // 🔥 FIXED: የሲቢኢ ብር (CBE Birr) ንፁህ ቁጥሮችን እንዲቀበል ተደርጓል
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
             userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
             let matchedSMS = null;
@@ -123,7 +137,12 @@ async function autoApprovePendingDeposits() {
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
+                    
+                    // 🔥 DYNAMIC BONUS LOGIC 🔥
+                    let bonus = 0;
+                    if (GLOBAL_SETTINGS.dynPromoActive && actualReceivedAmount >= GLOBAL_SETTINGS.dynMinDep) {
+                        bonus = actualReceivedAmount * (GLOBAL_SETTINGS.dynBonusPct / 100);
+                    }
                     let totalCredit = actualReceivedAmount + bonus;
 
                     tx.amount = actualReceivedAmount; 
@@ -143,19 +162,15 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
-// 🛡️ የገባው SMS ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ ፋንክሽን
 async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
     
     try {
         let msg = userInputSms.toUpperCase();
-        
-        // 🔥 FIXED: የሲቢኢ ብር (CBE Birr) ንፁህ ቁጥሮችን እንዲቀበል ተደርጓል
-        let refs = msg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
+        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
         
         let stripped = msg.replace(/[^A-Z0-9]/gi, '');
-        // ፊደል ብቻ የሆኑትን (English words) ብቻ ይተዋል፣ ንፁህ ቁጥሮችን ያሳልፋል
-        if (stripped.length >= 6 && stripped.length <= 20 && !/^[A-Z]+$/.test(stripped)) {
+        if (stripped.length >= 6 && stripped.length <= 15 && !/^\d+$/.test(stripped) && !/^[A-Z]+$/.test(stripped)) {
             if(!refs.includes(stripped)) refs.push(stripped);
         }
 
@@ -163,7 +178,6 @@ async function isSmsAlreadyUsed(userInputSms) {
 
         for (let ref of refs) {
             if (ref.length < 6) continue;
-            
             let inBankSms = await BankSMS.findOne({ txRef: ref, isUsed: true });
             if (inBankSms) return true;
             
@@ -174,15 +188,12 @@ async function isSmsAlreadyUsed(userInputSms) {
             });
             if (inTx) return true;
         }
-    } catch (e) {
-        console.log("Duplicate Check Error:", e);
-    }
-    
+    } catch (e) { console.log("Duplicate Check Error:", e); }
     return false;
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK (🔥 FIXED FOR CBE BIRR 🔥)
+// 🔵 IPHONE SMS WEBHOOK 
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
@@ -196,17 +207,10 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
         let txRef = "";
+        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
         
-        // በመጀመሪያ "Ref/ID/Txn" የሚለውን ፈልጎ ያወጣል (ይህ ለ CBE በጣም ይሰራል)
-        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
-        if (explicitMatch) {
-            txRef = explicitMatch[1].toUpperCase();
-        } else {
-            // ካላገኘ ፊደልና ቁጥር ወይም ንፁህ ቁጥር የሆኑትን (CBE & Telebirr) ያወጣል
-            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g);
-            if (matches && matches.length > 0) {
-                txRef = matches[0].toUpperCase(); 
-            }
+        if (matches && matches.length > 0) {
+            txRef = matches[0].toUpperCase(); 
         }
 
         console.log(`🔍 Extracted -> Amount: ${amount}, TxRef: ${txRef}`);
@@ -222,7 +226,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
             }
             res.json({ success: true, amount, txRef });
         } else {
-            console.log("❌ Failed to extract valid TxRef.");
+            console.log("❌ Failed to extract valid Alphanumeric TxRef.");
             res.json({ success: false, msg: "Could not extract data" });
         }
     } catch (e) { 
@@ -301,12 +305,8 @@ app.post('/api/request-tx', async (req, res) => {
 app.get('/api/user/transactions/:phone', async (req, res) => { 
     const txs = await Transaction.find({
         phone: req.params.phone,
-        $or: [
-            { type: 'withdraw' },
-            { type: 'deposit', status: 'Approved' } 
-        ]
+        $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ]
     }).sort({ date: -1 }).limit(30);
-
     res.json({ success: true, txs }); 
 });
 
@@ -355,7 +355,12 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
-            let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
+            
+            // 🔥 DYNAMIC BONUS LOGIC FOR MANUAL APPROVAL 🔥
+            let bonus = 0;
+            if (GLOBAL_SETTINGS.dynPromoActive && actualAmount >= GLOBAL_SETTINGS.dynMinDep) {
+                bonus = actualAmount * (GLOBAL_SETTINGS.dynBonusPct / 100);
+            }
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
         }
@@ -366,12 +371,18 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
 });
 
+// 🔥 FIXED: DYNAMIC BONUS SAVE API 🔥
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
     if(req.body.newPass) s.adminPass = req.body.newPass;
     if(req.body.ticketPrice) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
+    
+    if(req.body.dynMinDep !== undefined) s.dynMinDep = req.body.dynMinDep;
+    if(req.body.dynBonusPct !== undefined) s.dynBonusPct = req.body.dynBonusPct;
+    if(req.body.dynPromoActive !== undefined) s.dynPromoActive = req.body.dynPromoActive;
+
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
@@ -709,7 +720,7 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
-            // 🔥 BOT SMS CHECK 🔥
+            // 🔥 BOT SMS DUPLICATE CHECK
             let isUsed = await isSmsAlreadyUsed(text);
             if (isUsed) {
                 bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
