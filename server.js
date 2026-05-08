@@ -20,7 +20,6 @@ app.use(express.static(__dirname));
 // 🔵 DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
@@ -213,9 +212,10 @@ app.get('/api/leaderboard', async (req, res) => {
 // ==========================================
 // 🔴 ADMIN & FINANCE APIs
 // ==========================================
+// 🔥 ADMIN PASSWORD SECURITY FIX (የድሮ ፓስወርድ በፍፁም አይሰራም) 🔥
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
-    const isPassValid = pass === GLOBAL_SETTINGS.adminPass || pass === ADMIN_PASS;
+    const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
@@ -269,21 +269,26 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
+// 🔥 BONUS FEATURES 🔥
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone });
     if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); }
-    res.json({ success: true, message: "Bonus Sent Successfully!" });
+    res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
 });
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
-    await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } });
-    res.json({ success: true, message: "Bulk Bonus Sent!" });
+    if (req.body.phones === "ALL") {
+        await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } });
+    } else {
+        await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } });
+    }
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
 });
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     const { maxUsers, amount, minutes } = req.body;
     let expires = new Date(Date.now() + (minutes * 60000));
     await ActiveBonus.updateMany({}, { isActive: false });
     await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
-    res.json({ success: true, message: "✅ Promo Created! Users can now claim it in the bot." });
+    res.json({ success: true, message: `✅ Promo Created! ${maxUsers} users can now claim ${amount} ETB in the Telegram Bot.` });
 });
 
 // 🔥 TELEGRAM BROADCAST (WITH BASE64 PHOTO UPLOAD FIX) 🔥
@@ -302,21 +307,15 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         for (let u of users) {
             try {
                 let sentMsg;
-                // If it's an uploaded file (Base64)
                 if (photoUrl && photoUrl.startsWith('data:image')) {
                     let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, "");
                     let photoBuffer = Buffer.from(base64Data, 'base64');
                     sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
-                } 
-                // If it's a regular URL link
-                else if (photoUrl && photoUrl.startsWith('http')) {
+                } else if (photoUrl && photoUrl.startsWith('http')) {
                     sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                } 
-                // Text only
-                else {
+                } else {
                     sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" });
                 }
-                
                 lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id });
                 count++;
             } catch(e) {} 
@@ -392,13 +391,10 @@ setInterval(() => {
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
-            // 🔥 አሁን 1 ሰው ( > 0 ) ብቻውንም ጌሙን ማስጀመር ይችላል (ቴስት ለማድረግ ይመቻል)
             if(Object.keys(activePlayers).length > 0) { 
                 gameState = "PLAYING"; 
                 gameClock = 3; 
                 currentDrawSequence = generateRiggedDrawSequence(); 
-                
-                // 🔥 ዋናው መፍትሄ፡ 00 ሲደርስ ጌሙ መጀመሩን ወዲያው ለተጫዋቾች ይልካል (Refresh ማድረግ አይጠበቅባቸውም)
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else { 
                 gameClock = 40; 
@@ -628,12 +624,27 @@ bot.on('callback_query', async (query) => {
 // ==========================================
 // 🛣️ ROUTES (MAINTENANCE INJECTOR + ROUTING)
 // ==========================================
-app.get('/admin', (req, res) => {
+
+// 🔥 BASIC AUTHENTICATION (ለ ADMIN እና FINANCE ፔጅ ጥበቃ) 🔥
+const basicAuth = (req, res, next) => {
+    const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+    
+    // የ User ስም ሁሌም admin ሲሆን Password ደግሞ አሁን ያለህበት ፓስወርድ መሆን አለበት
+    if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) {
+        return next();
+    }
+    res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
+    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
+};
+
+// ፔጆቹ የተጠበቁ እንዲሆኑ እዚህ ጋር basicAuth ጨምሬበታለሁ
+app.get('/admin', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
     if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>");
 });
 
-app.get('/finance', (req, res) => {
+app.get('/finance', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html');
     if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>");
 });
