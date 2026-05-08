@@ -103,6 +103,8 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
+        <!-- 🔥 አዲሱ DYNAMIC BONUS BUTTON 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-dynamic-bonus', this)" style="color: var(--cyan);">💫 Dynamic Promo / Bonus</button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
         <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Logout</button>
@@ -229,6 +231,28 @@
             </div>
         </div>
 
+        <!-- 🔥 አዲሱ DYNAMIC PROMO / BONUS TAB 🔥 -->
+        <div id="tab-dynamic-bonus" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--cyan); max-width: 500px;">
+                <h3 style="margin-top:0; color:var(--cyan);">💫 Dynamic Deposit Bonus (የዲፖዚት ቦነስ ማስተካከያ)</h3>
+                <p style="font-size:12px; color:var(--text-gray);">በፈለጉት ሰዓት (ለምሳሌ በበዓል ወይም ከ 12 ሰዓት እስከ 4 ሰዓት) የዲፖዚት ቦነስ ፐርሰንት ከፍ ለማድረግ ይህን ይጠቀሙ። እርስዎ OFF እስካላሉት ድረስ ይሰራል!</p>
+
+                <label style="font-weight:bold; color: white;">1. ዝቅተኛ የገቢ መጠን (Min Deposit to get bonus)</label>
+                <input type="number" id="dyn-min-dep" placeholder="ምሳሌ: 300 (ከ 300 ብር በላይ ለሚያስገቡ)">
+
+                <label style="font-weight:bold; margin-top:10px; display:block; color: white;">2. የቦነስ መጠን በፐርሰንት (Bonus Percentage %)</label>
+                <input type="number" id="dyn-bonus-pct" placeholder="ምሳሌ: 100 (100% ቦነስ ለመስጠት)">
+
+                <label style="font-weight:bold; margin-top:10px; display:block; color: white;">3. ፕሮሞው አሁን ክፍት ይሁን? (Is Promo Active?)</label>
+                <select id="dyn-promo-status" style="margin-bottom: 20px; font-weight:bold;">
+                    <option value="true">✅ አዎ፣ ክፍት ይሁን (Active / ON)</option>
+                    <option value="false">❌ አይ፣ ይዘጋ (Inactive / OFF)</option>
+                </select>
+
+                <button class="action-btn" style="width:100%; background: var(--cyan); color:black;" onclick="saveDynamicBonus()">💾 Save Bonus Settings</button>
+            </div>
+        </div>
+
         <div id="tab-telegram" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
                 <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
@@ -267,7 +291,6 @@
                         <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
                     </div>
 
-                    <!-- 🔥 አዲሱ ማጥፊያ BUTTON እዚህ አለ 🔥 -->
                     <div class="card" style="border-left: 4px solid var(--red);">
                         <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone (Reset System)</h3>
                         <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ሲስተሙ ላይ ያሉ ተጠቃሚዎች፣ ሂሳቦች፣ አሸናፊዎች እና ሁሉም ዳታዎች ይጠፋሉ። እንደ አዲስ ይጀምራል።</p>
@@ -343,8 +366,16 @@
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
+            
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
             if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
+            
+            // Populate dynamic bonus fields if backend supports it (placeholder for UI integration)
+            if(data.settings.dynBonusPct !== undefined) {
+                if(!document.getElementById('dyn-bonus-pct').value) document.getElementById('dyn-bonus-pct').value = data.settings.dynBonusPct;
+                if(!document.getElementById('dyn-min-dep').value) document.getElementById('dyn-min-dep').value = data.settings.dynMinDep;
+                document.getElementById('dyn-promo-status').value = data.settings.dynPromoActive ? "true" : "false";
+            }
         } catch(e) {}
     }
     setInterval(loadLiveStats, 3000);
@@ -449,8 +480,36 @@
         document.getElementById('direct-phone').value = '';
         document.getElementById('direct-amount').value = '';
     }
+
+    // 🔥 DYNAMIC BONUS SAVE FUNCTION 🔥
+    async function saveDynamicBonus() {
+        let minDep = document.getElementById('dyn-min-dep').value;
+        let bonusPct = document.getElementById('dyn-bonus-pct').value;
+        let promoActive = document.getElementById('dyn-promo-status').value === "true";
+
+        if(!minDep || !bonusPct) return alert("እባክዎ መረጃዎቹን ሙሉ በሙሉ ያስገቡ!");
+
+        let payload = {
+            adminPass: pass,
+            dynMinDep: Number(minDep),
+            dynBonusPct: Number(bonusPct),
+            dynPromoActive: promoActive
+        };
+
+        try {
+            let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            let data = await res.json();
+            if(data.success) {
+                alert("✅ Dynamic Bonus Settings Saved Successfully!");
+                loadLiveStats(); // reload fields to reflect saved status
+            } else {
+                alert("❌ Error saving settings!");
+            }
+        } catch(e) {
+            alert("Network Error!");
+        }
+    }
     
-    // 🔥 አዲስ፡ ዳታቤዝ ማጥፊያ ፈንክሽን 🔥
     async function factoryReset() {
         if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return;
         let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡");
@@ -532,6 +591,7 @@
         document.getElementById('edit-user-modal').style.display = 'flex'; 
     }
     
+    // 🔥 USER EDIT SAVE FIX 🔥
     async function saveUserEdit() { 
         let payload = { 
             adminPass: pass, 
@@ -540,11 +600,22 @@
             password: document.getElementById('eu-password').value, 
             mainBalance: document.getElementById('eu-main').value, 
             playBalance: document.getElementById('eu-play').value,
-            won: document.getElementById('eu-won').value 
+            won: document.getElementById('eu-won').value || 0
         }; 
-        await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        document.getElementById('edit-user-modal').style.display='none'; 
-        loadData(); 
+        
+        try {
+            let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+            let data = await res.json();
+            if(data.success) {
+                alert("✅ ተጠቃሚው በትክክል ተስተካክሏል! (User updated)");
+                document.getElementById('edit-user-modal').style.display='none'; 
+                loadData(); 
+            } else {
+                alert("❌ ስህተት: " + (data.message || "Failed to edit user."));
+            }
+        } catch(e) {
+            alert("Network error. Please try again.");
+        }
     }
     
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
