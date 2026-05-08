@@ -208,9 +208,8 @@
         .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .bank-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #1e293b; color: white; border: 1px solid #334155; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer;}
         .bank-btn.active { background: white; color: black; border-color: white; }
-        .bank-btn.mpesa { grid-column: span 2; }
         .bank-logo { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
-        .logo-tb { background: #00b0f0; color: white; } .logo-cbe { background: #502179; color: #fdb913; font-size: 9px;} .logo-mp { background: #00a859; color: white; }
+        .logo-tb { background: #00b0f0; color: white; } .logo-cbe { background: #502179; color: #fdb913; font-size: 9px;}
         .trx-copy-box { background: #020617; border: 1px solid #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; justify-content: space-between; align-items: center;}
         .trx-copy-box.show { display: flex; }
         .trx-input, .pw-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 14px;}
@@ -240,16 +239,21 @@
 
 <div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
     <div id="dep-modal" class="trx-modal" onclick="event.stopPropagation()">
-        <div class="trx-header"><button class="trx-close" onclick="closeDepositModal()">Close</button><h3 class="trx-title">Deposit Funds</h3><span style="width:40px;"></span></div>
+        <div class="trx-header"><button class="trx-close" onclick="closeDepositModal()">Close</button><h3 class="trx-title" id="dep-title">Deposit Funds</h3><span style="width:40px;"></span></div>
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
             <div class="dep-banner-text">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div>
         </div>
+        
+        <!-- 🔥 አዲሱ ጥብቅ ማሳሰቢያ እዚህ አለ 🔥 -->
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 11px; color: #fca5a5; text-align: center;" id="dep-strict-warn">
+            ⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።
+        </div>
+
         <span class="trx-label">ባንክ ይምረጡ</span>
         <div class="bank-grid" id="dep-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')"><div class="bank-logo logo-tb">t</div> TeleBirr</div>
             <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'dep')"><div class="bank-logo logo-cbe">CBE</div> CBE Birr</div>
-            <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this, 'dep')"><div class="bank-logo logo-mp">m</div> MPesa</div>
         </div>
         <div id="dep-copy-box" class="trx-copy-box show">
             <div>
@@ -262,8 +266,8 @@
         <input type="number" id="m-dep-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 20px;">Min: 50 ETB | Max: 100,000 ETB</span>
         
-        <span class="trx-label">የከፈሉበት ማረጋገጫ (SMS)</span>
-        <textarea id="m-dep-sms" class="trx-input" style="height: 60px; resize: none; margin-bottom: 20px;" placeholder="ከባንክ የተላከሎትን SMS እዚህ Paste ያድርጉ"></textarea>
+        <span class="trx-label" id="lbl-dep-sms">የከፈሉበት ማረጋገጫ (SMS)</span>
+        <textarea id="m-dep-sms" class="trx-input" style="height: 60px; resize: none; margin-bottom: 20px;" placeholder="ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)"></textarea>
         
         <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ጨርስ</button>
         <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
@@ -274,12 +278,11 @@
 
 <div id="wit-modal-overlay" class="trx-modal-overlay" onclick="closeWithdrawModal(event)">
     <div id="wit-modal" class="trx-modal" onclick="event.stopPropagation()">
-        <div class="trx-header"><button class="trx-close" onclick="closeWithdrawModal()">Close</button><h3 class="trx-title">Withdraw Funds</h3><span style="width:40px;"></span></div>
+        <div class="trx-header"><button class="trx-close" onclick="closeWithdrawModal()">Close</button><h3 class="trx-title" id="wit-title">Withdraw Funds</h3><span style="width:40px;"></span></div>
         <span class="trx-label">ወጪ ማድረጊያ ባንክ</span>
         <div class="bank-grid" id="wit-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'wit')"><div class="bank-logo logo-tb">t</div> TeleBirr</div>
             <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'wit')"><div class="bank-logo logo-cbe">CBE</div> CBE Birr</div>
-            <div class="bank-btn mpesa" data-bankname="mpesa" onclick="selectBank('mpesa', this, 'wit')"><div class="bank-logo logo-mp">m</div> MPesa</div>
         </div>
         <span class="trx-label">የእርስዎ ስልክ ቁጥር/አካውንት</span>
         <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
@@ -319,7 +322,7 @@
             <div style="color: #94a3b8; font-size: 13px; font-weight: bold; letter-spacing: 6px; margin-top: 5px; text-transform: uppercase;">BINGO HABESHA</div>
         </div>
         
-        <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)</p>
+        <p id="auth-subtitle" style="font-size: 12px; color: #94a3b8; margin: 20px 0 25px 0;">ይመዝገቡ (10 ETB ቦነስ ያገኛሉ)</p>
         
         <div class="input-group" id="name-group">
             <input type="text" id="reg-name" class="auth-input" placeholder="ሙሉ ስም (Full Name)" onkeyup="v()">
@@ -374,7 +377,7 @@
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     
-    <!-- 🔥 አዲሱ የቋንቋ መቀየሪያ እዚህ ገብቷል (ከባላንሱ ስር፣ ከደራሹ በላይ፣ ቀኝ ጠርዝ ላይ) 🔥 -->
+    <!-- 🔥 አዲሱ የቋንቋ መቀየሪያ እዚህ ገብቷል 🔥 -->
     <div style="display: flex; justify-content: flex-end; margin-bottom: 5px;">
         <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
             <div id="btn-am" onclick="setLang('AM')" style="background: white; color: black; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">AM</div>
@@ -470,7 +473,7 @@
             <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
         </div>
         
-        <h3 style="text-align:left; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
+        <h3 id="t-page-title" style="text-align:left; color:var(--faded-green); margin: 0 0 5px 0; font-size: 18px;">የእኔ ካርቴላዎች</h3>
         
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="caller-box" style="width: 50px; min-height: 50px; padding: 0;">
@@ -480,8 +483,8 @@
         </div>
 
         <div style="text-align: center; margin-top: 5px;">
-            <button onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
-                👁️ ሙሉ ቦርድ እይ (Master Board) <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span>
+            <button id="t-btn-mb" onclick="toggleTicketMasterBoard()" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--faded-green); color: white; border-radius: 8px; padding: 6px 20px; font-size: 14px; box-shadow: 0 2px 10px rgba(74, 222, 128, 0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 auto; gap: 8px;">
+                👁️ <span id="t-btn-mb-txt">ሙሉ ቦርድ እይ (Master Board)</span> <span id="mb-toggle-arrow" style="font-size: 12px; color: var(--faded-green);">▼</span>
             </button>
         </div>
         
@@ -497,33 +500,33 @@
 
 <!-- 5. WALLET PAGE -->
 <div id="wallet-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
+    <h3 id="wal-title" style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
     <div style="background: linear-gradient(135deg, #0b111a, #131b2f); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; border: 1px solid var(--border-color); text-align: center;">
-        <div style="color: var(--text-gray); font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያሸነፉት/ወጪ የሚደረግ)</span></div>
+        <div id="wal-main-lbl" style="color: var(--text-gray); font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያሸነፉት/ወጪ የሚደረግ)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 5px 0; font-family: monospace;" id="main-bal">0.00</div>
         <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px; display: inline-block;">
-            መጫወቻ ሂሳብ: <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b>
+            <span id="wal-play-lbl">መጫወቻ ሂሳብ:</span> <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b>
         </div>
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
-            <button style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="openDepositModal()">➕ Deposit</button>
-            <button style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
+            <button id="wal-btn-dep" style="background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);" onclick="openDepositModal()">➕ Deposit</button>
+            <button id="wal-btn-wit" style="background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);" onclick="openWithdrawModal()">💸 Withdraw</button>
         </div>
     </div>
     <div style="margin-top: 30px; padding: 0 10px;">
-        <h4 style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">የሂሳብ ዝውውር ታሪክ (Approved)</h4>
+        <h4 id="wal-hist-lbl" style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">የሂሳብ ዝውውር ታሪክ (Approved)</h4>
         <div id="wallet-history-list"><p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም / No History</p></div>
     </div>
 </div>
 
 <!-- 6. RANK PAGE -->
 <div id="rank-page" class="page">
-    <h3 style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
+    <h3 id="rnk-title" style="text-align:center; color:var(--gold); margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">🏆 አሸናፊዎች (Top 10 Rank)</h3>
     <div id="rank-content"><p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p></div>
 </div>
 
 <!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
-    <h3 style="text-align:center; margin-top: 0; font-size: 16px;">👤 የእኔ ፕሮፋይል</h3>
+    <h3 id="prof-title" style="text-align:center; margin-top: 0; font-size: 16px;">👤 የእኔ ፕሮፋይል</h3>
     
     <div class="profile-stat-box" style="padding: 15px; margin-bottom: 10px;">
         <div id="prof-avatar" class="prof-avatar-circle">U</div>
@@ -532,47 +535,47 @@
         <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
 
-    <!-- Bot Link Section -->
+    <!-- 🔥 መጋበዣ ሊንክ (Referral Link) አሁን የተጠቃሚውን ስልክ ይይዛል 🔥 -->
     <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border: 1px solid var(--faded-green); border-radius: 12px; padding: 12px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-        <div>
-            <div style="font-size: 11px; color: var(--faded-green); font-weight: bold; margin-bottom: 4px;">🤖 በቴሌግራም ቦት ይጫወቱ</div>
-            <div style="font-size: 13px; color: white; font-family: monospace;">t.me/bingo_habesha_bot</div>
+        <div style="overflow: hidden;">
+            <div id="prof-bot-lbl" style="font-size: 11px; color: var(--faded-green); font-weight: bold; margin-bottom: 4px;">🤖 የራስዎ መጋበዣ ሊንክ (Share)</div>
+            <div id="prof-ref-text" style="font-size: 11px; color: white; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">t.me/bingo_habesha_bot</div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <button style="background: var(--faded-green); color: black; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; box-shadow: 0 2px 5px rgba(74,222,128,0.3);" onclick="window.location.href='https://t.me/bingo_habesha_bot'">ክፈት</button>
-            <button style="background: #334155; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;" onclick="navigator.clipboard.writeText('https://t.me/bingo_habesha_bot'); alert('ሊንኩ ኮፒ ተደርጓል!')">Copy</button>
+            <button id="prof-btn-open" style="background: var(--faded-green); color: black; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; box-shadow: 0 2px 5px rgba(74,222,128,0.3);">ክፈት</button>
+            <button id="prof-btn-copy" style="background: #334155; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;">Copy</button>
         </div>
     </div>
 
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--blue); padding: 12px;">
-            <div style="font-size: 10px; color: var(--text-gray);">የተጫወቱት (Played)</div>
+            <div id="prof-played-lbl" style="font-size: 10px; color: var(--text-gray);">የተጫወቱት (Played)</div>
             <div style="font-size: 18px; font-weight: bold; color: var(--blue);" id="prof-played">0</div>
         </div>
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green); padding: 12px;">
-            <div style="font-size: 10px; color: var(--text-gray);">ያሸነፉት (Won)</div>
+            <div id="prof-won-lbl" style="font-size: 10px; color: var(--text-gray);">ያሸነፉት (Won)</div>
             <div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0</div>
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span id="prof-help-lbl" style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🔐</span> <span>የይለፍ ቃል ቀይር</span></div><span style="color:var(--text-gray)">></span>
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🔐</span> <span id="prof-pw-lbl">የይለፍ ቃል ቀይር</span></div><span style="color:var(--text-gray)">></span>
         </button>
         <button class="prof-list-btn logout" style="padding: 12px 15px; font-size: 12px;" onclick="logout()">
-            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent; padding: 6px; font-size: 14px; margin-right: 10px;">🚪</span> <span>ከሲስተም ውጣ</span></div>
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="background:transparent; padding: 6px; font-size: 14px; margin-right: 10px;">🚪</span> <span id="prof-out-lbl">ከሲስተም ውጣ</span></div>
         </button>
     </div>
 </div>
 
 <nav id="navbar" class="bottom-nav" style="display: none;">
-    <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span>Home</span></div>
-    <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span>Ticket</span></div>
-    <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span><span>Wallet</span></div>
-    <div class="nav-item" onclick="loadLeaderboard()"><span class="nav-icon">🏆</span><span>Rank</span></div>
-    <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">👤</span><span>Profile</span></div>
+    <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span id="nav-txt-home">Home</span></div>
+    <div class="nav-item" onclick="showPage('ticket')"><span class="nav-icon">🎟️</span><span id="nav-txt-ticket">Ticket</span></div>
+    <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span><span id="nav-txt-wallet">Wallet</span></div>
+    <div class="nav-item" onclick="loadLeaderboard()"><span class="nav-icon">🏆</span><span id="nav-txt-rank">Rank</span></div>
+    <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">👤</span><span id="nav-txt-profile">Profile</span></div>
 </nav>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -588,7 +591,7 @@
     let globalTakenTickets = []; 
     let isSoundOn = true;
 
-    const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'}, 'mpesa': {num: '251707896800', name: 'Yohannes Aberham'} };
+    const depAccounts = { 'telebirr': {num: '0933638022', name: 'Tsedey Abebe'}, 'cbe': {num: '0988180301', name: 'Yohannes Aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
@@ -621,6 +624,46 @@
             } else if(status.innerText.includes("LIVE") || status.innerText.includes("በመካሄድ")) {
                 status.innerText = "ጨዋታው በመካሄድ ላይ ነው";
             }
+            
+            // Navbar
+            document.getElementById('nav-txt-home').innerText = "Home";
+            document.getElementById('nav-txt-ticket').innerText = "Ticket";
+            document.getElementById('nav-txt-wallet').innerText = "Wallet";
+            document.getElementById('nav-txt-rank').innerText = "Rank";
+            document.getElementById('nav-txt-profile').innerText = "Profile";
+
+            // Wallet Page
+            document.getElementById('wal-title').innerText = "የእኔ ሂሳብ (Wallet)";
+            document.getElementById('wal-main-lbl').innerHTML = "ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span>";
+            document.getElementById('wal-play-lbl').innerText = "መጫወቻ ሂሳብ:";
+            document.getElementById('wal-hist-lbl').innerText = "የሂሳብ ዝውውር ታሪክ (Approved)";
+            document.getElementById('wal-btn-dep').innerText = "➕ Deposit";
+            document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+
+            // Rank Page
+            document.getElementById('rnk-title').innerText = "🏆 አሸናፊዎች (Top 10 Rank)";
+
+            // Profile Page
+            document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል";
+            document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)";
+            document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)";
+            document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)";
+            document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?";
+            document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር";
+            document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
+
+            // Ticket Page
+            document.getElementById('t-page-title').innerText = "የእኔ ካርቴላዎች";
+            document.getElementById('t-btn-mb-txt').innerText = "ሙሉ ቦርድ እይ (Master Board)";
+
+            // Modals
+            document.getElementById('dep-title').innerText = "Deposit Funds";
+            document.getElementById('wit-title').innerText = "Withdraw Funds";
+            document.getElementById('dep-strict-warn').innerHTML = "⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።";
+            document.getElementById('lbl-dep-sms').innerText = "የከፈሉበት ማረጋገጫ (SMS)";
+            document.getElementById('m-dep-sms').placeholder = "ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)";
+            document.getElementById('m-dep-btn').innerText = "ጨርስ";
+
         } else {
             btnEn.style.background = 'white'; btnEn.style.color = 'black';
             btnAm.style.background = 'black'; btnAm.style.color = 'white';
@@ -645,6 +688,45 @@
             } else if(status.innerText.includes("በመካሄድ") || status.innerText.includes("LIVE")) {
                 status.innerText = "Game is LIVE";
             }
+
+            // Navbar
+            document.getElementById('nav-txt-home').innerText = "Home";
+            document.getElementById('nav-txt-ticket').innerText = "Tickets";
+            document.getElementById('nav-txt-wallet').innerText = "Wallet";
+            document.getElementById('nav-txt-rank').innerText = "Rank";
+            document.getElementById('nav-txt-profile').innerText = "Profile";
+
+            // Wallet Page
+            document.getElementById('wal-title').innerText = "My Wallet";
+            document.getElementById('wal-main-lbl').innerHTML = "Main Balance <span style='font-size:9px; color:#fbbf24;'>(Withdrawable)</span>";
+            document.getElementById('wal-play-lbl').innerText = "Play Balance:";
+            document.getElementById('wal-hist-lbl').innerText = "Transaction History (Approved)";
+            document.getElementById('wal-btn-dep').innerText = "➕ Deposit";
+            document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+
+            // Rank Page
+            document.getElementById('rnk-title').innerText = "🏆 Leaderboard (Top 10)";
+
+            // Profile Page
+            document.getElementById('prof-title').innerText = "👤 My Profile";
+            document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)";
+            document.getElementById('prof-played-lbl').innerText = "Games Played";
+            document.getElementById('prof-won-lbl').innerText = "Total Won";
+            document.getElementById('prof-help-lbl').innerText = "Need Help?";
+            document.getElementById('prof-pw-lbl').innerText = "Change Password";
+            document.getElementById('prof-out-lbl').innerText = "Logout";
+
+            // Ticket Page
+            document.getElementById('t-page-title').innerText = "My Tickets";
+            document.getElementById('t-btn-mb-txt').innerText = "View Master Board";
+
+            // Modals
+            document.getElementById('dep-title').innerText = "Deposit Funds";
+            document.getElementById('wit-title').innerText = "Withdraw Funds";
+            document.getElementById('dep-strict-warn').innerHTML = "⚠️ <b>Notice:</b> Please transfer Telebirr to Telebirr ONLY, and CBE Birr to CBE Birr ONLY.";
+            document.getElementById('lbl-dep-sms').innerText = "Payment Confirmation (SMS)";
+            document.getElementById('m-dep-sms').placeholder = "Paste the full SMS receipt from your bank here";
+            document.getElementById('m-dep-btn').innerText = "Submit";
         }
     }
 
@@ -872,7 +954,7 @@
             document.getElementById('toggle-auth-text').innerText = "አዲስ አካውንት ይክፈቱ (Register)";
         } else {
             document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)";
-            document.getElementById('auth-subtitle').innerText = "ይመዝገቡ (100 ETB ቦነስ ያገኛሉ)";
+            document.getElementById('auth-subtitle').innerText = "ይመዝገቡ (10 ETB ቦነስ ያገኛሉ)";
             document.getElementById('toggle-auth-text').innerText = "አካውንት አለዎት? ይግቡ (Login)";
         }
         v();
@@ -928,6 +1010,13 @@
         let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5);
         document.getElementById('prof-id-display').innerText = "ID: #" + displayId;
         document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
+        
+        // 🔥 የራሱ የሆነ Referral Link 🔥
+        let myRefLink = "https://t.me/bingo_habesha_bot?start=" + currentUser.phone;
+        document.getElementById('prof-ref-text').innerText = "t.me/bingo_habesha_bot?start=" + currentUser.phone;
+        document.getElementById('prof-btn-open').onclick = () => window.location.href = myRefLink;
+        document.getElementById('prof-btn-copy').onclick = () => { navigator.clipboard.writeText(myRefLink); alert('ሊንኩ ኮፒ ተደርጓል!'); };
+        
         updateUIBalance();
         document.getElementById('auth-page').classList.remove('active-page'); document.getElementById('navbar').style.display = 'flex'; document.getElementById('global-header').style.display = 'flex';
         handleHomeNav();
@@ -1067,7 +1156,6 @@
                     if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
-            // 🔥 FIXED: ONLY SHOW POPUP IF TICKETS ARE SELECTED 🔥
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
@@ -1132,9 +1220,10 @@
         if(currentUser && data.phone === currentUser.phone) fetchUpdatedBalance(); 
     });
 
+    // 🔥 BUTTONS 400 LIMIT 🔥
     function initGrid() { 
         const box = document.getElementById('grid-box'); box.innerHTML = ''; 
-        for(let i=1; i<=200; i++) { 
+        for(let i=1; i<=400; i++) { 
             let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; 
             
             let isMine = userTicketsData && userTicketsData.some(t=>t.id===i);
