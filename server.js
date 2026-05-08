@@ -77,7 +77,7 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 100% BUG-FREE 🔥)
+// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
@@ -89,45 +89,40 @@ async function autoApprovePendingDeposits() {
         }
 
         for (let tx of pendingTxs) {
-            // ደንበኛው የላከውን ፅሁፍ እናወጣለን
             let userMsg = (tx.smsText || "").toUpperCase();
             
-            // ከደንበኛው ፅሁፍ ውስጥ ሊሆኑ የሚችሉ ኮዶችን በሙሉ እንሰበስባለን (ከ6 ፊደል በላይ የሆኑ)
-            let userPossibleRefs = userMsg.match(/\b[A-Z0-9]{6,15}\b/g) || [];
-            userPossibleRefs.push(userMsg.replace(/\s+/g, '')); // ምንም ስፔስ ከሌለው ሙሉውንም እንጨምረዋለን
+            // የደንበኛውን ፅሁፍ ኮዶች እንሰበስባለን
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+            userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
             let matchedSMS = null;
 
             for (let sms of unusedSMS) {
                 let bankMsg = (sms.rawText || "").toUpperCase();
+                let bankRef = (sms.txRef || "").toUpperCase();
                 let isMatch = false;
 
-                // የደንበኛው ኮድ የባንኩ ቴክስት ውስጥ ካለ አፈላልገን እናመሳስላለን!
-                for (let uRef of userPossibleRefs) {
-                    // ስልክ ቁጥሮችን (09.. 07..) እንዳያመሳስል እንከለክለዋለን
-                    if (uRef.length >= 6 && !uRef.startsWith("09") && !uRef.startsWith("07")) {
-                        if (bankMsg.includes(uRef)) {
-                            isMatch = true;
-                            break;
+                if (bankRef && bankRef.length >= 6 && userMsg.includes(bankRef)) {
+                    isMatch = true;
+                } 
+                else {
+                    for (let uRef of userPossibleRefs) {
+                        if (uRef.length >= 6 && bankMsg.includes(uRef)) {
+                            isMatch = true; break;
                         }
                     }
                 }
 
                 if (isMatch) {
-                    matchedSMS = sms;
-                    break; 
+                    matchedSMS = sms; break; 
                 }
             }
 
-            // ማች ካደረገ እና ካገኘው ያፀድቃል
             if (matchedSMS) {
                 console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
-                
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
-                    // 🔥 እርስዎ እንዳሉት፦ ደንበኛው 100 ብር አላክሁ ቢልም፣ እኛ የምንቀበለው አድሚኑ ስልክ ላይ የገባውን ትክክለኛውን ብር (sms.amount) ብቻ ነው!
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
 
@@ -149,61 +144,43 @@ async function autoApprovePendingDeposits() {
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK (🔥 የጠየቁት የተስተካከለ 🔥)
+// 🔵 IPHONE SMS WEBHOOK (🔥 THE MAGIC FIX 🔥)
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         console.log("📥 [WEBHOOK RECEIVED]:", req.body);
         
         const { secret, message } = req.body;
-        if(secret !== "Bingo1234Secure") {
-            console.log("❌ Webhook Unauthorized!");
-            return res.status(401).json({ error: "Unauthorized" });
-        }
+        if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
+        if (!message) return res.json({ success: false, msg: "Empty message" });
 
-        if (!message) {
-            console.log("❌ Webhook Empty Message!");
-            return res.json({ success: false, msg: "Empty message" });
-        }
-
-        // 🔥 እርስዎ እንዳዘዙት: "You have received", "ገቢ", "credited" የሚሉት ቃላት መኖራቸውን ብቻ ነው የሚያጣራው። 
-        // "transferred" የሚል ካለ (የደንበኛ ሜሴጅ ከሆነ) እምቢ ይላል!!
-        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account|credited/i.test(message);
-        let isSendingMsg = /transferred|ተልኳል|ውጪ|deducted/i.test(message); // የላኪ ሜሴጅ ከሆነ
-        
-        if(!isReceivingMsg || isSendingMsg) {
-            console.log("❌ Not a receiving message (Ignored).");
-            return res.json({ success: false, msg: "Not a receiving message" });
-        }
-
-        // የገባውን የብር መጠን ነቅሶ ማውጣት
+        // 1. የብር መጠን ማውጣት
         let amountMatch = message.match(/(?:ETB|ብር|birr|Birr)\s*([\d,]+(?:\.\d+)?)/i) || message.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር|birr|Birr)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
-        // ማንኛውንም የትራንዛክሽን ኮድ (ከ6 እስከ 15 ርዝመት ያለው) መፈለግ
+        // 2. ትክክለኛውን ኮድ ማውጣት (The Magic Regex)
+        // ይህ Regex ፊደል እና ቁጥር የተቀላቀለበትን (ለምሳሌ: DE87P0HBCR) ብቻ ያወጣል! የተራ ቃላትን (NUMBER) አያነብም።
         let txRef = "";
-        let possibleRefs = message.match(/\b[A-Z0-9]{6,15}\b/g) || [];
-        possibleRefs = possibleRefs.filter(ref => !ref.startsWith('09') && !ref.startsWith('07')); // ስልክ ቁጥርን ማስቀረት
+        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
         
-        if (possibleRefs.length > 0) {
-            txRef = possibleRefs[0].toUpperCase(); 
+        if (matches && matches.length > 0) {
+            txRef = matches[0].toUpperCase(); 
         }
 
         console.log(`🔍 Extracted -> Amount: ${amount}, TxRef: ${txRef}`);
 
-        // ብር እና ኮድ ካገኘ ዳታቤዝ ያስገባል
-        if(amount > 0 && txRef.length >= 5) {
+        if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
-                console.log("✅ SMS Saved to Database! Running Auto-Approve...");
+                console.log(`✅ Real Code [${txRef}] Saved! Running Auto-Approve...`);
                 await autoApprovePendingDeposits(); 
             } else {
-                console.log("⚠️ SMS already exists in database.");
+                console.log(`⚠️ SMS with Code [${txRef}] already exists.`);
             }
             res.json({ success: true, amount, txRef });
         } else {
-            console.log("❌ Could not extract valid Amount or TxRef.");
+            console.log("❌ Failed to extract valid Alphanumeric TxRef.");
             res.json({ success: false, msg: "Could not extract data" });
         }
     } catch (e) { 
