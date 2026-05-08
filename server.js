@@ -77,7 +77,7 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 ተስተካክሏል 🔥)
+// 🟢 POWERFUL AUTOMATIC DEPOSIT VERIFICATION ENGINE
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
@@ -85,19 +85,16 @@ async function autoApprovePendingDeposits() {
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
         for (let tx of pendingTxs) {
-            let userMsg = (tx.smsText || "").toUpperCase();
-            
-            // የተጠቃሚውን ፅሁፍ (SMS) ውስጥ ያሉትን ኮዶች (Transaction ID) አውቶማቲካሊ ፈልጎ ያወጣል
-            let userRefs = userMsg.match(/\b[A-Z0-9]{6,15}\b/g) || [];
+            // የተጠቃሚውን ፅሁፍ (Spaces እና Special Characters አጥፍቶ ማስተካከል)
+            let userMsgClean = (tx.smsText || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
 
             for (let sms of unusedSMS) {
-                let bankRef = (sms.txRef || "").toUpperCase();
+                let bankRef = (sms.txRef || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
                 
-                // የተጠቃሚው ፅሁፍ ላይ የባንክ ኮዱ ካለ (Fake እና Used ያልሆነ)
-                if (bankRef && (userMsg.includes(bankRef) || userRefs.includes(bankRef))) {
+                // የተጠቃሚው ፅሁፍ ትክክለኛውን የባንክ ኮድ ከያዘ
+                if (bankRef && bankRef.length >= 5 && userMsgClean.includes(bankRef)) {
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
-                        // ተጠቃሚው የሞላውን ብር ትተን፣ ከአይፎን (iPhone) የመጣውን ትክክለኛ የባንክ ብር መጠን እንወስዳለን
                         let actualAmount = sms.amount;
                         // 20% የዲፖዚት ቦነስ ስሌት
                         let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
@@ -123,36 +120,48 @@ async function autoApprovePendingDeposits() {
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK (🔥 ተስተካክሏል 🔥)
+// 🔵 BULLETPROOF IPHONE SMS WEBHOOK
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        // CBE እና Telebirr መሆናቸውን የሚያረጋግጡ ቃላት (Credited ተጨምሯል)
-        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account|credited/i.test(message);
-        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
-
-        // ትክክለኛውን የብር መጠን ነቅሶ ማውጣት (ኮማ , ቢያካትትም ያነበዋል)
-        let amountMatch = message.match(/(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i);
-        let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
+        // 1. የብር መጠንን ነቅሶ ማውጣት (በጣም ኃይለኛ ፈልጓጅ)
+        let amount = 0;
+        let amtMatch1 = message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i);
+        let amtMatch2 = message.match(/(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i);
         
-        // ትክክለኛውን Transaction ID (FT... ወይም የቴሌብር ኮድ) ነቅሶ ማውጣት
-        let txRef = null;
-        let txMatch = message.match(/(?:Ref(?:erence)?\s*No|ID|Txn(?: ID)?|Transaction(?: No)?|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]{6,15})/i);
-        if(txMatch) {
-            txRef = txMatch[1];
-        } else {
-            let fallbackMatch = message.match(/\b([A-Z0-9]{8,15})\b/); 
-            if(fallbackMatch) txRef = fallbackMatch[1]; 
+        if (amtMatch1) amount = parseFloat(amtMatch1[1].replace(/,/g, ''));
+        else if (amtMatch2) amount = parseFloat(amtMatch2[1].replace(/,/g, ''));
+        else {
+            // ETB የሚል ቃል ባይኖርም .00 ያለውን ቁጥር ይፈልጋል
+            let decMatch = message.match(/\b(\d+(?:,\d{3})*\.\d{2})\b/);
+            if (decMatch) amount = parseFloat(decMatch[1].replace(/,/g, ''));
         }
 
+        // 2. የ Transaction ID መፈለግ
+        let txRef = null;
+        let txMatch = message.match(/(?:Ref(?:erence)?\s*No|ID|Txn(?: ID)?|Transaction(?: No)?|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]{5,15})/i);
+        if (txMatch) {
+            txRef = txMatch[1];
+        } else {
+            // ፎርማቱ ከተቀየረ ፊደልና ቁጥር የተቀላቀለበትን ረጅም ቃል (Code) ይፈልጋል
+            let words = message.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/);
+            for (let w of words) {
+                if (/[A-Za-z]/.test(w) && /[0-9]/.test(w) && w.length >= 6 && w.length <= 15) {
+                    txRef = w.toUpperCase();
+                    break;
+                }
+            }
+        }
+
+        // ሁለቱም ከተገኙ ዳታቤዝ ላይ ያስቀምጠዋል
         if(amount > 0 && txRef) {
-            // ደረሰኙ ድጋሚ እንዳይገባ እና Fake እንዳይሆን ይከላከላል
             const exists = await BankSMS.findOne({ txRef: txRef.toUpperCase() });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef.toUpperCase(), amount: amount });
+                // ልክ አዲስ SMS ሲመጣ አውቶማቲካሊ ፔንዲንግ ያለውን ፈልጎ ያስገባል
                 await autoApprovePendingDeposits(); 
             }
         }
@@ -212,7 +221,10 @@ app.post('/api/request-tx', async (req, res) => {
         user.mainBalance -= amount; await user.save();
     }
     await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
+    
+    // ልክ ተጠቃሚው ጥያቄ ሲልክ ወዲያው ቼክ ያደርጋል
     if(type === 'deposit') { await autoApprovePendingDeposits(); }
+    
     res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
 });
 
