@@ -57,7 +57,13 @@ const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
+    amount: Number, 
+    maxUsers: Number, 
+    currentClaims: { type: Number, default: 0 }, 
+    claimedBy: [String], 
+    expiresAt: Date, 
+    isActive: { type: Boolean, default: true }, 
+    date: { type: Date, default: Date.now }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -212,17 +218,13 @@ app.get('/api/user/transactions/:phone', async (req, res) => {
     res.json({ success: true, txs: await Transaction.find({ phone: req.params.phone }).sort({ date: -1 }).limit(30) }); 
 });
 
-app.get('/api/leaderboard', async (req, res) => { 
-    res.json({ success: true, leaderboard: await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won') }); 
-});
-
 app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     let p = activePlayers[req.params.phone];
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
 // ==========================================
-// 🔴 ADMIN & FINANCE APIs
+// 🔴 ADMIN & FINANCE APIs (NEW FEATURES INCLUDED)
 // ==========================================
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
@@ -239,7 +241,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
-    res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState, gameId, totalProfit, settings: GLOBAL_SETTINGS });
+    res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, settings: GLOBAL_SETTINGS });
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
@@ -261,6 +263,88 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     await s.save(); await loadSettings();
     res.json({ success: true });
+});
+
+app.post('/api/admin/edit-user', auth, async (req, res) => {
+    const { oldPhone, newPhone, password, mainBalance, playBalance } = req.body;
+    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance });
+    res.json({ success: true });
+});
+
+app.post('/api/admin/ban-user', auth, async (req, res) => {
+    await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' });
+    res.json({ success: true });
+});
+
+app.post('/api/admin/unban-user', auth, async (req, res) => {
+    await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' });
+    res.json({ success: true });
+});
+
+app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
+    let user = await User.findOne({ phone: req.body.phone });
+    if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); }
+    res.json({ success: true, message: "Bonus Sent Successfully!" });
+});
+
+app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
+    const { phones, amount } = req.body;
+    await User.updateMany({ phone: { $in: phones } }, { $inc: { playBalance: Number(amount) } });
+    res.json({ success: true, message: "Bulk Bonus Sent!" });
+});
+
+app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
+    const { maxUsers, amount, minutes } = req.body;
+    let expires = new Date(Date.now() + (minutes * 60000));
+    await ActiveBonus.updateMany({}, { isActive: false }); // Disable previous bonuses
+    await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
+    res.json({ success: true, message: "✅ Promo Created! Users can now claim it in the bot." });
+});
+
+// ✈️ TELEGRAM BROADCAST LOGIC (WITH DELETE SUPPORT)
+const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+const bot = new TelegramBot(telegramToken, { polling: false }); 
+const WEB_URL = "https://bingohabesha.onrender.com";
+let lastBroadcasts = []; // To store message IDs for deletion
+
+app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    try {
+        const { message, photoUrl } = req.body;
+        if (!message) return res.json({ success: false, message: "No message entered." });
+        
+        const users = await User.find({ telegramId: { $ne: "" } });
+        lastBroadcasts = []; // Reset list
+        let count = 0;
+
+        for (let u of users) {
+            try {
+                let sentMsg;
+                if (photoUrl && photoUrl.trim() !== "") {
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                } else {
+                    sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" });
+                }
+                lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id });
+                count++;
+            } catch(e) {} // Skip users who blocked the bot
+        }
+        res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
+    } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
+});
+
+app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
+    try {
+        if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." });
+        let count = 0;
+        for (let b of lastBroadcasts) {
+            try {
+                await bot.deleteMessage(b.chatId, b.messageId);
+                count++;
+            } catch(e) {}
+        }
+        lastBroadcasts = [];
+        res.json({ success: true, message: `🗑️ Deleted ${count} messages from user chats.` });
+    } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
 });
 
 // ==========================================
@@ -314,7 +398,12 @@ function resetToWaiting() {
 }
 
 setInterval(() => {
-    if(GLOBAL_SETTINGS.isGamePaused) return;
+    if(GLOBAL_SETTINGS.isGamePaused) {
+        // 🔥 MAINTENANCE MODE BROADCAST 🔥
+        io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId });
+        return;
+    }
+
     if (gameState === "WAITING") {
         gameClock--;
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
@@ -340,14 +429,22 @@ setInterval(() => {
     }
 }, 1000);
 
+// ==========================================
+// 🔵 SOCKET.IO HANDLERS
+// ==========================================
 io.on('connection', (socket) => {
-    socket.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+    let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
+    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+    
     socket.on('get_initial_data', (phone) => {
         let myData = activePlayers[phone];
-        socket.emit('sync_data', { gameState, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] });
+        socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] });
     });
+
     socket.on('buy_tickets', async (data) => {
-        if(gameState !== "WAITING" || GLOBAL_SETTINGS.isGamePaused) return;
+        if(GLOBAL_SETTINGS.isGamePaused) return; // Prevent buying in maintenance
+        if(gameState !== "WAITING") return;
+        
         const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
         const user = await User.findOne({phone: data.phone});
         if(user && (user.playBalance + user.mainBalance) >= betAmount) {
@@ -365,18 +462,14 @@ io.on('connection', (socket) => {
 });
 
 // ======================================================
-// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION (MULTI-LANGUAGE)
+// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
 // ======================================================
-const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-const bot = new TelegramBot(telegramToken, { polling: false }); 
-const WEB_URL = "https://bingohabesha.onrender.com";
-
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 
 const botState = {};
 
-// 🌐 COMPLETE TRANSLATION DICTIONARY
+// 🌐 TRANSLATIONS (የቋንቋ ትርጉሞች + CLAIM PROMO BUTTON)
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -391,6 +484,7 @@ const t = {
         btn_help: "🆘 እርዳታ",
         btn_rules: "📜 ደንቦች",
         btn_lang: "🌐 ቋንቋ (Language)",
+        btn_bonus: "🎁 ቦነስ (Claim Promo)", // 🔴 NEW PROMO BUTTON
         btn_back: "🔙 ወደ ኋላ ተመለስ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ",
         err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።",
@@ -418,7 +512,7 @@ const t = {
         wit_success: (amt, acc) => `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${amt} ETB\nወደ: ${acc}\n\nበቅርቡ ይላካል!`
     },
     en: {
-        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 and most trusted BINGO platform. Play now, Win, and Withdraw instantly!\n\n👇 <b>Choose an option below:</b>",
+        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform. Play now, Win, and Withdraw instantly!\n\n👇 <b>Choose an option below:</b>",
         btn_play: "🎮 PLAY BINGO",
         btn_profile: "👤 Profile",
         btn_balance: "💰 Balance",
@@ -430,6 +524,7 @@ const t = {
         btn_help: "🆘 Help",
         btn_rules: "📜 Rules",
         btn_lang: "🌐 Language",
+        btn_bonus: "🎁 Claim Promo Bonus",
         btn_back: "🔙 Go Back",
         share_contact: "📱 Share Contact to Register",
         err_reg_first: "Please register first by sending /start.",
@@ -438,27 +533,27 @@ const t = {
         balance_text: (u) => `💰 <b>Wallet Balance:</b>\n\n🟢 Play Balance: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Main Balance: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Choose a bank to Deposit:</b>",
         wit_msg: "🏦 <b>Choose a bank to Withdraw:</b>",
-        invite_msg: (l) => `🔗 <b>Invite & Earn</b>\n\nShare this link with your friends. When a friend joins, <b>both YOU and YOUR FRIEND get a 10 ETB</b> Play Bonus!\n\n👇 Your Link:\n${l}`,
-        promo_msg: "🗣 <b>Promote:</b>\n\nIf you want to earn extra income as an official promoter, please contact: @bingohabesha",
-        guide_msg: `📖 <b>How to Play:</b>\n\n1️⃣ When you buy a ticket, you get a 5x5 card.\n2️⃣ The system calls a number every 3 seconds.\n3️⃣ The system automatically daubs your card (no clicking needed).\n\n🏆 <b>How to Win:</b>\nIf your called numbers form a full line (Horizontal, Vertical, or Diagonal X), you win <b>BINGO!</b>`,
-        help_msg: "🆘 <b>Support:</b>\n\nFor any questions, contact Admin:\n👉 @bingohabesha",
-        rules_msg: `📜 <b>Game Rules:</b>\n\n1️⃣ <b>Wallet Rules:</b>\n🟢 <b>Play Balance:</b> Used ONLY for buying tickets. Cannot be withdrawn.\n🟡 <b>Main Balance:</b> Winnings go here. You can withdraw this anytime.\n\n2️⃣ <b>Deposit Rule:</b>\n👉 Send Telebirr to Telebirr ONLY.\n👉 Send CBEBirr to CBEBirr ONLY.\n\n3️⃣ <b>Verification:</b> You must send the exact correct Bank SMS/TxRef when depositing.\n4️⃣ <b>Age:</b> Must be 21+ years old.`,
+        invite_msg: (l) => `🔗 <b>Invite & Earn</b>\n\nShare this link. When a friend joins, <b>both YOU and YOUR FRIEND get 10 ETB</b> Play Bonus!\n\n👇 Your Link:\n${l}`,
+        promo_msg: "🗣 <b>Promote:</b>\n\nWant to earn extra? Contact: @bingohabesha",
+        guide_msg: `📖 <b>How to Play:</b>\n\n1️⃣ Get a 5x5 card.\n2️⃣ System calls a number every 3 sec.\n3️⃣ System auto-daubs.\n\n🏆 <b>How to Win:</b>\nMatch 5 in a row to win <b>BINGO!</b>`,
+        help_msg: "🆘 <b>Support:</b> @bingohabesha",
+        rules_msg: `📜 <b>Game Rules:</b>\n\n1️⃣ <b>Wallet Rules:</b>\n🟢 <b>Play Balance:</b> For tickets ONLY.\n🟡 <b>Main Balance:</b> Winnings go here.\n\n2️⃣ <b>Deposit Rule:</b>\n👉 Telebirr to Telebirr ONLY.\n👉 CBEBirr to CBEBirr ONLY.\n\n3️⃣ <b>Verification:</b> Paste exact SMS.\n4️⃣ <b>Age:</b> Must be 21+.`,
         choose_lang: "Please choose your language:",
         lang_set: "✅ Language changed successfully!",
-        warn_telebirr: "⚠️ <b>WARNING:</b> Please send from Telebirr to Telebirr ONLY!\n\n",
-        warn_cbebirr: "⚠️ <b>WARNING:</b> Please send from CBEBirr to CBEBirr ONLY!\n\n",
-        bank_info: (method, warning, name, num) => `🏦 Bank: <b>${method}</b>\n\n${warning}Please send the money to:\n👤 Name: <b>${name}</b>\n👉 Account/Phone: <b>${num}</b>\n\nThen type ONLY the <b>amount you sent</b> here (e.g., 100):`,
-        wit_info: (method) => `🏦 Bank: <b>${method}</b>\n\nPlease enter the <b>Account or Phone number</b> you want to withdraw to:`,
+        warn_telebirr: "⚠️ <b>WARNING:</b> Send Telebirr to Telebirr ONLY!\n\n",
+        warn_cbebirr: "⚠️ <b>WARNING:</b> Send CBEBirr to CBEBirr ONLY!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 Bank: <b>${method}</b>\n\n${warning}Send the money to:\n👤 Name: <b>${name}</b>\n👉 Account: <b>${num}</b>\n\nThen type the <b>amount you sent</b> here (e.g., 100):`,
+        wit_info: (method) => `🏦 Bank: <b>${method}</b>\n\nPlease enter the <b>Account or Phone number</b>:`,
         invalid_amt: "❌ Invalid Amount. Enter at least 50 ETB:",
-        enter_sms: (amt) => `✅ Amount: <b>${amt} ETB</b>\n\nNow, please paste the exact <b>Bank SMS (Tx Ref) text</b> of your payment here:`,
-        dep_success: "✅ <b>Deposit Request Sent!</b>\n\nIt will be automatically approved in seconds.",
-        enter_wit_amt: (acc) => `✅ Account: <b>${acc}</b>\n\nEnter the withdrawal amount (Min 50 ETB):`,
-        insufficient: "❌ Insufficient Main Balance to withdraw!",
-        wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\n\nAmount: ${amt} ETB\nTo: ${acc}\n\nWill be processed shortly!`
+        enter_sms: (amt) => `✅ Amount: <b>${amt} ETB</b>\n\nNow, please paste the exact <b>Bank SMS</b>:`,
+        dep_success: "✅ <b>Deposit Request Sent!</b>",
+        enter_wit_amt: (acc) => `✅ Account: <b>${acc}</b>\n\nEnter withdrawal amount (Min 50 ETB):`,
+        insufficient: "❌ Insufficient Main Balance!",
+        wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\nAmount: ${amt} ETB\nTo: ${acc}`
     },
     or: {
-        welcome: "🎉 <b>Baga nagaan gara BINGO HABESHA dhuftan!</b> 🎉\n\nFilannoo 1ffaa fi amansiisaa BINGO Itoophiyaa. Tapha, Mo'adhu, fi Battalumatti baasi!\n\n👇 <b>Filannoo armaan gadii filadhu:</b>",
-        btn_play: "🎮 Tapadhu (PLAY BINGO)",
+        welcome: "🎉 <b>Baga nagaan gara BINGO HABESHA dhuftan!</b> 🎉\n\nFilannoo 1ffaa BINGO Itoophiyaa.\n\n👇 <b>Filannoo armaan gadii filadhu:</b>",
+        btn_play: "🎮 Tapadhu (PLAY)",
         btn_profile: "👤 Pirofaayilii",
         btn_balance: "💰 Herrega",
         btn_deposit: "📥 Galchuu (Deposit)",
@@ -469,34 +564,35 @@ const t = {
         btn_help: "🆘 Gargaarsa",
         btn_rules: "📜 Seera",
         btn_lang: "🌐 Afaan (Language)",
+        btn_bonus: "🎁 Boonasii Fudhachu",
         btn_back: "🔙 Duubatti Deebi'i",
         share_contact: "📱 Galmaa'uuf Lakkoofsa kee ergi",
         err_reg_first: "Mee dura /start tuquun galmaa'i.",
         err_cancel: "❌ Hojiin haqameera.",
-        profile_text: (u) => `👤 <b>Pirofaayilii Kee</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n🔑 <b>Jecha Iccitii:</b> <code>${u.password}</code>\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Herrega Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
-        balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Herrega Taphaa (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Herrega Muummee (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
-        dep_msg: "🏦 <b>Baankii galchuuf barbaaddu filadhu:</b>",
-        wit_msg: "🏦 <b>Baankii baasuuf barbaaddu filadhu:</b>",
-        invite_msg: (l) => `🔗 <b>Afeeri fi Argadhu</b>\n\nLiinkii kana hiriyaa keetiif ergi. Yeroo isaan galmaa'an <b>lachuun keessan Boonasii 10 ETB</b> ni argattu!\n\n👇 Liinkii Kee:\n${l}`,
-        promo_msg: "🗣 <b>Beeksisi fi Argadhu:</b>\n\nGalii dabalataa argachuu yoo barbaadde, maaloo admin dubbisi: @bingohabesha",
-        guide_msg: `📖 <b>Akkaataa Tapha:</b>\n\n1️⃣ Kaardii yoo bittan kaardii 5x5 isiniif kennama.\n2️⃣ Siistamni sekoondii 3 keessatti lakkoofsa waama.\n3️⃣ Siistamni ofumaan isiniif guuta.\n\n🏆 <b>Akkaataa Mo'atan:</b>\nYoo sarara guutuu (Dalga, Gadee ykn X) guuttan <b>BINGO!</b> jettanii mo'attu.`,
-        help_msg: "🆘 <b>Gargaarsa:</b>\n\nGaaffii kamiyyuu yoo qabaattan admin dubbisaa:\n👉 @bingohabesha",
-        rules_msg: `📜 <b>Seera Taphaa:</b>\n\n1️⃣ <b>Seera Herregaa:</b>\n🟢 <b>Herrega Taphaa:</b> Kaardii bituuf qofa tajaajila. Baasuu hin dandeessan.\n🟡 <b>Herrega Muummee:</b> Galiin mo'attanii asitti seena. Yeroo barbaaddan baasuu dandeessu.\n\n2️⃣ <b>Seera Galchuu:</b>\n👉 Telebirr irraa gara Telebirr QOFA ergaa.\n👉 CBEBirr irraa gara CBEBirr QOFA ergaa.\n\n3️⃣ <b>Mirkaneessa:</b> SMS ykn TxRef sirrii ta'e galchuu qabdu.\n4️⃣ <b>Umrii:</b> Waggaa 21 fi isaa ol ta'uu qaba.`,
-        choose_lang: "Afaan filadhu (Choose language):",
+        profile_text: (u) => `👤 <b>Pirofaayilii Kee</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n🔑 <b>Iccitii:</b> <code>${u.password}</code>\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Herrega Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Herrega Taphaa: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Herrega Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
+        dep_msg: "🏦 <b>Baankii galchuuf filadhu:</b>",
+        wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>",
+        invite_msg: (l) => `🔗 <b>Afeeri fi Argadhu</b>\n\nYeroo hiriyaan kee galmaa'u <b>lachuun keessan 10 ETB</b> ni argattu!\n\n👇 Liinkii Kee:\n${l}`,
+        promo_msg: "🗣 <b>Beeksisi fi Argadhu:</b> admin dubbisi: @bingohabesha",
+        guide_msg: `📖 <b>Akkaataa Tapha:</b>\n1️⃣ Kaardii 5x5 kennama.\n2️⃣ Siistamni ofumaan guuta.\n🏆 <b>Mo'achuuf:</b> Sarara guutu BINGO!`,
+        help_msg: "🆘 <b>Gargaarsa:</b> @bingohabesha",
+        rules_msg: `📜 <b>Seera Taphaa:</b>\n👉 Telebirr irraa Telebirr QOFA ergaa.\n👉 CBEBirr irraa CBEBirr QOFA ergaa.`,
+        choose_lang: "Afaan filadhu:",
         lang_set: "✅ Afaan sirriitti jijjiirameera!",
-        warn_telebirr: "⚠️ <b>HUBACHIISA:</b> Maaloo Telebirr irraa gara Telebirr qofa ergaa!\n\n",
-        warn_cbebirr: "⚠️ <b>HUBACHIISA:</b> Maaloo CBEBirr irraa gara CBEBirr qofa ergaa!\n\n",
-        bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Maaloo qarshii gara herrega kanaatti ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\nSana booda <b>hamma qarshii ergitan qofa</b> asitti barreessaa (Fkn: 100):`,
-        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa bilbilaa ykn herrega qarshiin akka isiniif ergamu barbaaddan barreessaa:`,
-        invalid_amt: "❌ Hamma dogoggoraa. Yoo xiqqaate 50 ETB galchaa:",
-        enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma maaloo <b>SMS Baankii (Tx Ref) sirrii</b> ta'e asitti ergaa:`,
-        dep_success: "✅ <b>Gaaffiin Galchuu ergameera!</b>\n\nSekoondii muraasa keessatti ofumaan ni mirkanaa'a.",
-        enter_wit_amt: (acc) => `✅ Herrega: <b>${acc}</b>\n\nHamma baasuuf barbaaddan galchaa (Min 50 ETB):`,
+        warn_telebirr: "⚠️ <b>HUBACHIISA:</b> Telebirr irraa Telebirr qofa ergaa!\n\n",
+        warn_cbebirr: "⚠️ <b>HUBACHIISA:</b> CBEBirr irraa CBEBirr qofa ergaa!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Qarshii ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\n<b>Hamma qarshii</b> asitti barreessaa (Fkn: 100):`,
+        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa bilbilaa barreessaa:`,
+        invalid_amt: "❌ Hamma dogoggoraa. Yoo xiqqaate 50 ETB:",
+        enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma <b>SMS Baankii sirrii</b> asitti ergaa:`,
+        dep_success: "✅ <b>Gaaffiin Galchuu ergameera!</b>",
+        enter_wit_amt: (acc) => `✅ Herrega: <b>${acc}</b>\n\nHamma baasuuf galchaa (Min 50):`,
         insufficient: "❌ Herrega Muummee keessatti qarshiin ga'aan hin jiru!",
-        wit_success: (amt, acc) => `✅ <b>Gaaffiin Baasuu ergameera!</b>\n\nHamma: ${amt} ETB\nGara: ${acc}\n\nYeroo dhiyootti ni ergama!`
+        wit_success: (amt, acc) => `✅ <b>Gaaffiin Baasuu ergameera!</b>`
     },
     ti: {
-        welcome: "🎉 <b>እንቋዕ ናብ BINGO HABESHA ብደሓን መጻእኩም!</b> 🎉\n\nናይ ኢትዮጵያ #1ን እሙንን ፕላትፎርም ቢንጎ። ሕጂ ጻወት፣ ዕወት፣ ብኡ ንብኡ ድማ ገንዘብካ ኣውጽእ!\n\n👇 <b>ካብዞም ዝስዕቡ ኣማራጺታት ምረጽ፡</b>",
+        welcome: "🎉 <b>እንቋዕ ናብ BINGO HABESHA ብደሓን መጻእኩም!</b> 🎉\n\nናይ ኢትዮጵያ #1 ፕላትፎርም ቢንጎ።\n\n👇 <b>ኣማራጺ ምረጽ፡</b>",
         btn_play: "🎮 ጻወት (PLAY BINGO)",
         btn_profile: "👤 ፕሮፋይል",
         btn_balance: "💰 ሕሳብ",
@@ -508,31 +604,32 @@ const t = {
         btn_help: "🆘 ሓገዝ",
         btn_rules: "📜 ሕግታት",
         btn_lang: "🌐 ቋንቋ (Language)",
+        btn_bonus: "🎁 ቦነስ ውሰድ",
         btn_back: "🔙 ንድሕሪት ተመለስ",
         share_contact: "📱 ንምምዝጋብ ቁጽሪ ስልኪ ኣካፍል",
         err_reg_first: "በጃኹም ቅድም /start ኢልኩም ተመዝገቡ።",
         err_cancel: "❌ ትእዛዝ ተቋሪጹ።",
         profile_text: (u) => `👤 <b>ናይ መለለዪ ሓበሬታ</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልኪ:</b> ${u.phone}\n🔑 <b>መሕለፊ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጻወቲ ሕሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ቀንዲ ሕሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
-        balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ ሕሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ ሕሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
-        dep_msg: "🏦 <b>ገንዘብ ንምእታው ኣየናይ ባንኪ ትመርጽ?</b>",
+        balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ ሕሳብ: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ ሕሳብ: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
+        dep_msg: "🏦 <b>ገንዘብ ንምእታው ባንኪ ምረጽ?</b>",
         wit_msg: "🏦 <b>ካብ ኣየናይ ባንኪ ክተውጽእ ትደሊ?</b>",
-        invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን (Invite & Earn)</b>\n\nነዚ ሊንክ ንዓርክኹም ስደዱሉ። ንሱ ምስ ዝምዝገብ <b>ንስኹም 10 ብር፡ ንሱ ድማ 10 ብር</b> ናይ መጻወቲ ቦነስ ክትረኽቡ ኢኹም!\n\n👇 ናይ መዕደሚ ሊንክ:\n${l}`,
-        promo_msg: "🗣 <b>ኣፋልጥን ረኸብን:</b>\n\nተወሳኺ ኣታዊ ክትረኽቡ እንተደሊኹም ንኣድሚን ኣዘራርቡ: @bingohabesha",
-        guide_msg: `📖 <b>መምርሒ ጸወታ:</b>\n\n1️⃣ ካርድ ክትገዝኡ ከለኹም ናይ 5x5 ካርቴላ ይዋሃበኩም።\n2️⃣ ጸወታ ምስ ጀመረ ሲስተም ኣብ ነፍሲ ወከፍ 3 ሰከንድ ቁጽሪ ይጽውዕ።\n3️⃣ ሲስተም ባዕሉ የመልክተልኩም (ምትንኻፍ ኣየድልን)።\n\n🏆 <b>ከመይ ጌርኩም ትዕወቱ?</b>\nዝተጸውዑ ቁጽሪታት ብኣግድም፣ ንታሕቲ ወይ ብመስቀላዊ (X ቅርጺ) ምሉእ መስመር እንተሰሪሖም <b>BINGO!</b> ኢልኩም ትዕወቱ።`,
-        help_msg: "🆘 <b>ሓገዝ:</b>\n\nዝኾነ ሕቶ እንተሃልዩኩም ንኣድሚን ኣዘራርቡ:\n👉 @bingohabesha",
-        rules_msg: `📜 <b>ሕግታት ጸወታ:</b>\n\n1️⃣ <b>ሕግታት ሕሳብ:</b>\n🟢 <b>መጻወቲ ሕሳብ (Play Balance):</b> ካርድ ንምግዛእ ጥራይ ዘገልግል ኮይኑ ፈጺሙ ኣይወጽእን።\n🟡 <b>ቀንዲ ሕሳብ (Main Balance):</b> ተጻዊትኩም ምስ እትዕወቱ ዝኣትወሉ ኮይኑ ኣብ ዝደለኹሞ ግዜ ከተውጽእዎ ትኽእሉ።\n\n2️⃣ <b>ናይ ምእታው ሕጊ:</b>\n👉 ካብ ቴሌብር ናብ ቴሌብር ጥራይ።\n👉 ካብ CBEBirr ናብ CBEBirr ጥራይ ኣእትዉ።\n\n3️⃣ <b>መረጋገጺ:</b> ገንዘብ ክተእትዉ ከለኹም ዝመጸኩም ትኽክለኛ ናይ ባንኪ SMS ብትኽክል ኣእትዉ።\n4️⃣ <b>ዕድመ:</b> ተጻወቲ ልዕሊ 21 ዓመት ክኾኑ ኣለዎም።`,
-        choose_lang: "በጃኹም ቋንቋ ምረጹ (Choose language):",
+        invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nዓርክኹም ምስ ዝምዝገብ <b>ንስኹም 10 ብር፡ ንሱ ድማ 10 ብር</b> ክትረኽቡ ኢኹም!\n\n👇 ናይ መዕደሚ ሊንክ:\n${l}`,
+        promo_msg: "🗣 <b>ኣፋልጥን ረኸብን:</b> ንኣድሚን ኣዘራርቡ: @bingohabesha",
+        guide_msg: `📖 <b>መምርሒ ጸወታ:</b>\n1️⃣ ናይ 5x5 ካርቴላ ይዋሃበኩም።\n2️⃣ ሲስተም ባዕሉ የመልክተልኩም።\n🏆 <b>ክትዕወቱ:</b> ምሉእ መስመር እንተሰሪሖም BINGO!`,
+        help_msg: "🆘 <b>ሓገዝ:</b> @bingohabesha",
+        rules_msg: `📜 <b>ሕግታት ጸወታ:</b>\n👉 ካብ ቴሌብር ናብ ቴሌብር ጥራይ።\n👉 ካብ CBEBirr ናብ CBEBirr ጥራይ ኣእትዉ።`,
+        choose_lang: "በጃኹም ቋንቋ ምረጹ:",
         lang_set: "✅ ቋንቋ ብትኽክል ተቐይሩ ኣሎ!",
-        warn_telebirr: "⚠️ <b>መተሓሳሰቢ፡</b> በጃኹም ካብ ቴሌብር ናብ ቴሌብር ጥራይ ስደዱ!\n\n",
-        warn_cbebirr: "⚠️ <b>መተሓሳሰቢ፡</b> በጃኹም ካብ CBEBirr ናብ CBEBirr ጥራይ ስደዱ!\n\n",
-        bank_info: (method, warning, name, num) => `🏦 ባንኪ: <b>${method}</b>\n\n${warning}በጃኹም ነቲ ገንዘብ ናብዚ ኣእትዉ:\n👤 ስም: <b>${name}</b>\n👉 ቁጽሪ: <b>${num}</b>\n\nድሕሪኡ <b>ዘእተኹሞ መጠን ገንዘብ</b> ጥራይ ኣብዚ ጽሓፉ (ንኣብነት: 100):`,
-        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\nገንዘቡ ክስደደልኩም ትደልይዎ <b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`,
+        warn_telebirr: "⚠️ <b>መተሓሳሰቢ፡</b> ካብ ቴሌብር ናብ ቴሌብር ጥራይ ስደዱ!\n\n",
+        warn_cbebirr: "⚠️ <b>መተሓሳሰቢ፡</b> ካብ CBEBirr ናብ CBEBirr ጥራይ ስደዱ!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 ባንኪ: <b>${method}</b>\n\n${warning}ገንዘብ ናብዚ ኣእትዉ:\n👤 ስም: <b>${name}</b>\n👉 ቁጽሪ: <b>${num}</b>\n\n<b>ዘእተኹሞ መጠን ገንዘብ</b> ኣብዚ ጽሓፉ (ንኣብነት: 100):`,
+        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\n<b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`,
         invalid_amt: "❌ ትኽክለኛ መጠን ኣእትዉ (እንተወሓደ 50 ብር):",
-        enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nሕጂ በጃኹም ዝኸፈልኩምሉ <b>ትኽክለኛ ናይ ባንኪ SMS (Tx Ref) ጽሑፍ</b> ኣብዚ ስደዱ፦`,
-        dep_success: "✅ <b>ናይ ምእታው ሕቶኹም ብትኽክል ተላኢኹ!</b>\n\nኣብ ውሽጢ ካልኢታት ብባዕሉ ክጸድቕ እዩ።",
-        enter_wit_amt: (acc) => `✅ ኣካውንት: <b>${acc}</b>\n\nከተውጽእዎ እትደልዩ መጠን ኣእትዉ (እንተወሓደ 50 ብር):`,
-        insufficient: "❌ ኣብ ቀንዲ ሕሳብኩም (Main Balance) እኹል ገንዘብ የለን!",
-        wit_success: (amt, acc) => `✅ <b>ናይ ምውጻእ ሕቶ ተላኢኹ!</b>\n\nመጠን: ${amt} ETB\nናብ: ${acc}\n\nኣብ ቀረባ ግዜ ክስደድ እዩ!`
+        enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nሕጂ <b>ትኽክለኛ ናይ ባንኪ SMS</b> ስደዱ፦`,
+        dep_success: "✅ <b>ናይ ምእታው ሕቶኹም ተላኢኹ!</b>",
+        enter_wit_amt: (acc) => `✅ ኣካውንት: <b>${acc}</b>\n\nከተውጽእዎ እትደልዩ መጠን ኣእትዉ (Min 50):`,
+        insufficient: "❌ ኣብ ቀንዲ ሕሳብኩም እኹል ገንዘብ የለን!",
+        wit_success: (amt, acc) => `✅ <b>ናይ ምውጻእ ሕቶ ተላኢኹ!</b>`
     }
 };
 
@@ -542,11 +639,11 @@ function getLang(user) {
 
 function getMainMenu(user) {
     let ln = getLang(user);
-    let playUrl = (user && user.phone && user.password) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL;
     return {
         reply_markup: {
             keyboard: [
                 [{ text: ln.btn_play }], 
+                [{ text: ln.btn_bonus }], // 🎁 NEW CLAIM BONUS BUTTON
                 [{ text: ln.btn_profile }, { text: ln.btn_balance }],
                 [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }],
                 [{ text: ln.btn_invite }, { text: ln.btn_promo }],
@@ -648,6 +745,34 @@ bot.on('message', async (msg) => {
                 ]
             }
         });
+        return;
+    }
+
+    // 🎁 CLAIM PROMO BONUS (NEW)
+    if (text === t.am.btn_bonus || text === t.en.btn_bonus || text === t.or.btn_bonus || text === t.ti.btn_bonus) {
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first);
+        
+        let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
+        if (!activeBonus) {
+            return bot.sendMessage(chatId, "❌ በአሁኑ ሰዓት የተለቀቀ ቦነስ የለም። (No active bonus right now)", { parse_mode: "HTML", ...getMainMenu(user) });
+        }
+        if (activeBonus.currentClaims >= activeBonus.maxUsers) {
+            return bot.sendMessage(chatId, "❌ ይቅርታ! ቦነሱ ቀድሞ ባለቀበት ተወስዷል። (Limit reached)", { parse_mode: "HTML", ...getMainMenu(user) });
+        }
+        if (activeBonus.claimedBy.includes(user.phone)) {
+            return bot.sendMessage(chatId, "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል! (Already claimed)", { parse_mode: "HTML", ...getMainMenu(user) });
+        }
+        
+        // Claim the bonus
+        activeBonus.claimedBy.push(user.phone);
+        activeBonus.currentClaims += 1;
+        await activeBonus.save();
+        
+        user.playBalance += activeBonus.amount;
+        await user.save();
+        
+        bot.sendMessage(chatId, `🎉 <b>እንኳን ደስ አሎት!</b>\n\nየ <b>${activeBonus.amount} ETB</b> የመጫወቻ ቦነስ አግኝተዋል።\nመልካም እድል!`, { parse_mode: "HTML", ...getMainMenu(user) });
+        io.emit('balance_updated', user.phone);
         return;
     }
 
