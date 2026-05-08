@@ -19,6 +19,8 @@ app.use(express.static(__dirname));
 // 🔵 DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
+
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
@@ -60,14 +62,22 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 }
+    adminPass: { type: String, default: "bingo1234" }, 
+    ticketPrice: { type: Number, default: 10 }, 
+    isGamePaused: { type: Boolean, default: false }, 
+    gameTimer: { type: Number, default: 40 },
+    // 🔥 NEW: Deposit Bonus Control
+    depBonusPercent: { type: Number, default: 20 },
+    depBonusMinAmount: { type: Number, default: 200 },
+    happyHourStart: { type: Number, default: 12 }, // 12:00
+    happyHourEnd: { type: Number, default: 16 }    // 4:00 (16:00)
 }));
 
-let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40 };
+let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusPercent: 20, depBonusMinAmount: 200, happyHourStart: 12, happyHourEnd: 16 };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40 };
+    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, depBonusPercent: s.depBonusPercent || 20, depBonusMinAmount: s.depBonusMinAmount || 200, happyHourStart: s.happyHourStart || 12, happyHourEnd: s.happyHourEnd || 16 };
 }
 loadSettings();
 
@@ -75,6 +85,19 @@ const bankAccounts = {
     'TeleBirr': { num: '0933638022', name: 'Tsedey Abebe' },
     'CBEBirr': { num: '0988180301', name: 'Yohannes Aberham' }
 };
+
+// 🟢 NEW HELPER: Check if currently in Happy Hour
+function isHappyHour() {
+    let currentHour = new Date().getHours();
+    return currentHour >= GLOBAL_SETTINGS.happyHourStart && currentHour < GLOBAL_SETTINGS.happyHourEnd;
+}
+
+function calculateDepositBonus(amount) {
+    if (isHappyHour() && amount >= GLOBAL_SETTINGS.depBonusMinAmount) {
+        return amount * (GLOBAL_SETTINGS.depBonusPercent / 100);
+    }
+    return 0;
+}
 
 // ==========================================
 // 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE
@@ -86,7 +109,8 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
+            
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
             userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
             let matchedSMS = null;
@@ -98,8 +122,7 @@ async function autoApprovePendingDeposits() {
 
                 if (bankRef && bankRef.length >= 6 && userMsg.includes(bankRef)) {
                     isMatch = true;
-                } 
-                else {
+                } else {
                     for (let uRef of userPossibleRefs) {
                         if (uRef.length >= 6 && bankMsg.includes(uRef)) {
                             isMatch = true; break;
@@ -113,7 +136,7 @@ async function autoApprovePendingDeposits() {
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
+                    let bonus = calculateDepositBonus(actualReceivedAmount); // 🔥 DYNAMIC BONUS 🔥
                     let totalCredit = actualReceivedAmount + bonus;
 
                     tx.amount = actualReceivedAmount; 
@@ -130,17 +153,16 @@ async function autoApprovePendingDeposits() {
                 }
             }
         }
-    } catch (err) { }
+    } catch (err) {}
 }
 
 async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
     try {
         let msg = userInputSms.toUpperCase();
-        let refs = msg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
-        
+        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
         let stripped = msg.replace(/[^A-Z0-9]/gi, '');
-        if (stripped.length >= 6 && stripped.length <= 20 && !/^[A-Z]+$/.test(stripped)) {
+        if (stripped.length >= 6 && stripped.length <= 15 && !/^\d+$/.test(stripped) && !/^[A-Z]+$/.test(stripped)) {
             if(!refs.includes(stripped)) refs.push(stripped);
         }
         if (refs.length === 0) return false; 
@@ -151,7 +173,7 @@ async function isSmsAlreadyUsed(userInputSms) {
             let inTx = await Transaction.findOne({ type: 'deposit', smsText: { $regex: ref, $options: "i" }, status: { $in: ['Approved', 'Pending'] } });
             if (inTx) return true;
         }
-    } catch (e) { }
+    } catch (e) {}
     return false;
 }
 
@@ -168,12 +190,8 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
         let txRef = "";
-        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
-        if (explicitMatch) { txRef = explicitMatch[1].toUpperCase(); } 
-        else {
-            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g);
-            if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
-        }
+        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
+        if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
 
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
@@ -258,10 +276,7 @@ app.post('/api/request-tx', async (req, res) => {
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
-    const txs = await Transaction.find({
-        phone: req.params.phone,
-        $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ]
-    }).sort({ date: -1 }).limit(30);
+    const txs = await Transaction.find({ phone: req.params.phone, $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ] }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
 });
 
@@ -281,8 +296,8 @@ app.get('/api/leaderboard', async (req, res) => {
 // 🔴 ADMIN & FINANCE APIs
 // ==========================================
 const auth = (req, res, next) => { 
-    const pass = req.body.adminPass || req.body.password;
-    const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
+    const pass = req.body.password || req.body.adminPass;
+    const isPassValid = pass === GLOBAL_SETTINGS.adminPass || pass === ADMIN_PASS;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
@@ -305,7 +320,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
     
-    // 🔥 FIXED: Daily, Weekly, Monthly Stats Calculator
     let today = new Date(); today.setHours(0,0,0,0);
     let weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
     let firstDayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -338,7 +352,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
-            let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
+            let bonus = calculateDepositBonus(actualAmount); // 🔥 DYNAMIC BONUS 🔥
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
         }
@@ -355,11 +369,17 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.ticketPrice) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
+    
+    // 🔥 UPDATE BONUS PARAMS 🔥
+    if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
+    if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
+    if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
+    if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
+
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
 
-// 🔥 FIXED: USER EDIT LOGIC 🔥
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
         const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
@@ -393,10 +413,10 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
     else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
-    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
-// 🔥 PROMO & TELEGRAM BROADCAST 🔥
+// 🔥 PROMO & TELEGRAM BROADCAST (WITH CLAIM PROMO OPTION) 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -418,11 +438,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         for (let u of users) {
             try {
                 let sentMsg;
-                if (photoUrl && photoUrl.startsWith('data:image')) {
-                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
-                    let photoBuffer = Buffer.from(base64Data, 'base64');
-                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
-                } else if (photoUrl && photoUrl.startsWith('http')) { 
+                if (photoUrl && photoUrl.trim() !== "") {
                     sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
                 } else { 
                     sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML", reply_markup: keyboard }); 
@@ -446,11 +462,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         for (let u of users) {
             try {
                 let sentMsg;
-                if (photoUrl && photoUrl.startsWith('data:image')) {
-                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
-                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
-                } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
+                if (photoUrl && photoUrl.trim() !== "") {
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                } else { 
+                    sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); 
+                }
                 lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
             } catch(e) {} 
         }
@@ -520,7 +536,6 @@ function resetToWaiting() {
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId }); return; }
     
-    // 🔥 FIXED: SEAMLESS TRANSITION FROM 00 TO PLAYING 🔥
     if (gameState === "WAITING") {
         gameClock--;
         if (gameClock <= 0) { 
@@ -751,8 +766,10 @@ bot.on('callback_query', async (query) => {
     let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
     if(data.startsWith('lang_')) { if(user) { user.language = data.split('_')[1]; await user.save(); ln = getLang(user); bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); } bot.answerCallbackQuery(query.id); return; }
     
+    // 🔥 INLINE CLAIM BONUS LOGIC 🔥
     if (data === 'claim_promo') {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
+        
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
         if (!activeBonus) return bot.answerCallbackQuery(query.id, { text: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!", show_alert: true });
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
@@ -782,7 +799,6 @@ bot.on('callback_query', async (query) => {
 const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-    
     if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
     res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
@@ -817,7 +833,6 @@ app.get('*', (req, res) => {
 });
 
 setInterval(async () => { try { await autoApprovePendingDeposits(); } catch (error) {} }, 30000); 
-
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
