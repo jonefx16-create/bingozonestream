@@ -86,8 +86,7 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
-            
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
             userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
             let matchedSMS = null;
@@ -99,7 +98,8 @@ async function autoApprovePendingDeposits() {
 
                 if (bankRef && bankRef.length >= 6 && userMsg.includes(bankRef)) {
                     isMatch = true;
-                } else {
+                } 
+                else {
                     for (let uRef of userPossibleRefs) {
                         if (uRef.length >= 6 && bankMsg.includes(uRef)) {
                             isMatch = true; break;
@@ -130,35 +130,28 @@ async function autoApprovePendingDeposits() {
                 }
             }
         }
-    } catch (err) { console.log("Auto-Approve Error:", err); }
+    } catch (err) { }
 }
 
 async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
     try {
         let msg = userInputSms.toUpperCase();
-        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+        let refs = msg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
         
         let stripped = msg.replace(/[^A-Z0-9]/gi, '');
-        if (stripped.length >= 6 && stripped.length <= 15 && !/^\d+$/.test(stripped) && !/^[A-Z]+$/.test(stripped)) {
+        if (stripped.length >= 6 && stripped.length <= 20 && !/^[A-Z]+$/.test(stripped)) {
             if(!refs.includes(stripped)) refs.push(stripped);
         }
-
         if (refs.length === 0) return false; 
-
         for (let ref of refs) {
             if (ref.length < 6) continue;
             let inBankSms = await BankSMS.findOne({ txRef: ref, isUsed: true });
             if (inBankSms) return true;
-            
-            let inTx = await Transaction.findOne({ 
-                type: 'deposit', 
-                smsText: { $regex: ref, $options: "i" },
-                status: { $in: ['Approved', 'Pending'] }
-            });
+            let inTx = await Transaction.findOne({ type: 'deposit', smsText: { $regex: ref, $options: "i" }, status: { $in: ['Approved', 'Pending'] } });
             if (inTx) return true;
         }
-    } catch (e) { console.log("Duplicate Check Error:", e); }
+    } catch (e) { }
     return false;
 }
 
@@ -175,8 +168,12 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
         let txRef = "";
-        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
-        if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
+        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
+        if (explicitMatch) { txRef = explicitMatch[1].toUpperCase(); } 
+        else {
+            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g);
+            if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
+        }
 
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
@@ -280,8 +277,11 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// ==========================================
+// 🔴 ADMIN & FINANCE APIs
+// ==========================================
 const auth = (req, res, next) => { 
-    const pass = req.body.password || req.body.adminPass;
+    const pass = req.body.adminPass || req.body.password;
     const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
@@ -300,23 +300,24 @@ app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// 🔥 FIXED: Added Daily and Monthly Active Player Stats Calculation 🔥
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
     
-    // Calculate Daily and Monthly Unique Players
+    // 🔥 FIXED: Daily, Weekly, Monthly Stats Calculator
     let today = new Date(); today.setHours(0,0,0,0);
+    let weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
     let firstDayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    let dailyGames = await GameHistory.find({ date: { $gte: today } });
-    let monthlyGames = await GameHistory.find({ date: { $gte: firstDayMonth } });
 
-    let dailySet = new Set();
-    dailyGames.forEach(g => g.playersData.forEach(p => dailySet.add(p.phone)));
-    let monthlySet = new Set();
-    monthlyGames.forEach(g => g.playersData.forEach(p => monthlySet.add(p.phone)));
+    let dGames = await GameHistory.find({ date: { $gte: today } });
+    let wGames = await GameHistory.find({ date: { $gte: weekAgo } });
+    let mGames = await GameHistory.find({ date: { $gte: firstDayMonth } });
+
+    let dSet = new Set(), wSet = new Set(), mSet = new Set();
+    dGames.forEach(g => g.playersData.forEach(p => dSet.add(p.phone)));
+    wGames.forEach(g => g.playersData.forEach(p => wSet.add(p.phone)));
+    mGames.forEach(g => g.playersData.forEach(p => mSet.add(p.phone)));
 
     res.json({ 
         totalUsers, 
@@ -325,8 +326,9 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         gameId, 
         totalProfit, 
         settings: GLOBAL_SETTINGS,
-        dailyActive: dailySet.size,
-        monthlyActive: monthlySet.size
+        dailyActive: dSet.size,
+        weeklyActive: wSet.size,
+        monthlyActive: mSet.size
     });
 });
 
@@ -357,25 +359,13 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
-// 🔥 FIXED: EDIT USER WORKING PERFECTLY NOW 🔥
+// 🔥 FIXED: USER EDIT LOGIC 🔥
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
-        const { oldPhone, newPhone, password, mainBalance, playBalance, won } = req.body;
-        let user = await User.findOne({ phone: oldPhone.trim() });
-        if (!user) return res.json({ success: false, message: "User not found!" });
-
-        if (oldPhone.trim() !== newPhone.trim()) {
-            let checkExist = await User.findOne({ phone: newPhone.trim() });
-            if(checkExist) return res.json({ success: false, message: "New phone already exists!" });
-            await Transaction.updateMany({ phone: oldPhone }, { $set: { phone: newPhone } });
-        }
-
-        user.phone = newPhone.trim();
-        if(password) user.password = password;
-        user.mainBalance = Number(mainBalance);
-        user.playBalance = Number(playBalance);
-        user.won = Number(won);
-        await user.save();
+        const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
+        let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) };
+        if (userPass) updateData.password = userPass;
+        await User.findOneAndUpdate({ phone: oldPhone }, updateData);
         res.json({ success: true });
     } catch(e) {
         res.json({ success: false, message: "Error updating user." });
@@ -406,7 +396,7 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
 });
 
-// 🔥 FIXED: CREATE CLAIM BONUS + AUTO BROADCAST 🔥
+// 🔥 PROMO & TELEGRAM BROADCAST 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -418,25 +408,26 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         if (!message) return res.json({ success: false, message: "No message entered." });
 
         let expires = new Date(Date.now() + (minutes * 60000));
-        await ActiveBonus.updateMany({}, { isActive: false }); // Disable old bonuses
+        await ActiveBonus.updateMany({}, { isActive: false }); 
         await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
 
-        // Broadcast to Telegram
         const users = await User.find({ telegramId: { $ne: "" } });
-        let count = 0;
+        lastBroadcasts = []; let count = 0;
         let keyboard = { inline_keyboard: [[{ text: `🎁 ${amount} ETB Claim Bonus`, callback_data: "claim_promo" }]] };
         
         for (let u of users) {
             try {
+                let sentMsg;
                 if (photoUrl && photoUrl.startsWith('data:image')) {
                     let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
                     let photoBuffer = Buffer.from(base64Data, 'base64');
-                    await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
                 } else if (photoUrl && photoUrl.startsWith('http')) { 
-                    await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
                 } else { 
-                    await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML", reply_markup: keyboard }); 
+                    sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML", reply_markup: keyboard }); 
                 }
+                lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id });
                 count++;
             } catch(e) {} 
         }
@@ -528,18 +519,20 @@ function resetToWaiting() {
 
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId }); return; }
+    
+    // 🔥 FIXED: SEAMLESS TRANSITION FROM 00 TO PLAYING 🔥
     if (gameState === "WAITING") {
         gameClock--;
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-        
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
+                gameState = "PLAYING"; 
+                gameClock = 3; 
+                currentDrawSequence = generateRiggedDrawSequence(); 
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
             }
         }
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
     } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
@@ -576,6 +569,9 @@ io.on('connection', (socket) => {
     });
 });
 
+// ======================================================
+// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
+// ======================================================
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
@@ -643,7 +639,6 @@ const t = {
 function getLang(user) { return user && user.language && t[user.language] ? t[user.language] : t['am']; }
 function getMainMenu(user) {
     let ln = getLang(user);
-    // 🔥 Claim Bonus Button Removed, replaced by Inline Button in Broadcasts
     return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promo }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }], [{ text: ln.btn_lang }] ], resize_keyboard: true } };
 }
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
@@ -756,10 +751,8 @@ bot.on('callback_query', async (query) => {
     let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
     if(data.startsWith('lang_')) { if(user) { user.language = data.split('_')[1]; await user.save(); ln = getLang(user); bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); } bot.answerCallbackQuery(query.id); return; }
     
-    // 🔥 INLINE CLAIM BONUS LOGIC 🔥
     if (data === 'claim_promo') {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
-        
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
         if (!activeBonus) return bot.answerCallbackQuery(query.id, { text: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!", show_alert: true });
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
@@ -823,14 +816,7 @@ app.get('*', (req, res) => {
     }
 });
 
-// ==========================================
-// 🔥 የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
-// ==========================================
-setInterval(async () => {
-    try {
-        await autoApprovePendingDeposits();
-    } catch (error) {}
-}, 30000); 
+setInterval(async () => { try { await autoApprovePendingDeposits(); } catch (error) {} }, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
