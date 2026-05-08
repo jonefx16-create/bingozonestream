@@ -5,19 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance Dashboard</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; --cyan: #06b6d4; }
+        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
         #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); position: absolute; z-index: 100; }
         .login-card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid var(--faded-green); text-align: center; width: 90%; max-width: 350px; }
         input { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; outline: none; font-size: 16px; text-align: center;}
         button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; font-size: 15px;}
-        button.btn-blue { background: var(--blue); color: white; width: auto; padding: 6px 10px; font-size: 11px; }
-        button.btn-red { background: var(--red); color: white; }
-        button.btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold;}
         
-        #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; }
+        #dash-sec { display: none; width: 100%; height: 100%; display: flex; flex-direction: row; }
         
+        /* 🔥 MOBILE RESPONSIVE SIDEBAR 🔥 */
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; transition: 0.3s;}
         .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
@@ -31,27 +29,6 @@
         .kpi-value { font-size: 28px; font-weight: 900; margin: 0; }
         
         .summary-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--faded-green); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
-
-        .table-responsive { width: 100%; overflow-x: auto; padding-bottom: 10px;}
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle;}
-        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; background: rgba(0,0,0,0.2);}
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
-        .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); }
-        .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
-        .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box;}
-        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 600px; color: white;}
-        
-        /* 🔥 BIGGER SMS BOX CSS 🔥 */
-        #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
-
-        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold;}
-        .tx-tab-btn.active { background: var(--border); color: white;}
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
 
         @media (max-width: 768px) {
             #dash-sec { flex-direction: column; }
@@ -82,160 +59,154 @@
         <button class="nav-btn" onclick="switchTab('monthly', this)">🗓️ Monthly Profit</button>
         <button class="nav-btn" onclick="switchTab('all', this)">🏆 All Time Profit</button>
         <div style="flex:1"></div>
-        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)">📥 Pend Deposit</button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)">📤 Pend Withdraw</button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 TX History</button>
         <button class="nav-btn" style="color: var(--blue);" onclick="location.href='/admin'">🛡️ Go to Admin</button>
     </div>
 
     <div class="main-content">
         <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px;">
             <h2 id="page-title" style="margin: 0;">📅 Daily Profit Report</h2>
-            <button class="action-btn btn-blue" style="width: auto; padding: 8px 15px;" onclick="loadFinancialData()">🔄 Refresh</button>
+            <button class="action-btn" style="width: auto; padding: 8px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh</button>
         </div>
 
-        <div id="daily" class="tab-content active">
-            <div class="summary-box">
-                <p style="color: var(--text-gray); font-weight: bold; margin-bottom:5px; text-transform:uppercase;">Net Profit (15% - Bonus Expenses)</p>
-                <h1 id="net-profit" style="margin:0; font-size:45px; color:var(--faded-green);">0.00 ETB</h1>
-                <p id="period-info" style="font-size:12px; color:var(--text-gray); margin-top:10px;">Showing data for today.</p>
+        <div class="summary-box">
+            <p style="color: var(--text-gray); font-weight: bold; margin-bottom:5px; text-transform:uppercase;">Net Profit (15% - Bonus Expenses)</p>
+            <h1 id="net-profit" style="margin:0; font-size:45px; color:var(--faded-green);">0.00 ETB</h1>
+            <p id="period-info" style="font-size:12px; color:var(--text-gray); margin-top:10px;">Showing data for today.</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card" style="border-left-color: var(--faded-green);">
+                <span class="kpi-title">⬇️ Deposits</span>
+                <h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0</h2>
             </div>
-            <div class="kpi-grid">
-                <div class="kpi-card" style="border-left-color: var(--faded-green);"><span class="kpi-title">⬇️ Deposits</span><h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0</h2></div>
-                <div class="kpi-card" style="border-left-color: var(--red);"><span class="kpi-title">⬆️ Withdrawals</span><h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0</h2></div>
-                <div class="kpi-card" style="border-left-color: var(--purple);"><span class="kpi-title">🎮 Gross Game Profit</span><h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0</h2></div>
-                <div class="kpi-card" style="border-left-color: var(--red);"><span class="kpi-title">🎁 Bonus Expenses</span><h2 class="kpi-value" id="val-bonus" style="color: #fca5a5;">0</h2></div>
+            <div class="kpi-card" style="border-left-color: var(--red);">
+                <span class="kpi-title">⬆️ Withdrawals</span>
+                <h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0</h2>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--purple);">
+                <span class="kpi-title">🎮 Gross Game Profit (15%)</span>
+                <h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0</h2>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--red);">
+                <span class="kpi-title">🎁 Bonus Expenses</span>
+                <h2 class="kpi-value" id="val-bonus" style="color: #fca5a5;">0</h2>
             </div>
         </div>
-
-        <div id="tab-pend-dep" class="tab-content">
-            <div class="card" style="background:var(--panel); padding:20px; border-radius:12px;"><div class="table-responsive">
-                <table id="table-pend-dep"><thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>SMS Detail (ማረጋገጫ)</th><th>Action</th></tr></thead><tbody id="pend-dep-body"></tbody></table>
-            </div></div>
-        </div>
-
-        <div id="tab-pend-wit" class="tab-content">
-            <div class="card" style="background:var(--panel); padding:20px; border-radius:12px;"><div class="table-responsive">
-                <table id="table-pend-wit"><thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>Sent To</th><th>Action</th></tr></thead><tbody id="pend-wit-body"></tbody></table>
-            </div></div>
-        </div>
-
-        <div id="tab-history-tx" class="tab-content">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto;">
-                <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTx('deposit')">⬇️ Deposits</button>
-                <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTx('withdraw')">⬆️ Withdrawals</button>
-                <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTx('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
-            </div>
-            <div class="card" style="background:var(--panel); padding:20px; border-radius:12px;"><div class="table-responsive">
-                <table id="table-history-tx"><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th></tr></thead><tbody id="history-tx-body"></tbody></table>
-            </div></div>
-        </div>
-    </div>
-</div>
-
-<!-- 🔥 ENLARGED SMS MODAL 🔥 -->
-<div class="modal" id="sms-modal">
-    <div class="modal-content" style="max-width: 600px; text-align: left;">
-        <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ (Deposit)</h3>
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:15px;">
-            <p style="margin:0;"><b>📱 ስልክ:</b> <span id="sms-phone" style="color:white;"></span></p>
-            <p style="margin:0;"><b>🏦 ባንክ:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase; font-weight:bold;"></span></p>
-            <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
-        </div>
-        <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
-        <div id="sms-text"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
 
 <script>
-    let pass = ""; let rawData = { txs: [], games: [], bonuses: [] }; let currentFilter = 'daily'; let currentHistType = 'deposit';
+    let pass = "";
+    let rawData = { txs: [], games: [], bonuses: [] };
+    let currentFilter = 'daily';
 
-    function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadFinancialData(); }
+    function login() { 
+        pass = document.getElementById('adminPass').value; 
+        if(!pass) return; 
+        loadFinancialData(); 
+    }
     
-    function switchTab(tabId, btn) { 
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+    function switchTab(period, btn) { 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
         btn.classList.add('active'); 
+        document.getElementById('page-title').innerText = btn.innerText + " Report";
         
-        if(['daily', 'weekly', 'monthly', 'all'].includes(tabId)) {
-            document.getElementById('daily').classList.add('active');
-            document.getElementById('page-title').innerText = btn.innerText + " Report";
-            currentFilter = tabId; filterData(tabId);
-        } else {
-            document.getElementById(tabId).classList.add('active');
-            document.getElementById('page-title').innerText = btn.innerText;
-        }
+        currentFilter = period;
+        filterData(period);
     }
 
     async function loadFinancialData() {
         try {
             document.getElementById('page-title').innerText = "Loading...";
-            let res = await fetch('/api/admin/finance-raw-data', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, adminPass: pass }) });
+            
+            // fetch raw data from server
+            let res = await fetch('/api/admin/finance-raw-data', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({ password: pass, adminPass: pass }) 
+            });
+            
             if(res.status === 401) { alert("❌ Wrong Password!"); document.getElementById('page-title').innerText = "Finance Report"; return; }
+            
             let data = await res.json();
             if(data.success) {
-                document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
-                rawData = data; if(window.innerWidth > 768) document.getElementById('sidebar-title').style.display = 'block';
-                filterData(currentFilter); populatePendingDeposits(); populatePendingWithdraws(); filterHistoryTx(currentHistType);
+                document.getElementById('login-sec').style.display = 'none'; 
+                document.getElementById('dash-sec').style.display = 'flex';
+                
+                // Store raw data globally
+                rawData = data;
+                
+                // Set sidebar title visible
+                if(window.innerWidth > 768) document.getElementById('sidebar-title').style.display = 'block';
+
+                // Re-apply the current filter
+                filterData(currentFilter);
             }
         } catch(e) { alert("Network Error! Is server running?"); }
     }
 
-    function showTxDetailsModal(phone, method, amount, sms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = amount; document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"'); document.getElementById('sms-modal').style.display = 'flex'; }
-
-    function populatePendingDeposits() {
-        let deps = rawData.txs.filter(t => t.type === 'deposit' && t.status === 'Pending');
-        document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
-            let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
-            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${t.amount} ETB</td>
-            <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ትልቅ አድርግ</button></div></td>
-            <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
-        }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
-    }
-
-    function populatePendingWithdraws() {
-        let wits = rawData.txs.filter(t => t.type === 'withdraw' && t.status === 'Pending');
-        document.getElementById('pend-wit-body').innerHTML = wits.map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${t.amount} ETB</td><td style="color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
-    }
-
-    function filterHistoryTx(type) {
-        currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        let filtered = type === 'rejected' ? rawData.txs.filter(t => t.status === 'Rejected') : rawData.txs.filter(t => t.type === type && t.status === 'Approved');
-        document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
-            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
-        }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
-    }
-
     function filterData(period) {
-        let now = new Date(); let startTime = new Date(0); let periodText = "Showing all time data.";
-        if(period === 'daily') { startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); periodText = "Showing data for today."; } 
-        else if(period === 'weekly') { startTime = new Date(); startTime.setDate(now.getDate() - 7); periodText = "Showing data for the last 7 days."; } 
-        else if(period === 'monthly') { startTime = new Date(now.getFullYear(), now.getMonth(), 1); periodText = "Showing data for this month."; }
+        let now = new Date();
+        let startTime = new Date(0); // Default to beginning of time for 'all'
+        let periodText = "Showing all time data.";
+
+        if(period === 'daily') { 
+            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
+            periodText = "Showing data for today.";
+        } 
+        else if(period === 'weekly') { 
+            startTime = new Date();
+            startTime.setDate(now.getDate() - 7); 
+            periodText = "Showing data for the last 7 days.";
+        } 
+        else if(period === 'monthly') { 
+            startTime = new Date(now.getFullYear(), now.getMonth(), 1); // 1st day of current month
+            periodText = "Showing data for this month.";
+        }
+
         document.getElementById('period-info').innerText = periodText;
-        
+
+        // Filter arrays based on the startTime
         let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
         let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
-        let filteredBonus = rawData.bonuses.filter(b => { let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt); return bDate >= startTime; });
+        // Note: Bonuses use 'expiresAt' or 'date' depending on how you saved them. I'll use expiresAt as fallback.
+        let filteredBonus = rawData.bonuses.filter(b => {
+            let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt);
+            return bDate >= startTime;
+        });
 
+        // Calculate Totals
         let tDep = filteredTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tWit = filteredTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
+        
+        // Bonus calculation: amount * maxUsers (or currentClaims)
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+
+        // Net Profit
         let net = tProf - tBon;
 
+        // Update UI
         document.getElementById('val-deposit').innerText = tDep.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-withdraw').innerText = tWit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-game-profit').innerText = tProf.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-bonus').innerText = tBon.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
-        let netEl = document.getElementById('net-profit'); netEl.innerText = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
-        if (net < 0) netEl.style.color = "var(--red)"; else if (net > 0) netEl.style.color = "var(--faded-green)"; else netEl.style.color = "white";
+        let netEl = document.getElementById('net-profit');
+        netEl.innerText = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
+        
+        // Color logic
+        if (net < 0) {
+            netEl.style.color = "var(--red)";
+        } else if (net > 0) {
+            netEl.style.color = "var(--faded-green)";
+        } else {
+            netEl.style.color = "white"; // If 0
+        }
+        
+        // Update Page Title
         document.getElementById('page-title').innerText = period.charAt(0).toUpperCase() + period.slice(1) + " Profit Report";
     }
-
-    async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadFinancialData(); } }
 </script>
 </body>
 </html>
