@@ -63,8 +63,9 @@
 
         .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold; white-space: nowrap;}
         .tx-tab-btn.active { background: var(--border); color: white;}
-        
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
+        
+        /* 🔥 BIGGER SMS BOX CSS 🔥 */
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
 
         @media (max-width: 768px) {
@@ -103,8 +104,6 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
-        <!-- 🔥 አዲሱ DYNAMIC BONUS BUTTON 🔥 -->
-        <button class="nav-btn" onclick="switchTab('tab-dynamic-bonus', this)" style="color: var(--cyan);">💫 Dynamic Promo / Bonus</button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
         <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Logout</button>
@@ -121,8 +120,7 @@
 
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>Total Profit</h3><h2 style="color: var(--faded-green);" id="stat-total-profit">0 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3><h2 style="color: var(--blue);" id="stat-total-profit">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
             </div>
@@ -147,9 +145,11 @@
         </div>
 
         <div id="tab-users" class="tab-content">
-            <div class="stat-card" style="border-color: var(--purple); max-width: 300px; margin-bottom: 20px;">
-                <h3 style="color: var(--purple);">Total Registered Users</h3>
-                <h2 id="box-total-reg">0</h2>
+            <div class="stats-grid" style="margin-bottom: 20px;">
+                <div class="stat-card" style="border-color: var(--faded-green);"><h3>Daily Active</h3><h2 id="u-daily" style="color:var(--faded-green);">0</h2></div>
+                <div class="stat-card" style="border-color: var(--blue);"><h3>Weekly Active</h3><h2 id="u-weekly" style="color:var(--blue);">0</h2></div>
+                <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
+                <div class="stat-card" style="border-color: var(--orange);"><h3>Total Users</h3><h2 id="box-total-reg" style="color:var(--orange);">0</h2></div>
             </div>
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-user" onkeyup="searchTable('search-user', 'table-users')" placeholder="🔍 Search Name or Phone...">
@@ -212,58 +212,32 @@
 
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <div class="card" style="border-left: 4px solid var(--orange);">
-                    <h3 style="margin-top:0; color:var(--orange);">🚀 Claimable Promo Bonus</h3>
-                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ተጠቃሚዎች ቦት ላይ ገብተው Claim የሚያደርጉትን የተገደበ ቦነስ ይፍጠሩ።</p>
-                    <input type="number" id="cb-max-users" placeholder="ለስንት ሰው? (ምሳሌ: 300)">
-                    <input type="number" id="cb-amount" placeholder="የብር መጠን (ምሳሌ: 10 ETB)">
-                    <input type="number" id="cb-minutes" placeholder="የሚቆየው ለስንት ደቂቃ? (ምሳሌ: 60)">
-                    <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Promo Bonus</button>
+                <div class="card" style="border-left: 4px solid var(--faded-green);">
+                    <h3 style="margin-top:0; color:var(--faded-green);">👤 Single User Bonus</h3>
+                    <input type="text" id="sb-phone" placeholder="User Phone (e.g. 0911...)">
+                    <input type="number" id="sb-amt" placeholder="Amount (ETB)">
+                    <button class="action-btn" style="width:100%;" onclick="sendSingleBonus()">Send Bonus</button>
                 </div>
                 
                 <div class="card" style="border-left: 4px solid var(--purple);">
-                    <h3 style="margin-top:0; color:var(--purple);">🎁 Direct Bonus (ቀጥታ መላኪያ)</h3>
-                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ያለ ምንም ፕሮሞ ለተጠቃሚዎች አካውንት ላይ ቀጥታ ቦነስ ለመላክ። <br><span style="color:var(--cyan);">ማሳሰቢያ፡ ስልክ ቁጥር ካልፃፉ ለሁሉም በአንድ ጊዜ ይላካል።</span></p>
-                    <input type="text" id="direct-phone" placeholder="የተጠቃሚ ስልክ (ለሁሉም ከሆነ ባዶ ይተውት)">
-                    <input type="number" id="direct-amount" placeholder="የብር መጠን (ምሳሌ: 15 ETB)">
-                    <button class="action-btn btn-purple" style="width:100%; margin-top: 10px;" onclick="sendDirectBonus()">Send Direct Bonus</button>
+                    <h3 style="margin-top:0; color:var(--purple);">🎁 Bulk List Bonus</h3>
+                    <textarea id="b-phones" rows="3" style="width: 100%; background: #000; color: white; border: 1px solid var(--border); border-radius: 6px; padding: 10px;" placeholder="0911..., 0922... OR type 'ALL' for everyone"></textarea>
+                    <input type="number" id="mb-amt-bulk" placeholder="Amount per person">
+                    <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
-            </div>
-        </div>
 
-        <!-- 🔥 አዲሱ DYNAMIC PROMO / BONUS TAB 🔥 -->
-        <div id="tab-dynamic-bonus" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--cyan); max-width: 500px;">
-                <h3 style="margin-top:0; color:var(--cyan);">💫 Dynamic Deposit Bonus (የዲፖዚት ቦነስ ማስተካከያ)</h3>
-                <p style="font-size:12px; color:var(--text-gray);">በፈለጉት ሰዓት (ለምሳሌ በበዓል ወይም ከ 12 ሰዓት እስከ 4 ሰዓት) የዲፖዚት ቦነስ ፐርሰንት ከፍ ለማድረግ ይህን ይጠቀሙ። እርስዎ OFF እስካላሉት ድረስ ይሰራል!</p>
-
-                <label style="font-weight:bold; color: white;">1. ዝቅተኛ የገቢ መጠን (Min Deposit to get bonus)</label>
-                <input type="number" id="dyn-min-dep" placeholder="ምሳሌ: 300 (ከ 300 ብር በላይ ለሚያስገቡ)">
-
-                <label style="font-weight:bold; margin-top:10px; display:block; color: white;">2. የቦነስ መጠን በፐርሰንት (Bonus Percentage %)</label>
-                <input type="number" id="dyn-bonus-pct" placeholder="ምሳሌ: 100 (100% ቦነስ ለመስጠት)">
-
-                <label style="font-weight:bold; margin-top:10px; display:block; color: white;">3. ፕሮሞው አሁን ክፍት ይሁን? (Is Promo Active?)</label>
-                <select id="dyn-promo-status" style="margin-bottom: 20px; font-weight:bold;">
-                    <option value="true">✅ አዎ፣ ክፍት ይሁን (Active / ON)</option>
-                    <option value="false">❌ አይ፣ ይዘጋ (Inactive / OFF)</option>
-                </select>
-
-                <button class="action-btn" style="width:100%; background: var(--cyan); color:black;" onclick="saveDynamicBonus()">💾 Save Bonus Settings</button>
-            </div>
-        </div>
-
-        <div id="tab-telegram" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
-                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
-                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
-                <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
-                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
-                <textarea id="tg-msg" rows="6" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo()">Broadcast to Bot</button>
-                    <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
+                <div class="card" style="border-left: 4px solid var(--orange); grid-column: span 2;">
+                    <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Telegram Broadcast</h3>
+                    <p style="font-size:11px; color:gray;">ቦነስ ፈጥረው በቀጥታ ወደ ቴሌግራም ቦት ማስታወቂያ ይላኩ። ተጠቃሚዎች የ "🎁 Claim Bonus" በተንን ሲነኩ ቦነሱ ይሰጣቸዋል።</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <input type="number" id="cb-max-users" placeholder="ለስንት ሰው? (ምሳሌ: 300)" style="flex:1;">
+                        <input type="number" id="cb-amount" placeholder="የብር መጠን (ምሳሌ: 10 ETB)" style="flex:1;">
+                        <input type="number" id="cb-minutes" placeholder="ለስንት ደቂቃ ይቆይ? (ምሳሌ: 60)" style="flex:1;">
+                    </div>
+                    <label style="color:var(--cyan); font-size:12px; font-weight:bold;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
+                    <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
+                    <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ... (የ Claim በተኑ ከታች በራሱ ይጨመራል)"></textarea>
+                    <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast to Telegram</button>
                 </div>
             </div>
         </div>
@@ -335,7 +309,7 @@
             <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
         </div>
         <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
-        <div id="sms-text"></div>
+        <div id="sms-text" style="font-size: 16px; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;"></div>
         <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
@@ -363,19 +337,12 @@
         if(!pass || !document.getElementById('tab-live').classList.contains('active')) return;
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
-            document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
+            document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
+            document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
-            
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
             if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
-            
-            // Populate dynamic bonus fields if backend supports it (placeholder for UI integration)
-            if(data.settings.dynBonusPct !== undefined) {
-                if(!document.getElementById('dyn-bonus-pct').value) document.getElementById('dyn-bonus-pct').value = data.settings.dynBonusPct;
-                if(!document.getElementById('dyn-min-dep').value) document.getElementById('dyn-min-dep').value = data.settings.dynMinDep;
-                document.getElementById('dyn-promo-status').value = data.settings.dynPromoActive ? "true" : "false";
-            }
         } catch(e) {}
     }
     setInterval(loadLiveStats, 3000);
@@ -385,7 +352,7 @@
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
-            let users = await uRes.json(); document.getElementById('box-total-reg').innerText = users.length;
+            let users = await uRes.json(); 
             let activeHtml = "", bannedHtml = "", refList = {};
             users.forEach(u => {
                 let row = `<tr><td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td><td>${u.playBalance.toFixed(2)}</td><td>${u.mainBalance.toFixed(2)}</td>`;
@@ -459,126 +426,37 @@
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     function viewHistory(grid, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let gHtml = `<div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; }
     
-    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
+    async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amount = document.getElementById('sb-amt').value; if(!phone || !amount) return alert("Fill all fields"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value = ''; document.getElementById('sb-amt').value = ''; loadData(); } }
+    async function sendBulkBonus() { let phonesRaw = document.getElementById('b-phones').value; let amount = document.getElementById('mb-amt-bulk').value; if(!phonesRaw || !amount) return alert("Fill all fields"); let phoneList = phonesRaw === 'ALL' ? 'ALL' : phonesRaw.split(',').map(p => p.trim()).filter(p => p.length > 0); if(!confirm(`Send ${amount} ETB Bonus?`)) return; let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneList, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value = ''; document.getElementById('mb-amt-bulk').value = ''; } }
     
-    async function sendDirectBonus() {
-        let phone = document.getElementById('direct-phone').value.trim();
-        let amount = document.getElementById('direct-amount').value;
-        if(!amount) return alert("እባክዎ የብር መጠን ያስገቡ!");
+    // 🔥 CREATING CLAIM PROMO AND BROADCASTING IT 🔥
+    async function createClaimBonus() { 
+        let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let fileInput = document.getElementById('cb-photo-file');
+        if(!maxUsers || !amount || !minutes || !msg) return alert("እባክዎ ሁሉንም መረጃ እና የቴሌግራም መልዕክቱን ያስገቡ!"); 
+        if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; 
 
-        if(phone) {
-            if(!confirm(`እርግጠኛ ነዎት ${amount} ETB ለስልክ ቁጥር ${phone} መላክ ይፈልጋሉ?`)) return;
-            let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount})});
-            let data = await res.json();
-            alert(data.message);
-        } else {
-            if(!confirm(`⚠️ ማስጠንቀቂያ፡ ለሁሉም ተጠቃሚዎች በአንዴ ${amount} ETB ሊልኩ ነው! እርግጠኛ ነዎት?`)) return;
-            let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: "ALL", amount})});
-            let data = await res.json();
-            alert(data.message);
-        }
-        document.getElementById('direct-phone').value = '';
-        document.getElementById('direct-amount').value = '';
-    }
-
-    // 🔥 DYNAMIC BONUS SAVE FUNCTION 🔥
-    async function saveDynamicBonus() {
-        let minDep = document.getElementById('dyn-min-dep').value;
-        let bonusPct = document.getElementById('dyn-bonus-pct').value;
-        let promoActive = document.getElementById('dyn-promo-status').value === "true";
-
-        if(!minDep || !bonusPct) return alert("እባክዎ መረጃዎቹን ሙሉ በሙሉ ያስገቡ!");
-
-        let payload = {
-            adminPass: pass,
-            dynMinDep: Number(minDep),
-            dynBonusPct: Number(bonusPct),
-            dynPromoActive: promoActive
-        };
-
-        try {
-            let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-            let data = await res.json();
-            if(data.success) {
-                alert("✅ Dynamic Bonus Settings Saved Successfully!");
-                loadLiveStats(); // reload fields to reflect saved status
-            } else {
-                alert("❌ Error saving settings!");
-            }
-        } catch(e) {
-            alert("Network Error!");
-        }
-    }
-    
-    async function factoryReset() {
-        if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return;
-        let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡");
-        if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!");
+        document.querySelector('#tab-bonus .btn-orange').innerText = "እየላከ ነው (Sending)...";
         
-        let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
-        let data = await res.json();
-        alert(data.message);
-        loadData();
-        loadLiveStats();
-    }
-
-    async function sendTelegramPromo() { 
-        let msg = document.getElementById('tg-msg').value; 
-        let fileInput = document.getElementById('tg-photo-file');
-        if(!msg) return alert("Enter a message"); 
-
-        document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው (Sending)..."; 
-
+        let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: ""};
+        
         if (fileInput.files.length > 0) {
-            let file = fileInput.files[0];
             let reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async function () {
-                let photoData = reader.result; 
-                sendPayloadToTelegram(msg, photoData);
-            };
+            reader.readAsDataURL(fileInput.files[0]);
+            reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload); };
         } else {
-            sendPayloadToTelegram(msg, ""); 
+            sendPromoData(payload);
         }
     }
 
-    async function sendPayloadToTelegram(message, photoUrl) {
+    async function sendPromoData(payload) {
         try {
-            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
-            let data = await res.json(); 
-            alert(data.message || "Sent successfully to bot users!"); 
-            if(data.success) { 
-                document.getElementById('tg-msg').value = ''; 
-                document.getElementById('tg-photo-file').value = ''; 
-            }
-        } catch(e) { alert("Error sending message."); }
-        document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
+            let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); 
+            let data = await res.json(); alert(data.message || "Promo Created successfully!"); 
+            if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = '';}
+        } catch(e) { alert("Error"); }
+        document.querySelector('#tab-bonus .btn-orange').innerText = "Create Promo & Broadcast to Telegram";
     }
 
-    async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
-    
-    async function updateSettings(type) { 
-        let payload = { adminPass: pass }; 
-        if(type === 'password') { 
-            let np = document.getElementById('set-pass').value; 
-            if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); 
-            payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; 
-        } 
-        if(type === 'price') { 
-            let pr = document.getElementById('set-price').value; 
-            if(!pr) return alert("እባክዎ ትክክለኛ የካርቴላ ዋጋ ያስገቡ!"); 
-            payload.ticketPrice = pr; 
-        }
-        if(type === 'timer') { 
-            let tm = document.getElementById('set-timer').value; 
-            if(!tm) return alert("እባክዎ ትክክለኛ የጌም ሰከንድ ያስገቡ!"); 
-            payload.gameTimer = tm; 
-        } 
-        await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        alert("✅ Saved!"); 
-    }
-
-    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
     
     function openEditModal(phone, passw, main, play, won) { 
@@ -586,40 +464,31 @@
         document.getElementById('eu-phone').value = phone; 
         document.getElementById('eu-password').value = passw; 
         document.getElementById('eu-main').value = main; 
-        document.getElementById('eu-play').value = play; 
-        document.getElementById('eu-won').value = won; 
+        document.getElementById('eu-play').value = play;
+        document.getElementById('eu-won').value = won;  
         document.getElementById('edit-user-modal').style.display = 'flex'; 
     }
     
-    // 🔥 USER EDIT SAVE FIX 🔥
     async function saveUserEdit() { 
         let payload = { 
             adminPass: pass, 
             oldPhone: document.getElementById('eu-oldPhone').value, 
             newPhone: document.getElementById('eu-phone').value, 
-            password: document.getElementById('eu-password').value, 
+            userPass: document.getElementById('eu-password').value, 
             mainBalance: document.getElementById('eu-main').value, 
             playBalance: document.getElementById('eu-play').value,
-            won: document.getElementById('eu-won').value || 0
+            won: document.getElementById('eu-won').value
         }; 
-        
-        try {
-            let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-            let data = await res.json();
-            if(data.success) {
-                alert("✅ ተጠቃሚው በትክክል ተስተካክሏል! (User updated)");
-                document.getElementById('edit-user-modal').style.display='none'; 
-                loadData(); 
-            } else {
-                alert("❌ ስህተት: " + (data.message || "Failed to edit user."));
-            }
-        } catch(e) {
-            alert("Network error. Please try again.");
-        }
+        await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+        document.getElementById('edit-user-modal').style.display='none'; 
+        loadData(); 
     }
     
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
+    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
+    async function updateSettings(type) { let payload = { adminPass: pass }; if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return; payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return; payload.ticketPrice = pr; } if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return; payload.gameTimer = tm; } await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); alert("✅ Saved!"); }
+    async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); loadData(); loadLiveStats(); }
 </script>
 </body>
 </html>
