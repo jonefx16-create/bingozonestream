@@ -37,6 +37,7 @@
         .stat-card h2 { margin: 10px 0 0 0; font-size: 24px; font-weight: 900;}
         
         input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
+        input[type="checkbox"] { width: auto; transform: scale(1.5); margin-right: 10px; cursor: pointer; }
         .search-bar { background-color: #050810; border: 1px solid var(--blue); flex: 1; min-width: 200px;}
         .search-container { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;}
         
@@ -103,9 +104,8 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
-        <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
+        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Control</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
-        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Logout</button>
     </div>
 
     <div class="main-content">
@@ -225,6 +225,7 @@
                     <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
 
+                <!-- 🔥 NEW: PROMO BONUS WITH "VIEW CLAIMED USERS" BUTTON 🔥 -->
                 <div class="card" style="border-left: 4px solid var(--orange); grid-column: span 2;">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Telegram Broadcast</h3>
                     <p style="font-size:11px; color:gray;">ቦነስ ፈጥረው በቀጥታ ወደ ቴሌግራም ቦት ማስታወቂያ ይላኩ። ተጠቃሚዎች የ "🎁 Claim Bonus" በተንን ሲነኩ ቦነሱ ይሰጣቸዋል።</p>
@@ -236,28 +237,16 @@
                     <label style="color:var(--cyan); font-size:12px; font-weight:bold;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
                     <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
                     <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ... (የ Claim በተኑ ከታች በራሱ ይጨመራል)"></textarea>
+                    
                     <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast to Telegram</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-telegram" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
-                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
-                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
-                <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
-                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
-                <textarea id="tg-msg" rows="6" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo()">Broadcast to Bot</button>
-                    <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
+                    <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ የወሰዱትን ሰዎች እይ (View Claimed Users)</button>
                 </div>
             </div>
         </div>
 
         <div id="tab-settings" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
                     <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control & Pricing</h3>
                     <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ጌሙን ለማቆም፣ ዋጋ እና ሰከንድ ለመቀየር ይጠቀሙ።</p>
@@ -267,31 +256,37 @@
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
                     <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds - የጌም ሰከንድ)</label>
                     <div style="display:flex; gap:10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
+                </div>
+                
+                <!-- 🔥 DEPOSIT BONUS SETTINGS BOX 🔥 -->
+                <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width:280px;">
+                    <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን ቦነስ እዚህ ይቆጣጠሩ።</p>
                     
-                    <hr style="border-color: var(--border);">
-                    <!-- 🔥 NEW DEPOSIT BONUS CONTROLS 🔥 -->
-                    <h3 style="margin-top:0; color:var(--gold);">💰 Automatic Deposit Bonus (Happy Hour)</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ከየትኛው ሰዓት እስከየትኛው ሰዓት ለሚያስገቡ ተጫዋቾች ስንት ፐርሰንት ቦነስ ይሰጥ?</p>
-                    
-                    <label>ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Amount)</label>
+                    <label style="display:flex; align-items:center; color:white; font-weight:bold; margin-bottom:15px; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        <input type="checkbox" id="set-dep-time-restrict">
+                        በተወሰነ ሰዓት (Happy Hour) ብቻ ይሰጥ?
+                    </label>
+
+                    <label style="color:var(--text-gray); font-size:12px;">ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Amount)</label>
                     <input type="number" id="set-dep-min" placeholder="e.g. 200">
                     
-                    <label>ስንት ፐርሰንት ይሰጥ? (Bonus %)</label>
+                    <label style="color:var(--text-gray); font-size:12px;">ስንት ፐርሰንት ይሰጥ? (Bonus %)</label>
                     <input type="number" id="set-dep-perc" placeholder="e.g. 20">
                     
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                    <div style="display:flex; gap:10px; margin-bottom: 15px;">
                         <div style="flex:1;">
-                            <label>ከ (Start Hour: 0-23)</label>
+                            <label style="color:var(--text-gray); font-size:12px;">ከ (Start Hr: 0-23)</label>
                             <input type="number" id="set-dep-start" placeholder="e.g. 12">
                         </div>
                         <div style="flex:1;">
-                            <label>እስከ (End Hour: 0-23)</label>
+                            <label style="color:var(--text-gray); font-size:12px;">እስከ (End Hr: 0-23)</label>
                             <input type="number" id="set-dep-end" placeholder="e.g. 16">
                         </div>
                     </div>
-                    <button class="action-btn" style="width: 100%;" onclick="updateSettings('dep_bonus')">💾 Save Bonus Settings</button>
+                    <button class="action-btn" style="width: 100%; background:var(--gold); color:black;" onclick="updateSettings('dep_bonus')">💾 Save Bonus Settings</button>
                 </div>
-                
+
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
                     <div class="card" style="border-left: 4px solid var(--blue);">
                         <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
@@ -303,8 +298,8 @@
                     </div>
 
                     <div class="card" style="border-left: 4px solid var(--red);">
-                        <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone (Reset System)</h3>
-                        <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ሲስተሙ ላይ ያሉ ተጠቃሚዎች፣ ሂሳቦች፣ አሸናፊዎች እና ሁሉም ዳታዎች ይጠፋሉ። እንደ አዲስ ይጀምራል።</p>
+                        <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone</h3>
+                        <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ሁሉም ዳታዎች ይጠፋሉ። እንደ አዲስ ይጀምራል።</p>
                         <button class="action-btn btn-red" style="width: 100%;" onclick="factoryReset()">🗑️ Delete All Data (Reset)</button>
                     </div>
                 </div>
@@ -313,6 +308,7 @@
     </div>
 </div>
 
+<!-- ================= MODALS ================= -->
 <div class="modal" id="edit-user-modal">
     <div class="modal-content">
         <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
@@ -323,12 +319,22 @@
             <div style="flex:1;"><label>Main Balance (ETB)</label><input type="number" id="eu-main"></div>
             <div style="flex:1;"><label>Play Balance (ETB)</label><input type="number" id="eu-play"></div>
         </div>
-        <label style="color:var(--gold); font-weight:bold;">🏆 Total Won (Rank Edit - ራንክ ማስተካከያ)</label>
+        <label style="color:var(--gold); font-weight:bold;">🏆 Total Won (Rank Edit)</label>
         <input type="number" id="eu-won" style="border-color:var(--gold); background:rgba(251, 191, 36, 0.1);">
         <div style="display:flex; gap:10px; margin-top: 10px;">
             <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save All</button>
             <button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
         </div>
+    </div>
+</div>
+
+<!-- 🔥 NEW: CLAIMED USERS MODAL 🔥 -->
+<div class="modal" id="claimed-users-modal">
+    <div class="modal-content" style="max-width: 350px;">
+        <h3 style="color: var(--orange); margin-top:0;">🎁 የወሰዱ ሰዎች ዝርዝር</h3>
+        <p style="font-size: 13px;"><b>የወሰዱት ብዛት:</b> <span id="claimed-count" style="color:var(--faded-green); font-weight:bold;">0</span> / <span id="claimed-max">0</span></p>
+        <div id="claimed-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('claimed-users-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
 
@@ -380,6 +386,7 @@
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
             if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
             if(!document.getElementById('set-dep-min').value) {
+                document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted;
                 document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount;
                 document.getElementById('set-dep-perc').value = data.settings.depBonusPercent;
                 document.getElementById('set-dep-start').value = data.settings.happyHourStart;
@@ -457,6 +464,26 @@
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     function viewHistory(grid, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let gHtml = `<div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; }
     
+    // 🔥 NEW: Fetch & Show Claimed Users 🔥
+    async function viewClaimedUsers() {
+        try {
+            document.querySelector('#tab-bonus .btn-blue').innerText = "እየጫነ ነው...";
+            let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
+            let data = await res.json();
+            document.querySelector('#tab-bonus .btn-blue').innerText = "👁️ የወሰዱትን ሰዎች እይ (View Claimed Users)";
+            
+            if(data.success) {
+                document.getElementById('claimed-count').innerText = data.claimedBy.length;
+                document.getElementById('claimed-max').innerText = data.max;
+                let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join('');
+                document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">ገና ማንም አልወሰደም።</div>`;
+                document.getElementById('claimed-users-modal').style.display = 'flex';
+            } else {
+                alert(data.message || "ምንም አይነት የተለቀቀ ቦነስ የለም።");
+            }
+        } catch(e) { alert("Error fetching data."); document.querySelector('#tab-bonus .btn-blue').innerText = "👁️ የወሰዱትን ሰዎች እይ"; }
+    }
+
     async function createClaimBonus() { 
         let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let fileInput = document.getElementById('cb-photo-file');
         if(!maxUsers || !amount || !minutes || !msg) return alert("እባክዎ ሁሉንም መረጃ እና የቴሌግራም መልዕክቱን ያስገቡ!"); 
@@ -493,14 +520,14 @@
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("እባክዎ ዋጋ ያስገቡ!"); payload.ticketPrice = pr; } 
         if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("እባክዎ የጌም ሰከንድ ያስገቡ!"); payload.gameTimer = tm; } 
         
-        // 🔥 BONUS SETTINGS UPDATE 🔥
         if(type === 'dep_bonus') {
+            let isRestricted = document.getElementById('set-dep-time-restrict').checked;
             let mAmt = document.getElementById('set-dep-min').value;
             let mPer = document.getElementById('set-dep-perc').value;
             let start = document.getElementById('set-dep-start').value;
             let end = document.getElementById('set-dep-end').value;
             if(!mAmt || !mPer || !start || !end) return alert("Please fill all bonus settings!");
-            payload.depBonusMinAmount = mAmt; payload.depBonusPercent = mPer; payload.happyHourStart = start; payload.happyHourEnd = end;
+            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = mAmt; payload.depBonusPercent = mPer; payload.happyHourStart = start; payload.happyHourEnd = end;
         }
 
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
