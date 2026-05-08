@@ -84,11 +84,15 @@ async function autoApprovePendingDeposits() {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
+        if (pendingTxs.length > 0 || unusedSMS.length > 0) {
+            console.log(`🔍 Checking ${pendingTxs.length} Pending Txs against ${unusedSMS.length} Unused SMS...`);
+        }
+
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
             
-            // የደንበኛውን ፅሁፍ ኮዶች እንሰበስባለን
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+            // 🔥 FIXED: የሲቢኢ ብር (CBE Birr) ንፁህ ቁጥሮችን እንዲቀበል ተደርጓል
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
             userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
 
             let matchedSMS = null;
@@ -115,11 +119,10 @@ async function autoApprovePendingDeposits() {
             }
 
             if (matchedSMS) {
+                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    
-                    // 🔥 ቦነስ ሎጂክ: ከ 100 ብር በላይ 20% ቦነስ
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
 
@@ -140,33 +143,30 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
-// 🛡️ የገባው SMS ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ (🔥 BUG FIXED 🔥)
+// 🛡️ የገባው SMS ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ ፋንክሽን
 async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
     
     try {
         let msg = userInputSms.toUpperCase();
         
-        // ሜሴጅ ውስጥ ያሉትን ኮዶች ብቻ መፈለግ
-        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
+        // 🔥 FIXED: የሲቢኢ ብር (CBE Birr) ንፁህ ቁጥሮችን እንዲቀበል ተደርጓል
+        let refs = msg.match(/\b(?![A-Z]+\b)[A-Z0-9]{6,20}\b/g) || [];
         
-        // ቴክስቱን አፅድቶ ቼክ ማድረግ (ምልክቶችን ማጥፋት)
         let stripped = msg.replace(/[^A-Z0-9]/gi, '');
-        if (stripped.length >= 6 && stripped.length <= 15 && !/^\d+$/.test(stripped) && !/^[A-Z]+$/.test(stripped)) {
+        // ፊደል ብቻ የሆኑትን (English words) ብቻ ይተዋል፣ ንፁህ ቁጥሮችን ያሳልፋል
+        if (stripped.length >= 6 && stripped.length <= 20 && !/^[A-Z]+$/.test(stripped)) {
             if(!refs.includes(stripped)) refs.push(stripped);
         }
 
-        if (refs.length === 0) return false; // ኮድ ከሌለ አያቆምም፣ ኖርማሊ ያልፋል
+        if (refs.length === 0) return false; 
 
-        // ኮድ ከተገኘ Database ላይ ማጣራት
         for (let ref of refs) {
             if (ref.length < 6) continue;
             
-            // 1. ባንክ SMS ውስጥ ከገባና ጥቅም ላይ ከዋለ
             let inBankSms = await BankSMS.findOne({ txRef: ref, isUsed: true });
             if (inBankSms) return true;
             
-            // 2. Transaction ውስጥ ቀድሞ Pending ወይም Approved ሆኖ ከተላከ
             let inTx = await Transaction.findOne({ 
                 type: 'deposit', 
                 smsText: { $regex: ref, $options: "i" },
@@ -182,10 +182,12 @@ async function isSmsAlreadyUsed(userInputSms) {
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK
+// 🔵 IPHONE SMS WEBHOOK (🔥 FIXED FOR CBE BIRR 🔥)
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
+        console.log("📥 [WEBHOOK RECEIVED]:", req.body);
+        
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
@@ -194,20 +196,39 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
         let txRef = "";
-        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
-        if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
+        
+        // በመጀመሪያ "Ref/ID/Txn" የሚለውን ፈልጎ ያወጣል (ይህ ለ CBE በጣም ይሰራል)
+        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
+        if (explicitMatch) {
+            txRef = explicitMatch[1].toUpperCase();
+        } else {
+            // ካላገኘ ፊደልና ቁጥር ወይም ንፁህ ቁጥር የሆኑትን (CBE & Telebirr) ያወጣል
+            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g);
+            if (matches && matches.length > 0) {
+                txRef = matches[0].toUpperCase(); 
+            }
+        }
+
+        console.log(`🔍 Extracted -> Amount: ${amount}, TxRef: ${txRef}`);
 
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                console.log(`✅ Real Code [${txRef}] Saved! Running Auto-Approve...`);
                 await autoApprovePendingDeposits(); 
+            } else {
+                console.log(`⚠️ SMS with Code [${txRef}] already exists.`);
             }
             res.json({ success: true, amount, txRef });
         } else {
+            console.log("❌ Failed to extract valid TxRef.");
             res.json({ success: false, msg: "Could not extract data" });
         }
-    } catch (e) { res.status(500).json({ error: "Server Error" }); }
+    } catch (e) { 
+        console.log("❌ Webhook Error:", e);
+        res.status(500).json({ error: "Server Error" }); 
+    }
 });
 
 // ==========================================
@@ -254,42 +275,38 @@ app.get('/api/getUser/:phone', async (req, res) => {
     const user = await User.findOne({ phone: req.params.phone }); res.json(user ? { success: true, user } : { success: false });
 });
 
-// 🔥 THE FIXED DEPOSIT REQUEST ENDPOINT 🔥
 app.post('/api/request-tx', async (req, res) => {
-    try {
-        const { phone, type, amount, method, sms } = req.body; 
-        let user = await User.findOne({phone}); 
-        if(!user) return res.json({success: false, message: "User not found!"});
-        
-        if(type === 'withdraw') {
-            if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
-            user.mainBalance -= amount; await user.save();
-        }
-
-        if(type === 'deposit') {
-            // 🛡️ ቼክ ያደርጋል፣ ከተሳሳተም Crash አያደርግም!
-            let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) {
-                return res.json({ success: false, message: "❌ ይህ sms (TxRef) አገልግሎት ላይ ውሏል!" });
-            }
-        }
-
-        await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
-        
-        if(type === 'deposit') { await autoApprovePendingDeposits(); }
-        
-        res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
-    } catch(e) {
-        console.log("Request TX Error:", e);
-        res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" });
+    const { phone, type, amount, method, sms } = req.body; 
+    let user = await User.findOne({phone}); if(!user) return res.json({success: false, message: "User not found!"});
+    
+    if(type === 'withdraw') {
+        if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
+        user.mainBalance -= amount; await user.save();
     }
+
+    if(type === 'deposit') {
+        let isUsed = await isSmsAlreadyUsed(sms);
+        if (isUsed) {
+            return res.json({ success: false, message: "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+        }
+    }
+
+    await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
+    
+    if(type === 'deposit') { await autoApprovePendingDeposits(); }
+    
+    res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
     const txs = await Transaction.find({
         phone: req.params.phone,
-        $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ]
+        $or: [
+            { type: 'withdraw' },
+            { type: 'deposit', status: 'Approved' } 
+        ]
     }).sort({ date: -1 }).limit(30);
+
     res.json({ success: true, txs }); 
 });
 
@@ -692,7 +709,7 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
-            // 🔥 BOT SMS DUPLICATE CHECK
+            // 🔥 BOT SMS CHECK 🔥
             let isUsed = await isSmsAlreadyUsed(text);
             if (isUsed) {
                 bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
