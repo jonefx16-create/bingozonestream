@@ -21,7 +21,6 @@
         .close-sidebar { display: none; background: transparent; border: none; color: white; font-size: 24px; position: absolute; top: 10px; right: 15px; cursor: pointer; }
 
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
-        
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px;}
         
@@ -67,6 +66,9 @@
         
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
         
+        /* 🔥 BIGGER SMS BOX CSS 🔥 */
+        #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
+
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
             .sidebar { position: fixed; left: -260px; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
@@ -124,9 +126,6 @@
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
             </div>
-            <div class="card" style="text-align: center; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); padding:15px;">
-                <p style="margin:0; font-size: 13px;">⚡ <b>Live Monitor:</b> ይህ መረጃ ፔጁን ሪፍሬሽ ሳያደርጉ <span style="color:var(--blue)">በየ 3 ሰከንዱ</span> ራሱን ያድሳል (Auto-update)።</p>
-            </div>
         </div>
 
         <div id="tab-pend-dep" class="tab-content">
@@ -170,7 +169,7 @@
                 <button class="action-btn" onclick="exportTableToCSV('table-winners', 'Winners_History.csv')" style="padding: 10px;">📥 Export Excel</button>
             </div>
             <div class="card"><div class="table-responsive">
-                <table id="table-winners"><thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th><span style="color:var(--cyan);">Ticket ID</span></th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table>
+                <table id="table-winners"><thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table>
             </div></div>
         </div>
 
@@ -182,7 +181,6 @@
             </div>
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-tx" onkeyup="searchTable('search-tx', 'table-history-tx')" placeholder="🔍 Search by Phone Number...">
-                <button class="action-btn" onclick="exportTableToCSV('table-history-tx', 'Financial_History.csv')" style="padding: 10px;">📥 Export Excel</button>
             </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-history-tx"><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th></tr></thead><tbody id="history-tx-body"></tbody></table>
@@ -201,9 +199,6 @@
         </div>
 
         <div id="tab-referral" class="tab-content">
-            <div class="search-container">
-                <button class="action-btn" onclick="exportTableToCSV('table-referrals', 'Referral_Leaderboard.csv')" style="padding: 10px;">📥 Export Excel</button>
-            </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-referrals"><thead><tr><th>Referrer Phone</th><th>Total Invited</th><th>Bonus Earned</th><th>Action</th></tr></thead><tbody id="ref-body"></tbody></table>
             </div></div>
@@ -217,23 +212,9 @@
 
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <div class="card" style="border-left: 4px solid var(--faded-green);">
-                    <h3 style="margin-top:0; color:var(--faded-green);">👤 Single User Bonus</h3>
-                    <input type="text" id="sb-phone" placeholder="User Phone (e.g. 0911...)">
-                    <input type="number" id="sb-amt" placeholder="Amount (ETB)">
-                    <button class="action-btn" style="width:100%;" onclick="sendSingleBonus()">Send Bonus</button>
-                </div>
-                
-                <div class="card" style="border-left: 4px solid var(--purple);">
-                    <h3 style="margin-top:0; color:var(--purple);">🎁 Bulk List Bonus</h3>
-                    <textarea id="b-phones" rows="3" style="width: 100%; background: #000; color: white; border: 1px solid var(--border); border-radius: 6px; padding: 10px;" placeholder="0911..., 0922..."></textarea>
-                    <input type="number" id="mb-amt-bulk" placeholder="Amount per person">
-                    <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
-                </div>
-
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Claimable Promo Bonus</h3>
-                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ለተወሰኑ ሰዎች እና ለተወሰነ ደቂቃ ብቻ የሚቆይ ቦነስ ይፍጠሩ። ተጫዋቾች ቦት ላይ ገብተው Claim ያደርጉታል።</p>
+                    <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ለተወሰኑ ሰዎች እና ለተወሰነ ደቂቃ ብቻ የሚቆይ ቦነስ ይፍጠሩ።</p>
                     <input type="number" id="cb-max-users" placeholder="ለስንት ሰው? (ምሳሌ: 300)">
                     <input type="number" id="cb-amount" placeholder="የብር መጠን (ምሳሌ: 10 ETB)">
                     <input type="number" id="cb-minutes" placeholder="የሚቆየው ለስንት ደቂቃ? (ምሳሌ: 60)">
@@ -242,12 +223,19 @@
             </div>
         </div>
 
+        <!-- 🔥 TELEGRAM BROADCAST WITH PHOTO UPLOAD 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
                 <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች (Bot Users) ብቻ ማስታወቂያ እና ፎቶ ይላኩ።</p>
-                <input type="text" id="tg-photo" placeholder="🔗 የፎቶ ሊንክ (Photo URL) - Optional">
+                <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
+                
+                <!-- NEW FILE UPLOAD INPUT -->
+                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
+                <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
+                
+                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
                 <textarea id="tg-msg" rows="6" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
+                
                 <div style="display:flex; gap:10px;">
                     <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo()">Broadcast to Bot</button>
                     <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
@@ -259,7 +247,7 @@
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
                     <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control (Maintenance)</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ተጫዋቾች ጋር "Maintenance" (ጥገና ላይ ነን) የሚል ሜሴጅ ይመጣል።</p>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ጌም አይሰራም። ለተጠቃሚዎች ደግሞ ጥገና ላይ እንደሆነ የሚገልፅ ማሳያ ይመጣባቸዋል።</p>
                     <button id="btn-pause" class="action-btn btn-orange" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">⏸️ Pause Game (Maintenance)</button>
                     <hr style="border-color: var(--border);">
                     <label>🎟️ Ticket Price (ETB)</label>
@@ -278,6 +266,7 @@
     </div>
 </div>
 
+<!-- ================= MODALS ================= -->
 <div class="modal" id="edit-user-modal">
     <div class="modal-content"><h3 style="color: var(--blue); margin-top:0;">✏️ Edit User</h3><input type="hidden" id="eu-oldPhone"><label>Phone Number</label><input type="text" id="eu-phone"><label>Password</label><input type="text" id="eu-password"><label>Main Balance (ETB)</label><input type="number" id="eu-main"><label>Play Balance (ETB)</label><input type="number" id="eu-play"><div style="display:flex; gap:10px;"><button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save</button><button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button></div></div>
 </div>
@@ -286,23 +275,24 @@
     <div class="modal-content" style="text-align: center;"><h3 style="color: var(--faded-green); margin-top:0;">🎟️ Player Tickets</h3><p id="m-called" style="font-size: 12px; color: var(--text-gray); word-wrap: break-word;"></p><div id="m-grid" style="text-align: left;"></div><button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button></div>
 </div>
 
+<!-- 🔥 ENLARGED SMS MODAL 🔥 -->
 <div class="modal" id="sms-modal">
-    <div class="modal-content" style="max-width: 400px; text-align: left;">
+    <div class="modal-content" style="max-width: 600px; text-align: left;">
         <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ (Deposit)</h3>
-        <p><b>📱 ስልክ:</b> <span id="sms-phone" style="color:white;"></span></p>
-        <p><b>🏦 ባንክ:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase; font-weight:bold;"></span></p>
-        <p><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900; font-size:16px;"></span> ETB</p>
-        <div style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 15px;">
-            <span style="font-size: 11px; color: var(--text-gray); display:block; margin-bottom:8px;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
-            <div id="sms-text" style="font-size: 13px; font-family: monospace; word-wrap: break-word; color: white; margin: 0; line-height: 1.5; white-space: pre-wrap;"></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:15px;">
+            <p style="margin:0;"><b>📱 ስልክ:</b> <span id="sms-phone" style="color:white;"></span></p>
+            <p style="margin:0;"><b>🏦 ባንክ:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase; font-weight:bold;"></span></p>
+            <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
         </div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
+        <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
+        <div id="sms-text"></div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
 
 <div class="modal" id="invited-modal">
     <div class="modal-content" style="max-width: 350px;">
-        <h3 style="color: var(--purple); margin-top:0;">👥 የተጋበዙ ሰዎች ዝርዝር</h3>
+        <h3 style="color: var(--purple); margin-top:0;">👥 የተጋበዙ ሰዎች</h3>
         <p style="font-size: 13px;"><b>የጋባዥ ስልክ:</b> <span id="inviter-phone" style="color:var(--cyan); font-weight:bold;"></span></p>
         <div id="invited-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
         <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">ዝጋ (Close)</button>
@@ -316,7 +306,6 @@
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
-    function exportTableToCSV(tableId, filename) { let table = document.getElementById(tableId); let rows = table.querySelectorAll('tr'); let csv = []; for (let i = 0; i < rows.length; i++) { if(rows[i].style.display === 'none') continue; let row = [], cols = rows[i].querySelectorAll('td, th'); let limit = cols.length - 1; for (let j = 0; j < limit; j++) { let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' '); data = data.replace(/"/g, '""'); row.push('"' + data + '"'); } csv.push(row.join(',')); } let csvFile = new Blob([csv.join('\n')], {type: 'text/csv'}); let downloadLink = document.createElement('a'); downloadLink.download = filename; downloadLink.href = window.URL.createObjectURL(csvFile); downloadLink.style.display = 'none'; document.body.appendChild(downloadLink); downloadLink.click(); }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
@@ -364,7 +353,14 @@
         } catch (e) { console.log(e); }
     }
 
-    function showTxDetailsModal(phone, method, amount, sms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = amount; document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"'); document.getElementById('sms-modal').style.display = 'flex'; }
+    function showTxDetailsModal(phone, method, amount, sms) { 
+        document.getElementById('sms-phone').innerText = phone; 
+        document.getElementById('sms-bank').innerText = method; 
+        document.getElementById('sms-amount').innerText = amount; 
+        document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"'); 
+        document.getElementById('sms-modal').style.display = 'flex'; 
+    }
+    
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
     function populatePendingDeposits() {
@@ -372,7 +368,7 @@
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
             let safeSMS = (t.smsText || "No SMS Provided").replace(/'/g, "\\'").replace(/"/g, '&quot;'); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${t.amount} ETB</td>
-            <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ዝርዝር እይ</button></div></td>
+            <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ትልቅ አድርግ</button></div></td>
             <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
     }
@@ -390,7 +386,7 @@
         currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ዝርዝር (SMS)</button>`; }
+            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
     }
@@ -399,11 +395,44 @@
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     function viewHistory(grid, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let gHtml = `<div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; }
     
-    async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amount = document.getElementById('sb-amt').value; if(!phone || !amount) return alert("Fill all fields"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value = ''; document.getElementById('sb-amt').value = ''; loadData(); } }
-    async function sendBulkBonus() { let phonesRaw = document.getElementById('b-phones').value; let amount = document.getElementById('mb-amt-bulk').value; if(!phonesRaw || !amount) return alert("Fill all fields"); let phoneList = phonesRaw.split(',').map(p => p.trim()).filter(p => p.length > 0); if(!confirm(`Send ${amount} ETB to ${phoneList.length} users?`)) return; let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: phoneList, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value = ''; document.getElementById('mb-amt-bulk').value = ''; } }
-    
     async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
-    async function sendTelegramPromo() { let msg = document.getElementById('tg-msg').value; let photoUrl = document.getElementById('tg-photo').value; if(!msg) return alert("Enter a message"); document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው..."; let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message: msg, photoUrl: photoUrl})}); let data = await res.json(); alert(data.message || "Sent successfully to bot users!"); if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo').value = ''; } document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot"; }
+    
+    // 🔥 TELEGRAM BROADCAST WITH PHOTO UPLOAD LOGIC 🔥
+    async function sendTelegramPromo() { 
+        let msg = document.getElementById('tg-msg').value; 
+        let fileInput = document.getElementById('tg-photo-file');
+        if(!msg) return alert("Enter a message"); 
+
+        document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው (Sending)..."; 
+
+        if (fileInput.files.length > 0) {
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async function () {
+                let photoData = reader.result; // Base64 String
+                sendPayloadToTelegram(msg, photoData);
+            };
+        } else {
+            sendPayloadToTelegram(msg, ""); // Only text
+        }
+    }
+
+    async function sendPayloadToTelegram(message, photoUrl) {
+        try {
+            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message, photoUrl})}); 
+            let data = await res.json(); 
+            alert(data.message || "Sent successfully to bot users!"); 
+            if(data.success) { 
+                document.getElementById('tg-msg').value = ''; 
+                document.getElementById('tg-photo-file').value = ''; 
+            }
+        } catch(e) {
+            alert("Error sending message.");
+        }
+        document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
+    }
+
     async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
     async function updateSettings(type) { let payload = { password: pass }; if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return; payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return; payload.ticketPrice = pr; } await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); alert("✅ Saved!"); }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
@@ -412,6 +441,255 @@
     async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, password: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value }; await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); document.getElementById('edit-user-modal').style.display='none'; loadData(); }
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
+</script>
+</body>
+</html>
+```
+
+---
+
+### 3. `finance.html` (ትልቁ SMS ያለበት የፋይናንስ ገፅ)
+ይህን ኮፒ አድርገው በ `finance.html` ይተኩት፡
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Dashboard</title>
+    <style>
+        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; --cyan: #06b6d4; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
+        
+        #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); position: absolute; z-index: 100; }
+        .login-card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid var(--faded-green); text-align: center; width: 90%; max-width: 350px; }
+        input { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; outline: none; font-size: 16px; text-align: center;}
+        button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; font-size: 15px;}
+        button.btn-blue { background: var(--blue); color: white; width: auto; padding: 6px 10px; font-size: 11px; }
+        button.btn-red { background: var(--red); color: white; }
+        button.btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold;}
+        
+        #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; }
+        
+        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; transition: 0.3s;}
+        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
+        .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
+        .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
+        
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
+        
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .kpi-card { background: var(--panel); border-radius: 12px; padding: 20px; border: 1px solid var(--border); border-left: 4px solid var(--blue); }
+        .kpi-title { color: var(--text-gray); font-size: 12px; text-transform: uppercase; font-weight: bold; margin-bottom: 10px; display: block; }
+        .kpi-value { font-size: 28px; font-weight: 900; margin: 0; }
+        
+        .summary-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--faded-green); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+
+        .table-responsive { width: 100%; overflow-x: auto; padding-bottom: 10px;}
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle;}
+        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; background: rgba(0,0,0,0.2);}
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
+        .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); }
+        .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
+        .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box;}
+        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 600px; color: white;}
+        
+        /* 🔥 BIGGER SMS BOX CSS 🔥 */
+        #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
+
+        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold;}
+        .tx-tab-btn.active { background: var(--border); color: white;}
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        @media (max-width: 768px) {
+            #dash-sec { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; flex-direction: row; padding: 10px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; }
+            .nav-btn { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; font-size: 13px; flex-shrink: 0;}
+            .nav-btn.active { background: transparent; border-bottom-color: var(--faded-green); }
+            .main-content { padding: 15px; }
+            .summary-box h1 { font-size: 32px !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="login-sec">
+    <div class="login-card">
+        <h2 style="color: var(--faded-green); margin-top:0;">🏦 Finance Login</h2>
+        <p style="color: var(--text-gray); font-size: 13px; margin-bottom: 20px;">የፋይናንስ ዳታዎችን ለማየት የአድሚን ፓስወርድ ያስገቡ።</p>
+        <input type="password" id="adminPass" placeholder="Admin Password" onkeyup="if(event.key === 'Enter') login()">
+        <button class="action-btn" onclick="login()">View Financials</button>
+    </div>
+</div>
+
+<div id="dash-sec">
+    <div class="sidebar">
+        <h2 style="text-align:center; color:var(--faded-green); margin-top:10px; display:none;" id="sidebar-title">FINANCE</h2>
+        <button class="nav-btn active" onclick="switchTab('daily', this)">📅 Daily Profit</button>
+        <button class="nav-btn" onclick="switchTab('weekly', this)">📆 Weekly Profit</button>
+        <button class="nav-btn" onclick="switchTab('monthly', this)">🗓️ Monthly Profit</button>
+        <button class="nav-btn" onclick="switchTab('all', this)">🏆 All Time Profit</button>
+        <div style="flex:1"></div>
+        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)">📥 Pend Deposit</button>
+        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)">📤 Pend Withdraw</button>
+        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 TX History</button>
+        <button class="nav-btn" style="color: var(--blue);" onclick="location.href='/admin'">🛡️ Go to Admin</button>
+    </div>
+
+    <div class="main-content">
+        <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px;">
+            <h2 id="page-title" style="margin: 0;">📅 Daily Profit Report</h2>
+            <button class="action-btn btn-blue" style="width: auto; padding: 8px 15px;" onclick="loadFinancialData()">🔄 Refresh</button>
+        </div>
+
+        <div id="daily" class="tab-content active">
+            <div class="summary-box">
+                <p style="color: var(--text-gray); font-weight: bold; margin-bottom:5px; text-transform:uppercase;">Net Profit (15% - Bonus Expenses)</p>
+                <h1 id="net-profit" style="margin:0; font-size:45px; color:var(--faded-green);">0.00 ETB</h1>
+                <p id="period-info" style="font-size:12px; color:var(--text-gray); margin-top:10px;">Showing data for today.</p>
+            </div>
+            <div class="kpi-grid">
+                <div class="kpi-card" style="border-left-color: var(--faded-green);"><span class="kpi-title">⬇️ Deposits</span><h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0</h2></div>
+                <div class="kpi-card" style="border-left-color: var(--red);"><span class="kpi-title">⬆️ Withdrawals</span><h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0</h2></div>
+                <div class="kpi-card" style="border-left-color: var(--purple);"><span class="kpi-title">🎮 Gross Game Profit</span><h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0</h2></div>
+                <div class="kpi-card" style="border-left-color: var(--red);"><span class="kpi-title">🎁 Bonus Expenses</span><h2 class="kpi-value" id="val-bonus" style="color: #fca5a5;">0</h2></div>
+            </div>
+        </div>
+
+        <div id="tab-pend-dep" class="tab-content">
+            <div class="card" style="background:var(--panel); padding:20px; border-radius:12px;"><div class="table-responsive">
+                <table id="table-pend-dep"><thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>SMS Detail (ማረጋገጫ)</th><th>Action</th></tr></thead><tbody id="pend-dep-body"></tbody></table>
+            </div></div>
+        </div>
+
+        <div id="tab-pend-wit" class="tab-content">
+            <div class="card" style="background:var(--panel); padding:20px; border-radius:12px;"><div class="table-responsive">
+                <table id="table-pend-wit"><thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>Sent To</th><th>Action</th></tr></thead><tbody id="pend-wit-body"></tbody></table>
+            </div></div>
+        </div>
+
+        <div id="tab-history-tx" class="tab-content">
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto;">
+                <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTx('deposit')">⬇️ Deposits</button>
+                <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTx('withdraw')">⬆️ Withdrawals</button>
+                <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTx('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
+            </div>
+            <div class="card" style="background:var(--panel); padding:20px; border-radius:12px;"><div class="table-responsive">
+                <table id="table-history-tx"><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th></tr></thead><tbody id="history-tx-body"></tbody></table>
+            </div></div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔥 ENLARGED SMS MODAL 🔥 -->
+<div class="modal" id="sms-modal">
+    <div class="modal-content" style="max-width: 600px; text-align: left;">
+        <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ (Deposit)</h3>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:15px;">
+            <p style="margin:0;"><b>📱 ስልክ:</b> <span id="sms-phone" style="color:white;"></span></p>
+            <p style="margin:0;"><b>🏦 ባንክ:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase; font-weight:bold;"></span></p>
+            <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
+        </div>
+        <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
+        <div id="sms-text"></div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
+    </div>
+</div>
+
+<script>
+    let pass = ""; let rawData = { txs: [], games: [], bonuses: [] }; let currentFilter = 'daily'; let currentHistType = 'deposit';
+
+    function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadFinancialData(); }
+    
+    function switchTab(tabId, btn) { 
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
+        btn.classList.add('active'); 
+        
+        if(['daily', 'weekly', 'monthly', 'all'].includes(tabId)) {
+            document.getElementById('daily').classList.add('active');
+            document.getElementById('page-title').innerText = btn.innerText + " Report";
+            currentFilter = tabId; filterData(tabId);
+        } else {
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('page-title').innerText = btn.innerText;
+        }
+    }
+
+    async function loadFinancialData() {
+        try {
+            document.getElementById('page-title').innerText = "Loading...";
+            let res = await fetch('/api/admin/finance-raw-data', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, adminPass: pass }) });
+            if(res.status === 401) { alert("❌ Wrong Password!"); document.getElementById('page-title').innerText = "Finance Report"; return; }
+            let data = await res.json();
+            if(data.success) {
+                document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
+                rawData = data; if(window.innerWidth > 768) document.getElementById('sidebar-title').style.display = 'block';
+                filterData(currentFilter); populatePendingDeposits(); populatePendingWithdraws(); filterHistoryTx(currentHistType);
+            }
+        } catch(e) { alert("Network Error! Is server running?"); }
+    }
+
+    function showTxDetailsModal(phone, method, amount, sms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = amount; document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"'); document.getElementById('sms-modal').style.display = 'flex'; }
+
+    function populatePendingDeposits() {
+        let deps = rawData.txs.filter(t => t.type === 'deposit' && t.status === 'Pending');
+        document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
+            let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
+            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${t.amount} ETB</td>
+            <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ትልቅ አድርግ</button></div></td>
+            <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
+        }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
+    }
+
+    function populatePendingWithdraws() {
+        let wits = rawData.txs.filter(t => t.type === 'withdraw' && t.status === 'Pending');
+        document.getElementById('pend-wit-body').innerHTML = wits.map(t => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${t.amount} ETB</td><td style="color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
+    }
+
+    function filterHistoryTx(type) {
+        currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
+        let filtered = type === 'rejected' ? rawData.txs.filter(t => t.status === 'Rejected') : rawData.txs.filter(t => t.type === type && t.status === 'Approved');
+        document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
+            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
+            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
+        }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
+    }
+
+    function filterData(period) {
+        let now = new Date(); let startTime = new Date(0); let periodText = "Showing all time data.";
+        if(period === 'daily') { startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); periodText = "Showing data for today."; } 
+        else if(period === 'weekly') { startTime = new Date(); startTime.setDate(now.getDate() - 7); periodText = "Showing data for the last 7 days."; } 
+        else if(period === 'monthly') { startTime = new Date(now.getFullYear(), now.getMonth(), 1); periodText = "Showing data for this month."; }
+        document.getElementById('period-info').innerText = periodText;
+        
+        let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
+        let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
+        let filteredBonus = rawData.bonuses.filter(b => { let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt); return bDate >= startTime; });
+
+        let tDep = filteredTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + (t.amount || 0), 0);
+        let tWit = filteredTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + (t.amount || 0), 0);
+        let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
+        let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+        let net = tProf - tBon;
+
+        document.getElementById('val-deposit').innerText = tDep.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-withdraw').innerText = tWit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-game-profit').innerText = tProf.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-bonus').innerText = tBon.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        let netEl = document.getElementById('net-profit'); netEl.innerText = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
+        if (net < 0) netEl.style.color = "var(--red)"; else if (net > 0) netEl.style.color = "var(--faded-green)"; else netEl.style.color = "white";
+        document.getElementById('page-title').innerText = period.charAt(0).toUpperCase() + period.slice(1) + " Profit Report";
+    }
+
+    async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadFinancialData(); } }
 </script>
 </body>
 </html>
