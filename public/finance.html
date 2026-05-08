@@ -133,13 +133,10 @@
                 document.getElementById('login-sec').style.display = 'none'; 
                 document.getElementById('dash-sec').style.display = 'flex';
                 
-                // Store raw data globally
                 rawData = data;
                 
-                // Set sidebar title visible
                 if(window.innerWidth > 768) document.getElementById('sidebar-title').style.display = 'block';
 
-                // Re-apply the current filter
                 filterData(currentFilter);
             }
         } catch(e) { alert("Network Error! Is server running?"); }
@@ -166,27 +163,21 @@
 
         document.getElementById('period-info').innerText = periodText;
 
-        // Filter arrays based on the startTime
         let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
         let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
-        // Note: Bonuses use 'expiresAt' or 'date' depending on how you saved them. I'll use expiresAt as fallback.
         let filteredBonus = rawData.bonuses.filter(b => {
             let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt);
             return bDate >= startTime;
         });
 
-        // Calculate Totals
         let tDep = filteredTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tWit = filteredTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
         
-        // Bonus calculation: amount * maxUsers (or currentClaims)
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-        // Net Profit
         let net = tProf - tBon;
 
-        // Update UI
         document.getElementById('val-deposit').innerText = tDep.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-withdraw').innerText = tWit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-game-profit').innerText = tProf.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -195,16 +186,14 @@
         let netEl = document.getElementById('net-profit');
         netEl.innerText = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
         
-        // Color logic
         if (net < 0) {
             netEl.style.color = "var(--red)";
         } else if (net > 0) {
             netEl.style.color = "var(--faded-green)";
         } else {
-            netEl.style.color = "white"; // If 0
+            netEl.style.color = "white";
         }
         
-        // Update Page Title
         document.getElementById('page-title').innerText = period.charAt(0).toUpperCase() + period.slice(1) + " Profit Report";
     }
 </script>
