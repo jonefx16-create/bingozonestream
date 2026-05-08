@@ -91,7 +91,6 @@
 <div class="overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 
 <div id="dash-sec">
-    <!-- 🔥 SIDEBAR (Reordered as requested) 🔥 -->
     <div class="sidebar" id="sidebar">
         <button class="close-sidebar" onclick="toggleSidebar()">✖</button>
         <div class="sidebar-header">BINGO HABESHA<br><span style="font-size:12px; color:var(--text-gray);">Admin Panel</span></div>
@@ -118,7 +117,6 @@
             <button class="action-btn btn-blue btn-sm" onclick="loadData(); loadLiveStats();" style="padding: 8px 12px;">🔄 Refresh Data</button>
         </div>
 
-        <!-- 🟢 Live Stats -->
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
                 <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Users</h3><h2 style="color: var(--blue);" id="stat-total-users">0</h2></div>
@@ -131,7 +129,6 @@
             </div>
         </div>
 
-        <!-- 🟢 Pending Deposits -->
         <div id="tab-pend-dep" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table id="table-pend-dep">
@@ -141,7 +138,6 @@
             </div></div>
         </div>
 
-        <!-- 🟢 Pending Withdraws -->
         <div id="tab-pend-wit" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table id="table-pend-wit">
@@ -151,7 +147,6 @@
             </div></div>
         </div>
 
-        <!-- 🟢 Registered Users -->
         <div id="tab-users" class="tab-content">
             <div class="stat-card" style="border-color: var(--purple); max-width: 300px; margin-bottom: 20px;">
                 <h3 style="color: var(--purple);">Total Registered Users</h3>
@@ -169,7 +164,6 @@
             </div></div>
         </div>
 
-        <!-- 🟢 Winners History -->
         <div id="tab-history" class="tab-content">
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-history" onkeyup="searchTable('search-history', 'table-winners')" placeholder="🔍 Search Winner by Phone...">
@@ -180,7 +174,6 @@
             </div></div>
         </div>
 
-        <!-- 🟢 Financial History (WITH SMS VISIBILITY) -->
         <div id="tab-history-tx" class="tab-content">
             <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
                 <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTx('deposit')">⬇️ Deposits</button>
@@ -196,7 +189,6 @@
             </div></div>
         </div>
 
-        <!-- 🟢 Players & Bets Info -->
         <div id="tab-players" class="tab-content">
             <div class="card">
                 <select id="game-details-select" onchange="renderGamePlayers(this.value)" style="border-color: var(--purple); font-weight: bold;">
@@ -208,7 +200,6 @@
             </div>
         </div>
 
-        <!-- 🟢 Invite & Earn (WITH INVITED USER LIST) -->
         <div id="tab-referral" class="tab-content">
             <div class="search-container">
                 <button class="action-btn" onclick="exportTableToCSV('table-referrals', 'Referral_Leaderboard.csv')" style="padding: 10px;">📥 Export Excel</button>
@@ -218,14 +209,12 @@
             </div></div>
         </div>
 
-        <!-- 🟢 Banned Users -->
         <div id="tab-banned" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table><thead><tr><th>Name</th><th>Phone Number</th><th>Status</th><th>Action</th></tr></thead><tbody id="banned-body"></tbody></table>
             </div></div>
         </div>
 
-        <!-- 🟢 Manage Bonus (WITH CLAIMABLE BONUS) -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--faded-green);">
@@ -242,7 +231,6 @@
                     <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
 
-                <!-- 🔥 NEW: CLAIMABLE PROMO BONUS 🔥 -->
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Claimable Promo Bonus</h3>
                     <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ለተወሰኑ ሰዎች እና ለተወሰነ ደቂቃ ብቻ የሚቆይ ቦነስ ይፍጠሩ። ተጫዋቾች ቦት ላይ ገብተው Claim ያደርጉታል።</p>
@@ -254,7 +242,6 @@
             </div>
         </div>
 
-        <!-- 🟢 Telegram Broadcast (BOT ONLY WITH PHOTO) -->
         <div id="tab-telegram" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
                 <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
@@ -268,12 +255,11 @@
             </div>
         </div>
 
-        <!-- 🟢 Settings & Logout -->
         <div id="tab-settings" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
                     <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control (Maintenance)</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ተጫዋቾች ጋር "Maintenance" (ጥገና ላይ ነን፣ ይጠብቁን) የሚል ሜሴጅ ይመጣል። ጌም አይሰራም።</p>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ተጫዋቾች ጋር "Maintenance" (ጥገና ላይ ነን) የሚል ሜሴጅ ይመጣል።</p>
                     <button id="btn-pause" class="action-btn btn-orange" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">⏸️ Pause Game (Maintenance)</button>
                     <hr style="border-color: var(--border);">
                     <label>🎟️ Ticket Price (ETB)</label>
@@ -292,7 +278,6 @@
     </div>
 </div>
 
-<!-- ========================================== MODALS ========================================== -->
 <div class="modal" id="edit-user-modal">
     <div class="modal-content"><h3 style="color: var(--blue); margin-top:0;">✏️ Edit User</h3><input type="hidden" id="eu-oldPhone"><label>Phone Number</label><input type="text" id="eu-phone"><label>Password</label><input type="text" id="eu-password"><label>Main Balance (ETB)</label><input type="number" id="eu-main"><label>Play Balance (ETB)</label><input type="number" id="eu-play"><div style="display:flex; gap:10px;"><button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save</button><button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button></div></div>
 </div>
@@ -301,7 +286,6 @@
     <div class="modal-content" style="text-align: center;"><h3 style="color: var(--faded-green); margin-top:0;">🎟️ Player Tickets</h3><p id="m-called" style="font-size: 12px; color: var(--text-gray); word-wrap: break-word;"></p><div id="m-grid" style="text-align: left;"></div><button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button></div>
 </div>
 
-<!-- 🔥 SMS DETAILS POPUP (MODAL) 🔥 -->
 <div class="modal" id="sms-modal">
     <div class="modal-content" style="max-width: 400px; text-align: left;">
         <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ (Deposit)</h3>
@@ -316,66 +300,30 @@
     </div>
 </div>
 
-<!-- 🔥 INVITED USERS LIST POPUP (MODAL) 🔥 -->
 <div class="modal" id="invited-modal">
     <div class="modal-content" style="max-width: 350px;">
         <h3 style="color: var(--purple); margin-top:0;">👥 የተጋበዙ ሰዎች ዝርዝር</h3>
         <p style="font-size: 13px;"><b>የጋባዥ ስልክ:</b> <span id="inviter-phone" style="color:var(--cyan); font-weight:bold;"></span></p>
-        <div id="invited-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;">
-            <!-- List goes here -->
-        </div>
+        <div id="invited-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
         <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io();
-    let pass = ""; let allTransactions = []; let allGameHistories = [];
-    let currentHistType = 'deposit';
-    let isGameCurrentlyPaused = false;
-
+    const socket = io(); let pass = ""; let allTransactions = []; let allGameHistories = []; let currentHistType = 'deposit'; let isGameCurrentlyPaused = false;
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
-    
-    function login() { 
-        pass = document.getElementById('adminPass').value; 
-        if(!pass) return; 
-        loadData(); loadLiveStats(); 
-    }
-    
-    function switchTab(tabId, btn) { 
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
-        document.getElementById(tabId).classList.add('active'); 
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
-        btn.classList.add('active'); 
-        document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim();
-        if(window.innerWidth <= 768) toggleSidebar();
-    }
-    
+    function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
+    function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
-
-    function exportTableToCSV(tableId, filename) {
-        let table = document.getElementById(tableId); let rows = table.querySelectorAll('tr'); let csv = [];
-        for (let i = 0; i < rows.length; i++) {
-            if(rows[i].style.display === 'none') continue;
-            let row = [], cols = rows[i].querySelectorAll('td, th'); let limit = cols.length - 1; 
-            for (let j = 0; j < limit; j++) {
-                let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
-                data = data.replace(/"/g, '""'); row.push('"' + data + '"');
-            }
-            csv.push(row.join(','));
-        }
-        let csvFile = new Blob([csv.join('\n')], {type: 'text/csv'});
-        let downloadLink = document.createElement('a'); downloadLink.download = filename; downloadLink.href = window.URL.createObjectURL(csvFile); downloadLink.style.display = 'none'; document.body.appendChild(downloadLink); downloadLink.click();
-    }
+    function exportTableToCSV(tableId, filename) { let table = document.getElementById(tableId); let rows = table.querySelectorAll('tr'); let csv = []; for (let i = 0; i < rows.length; i++) { if(rows[i].style.display === 'none') continue; let row = [], cols = rows[i].querySelectorAll('td, th'); let limit = cols.length - 1; for (let j = 0; j < limit; j++) { let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' '); data = data.replace(/"/g, '""'); row.push('"' + data + '"'); } csv.push(row.join(',')); } let csvFile = new Blob([csv.join('\n')], {type: 'text/csv'}); let downloadLink = document.createElement('a'); downloadLink.download = filename; downloadLink.href = window.URL.createObjectURL(csvFile); downloadLink.style.display = 'none'; document.body.appendChild(downloadLink); downloadLink.click(); }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
     async function loadLiveStats() {
         if(!pass || !document.getElementById('tab-live').classList.contains('active')) return;
         try {
-            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            let data = await res.json();
+            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); let data = await res.json();
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
@@ -388,40 +336,26 @@
         try {
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
-            
-            document.getElementById('login-sec').style.display = 'none'; 
-            document.getElementById('dash-sec').style.display = 'flex';
-
+            document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
             let users = await uRes.json(); document.getElementById('box-total-reg').innerText = users.length;
             let activeHtml = "", bannedHtml = "", refList = {};
             users.forEach(u => {
                 let row = `<tr><td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td><td>${u.playBalance.toFixed(2)}</td><td>${u.mainBalance.toFixed(2)}</td>`;
                 if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; } 
                 else { activeHtml += row + `<td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`; }
-                
-                // 🔥 REFERRAL GROUPING BY LIST 🔥
-                if(u.referredBy && u.referredBy !== "") {
-                    if(!refList[u.referredBy]) refList[u.referredBy] = [];
-                    refList[u.referredBy].push(u.phone);
-                }
+                if(u.referredBy && u.referredBy !== "") { if(!refList[u.referredBy]) refList[u.referredBy] = []; refList[u.referredBy].push(u.phone); }
             });
             document.getElementById('users-body').innerHTML = activeHtml; document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
 
-            // 🔥 RENDER INVITED LIST 🔥
             let refHtml = ""; 
             for (const [refPhone, invitedList] of Object.entries(refList)) { 
-                let count = invitedList.length;
-                let safeArr = JSON.stringify(invitedList).replace(/"/g, '&quot;');
+                let count = invitedList.length; let safeArr = JSON.stringify(invitedList).replace(/"/g, '&quot;');
                 refHtml += `<tr><td style="color:var(--cyan); font-weight:bold;">${refPhone}</td><td>${count} People</td><td style="color:var(--faded-green); font-weight:bold;">${count * 10} ETB</td><td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${refPhone}', '${safeArr}')">👁️ የጋበዛቸው ሰዎች</button></td></tr>`; 
             }
             document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="4" style="text-align:center;">No referrals yet.</td></tr>`;
 
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
-            allTransactions = await tRes.json(); 
-            
-            populatePendingDeposits();
-            populatePendingWithdraws();
-            filterHistoryTx(currentHistType);
+            allTransactions = await tRes.json(); populatePendingDeposits(); populatePendingWithdraws(); filterHistoryTx(currentHistType);
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})});
             allGameHistories = await hRes.json();
@@ -430,28 +364,13 @@
         } catch (e) { console.log(e); }
     }
 
-    // 🔥 POPUP SHOW SMS DETAILS 🔥
-    function showTxDetailsModal(phone, method, amount, sms) {
-        document.getElementById('sms-phone').innerText = phone;
-        document.getElementById('sms-bank').innerText = method;
-        document.getElementById('sms-amount').innerText = amount;
-        document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"');
-        document.getElementById('sms-modal').style.display = 'flex';
-    }
-
-    // 🔥 POPUP SHOW INVITED USERS LIST 🔥
-    function showInvitedUsers(inviter, invitedListStr) {
-        let list = JSON.parse(invitedListStr);
-        document.getElementById('inviter-phone').innerText = inviter;
-        document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join('');
-        document.getElementById('invited-modal').style.display = 'flex';
-    }
+    function showTxDetailsModal(phone, method, amount, sms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = amount; document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"'); document.getElementById('sms-modal').style.display = 'flex'; }
+    function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
     function populatePendingDeposits() {
         let deps = allTransactions.filter(t => t.type === 'deposit' && t.status === 'Pending');
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
-            let safeSMS = (t.smsText || "No SMS Provided").replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
+            let safeSMS = (t.smsText || "No SMS Provided").replace(/'/g, "\\'").replace(/"/g, '&quot;'); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${t.amount} ETB</td>
             <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ዝርዝር እይ</button></div></td>
             <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
@@ -467,17 +386,11 @@
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
     }
 
-    // 🔥 FINANCIAL HISTORY (NOW SHOWS SMS FOR DEPOSITS) 🔥
     function filterHistoryTx(type) {
         currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
-        
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = '';
-            if(t.type === 'deposit') {
-                let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ዝርዝር (SMS)</button>`;
-            }
+            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ዝርዝር (SMS)</button>`; }
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
     }
@@ -489,45 +402,11 @@
     async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amount = document.getElementById('sb-amt').value; if(!phone || !amount) return alert("Fill all fields"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value = ''; document.getElementById('sb-amt').value = ''; loadData(); } }
     async function sendBulkBonus() { let phonesRaw = document.getElementById('b-phones').value; let amount = document.getElementById('mb-amt-bulk').value; if(!phonesRaw || !amount) return alert("Fill all fields"); let phoneList = phonesRaw.split(',').map(p => p.trim()).filter(p => p.length > 0); if(!confirm(`Send ${amount} ETB to ${phoneList.length} users?`)) return; let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phones: phoneList, amount})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value = ''; document.getElementById('mb-amt-bulk').value = ''; } }
     
-    // 🔥 NEW CLAIMABLE BONUS FUNCTION 🔥
-    async function createClaimBonus() {
-        let maxUsers = document.getElementById('cb-max-users').value;
-        let amount = document.getElementById('cb-amount').value;
-        let minutes = document.getElementById('cb-minutes').value;
-        if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!");
-        if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return;
-        
-        let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, maxUsers, amount, minutes})}); 
-        let data = await res.json(); 
-        alert(data.message || "Promo Created successfully! Bot users can now claim it.");
-        if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; }
-    }
-
-    // 🔥 TELEGRAM BROADCAST WITH PHOTO URL 🔥
-    async function sendTelegramPromo() { 
-        let msg = document.getElementById('tg-msg').value; 
-        let photoUrl = document.getElementById('tg-photo').value;
-        if(!msg) return alert("Enter a message"); 
-        document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው...";
-        let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message: msg, photoUrl: photoUrl})}); 
-        let data = await res.json(); alert(data.message || "Sent successfully to bot users!"); 
-        if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo').value = ''; }
-        document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
-    }
-    
-    async function deleteLastTelegramPromo() {
-        if(!confirm("Are you sure you want to delete the last sent broadcast?")) return;
-        document.querySelector('#tab-telegram .btn-red').innerText = "Deleting...";
-        let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); 
-        let data = await res.json(); alert(data.message || "Deleted."); 
-        document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last";
-    }
-
+    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
+    async function sendTelegramPromo() { let msg = document.getElementById('tg-msg').value; let photoUrl = document.getElementById('tg-photo').value; if(!msg) return alert("Enter a message"); document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው..."; let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, message: msg, photoUrl: photoUrl})}); let data = await res.json(); alert(data.message || "Sent successfully to bot users!"); if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo').value = ''; } document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot"; }
+    async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
     async function updateSettings(type) { let payload = { password: pass }; if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return; payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return; payload.ticketPrice = pr; } await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); alert("✅ Saved!"); }
-    
-    // 🔥 GAME PAUSE 🔥
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
-    
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); } }
     function openEditModal(phone, passw, main, play) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('edit-user-modal').style.display = 'flex'; }
     async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, password: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value }; await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); document.getElementById('edit-user-modal').style.display='none'; loadData(); }
