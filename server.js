@@ -86,13 +86,13 @@ const bankAccounts = {
     'CBEBirr': { num: '0988180301', name: 'Yohannes Aberham' }
 };
 
-// 🟢 Check Happy Hour
+// 🟢 Happy Hour Check
 function isHappyHour() {
     let currentHour = new Date().getHours();
     return currentHour >= GLOBAL_SETTINGS.happyHourStart && currentHour < GLOBAL_SETTINGS.happyHourEnd;
 }
 
-// 🟢 Calculate Bonus Based on Setting
+// 🟢 Calculate Deposit Bonus
 function calculateDepositBonus(amount) {
     if (amount >= GLOBAL_SETTINGS.depBonusMinAmount) {
         if (!GLOBAL_SETTINGS.depBonusTimeRestricted || isHappyHour()) {
@@ -282,7 +282,10 @@ app.post('/api/request-tx', async (req, res) => {
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
-    const txs = await Transaction.find({ phone: req.params.phone, $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ] }).sort({ date: -1 }).limit(30);
+    const txs = await Transaction.find({
+        phone: req.params.phone,
+        $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ]
+    }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
 });
 
@@ -376,7 +379,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
-    // UPDATE DEPOSIT BONUS PARAMS
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
@@ -423,7 +425,6 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
-// 🔥 PROMO & TELEGRAM BROADCAST 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -460,7 +461,6 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     }
 });
 
-// 🟢 NEW API: To Fetch Who Claimed The Promo Bonus
 app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     try {
         let activeBonus = await ActiveBonus.findOne().sort({ date: -1 });
@@ -600,9 +600,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// ======================================================
-// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
-// ======================================================
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
@@ -696,7 +693,6 @@ bot.on('contact', async (msg) => {
             let actualRef = "";
             if (state.refCode) { let refUser = await User.findOne({ phone: state.refCode }); if (refUser) { refUser.playBalance += 10; await refUser.save(); io.emit('balance_updated', refUser.phone); actualRef = refUser.phone; } }
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: 10, language: 'am' });
-            
             const cap = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -707,7 +703,7 @@ bot.on('contact', async (msg) => {
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
         }
         botState[chatId] = { step: 'idle' };
-    } catch (e) { bot.sendMessage(chatId, "❌ ይቅርታ፣ ችግር አጋጥሟል።"); }
+    } catch (e) {}
 });
 
 bot.on('message', async (msg) => {
