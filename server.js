@@ -76,6 +76,9 @@ const bankAccounts = {
     'CBEBirr': { num: '0988180301', name: 'Yohannes Aberham' }
 };
 
+// ==========================================
+// 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE (🔥 ተስተካክሏል 🔥)
+// ==========================================
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
@@ -83,13 +86,20 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
+            
+            // የተጠቃሚውን ፅሁፍ (SMS) ውስጥ ያሉትን ኮዶች (Transaction ID) አውቶማቲካሊ ፈልጎ ያወጣል
+            let userRefs = userMsg.match(/\b[A-Z0-9]{6,15}\b/g) || [];
+
             for (let sms of unusedSMS) {
-                let bankRef = sms.txRef.toUpperCase();
-                if (userMsg.includes(bankRef)) {
+                let bankRef = (sms.txRef || "").toUpperCase();
+                
+                // የተጠቃሚው ፅሁፍ ላይ የባንክ ኮዱ ካለ (Fake እና Used ያልሆነ)
+                if (bankRef && (userMsg.includes(bankRef) || userRefs.includes(bankRef))) {
                     let user = await User.findOne({ phone: tx.phone });
                     if (user) {
+                        // ተጠቃሚው የሞላውን ብር ትተን፣ ከአይፎን (iPhone) የመጣውን ትክክለኛ የባንክ ብር መጠን እንወስዳለን
                         let actualAmount = sms.amount;
-                        // 🔥 20% አውቶማቲክ ቦነስ ስሌት እዚህ ተስተካክሏል 🔥
+                        // 20% የዲፖዚት ቦነስ ስሌት
                         let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
                         let totalCredit = actualAmount + bonus;
 
@@ -112,25 +122,37 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
+// ==========================================
+// 🔵 IPHONE SMS WEBHOOK (🔥 ተስተካክሏል 🔥)
+// ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
 
-        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account/i.test(message);
+        // CBE እና Telebirr መሆናቸውን የሚያረጋግጡ ቃላት (Credited ተጨምሯል)
+        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account|credited/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
 
-        let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:\.\d{1,2})?)/i);
-        let amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
-        let txMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]+)/i);
-        let txRef = txMatch ? txMatch[1] : null;
-
-        if(!txRef) { let fallbackMatch = message.match(/\b([A-Z0-9]{8,15})\b/); if(fallbackMatch) txRef = fallbackMatch[1]; }
+        // ትክክለኛውን የብር መጠን ነቅሶ ማውጣት (ኮማ , ቢያካትትም ያነበዋል)
+        let amountMatch = message.match(/(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr)/i) || message.match(/(?:ETB|ብር|birr|Birr)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i);
+        let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
+        
+        // ትክክለኛውን Transaction ID (FT... ወይም የቴሌብር ኮድ) ነቅሶ ማውጣት
+        let txRef = null;
+        let txMatch = message.match(/(?:Ref(?:erence)?\s*No|ID|Txn(?: ID)?|Transaction(?: No)?|ቁጥር|ማረጋገጫ)[:\s#-]+([A-Z0-9]{6,15})/i);
+        if(txMatch) {
+            txRef = txMatch[1];
+        } else {
+            let fallbackMatch = message.match(/\b([A-Z0-9]{8,15})\b/); 
+            if(fallbackMatch) txRef = fallbackMatch[1]; 
+        }
 
         if(amount > 0 && txRef) {
-            const exists = await BankSMS.findOne({ txRef: txRef });
+            // ደረሰኙ ድጋሚ እንዳይገባ እና Fake እንዳይሆን ይከላከላል
+            const exists = await BankSMS.findOne({ txRef: txRef.toUpperCase() });
             if (!exists) {
-                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                await BankSMS.create({ rawText: message, txRef: txRef.toUpperCase(), amount: amount });
                 await autoApprovePendingDeposits(); 
             }
         }
@@ -138,6 +160,9 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
+// ==========================================
+// 🔵 USER APIs
+// ==========================================
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
@@ -200,7 +225,6 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
-// 🔥 SYSTEM AUTOMATIC RANKING LOGIC (ያሸነፉትን በስርዓት ፈልጎ ያወጣል) 🔥
 app.get('/api/leaderboard', async (req, res) => { 
     try {
         let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1, playBalance: -1 }).limit(10).select('name won playBalance'); 
@@ -240,7 +264,6 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     if (req.body.action === 'Approve') { 
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
-            // 🔥 ማኑዋል አፕሩቭ ሲደረግም ቦነሱ እንዲሰራ ተስተካክሏል 🔥
             let actualAmount = tx.amount;
             let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
             let totalCredit = actualAmount + bonus;
@@ -264,8 +287,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
 });
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
-    const { oldPhone, newPhone, password, mainBalance, playBalance } = req.body;
-    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance });
+    const { oldPhone, newPhone, password, mainBalance, playBalance, won } = req.body;
+    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance, won });
     res.json({ success: true });
 });
 
@@ -392,7 +415,6 @@ setInterval(() => {
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
-            // 🔥 ከ 1 ተጫዋች በላይ ካለ (ቢያንስ 2 ሰው) ብቻ ጌሙ ይጀምራል 🔥
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
