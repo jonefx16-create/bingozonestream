@@ -65,8 +65,6 @@
         .tx-tab-btn.active { background: var(--border); color: white;}
         
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
-        
-        /* 🔥 BIGGER SMS BOX CSS 🔥 */
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
 
         @media (max-width: 768px) {
@@ -212,7 +210,6 @@
 
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <!-- 🔥 EXISTING: CLAIMABLE PROMO BONUS 🔥 -->
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Claimable Promo Bonus</h3>
                     <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ተጠቃሚዎች ቦት ላይ ገብተው Claim የሚያደርጉትን የተገደበ ቦነስ ይፍጠሩ።</p>
@@ -222,7 +219,6 @@
                     <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Promo Bonus</button>
                 </div>
                 
-                <!-- 🔥 NEW: DIRECT BULK/SINGLE BONUS 🔥 -->
                 <div class="card" style="border-left: 4px solid var(--purple);">
                     <h3 style="margin-top:0; color:var(--purple);">🎁 Direct Bonus (ቀጥታ መላኪያ)</h3>
                     <p style="font-size:11px; color:gray; margin-top:0; margin-bottom:10px;">ያለ ምንም ፕሮሞ ለተጠቃሚዎች አካውንት ላይ ቀጥታ ቦነስ ለመላክ። <br><span style="color:var(--cyan);">ማሳሰቢያ፡ ስልክ ቁጥር ካልፃፉ ለሁሉም በአንድ ጊዜ ይላካል።</span></p>
@@ -233,18 +229,14 @@
             </div>
         </div>
 
-        <!-- 🔥 TELEGRAM BROADCAST WITH PHOTO UPLOAD 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
                 <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
                 <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
-                
                 <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
                 <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
-                
                 <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
                 <textarea id="tg-msg" rows="6" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
-                
                 <div style="display:flex; gap:10px;">
                     <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo()">Broadcast to Bot</button>
                     <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
@@ -255,12 +247,14 @@
         <div id="tab-settings" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
-                    <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control (Maintenance)</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ይህንን ሲጫኑ ጌም አይሰራም። ለተጠቃሚዎች ደግሞ ጥገና ላይ እንደሆነ የሚገልፅ ማሳያ ይመጣባቸዋል።</p>
+                    <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control & Pricing</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ጌሙን ለማቆም፣ ዋጋ እና ሰከንድ ለመቀየር ይጠቀሙ።</p>
                     <button id="btn-pause" class="action-btn btn-orange" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">⏸️ Pause Game (Maintenance)</button>
                     <hr style="border-color: var(--border);">
-                    <label>🎟️ Ticket Price (ETB)</label>
-                    <div style="display:flex; gap:10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
+                    <label style="font-weight:bold; color:var(--cyan);">🎟️ Ticket Price (ETB - የካርቴላ ዋጋ)</label>
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
+                    <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds - የጌም ሰከንድ)</label>
+                    <div style="display:flex; gap:10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
                 </div>
                 <div class="card" style="flex: 1; border-left: 4px solid var(--blue); min-width:280px;">
                     <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
@@ -277,7 +271,22 @@
 
 <!-- ================= MODALS ================= -->
 <div class="modal" id="edit-user-modal">
-    <div class="modal-content"><h3 style="color: var(--blue); margin-top:0;">✏️ Edit User</h3><input type="hidden" id="eu-oldPhone"><label>Phone Number</label><input type="text" id="eu-phone"><label>Password</label><input type="text" id="eu-password"><label>Main Balance (ETB)</label><input type="number" id="eu-main"><label>Play Balance (ETB)</label><input type="number" id="eu-play"><div style="display:flex; gap:10px;"><button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save</button><button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button></div></div>
+    <div class="modal-content">
+        <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
+        <input type="hidden" id="eu-oldPhone">
+        <label>Phone Number</label><input type="text" id="eu-phone">
+        <label>Password</label><input type="text" id="eu-password">
+        <div style="display:flex; gap:10px;">
+            <div style="flex:1;"><label>Main Balance (ETB)</label><input type="number" id="eu-main"></div>
+            <div style="flex:1;"><label>Play Balance (ETB)</label><input type="number" id="eu-play"></div>
+        </div>
+        <label style="color:var(--gold); font-weight:bold;">🏆 Total Won (Rank Edit - ራንክ ማስተካከያ)</label>
+        <input type="number" id="eu-won" style="border-color:var(--gold); background:rgba(251, 191, 36, 0.1);">
+        <div style="display:flex; gap:10px; margin-top: 10px;">
+            <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save All</button>
+            <button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
 </div>
 
 <div class="modal" id="history-modal">
@@ -325,6 +334,7 @@
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
+            if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
         } catch(e) {}
     }
     setInterval(loadLiveStats, 3000);
@@ -339,7 +349,7 @@
             users.forEach(u => {
                 let row = `<tr><td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td><td>${u.playBalance.toFixed(2)}</td><td>${u.mainBalance.toFixed(2)}</td>`;
                 if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; } 
-                else { activeHtml += row + `<td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance})">Edit</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`; }
+                else { activeHtml += row + `<td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit Rank & User</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`; }
                 if(u.referredBy && u.referredBy !== "") { if(!refList[u.referredBy]) refList[u.referredBy] = []; refList[u.referredBy].push(u.phone); }
             });
             document.getElementById('users-body').innerHTML = activeHtml; document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
@@ -410,7 +420,6 @@
     
     async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; if(!maxUsers || !amount || !minutes) return alert("እባክዎ ሁሉንም መረጃ ያስገቡ!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users? (Expires in ${minutes} mins)`)) return; let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, maxUsers, amount, minutes})}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; } }
     
-    // 🔥 NEW: DIRECT BONUS LOGIC 🔥
     async function sendDirectBonus() {
         let phone = document.getElementById('direct-phone').value.trim();
         let amount = document.getElementById('direct-amount').value;
@@ -443,11 +452,11 @@
             let reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async function () {
-                let photoData = reader.result; // Base64 String
+                let photoData = reader.result; 
                 sendPayloadToTelegram(msg, photoData);
             };
         } else {
-            sendPayloadToTelegram(msg, ""); // Only text
+            sendPayloadToTelegram(msg, ""); 
         }
     }
 
@@ -460,18 +469,62 @@
                 document.getElementById('tg-msg').value = ''; 
                 document.getElementById('tg-photo-file').value = ''; 
             }
-        } catch(e) {
-            alert("Error sending message.");
-        }
+        } catch(e) { alert("Error sending message."); }
         document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
     }
 
     async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
-    async function updateSettings(type) { let payload = { password: pass }; if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return; payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return; payload.ticketPrice = pr; } await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); alert("✅ Saved!"); }
+    
+    // 🔥 TICKET PRICE እና GAME TIMER ማስተካከያ 🔥
+    async function updateSettings(type) { 
+        let payload = { password: pass }; 
+        if(type === 'password') { 
+            let np = document.getElementById('set-pass').value; 
+            if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); 
+            payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; 
+        } 
+        if(type === 'price') { 
+            let pr = document.getElementById('set-price').value; 
+            if(!pr) return alert("እባክዎ ትክክለኛ የካርቴላ ዋጋ ያስገቡ!"); 
+            payload.ticketPrice = pr; 
+        }
+        if(type === 'timer') { 
+            let tm = document.getElementById('set-timer').value; 
+            if(!tm) return alert("እባክዎ ትክክለኛ የጌም ሰከንድ ያስገቡ!"); 
+            payload.gameTimer = tm; 
+        } 
+        await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+        alert("✅ Saved!"); 
+    }
+
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, txId, action})}); loadData(); } }
-    function openEditModal(phone, passw, main, play) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('edit-user-modal').style.display = 'flex'; }
-    async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, password: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value }; await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); document.getElementById('edit-user-modal').style.display='none'; loadData(); }
+    
+    function openEditModal(phone, passw, main, play, won) { 
+        document.getElementById('eu-oldPhone').value = phone; 
+        document.getElementById('eu-phone').value = phone; 
+        document.getElementById('eu-password').value = passw; 
+        document.getElementById('eu-main').value = main; 
+        document.getElementById('eu-play').value = play; 
+        document.getElementById('eu-won').value = won; 
+        document.getElementById('edit-user-modal').style.display = 'flex'; 
+    }
+    
+    async function saveUserEdit() { 
+        let payload = { 
+            adminPass: pass, 
+            oldPhone: document.getElementById('eu-oldPhone').value, 
+            newPhone: document.getElementById('eu-phone').value, 
+            password: document.getElementById('eu-password').value, 
+            mainBalance: document.getElementById('eu-main').value, 
+            playBalance: document.getElementById('eu-play').value,
+            won: document.getElementById('eu-won').value 
+        }; 
+        await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+        document.getElementById('edit-user-modal').style.display='none'; 
+        loadData(); 
+    }
+    
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, phone})}); loadData(); } }
 </script>
