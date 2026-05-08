@@ -57,13 +57,7 @@ const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, 
-    maxUsers: Number, 
-    currentClaims: { type: Number, default: 0 }, 
-    claimedBy: [String], 
-    expiresAt: Date, 
-    isActive: { type: Boolean, default: true }, 
-    date: { type: Date, default: Date.now }
+    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -208,7 +202,6 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
-// 🔥 RANK / LEADERBOARD (FIXED) 🔥
 app.get('/api/leaderboard', async (req, res) => { 
     try {
         let leaderboard = await User.find().sort({ won: -1, playBalance: -1 }).limit(10).select('name won playBalance'); 
@@ -230,7 +223,6 @@ app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find(
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
 
-// 🔥 NEW: API FOR FINANCE PAGE 🔥
 app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
@@ -285,7 +277,6 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } });
     res.json({ success: true, message: "Bulk Bonus Sent!" });
 });
-
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     const { maxUsers, amount, minutes } = req.body;
     let expires = new Date(Date.now() + (minutes * 60000));
@@ -318,7 +309,6 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
     } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
 });
-
 app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
     try {
         if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." });
@@ -611,11 +601,31 @@ bot.on('callback_query', async (query) => {
 });
 
 // ==========================================
-// 🛣️ ROUTES (Fixed)
+// 🛣️ ROUTES (SMART FILE FINDER - FIX FOR "NOT FOUND")
 // ==========================================
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/admin', (req, res) => {
+    let rootPath = path.join(__dirname, 'admin.html');
+    let pubPath = path.join(__dirname, 'public', 'admin.html');
+    if (fs.existsSync(rootPath)) res.sendFile(rootPath);
+    else if (fs.existsSync(pubPath)) res.sendFile(pubPath);
+    else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም! (File Not Found)</h2><p>እባክዎ 'admin.html' የሚባለውን ፋይል 'server.js' ካለበት ፎልደር ውስጥ በትክክል ማስቀመጥዎን ያረጋግጡ።</p>");
+});
+
+app.get('/finance', (req, res) => {
+    let rootPath = path.join(__dirname, 'finance.html');
+    let pubPath = path.join(__dirname, 'public', 'finance.html');
+    if (fs.existsSync(rootPath)) res.sendFile(rootPath);
+    else if (fs.existsSync(pubPath)) res.sendFile(pubPath);
+    else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም! (File Not Found)</h2><p>እባክዎ 'finance.html' የሚባለውን ፋይል 'server.js' ካለበት ፎልደር ውስጥ በትክክል ማስቀመጥዎን ያረጋግጡ።</p>");
+});
+
+app.get('*', (req, res) => {
+    let rootPath = path.join(__dirname, 'index.html');
+    let pubPath = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(rootPath)) res.sendFile(rootPath);
+    else if (fs.existsSync(pubPath)) res.sendFile(pubPath);
+    else res.send("<h1>Bingo Habesha System is Running.</h1><p>Index file not found.</p>");
+});
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
