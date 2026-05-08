@@ -353,11 +353,12 @@
         } catch (e) { console.log(e); }
     }
 
-    function showTxDetailsModal(phone, method, amount, sms) { 
+    function showTxDetailsModal(phone, method, amount, encodedSms) { 
         document.getElementById('sms-phone').innerText = phone; 
         document.getElementById('sms-bank').innerText = method; 
         document.getElementById('sms-amount').innerText = amount; 
-        document.getElementById('sms-text').innerText = sms.replace(/\\'/g, "'").replace(/&quot;/g, '"'); 
+        // 🔥 መፍትሄ 1፡ SMS ዲኮድ ይደረጋል (Encoded የነበረው ይመለሳል)
+        document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); 
         document.getElementById('sms-modal').style.display = 'flex'; 
     }
     
@@ -366,7 +367,9 @@
     function populatePendingDeposits() {
         let deps = allTransactions.filter(t => t.type === 'deposit' && t.status === 'Pending');
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
-            let safeSMS = (t.smsText || "No SMS Provided").replace(/'/g, "\\'").replace(/"/g, '&quot;'); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
+            // 🔥 መፍትሄ 1፡ SMS ቴክስቱ እንዳይቋረጥ (Break እንዳያደርግ) ደህንነቱ በተጠበቀ encodeURIComponent ይጠቀለላል
+            let safeSMS = encodeURIComponent(t.smsText || "No SMS Provided");
+            let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${t.amount} ETB</td>
             <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ትልቅ አድርግ</button></div></td>
             <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
@@ -386,7 +389,12 @@
         currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = (t.smsText || "No SMS").replace(/'/g, "\\'").replace(/"/g, '&quot;'); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
+            let smsBtn = ''; 
+            // 🔥 መፍትሄ 1፡ በ History ውስጥም አድሚን SMS ቴክስቱን በተመሳሳይ መንገድ encodeURIComponent በመጠቀም ያየዋል
+            if(t.type === 'deposit') { 
+                let safeSMS = encodeURIComponent(t.smsText || "No SMS"); 
+                smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; 
+            }
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
     }
@@ -444,3 +452,4 @@
 </script>
 </body>
 </html>
+
