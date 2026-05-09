@@ -42,7 +42,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""},
-    txRef: { type: String, default: "" } 
+    txRef: { type: String, default: "" } // አዲስ - ኮዱን ለብቻው ለማስቀመጥ
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -83,18 +83,27 @@ const bankAccounts = {
 // 🛡️ THE GOLDEN EXTRACTOR ENGINE 
 // ==========================================
 
+// 1. የ Transaction Number አውጪ (ለ CBE እና Telebirr)
 function getTxRef(text) {
     if (!text || typeof text !== 'string') return null;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
+
+    // ሀ. የ CBE Birr ስፔሻል ኮድ (FT በመቀጠል ቁጥሮች/ፊደላት)
     let ftMatch = msg.match(/\b(FT[0-9A-Z]{5,15})\b/);
     if (ftMatch) return ftMatch[1];
+
+    // ለ. Telebirr እና መደበኛ ኮዶች (ከ 6 እስከ 15 ፊደልና ቁጥር የተቀላቀለ)
     let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g);
     if (matches && matches.length > 0) return matches[0];
+
+    // ሐ. ደንበኛው ኮዱን ብቻ ኮፒ ፔስት ካደረገ
     let exact = msg.replace(/\s+/g, '');
     if (exact.length >= 6 && exact.length <= 15 && !/^\d+$/.test(exact)) return exact;
+
     return null;
 }
 
+// 2. የባንክ ትክክለኛ Amount አውጪ
 function getBankAmount(text) {
     if (!text || typeof text !== 'string') return 0;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
@@ -103,13 +112,17 @@ function getBankAmount(text) {
     return 0;
 }
 
+// 🛡️ የገባው ኮድ ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ
 async function isSmsAlreadyUsed(userInputSms) {
     let txRef = getTxRef(userInputSms);
     if (!txRef) return false; 
+
     let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
     if (inBankSms) return true;
+
     let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
     if (inTxRef) return true;
+
     return false;
 }
 
@@ -123,7 +136,10 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             if (!tx.txRef) continue; 
+
+            // ማመሳሰል (Matching) በ Transaction Number ብቻ
             let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
+
             if (matchedSMS) {
                 console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone} with amount ${matchedSMS.amount}`);
                 let user = await User.findOne({ phone: tx.phone });
@@ -235,14 +251,24 @@ app.post('/api/request-tx', async (req, res) => {
 
         if(type === 'deposit') {
             let txRef = getTxRef(sms);
-            if (!txRef) { return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" }); }
+            
+            if (!txRef) {
+                return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" });
+            }
+
             let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) { return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" }); }
+            if (isUsed) {
+                return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+            }
+
             await new Transaction({ phone, type, amount: amount, method, smsText: sms, txRef: txRef }).save();
             await autoApprovePendingDeposits();
         }
+        
         res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
-    } catch(e) { res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" }); }
+    } catch(e) {
+        res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" });
+    }
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
@@ -278,7 +304,7 @@ app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
         let games = await GameHistory.find();
         let bonuses = await ActiveBonus.find();
-        let users = await User.find({}, 'mainBalance playBalance'); 
+        let users = await User.find({}, 'mainBalance playBalance'); // Added users for Liability Calculation
         res.json({ success: true, txs, games, bonuses, users });
     } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -336,7 +362,11 @@ app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAn
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
 app.post('/api/admin/factory-reset', auth, async (req, res) => {
-    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({});
+    await User.deleteMany({});
+    await Transaction.deleteMany({});
+    await GameHistory.deleteMany({});
+    await BankSMS.deleteMany({});
+    await ActiveBonus.deleteMany({});
     res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
 });
 
@@ -360,6 +390,7 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// 🔥 PROMO BONUS & BROADCAST WITH INLINE BUTTON 🔥
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     try {
         const { maxUsers, amount, minutes, message, photoUrl } = req.body;
@@ -367,27 +398,38 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         await ActiveBonus.updateMany({}, { isActive: false });
         await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
         
+        // ቴሌግራም ላይ ማሰራጨት
         if (message) {
             const users = await User.find({ telegramId: { $ne: "" } });
             lastBroadcasts = []; 
-            const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
+            const opts = {
+                parse_mode: "HTML",
+                reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] }
+            };
 
             for (let u of users) {
                 try {
                     let sentMsg;
                     if (photoUrl && photoUrl.startsWith('data:image')) {
-                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
+                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                        let photoBuffer = Buffer.from(base64Data, 'base64');
                         sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
-                    } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
-                    } else { sentMsg = await bot.sendMessage(u.telegramId, message, opts); }
+                    } else if (photoUrl && photoUrl.startsWith('http')) { 
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
+                    } else { 
+                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                    }
                     lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
                 } catch(e) {} 
             }
         }
         res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram Bot!` });
-    } catch (e) { res.status(500).json({ success: false, message: "Error processing promo." }); }
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Error processing promo." });
+    }
 });
 
+// 🔥 TELEGRAM BOT INTEGRATION 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -480,8 +522,7 @@ setInterval(() => {
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
-            // 🔥 ችግር 2 የተስተካከለበት፡ 1 ሰውም ካለ ጌሙ ይጀምራል (ከ > 1 ወደ > 0 ተቀይሯል)
-            if(Object.keys(activePlayers).length > 0) { 
+            if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else { 
@@ -527,6 +568,7 @@ io.on('connection', (socket) => {
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
+
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg"
 
 const t = {
@@ -695,12 +737,30 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
             let txRef = getTxRef(text);
-            if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) }); }
-            let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) { return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); }
+            
+            // 1. ኮዱን ቼክ ማድረግ
+            if (!txRef) {
+                return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
+            }
 
-            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
+            // 2. የድግግሞሽ (Duplicate) ቼክ
+            let isUsed = await isSmsAlreadyUsed(text);
+            if (isUsed) {
+                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
+            }
+
+            // እዚህ ጋር ደንበኛው የፃፈው Temporary Amount ገብቶ ይቆያል። (በኋላ ባንኩ ሲመጣ Amount Update ይደረጋል)
+            await new Transaction({ 
+                phone: user.phone, 
+                type: 'deposit', 
+                amount: state.amount, 
+                method: state.method, 
+                smsText: text, 
+                txRef: txRef // አዲሱ አሰራር - ኮዱ ለብቻው ተቀምጧል
+            }).save(); 
+
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
+            
             await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
