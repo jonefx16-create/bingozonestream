@@ -88,19 +88,36 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
+            
+            // የደንበኛውን ፅሁፍ ኮዶች በተሻሻለው Regex እንሰበስባለን (ፊደልና ቁጥር የተቀላቀለ ብቻ)
+            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g) || [];
+            userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
+
             let matchedSMS = null;
 
             for (let sms of unusedSMS) {
+                let bankMsg = (sms.rawText || "").toUpperCase();
                 let bankRef = (sms.txRef || "").toUpperCase();
-                
-                // የተጫዋቹ ሜሴጅ የባንኩን ኦሪጅናል Ref ቁጥር ከያዘ
+                let isMatch = false;
+
                 if (bankRef && bankRef.length >= 6 && userMsg.includes(bankRef)) {
-                    matchedSMS = sms;
-                    break;
+                    isMatch = true;
+                } 
+                else {
+                    for (let uRef of userPossibleRefs) {
+                        if (uRef.length >= 6 && bankMsg.includes(uRef)) {
+                            isMatch = true; break;
+                        }
+                    }
+                }
+
+                if (isMatch) {
+                    matchedSMS = sms; break; 
                 }
             }
 
             if (matchedSMS) {
+                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
@@ -130,7 +147,7 @@ async function isSmsAlreadyUsed(userInputSms) {
     try {
         let msg = userInputSms.toUpperCase().trim();
 
-        // 1. ተመሳሳይ ፅሁፍ (Duplicate Click) እንዳይገባ ማገድ
+        // 1. ተመሳሳይ ሙሉ ፅሁፍ (Duplicate Click) እንዳይገባ ማገድ
         let duplicateTx = await Transaction.findOne({
             type: 'deposit',
             smsText: msg,
@@ -138,30 +155,23 @@ async function isSmsAlreadyUsed(userInputSms) {
         });
         if (duplicateTx) return true;
 
-        let txRef = null;
-
-        // 2. ትክክለኛውን የትራንዛክሽን ቁጥር (Ref) መፈለግ
-        let explicitMatch = msg.match(/(?:REF|ID|TXN|TRANSACTION|ቁጥር|ማረጋገጫ)[\s:#.-]+([A-Z0-9]{6,20})/i);
-        if (explicitMatch) {
-            txRef = explicitMatch[1];
-        } else {
-            // Ref የሚል ቃል ከሌለ፣ ፊደልና ቁጥር የተቀላቀለ ወይም ረጅም ቁጥር መፈለግ (ስልክ ቁጥርን ትቶ!)
-            let matches = msg.match(/\b[A-Z0-9]{6,20}\b/g) || [];
-            for (let m of matches) {
-                if (/^[A-Z]+$/.test(m)) continue; // ፊደል ብቻ የሆኑ ቃላትን ተው
-                if (/^(?:09|07|2519|2517)\d{8}$/.test(m)) continue; // ስልክ ቁጥርን ተው! (BUG FIX)
-                txRef = m;
-                break;
-            }
+        // 2. ትክክለኛውን ኮድ ደህንነቱ በተጠበቀ መንገድ ማውጣት (ፊደልና ቁጥር የተቀላቀለ ብቻ፣ ቀናትን ያስወግዳል)
+        let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g) || [];
+        
+        let exactMatch = msg.replace(/\s+/g, '');
+        if (exactMatch.length >= 6 && exactMatch.length <= 20 && !/^\d+$/.test(exactMatch) && !/^[A-Z]+$/.test(exactMatch)) {
+            matches.push(exactMatch);
         }
 
-        if (!txRef) return false; // Ref ካልተገኘ ይለፈው (Pending ይሁንና አድሚን ያየዋል)
+        if (matches.length === 0) return false; // ኮድ ካልተገኘ ይለፈውና Pending ሆኖ አድሚን ያየዋል
 
-        // 3. የተገኘው Ref ጥቅም ላይ እንደዋለ ማረጋገጥ
-        let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
-        if (inBankSms) return true;
+        // 3. የተገኙትን ኮዶች ቼክ ማድረግ
+        for (let txRef of matches) {
+            // ሀ. Webhook ላይ ከገባና ኦሬዲ ጥቅም ላይ ከዋለ
+            let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
+            if (inBankSms) return true;
 
-        if (txRef.length >= 8) { // አጫጭር ቁጥሮች እንዳይመሳሰሉ 8 ዲጂትና በላይ መሆኑን ማረጋገጥ
+            // ለ. ሌላ Approved ወይም Pending የሆነ ትራንዛክሽን ይሄንኑ ኮድ ከተጠቀመ
             let inTxRef = await Transaction.findOne({ 
                 type: 'deposit', 
                 smsText: { $regex: txRef, $options: "i" },
@@ -190,15 +200,10 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
         let txRef = "";
-        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
-        if (explicitMatch) { txRef = explicitMatch[1].toUpperCase(); } 
-        else {
-            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g) || [];
-            for (let m of matches) {
-                if (/^(?:09|07|2519|2517)\d{8}$/.test(m)) continue;
-                txRef = m.toUpperCase();
-                break;
-            }
+        // Webhook ላይም ጥብቅ የሆነውን የኮድ ማውጫ እንጠቀማለን
+        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,20}\b/g);
+        if (matches && matches.length > 0) {
+            txRef = matches[0].toUpperCase(); 
         }
 
         if(amount > 0 && txRef.length >= 6) {
@@ -209,7 +214,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
             }
             res.json({ success: true, amount, txRef });
         } else {
-            res.json({ success: false, msg: "Could not extract data" });
+            res.json({ success: false, msg: "Could not extract valid data" });
         }
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
@@ -800,7 +805,7 @@ setInterval(async () => {
     } catch (error) {}
 }, 30000); 
 
-server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));`));
+server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
 
