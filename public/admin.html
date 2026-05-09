@@ -8,11 +8,10 @@
         :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --cyan: #06b6d4; --gold: #fbbf24; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
-        /* 🔥 NEW BEAUTIFUL LOGIN UI 🔥 */
         #login-sec { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #161b22 0%, #050810 100%); z-index: 9999; }
         .login-card { background: rgba(22, 27, 34, 0.7); backdrop-filter: blur(15px); padding: 50px 40px; border-radius: 24px; border: 1px solid rgba(74, 222, 128, 0.3); text-align: center; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(74, 222, 128, 0.1); box-sizing: border-box;}
         .login-card h2 { color: var(--faded-green); margin-top: 0; margin-bottom: 30px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(74,222,128,0.5); }
-        .login-card input { background: rgba(0,0,0,0.6); border: 1px solid var(--border); padding: 16px; font-size: 16px; border-radius: 12px; transition: 0.3s; text-align: center; letter-spacing: 2px;}
+        .login-card input { background: rgba(0,0,0,0.6); border: 1px solid var(--border); padding: 16px; font-size: 16px; border-radius: 12px; transition: 0.3s; text-align: center; letter-spacing: 2px; color: white;}
         .login-card input:focus { border-color: var(--faded-green); box-shadow: 0 0 15px rgba(74,222,128,0.3); outline: none; }
         .login-card button { padding: 16px; font-size: 16px; border-radius: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; box-shadow: 0 5px 15px rgba(74,222,128,0.4); }
         .login-card button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74,222,128,0.6); }
@@ -73,7 +72,6 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
         
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
-
         .disabled-input { opacity: 0.4; pointer-events: none; }
 
         @media (max-width: 768px) {
@@ -84,6 +82,7 @@
             .main-content { padding: 15px; width: 100vw;}
             .header-top h2 { font-size: 16px; }
             .search-container { flex-direction: column; align-items: stretch; }
+            .login-card { padding: 40px 20px; }
         }
     </style>
 </head>
@@ -112,7 +111,6 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Direct Bonus</button>
-        <!-- 🔥 NEW DEPOSIT BONUS TAB BUTTON 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);">💰 Deposit Auto-Bonus</button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
@@ -130,7 +128,8 @@
 
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <!-- 🔥 ADDED TOTAL USERS BOX BACK TO LIVE TAB 🔥 -->
+                <!-- 🔥 JACKPOT AND TOTAL USERS AT THE TOP OF LIVE PAGE 🔥 -->
+                <div class="stat-card" style="border-bottom: 4px solid var(--gold);"><h3>💰 Current Jackpot</h3><h2 style="color: var(--gold);" id="stat-current-jackpot">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3><h2 style="color: var(--blue);" id="stat-total-profit">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
@@ -222,7 +221,7 @@
             </div></div>
         </div>
 
-        <!-- 🔥 MANAGE BONUS (Direct Bonuses Only) 🔥 -->
+        <!-- 🔥 MANAGE DIRECT BONUS 🔥 -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--faded-green);">
@@ -241,7 +240,7 @@
             </div>
         </div>
 
-        <!-- 🔥 NEW DEPOSIT BONUS TAB 🔥 -->
+        <!-- 🔥 DEPOSIT BONUS TAB 🔥 -->
         <div id="tab-dep-bonus" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); max-width: 600px; margin: 0 auto;">
                 <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
@@ -399,7 +398,7 @@
             <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
         </div>
         <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
-        <div id="sms-text"></div>
+        <div id="sms-text" style="font-size: 16px; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;"></div>
         <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
@@ -422,15 +421,10 @@
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
 
-    // 🔥 TOGGLE TIME INPUTS 🔥
     function toggleTimeInputs() {
         let isChecked = document.getElementById('set-dep-time-restrict').checked;
         let container = document.getElementById('time-inputs-container');
-        if(isChecked) {
-            container.classList.remove('disabled-input');
-        } else {
-            container.classList.add('disabled-input');
-        }
+        if(isChecked) { container.classList.remove('disabled-input'); } else { container.classList.add('disabled-input'); }
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
@@ -440,9 +434,12 @@
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
+            document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0) + " ETB";
             document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
+            
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
+            
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
             if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
             
@@ -452,7 +449,7 @@
                 document.getElementById('set-dep-perc').value = data.settings.depBonusPercent;
                 document.getElementById('set-dep-start').value = data.settings.happyHourStart;
                 document.getElementById('set-dep-end').value = data.settings.happyHourEnd;
-                toggleTimeInputs(); // Initialize the visual state
+                toggleTimeInputs(); 
             }
         } catch(e) {}
     }
@@ -575,7 +572,7 @@
         btn.innerText = "Create Promo & Broadcast to Telegram";
     }
 
-    async function sendTelegramPromo() { 
+    async function sendTelegramPromo(type) { 
         let msg = document.getElementById('tg-msg').value; 
         let photoUrl = document.getElementById('tg-photo-url').value.trim();
         let fileInput = document.getElementById('tg-photo-file');
