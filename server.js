@@ -569,7 +569,7 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-const WELCOME_PHOTO_URL = https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg
+const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg"
 
 const t = {
     am: {
