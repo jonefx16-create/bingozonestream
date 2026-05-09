@@ -41,7 +41,8 @@ const User = mongoose.model('User', new mongoose.Schema({
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
-    phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""}
+    phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""}, 
+    txRef: { type: String, default: "" } // አዲስ የተጨመረ - ደህንነትን ለመጠበቅ
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -79,47 +80,59 @@ const bankAccounts = {
 };
 
 // ==========================================
+// 🛡️ STRICT SMS EXTRACTOR (ANTI-FRAUD ENGINE)
+// ==========================================
+function extractSmsData(text) {
+    if (!text || typeof text !== 'string') return { amount: 0, txRef: null };
+    let msg = text.toUpperCase().replace(/\n/g, ' ');
+
+    let amount = 0;
+    let txRef = null;
+
+    // 1. የብር መጠን ማውጣት (የደንበኛውን ውሸት ለማጋለጥ)
+    let amtMatch = msg.match(/(?:ETB|ብር|BIRR)\s*([\d,]+(?:\.\d+)?)/i) || msg.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር|BIRR)/i);
+    if (amtMatch) {
+        amount = parseFloat(amtMatch[1].replace(/,/g, ''));
+    }
+
+    // 2. ትክክለኛውን ኮድ ማውጣት (CBE እና Telebirrን በደንብ ያነባል)
+    let refMatch = msg.match(/(?:REF(?:\.?\s*NO|NUM)?|ID|TXN|TRANSACTION|ቁጥር|ማረጋገጫ)[\s:#.-]+([A-Z0-9]{6,20})/i);
+    if (refMatch) {
+        txRef = refMatch[1];
+    } else {
+        // Ref የሚል ቃል ከሌለ፣ ቁጥርና ፊደል የተቀላቀለበትን ብቻ ይፈልጋል
+        let words = msg.split(/[\s,;.]+/);
+        for (let w of words) {
+            w = w.replace(/[^A-Z0-9]/g, ''); 
+            if (w.length >= 6 && w.length <= 20) {
+                // ንፁህ ፊደል ወይም ንፁህ ቁጥር (እንደ ቀንና ስልክ) ከሆነ ይዘለዋል
+                if (/^[0-9]+$/.test(w) || /^[A-Z]+$/.test(w)) continue; 
+                txRef = w;
+                break;
+            }
+        }
+    }
+
+    return { amount, txRef };
+}
+
+// ==========================================
 // 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
-        const unusedSMS = await BankSMS.find({ isUsed: false });
-
+        
         for (let tx of pendingTxs) {
-            let userMsg = (tx.smsText || "").toUpperCase();
-            
-            // የደንበኛውን ፅሁፍ ኮዶች በተሻሻለው Regex እንሰበስባለን (ፊደልና ቁጥር የተቀላቀለ ብቻ)
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g) || [];
-            userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
+            if (!tx.txRef) continue; // ኮድ የሌለው ከሆነ ይለፈው
 
-            let matchedSMS = null;
-
-            for (let sms of unusedSMS) {
-                let bankMsg = (sms.rawText || "").toUpperCase();
-                let bankRef = (sms.txRef || "").toUpperCase();
-                let isMatch = false;
-
-                if (bankRef && bankRef.length >= 6 && userMsg.includes(bankRef)) {
-                    isMatch = true;
-                } 
-                else {
-                    for (let uRef of userPossibleRefs) {
-                        if (uRef.length >= 6 && bankMsg.includes(uRef)) {
-                            isMatch = true; break;
-                        }
-                    }
-                }
-
-                if (isMatch) {
-                    matchedSMS = sms; break; 
-                }
-            }
+            let matchedSMS = await BankSMS.findOne({ txRef: tx.txRef, isUsed: false });
 
             if (matchedSMS) {
                 console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
+                    // መተማመኛችን የባንክ Webhook SMS ላይ ያለው ትክክለኛ ብር ነው
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
@@ -141,49 +154,6 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
-// 🛡️ የገባው SMS ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ ፋንክሽን (🔥 BUG FULLY FIXED 🔥)
-async function isSmsAlreadyUsed(userInputSms) {
-    if (!userInputSms || typeof userInputSms !== 'string') return false;
-    try {
-        let msg = userInputSms.toUpperCase().trim();
-
-        // 1. ተመሳሳይ ሙሉ ፅሁፍ (Duplicate Click) እንዳይገባ ማገድ
-        let duplicateTx = await Transaction.findOne({
-            type: 'deposit',
-            smsText: msg,
-            status: { $in: ['Approved', 'Pending'] }
-        });
-        if (duplicateTx) return true;
-
-        // 2. ትክክለኛውን ኮድ ደህንነቱ በተጠበቀ መንገድ ማውጣት (ፊደልና ቁጥር የተቀላቀለ ብቻ፣ ቀናትን ያስወግዳል)
-        let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g) || [];
-        
-        let exactMatch = msg.replace(/\s+/g, '');
-        if (exactMatch.length >= 6 && exactMatch.length <= 20 && !/^\d+$/.test(exactMatch) && !/^[A-Z]+$/.test(exactMatch)) {
-            matches.push(exactMatch);
-        }
-
-        if (matches.length === 0) return false; // ኮድ ካልተገኘ ይለፈውና Pending ሆኖ አድሚን ያየዋል
-
-        // 3. የተገኙትን ኮዶች ቼክ ማድረግ
-        for (let txRef of matches) {
-            // ሀ. Webhook ላይ ከገባና ኦሬዲ ጥቅም ላይ ከዋለ
-            let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
-            if (inBankSms) return true;
-
-            // ለ. ሌላ Approved ወይም Pending የሆነ ትራንዛክሽን ይሄንኑ ኮድ ከተጠቀመ
-            let inTxRef = await Transaction.findOne({ 
-                type: 'deposit', 
-                smsText: { $regex: txRef, $options: "i" },
-                status: { $in: ['Approved', 'Pending'] }
-            });
-            if (inTxRef) return true;
-        }
-
-    } catch (e) { console.log("Duplicate Check Error:", e); }
-    return false;
-}
-
 // ==========================================
 // 🔵 IPHONE SMS WEBHOOK 
 // ==========================================
@@ -196,23 +166,15 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
 
-        let amountMatch = message.match(/(?:ETB|ብር|birr|Birr)\s*([\d,]+(?:\.\d+)?)/i) || message.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር|birr|Birr)/i);
-        let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
-        
-        let txRef = "";
-        // Webhook ላይም ጥብቅ የሆነውን የኮድ ማውጫ እንጠቀማለን
-        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,20}\b/g);
-        if (matches && matches.length > 0) {
-            txRef = matches[0].toUpperCase(); 
-        }
+        let extracted = extractSmsData(message);
 
-        if(amount > 0 && txRef.length >= 6) {
-            const exists = await BankSMS.findOne({ txRef: txRef });
+        if(extracted.amount > 0 && extracted.txRef && extracted.txRef.length >= 6) {
+            const exists = await BankSMS.findOne({ txRef: extracted.txRef });
             if (!exists) {
-                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                await BankSMS.create({ rawText: message, txRef: extracted.txRef, amount: extracted.amount });
                 await autoApprovePendingDeposits(); 
             }
-            res.json({ success: true, amount, txRef });
+            res.json({ success: true, amount: extracted.amount, txRef: extracted.txRef });
         } else {
             res.json({ success: false, msg: "Could not extract valid data" });
         }
@@ -272,17 +234,30 @@ app.post('/api/request-tx', async (req, res) => {
         if(type === 'withdraw') {
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
             user.mainBalance -= amount; await user.save();
+            await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
         }
 
         if(type === 'deposit') {
-            let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) {
-                return res.json({ success: false, message: "❌ ይህ sms (TxRef) አገልግሎት ላይ ውሏል!" });
+            let extracted = extractSmsData(sms);
+            
+            if (!extracted.txRef) {
+                return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" });
             }
-        }
 
-        await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
-        if(type === 'deposit') { await autoApprovePendingDeposits(); }
+            // 1. የድግግሞሽ (Duplicate) ቼክ
+            let isUsedTx = await Transaction.findOne({ txRef: extracted.txRef, status: { $in: ['Approved', 'Pending'] } });
+            let isUsedBank = await BankSMS.findOne({ txRef: extracted.txRef, isUsed: true });
+            
+            if (isUsedTx || isUsedBank) {
+                return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+            }
+
+            // 2. የማጭበርበር መከላከያ (Anti-Fraud) - ከ SMS የተገኘውን ብር እንጂ ደንበኛው የፃፈውን አንቀበልም
+            let finalAmount = extracted.amount > 0 ? extracted.amount : amount;
+
+            await new Transaction({ phone, type, amount: finalAmount, method, smsText: sms, txRef: extracted.txRef }).save();
+            await autoApprovePendingDeposits();
+        }
         
         res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
     } catch(e) {
@@ -650,7 +625,6 @@ bot.on('message', async (msg) => {
     let ln = getLang(user); 
     let state = botState[chatId] || { step: 'idle' };
 
-    // 🔥 BUTTON MATCHING 🔥
     if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back || text.includes('ተመለስ') || text.includes('Back') || text.includes('Duubatti') || text.includes('ንድሕሪት') || text === '/back') { 
         botState[chatId] = { step: 'idle' }; 
         return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
@@ -707,14 +681,36 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
-            let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) {
-                bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
-            } else {
-                await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text }).save(); 
-                bot.sendMessage(chatId, ln.dep_success, { parse_mode: "HTML", ...getMainMenu(user) }); 
-                await autoApprovePendingDeposits(); 
+            let extracted = extractSmsData(text);
+            
+            // 1. ኮዱን ቼክ ማድረግ
+            if (!extracted.txRef) {
+                return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
             }
+
+            // 2. የድግግሞሽ (Duplicate) ቼክ
+            let isUsedTx = await Transaction.findOne({ txRef: extracted.txRef, status: { $in: ['Approved', 'Pending'] } });
+            let isUsedBank = await BankSMS.findOne({ txRef: extracted.txRef, isUsed: true });
+
+            if (isUsedTx || isUsedBank) {
+                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
+            }
+
+            // 3. የማጭበርበር መከላከያ (Anti-Fraud) - የደንበኛውን ውሸት መጠን አንቀበልም
+            let finalAmount = extracted.amount > 0 ? extracted.amount : state.amount;
+
+            await new Transaction({ 
+                phone: user.phone, 
+                type: 'deposit', 
+                amount: finalAmount, // ከ SMS ላይ የተነበበው ትክክለኛ ብር ገባ
+                method: state.method, 
+                smsText: text, 
+                txRef: extracted.txRef // የተነበበው ኮድ ተመዝግቧል
+            }).save(); 
+
+            bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 የተገኘ መጠን: <b>${finalAmount} ETB</b>\n📌 ማረጋገጫ ኮድ: <b>${extracted.txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
+            
+            await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
     } 
