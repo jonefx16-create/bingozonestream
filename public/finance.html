@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance Dashboard</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; }
+        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; --orange: #ea580c; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
         #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); position: absolute; z-index: 100; }
@@ -75,6 +75,13 @@
         </div>
 
         <div class="kpi-grid">
+            <!-- 🔥 አዲሱ የደንበኞች ሂሳብ እይታ 🔥 -->
+            <div class="kpi-card" style="border-left-color: var(--orange); grid-column: 1 / -1;">
+                <span class="kpi-title" style="color: var(--orange);">🏦 System Liability (Total Users Balance)</span>
+                <p style="font-size: 11px; color: var(--text-gray); margin-top:-5px; margin-bottom:5px;">ይህ ብር ሲስተሙ ውስጥ ተጫዋቾች አካውንታቸው ላይ ያላቸው አጠቃላይ (Main + Play) ድምር ሂሳብ ነው።</p>
+                <h2 class="kpi-value" id="val-liability" style="color: var(--orange);">0</h2>
+            </div>
+            
             <div class="kpi-card" style="border-left-color: var(--faded-green);">
                 <span class="kpi-title">⬇️ Deposits</span>
                 <h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0</h2>
@@ -97,7 +104,7 @@
 
 <script>
     let pass = "";
-    let rawData = { txs: [], games: [], bonuses: [] };
+    let rawData = { txs: [], games: [], bonuses: [], users: [] };
     let currentFilter = 'daily';
 
     function login() { 
@@ -109,7 +116,7 @@
     function switchTab(period, btn) { 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
         btn.classList.add('active'); 
-        document.getElementById('page-title').innerText = btn.innerText + " Report";
+        document.getElementById('page-title').innerText = btn.innerText.replace('📅', '').replace('📆', '').replace('🗓️', '').replace('🏆', '').trim() + " Report";
         
         currentFilter = period;
         filterData(period);
@@ -119,7 +126,6 @@
         try {
             document.getElementById('page-title').innerText = "Loading...";
             
-            // fetch raw data from server
             let res = await fetch('/api/admin/finance-raw-data', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
@@ -133,13 +139,10 @@
                 document.getElementById('login-sec').style.display = 'none'; 
                 document.getElementById('dash-sec').style.display = 'flex';
                 
-                // Store raw data globally
                 rawData = data;
                 
-                // Set sidebar title visible
                 if(window.innerWidth > 768) document.getElementById('sidebar-title').style.display = 'block';
 
-                // Re-apply the current filter
                 filterData(currentFilter);
             }
         } catch(e) { alert("Network Error! Is server running?"); }
@@ -147,11 +150,11 @@
 
     function filterData(period) {
         let now = new Date();
-        let startTime = new Date(0); // Default to beginning of time for 'all'
+        let startTime = new Date(0); 
         let periodText = "Showing all time data.";
 
         if(period === 'daily') { 
-            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
+            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
             periodText = "Showing data for today.";
         } 
         else if(period === 'weekly') { 
@@ -160,33 +163,31 @@
             periodText = "Showing data for the last 7 days.";
         } 
         else if(period === 'monthly') { 
-            startTime = new Date(now.getFullYear(), now.getMonth(), 1); // 1st day of current month
+            startTime = new Date(now.getFullYear(), now.getMonth(), 1); 
             periodText = "Showing data for this month.";
         }
 
         document.getElementById('period-info').innerText = periodText;
 
-        // Filter arrays based on the startTime
         let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
         let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
-        // Note: Bonuses use 'expiresAt' or 'date' depending on how you saved them. I'll use expiresAt as fallback.
         let filteredBonus = rawData.bonuses.filter(b => {
             let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt);
             return bDate >= startTime;
         });
 
-        // Calculate Totals
         let tDep = filteredTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tWit = filteredTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
         
-        // Bonus calculation: amount * maxUsers (or currentClaims)
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-        // Net Profit
         let net = tProf - tBon;
 
-        // Update UI
+        // 🔥 አዲሱ የ Liability ካልኩሌሽን 🔥
+        let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
+        document.getElementById('val-liability').innerText = totalLiability.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
+
         document.getElementById('val-deposit').innerText = tDep.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-withdraw').innerText = tWit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('val-game-profit').innerText = tProf.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -195,16 +196,10 @@
         let netEl = document.getElementById('net-profit');
         netEl.innerText = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
         
-        // Color logic
-        if (net < 0) {
-            netEl.style.color = "var(--red)";
-        } else if (net > 0) {
-            netEl.style.color = "var(--faded-green)";
-        } else {
-            netEl.style.color = "white"; // If 0
-        }
+        if (net < 0) { netEl.style.color = "var(--red)"; } 
+        else if (net > 0) { netEl.style.color = "var(--faded-green)"; } 
+        else { netEl.style.color = "white"; }
         
-        // Update Page Title
         document.getElementById('page-title').innerText = period.charAt(0).toUpperCase() + period.slice(1) + " Profit Report";
     }
 </script>
