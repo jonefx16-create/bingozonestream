@@ -99,8 +99,7 @@ async function autoApprovePendingDeposits() {
 
                 if (bankRef && bankRef.length >= 6 && userMsg.includes(bankRef)) {
                     isMatch = true;
-                } 
-                else {
+                } else {
                     for (let uRef of userPossibleRefs) {
                         if (uRef.length >= 6 && bankMsg.includes(uRef)) {
                             isMatch = true; break;
@@ -108,17 +107,13 @@ async function autoApprovePendingDeposits() {
                     }
                 }
 
-                if (isMatch) {
-                    matchedSMS = sms; break; 
-                }
+                if (isMatch) { matchedSMS = sms; break; }
             }
 
             if (matchedSMS) {
-                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
 
@@ -141,10 +136,8 @@ async function autoApprovePendingDeposits() {
 
 async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
-    
     try {
         let msg = userInputSms.toUpperCase();
-        
         let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
         
         let stripped = msg.replace(/[^A-Z0-9]/gi, '');
@@ -156,7 +149,6 @@ async function isSmsAlreadyUsed(userInputSms) {
 
         for (let ref of refs) {
             if (ref.length < 6) continue;
-            
             let inBankSms = await BankSMS.findOne({ txRef: ref, isUsed: true });
             if (inBankSms) return true;
             
@@ -167,15 +159,12 @@ async function isSmsAlreadyUsed(userInputSms) {
             });
             if (inTx) return true;
         }
-    } catch (e) {
-        console.log("Duplicate Check Error:", e);
-    }
-    
+    } catch (e) { console.log("Duplicate Check Error:", e); }
     return false;
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK 
+// 🔵 IPHONE SMS WEBHOOK
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
@@ -188,10 +177,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         
         let txRef = "";
         let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
-        
-        if (matches && matches.length > 0) {
-            txRef = matches[0].toUpperCase(); 
-        }
+        if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
 
         if(amount > 0 && txRef.length >= 6) {
             const exists = await BankSMS.findOne({ txRef: txRef });
@@ -203,9 +189,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         } else {
             res.json({ success: false, msg: "Could not extract data" });
         }
-    } catch (e) { 
-        res.status(500).json({ error: "Server Error" }); 
-    }
+    } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
 // ==========================================
@@ -253,30 +237,26 @@ app.get('/api/getUser/:phone', async (req, res) => {
 });
 
 app.post('/api/request-tx', async (req, res) => {
-    try {
-        const { phone, type, amount, method, sms } = req.body; 
-        let user = await User.findOne({phone}); 
-        if(!user) return res.json({success: false, message: "User not found!"});
-        
-        if(type === 'withdraw') {
-            if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
-            user.mainBalance -= amount; await user.save();
-        }
-
-        if(type === 'deposit') {
-            let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) {
-                return res.json({ success: false, message: "❌ ይህ sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
-            }
-        }
-
-        await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
-        if(type === 'deposit') { await autoApprovePendingDeposits(); }
-        
-        res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
-    } catch(e) {
-        res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" });
+    const { phone, type, amount, method, sms } = req.body; 
+    let user = await User.findOne({phone}); if(!user) return res.json({success: false, message: "User not found!"});
+    
+    if(type === 'withdraw') {
+        if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
+        user.mainBalance -= amount; await user.save();
     }
+
+    if(type === 'deposit') {
+        let isUsed = await isSmsAlreadyUsed(sms);
+        if (isUsed) {
+            return res.json({ success: false, message: "❌ ይህ sms (TxRef) አገልግሎት ላይ ውሏል!" });
+        }
+    }
+
+    await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
+    
+    if(type === 'deposit') { await autoApprovePendingDeposits(); }
+    
+    res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
@@ -391,7 +371,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `✅ Promo Created! ${maxUsers} users can now claim ${amount} ETB in the Telegram Bot.` });
 });
 
-// 🔥 TELEGRAM BOT BROADCAST 🔥
+// 🔥 TELEGRAM BOT INTEGRATION 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
@@ -527,9 +507,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// ======================================================
-// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
-// ======================================================
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
@@ -539,7 +516,7 @@ const WELCOME_PHOTO_URL = "https://i.ibb.co/JjkpWv1X/bingo-habesha.jpg";
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
-        btn_play: "🎮 ጌም ይጫወቱ (PLAY BINGO)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ ማድረግ (Deposit)", btn_withdraw: "📤 ወጪ ማድረግ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ (Invite)", btn_promo: "🗣 አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ",
+        btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።", err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
         profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
@@ -595,22 +572,9 @@ const t = {
 };
 
 function getLang(user) { return user && user.language && t[user.language] ? t[user.language] : t['am']; }
-
-// 🔥 FIXED: Buttons matching exactly what the text sends!
 function getMainMenu(user) {
     let ln = getLang(user);
-    return { 
-        reply_markup: { 
-            keyboard: [ 
-                [{ text: ln.btn_play }], 
-                [{ text: ln.btn_profile }, { text: ln.btn_balance }], 
-                [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], 
-                [{ text: ln.btn_invite }, { text: ln.btn_promo }], 
-                [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }] 
-            ], 
-            resize_keyboard: true 
-        } 
-    };
+    return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promo }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }] ], resize_keyboard: true } };
 }
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
 
@@ -654,21 +618,20 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id; const text = msg.text;
     if(!text || text.startsWith('/start') || msg.contact) return;
     
-    // 🔥 Database call to guarantee session safety 🔥
     let user = await User.findOne({ telegramId: msg.from.id.toString() }); 
     let ln = getLang(user); 
     let state = botState[chatId] || { step: 'idle' };
 
-    // 🔥 HIGHLY ROBUST BUTTON MATCHING (.includes() makes it un-breakable) 🔥
-    if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back || text.includes('ተመለስ') || text.includes('Back') || text.includes('Duubatti') || text.includes('ንድሕሪት')) { 
+    // 🔥 HIGHLY ROBUST BUTTON MATCHING (FIXED COMMANDS) 🔥
+    if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back || text.includes('ተመለስ') || text.includes('Back') || text.includes('Duubatti') || text.includes('ንድሕሪት') || text === '/back') { 
         botState[chatId] = { step: 'idle' }; 
         return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
-    if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት')) {
+    if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, "🎮 BINGO HABESHA", { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
-    else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii')) { 
+    else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
         try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -678,19 +641,19 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, ln.balance_text(user), { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
-    else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text === t.or.btn_deposit || text === t.ti.btn_deposit || text.includes('ገቢ') || text.includes('Deposit') || text.includes('Galchuu') || text.includes('ኣእቱ')) {
+    else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text === t.or.btn_deposit || text === t.ti.btn_deposit || text.includes('ገቢ') || text.includes('Deposit') || text.includes('Galchuu') || text.includes('ኣእቱ') || text === '/deposit') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         state.step = 'idle';
         bot.sendMessage(chatId, ln.dep_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"dep_CBEBirr"}]] } });
     } 
-    else if (text === t.am.btn_withdraw || text === t.en.btn_withdraw || text === t.or.btn_withdraw || text === t.ti.btn_withdraw || text.includes('ወጪ') || text.includes('Withdraw') || text.includes('Baasuu') || text.includes('ኣውጽእ')) {
+    else if (text === t.am.btn_withdraw || text === t.en.btn_withdraw || text === t.or.btn_withdraw || text === t.ti.btn_withdraw || text.includes('ወጪ') || text.includes('Withdraw') || text.includes('Baasuu') || text.includes('ኣውጽእ') || text === '/withdraw') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         state.step = 'idle';
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
-    else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም')) { 
+    else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.phone}`), { parse_mode: "HTML", ...getMainMenu(user) }); 
+        bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.phone}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Beeksisi') || text.includes('ኣፋልጥ')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
@@ -700,7 +663,7 @@ bot.on('message', async (msg) => {
         if(!user) return; 
         bot.sendMessage(chatId, ln.guide_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     }
-    else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ')) { 
+    else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
         if(!user) return; 
         bot.sendMessage(chatId, ln.help_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
@@ -746,7 +709,6 @@ bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id; const data = query.data;
     let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
     
-    // Claim Promo
     if (data === 'claim_promo') {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
@@ -805,9 +767,6 @@ app.get('*', (req, res) => {
     }
 });
 
-// ==========================================
-// 🔥 የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
-// ==========================================
 setInterval(async () => {
     try {
         await autoApprovePendingDeposits();
