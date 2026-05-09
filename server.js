@@ -60,14 +60,22 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 }
+    adminPass: { type: String, default: "bingo1234" }, 
+    ticketPrice: { type: Number, default: 10 }, 
+    isGamePaused: { type: Boolean, default: false }, 
+    gameTimer: { type: Number, default: 40 },
+    depBonusPercent: { type: Number, default: 20 },
+    depBonusMinAmount: { type: Number, default: 200 },
+    depBonusTimeRestricted: { type: Boolean, default: false },
+    happyHourStart: { type: Number, default: 12 }, 
+    happyHourEnd: { type: Number, default: 16 }    
 }));
 
-let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40 };
+let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusPercent: 20, depBonusMinAmount: 200, depBonusTimeRestricted: false, happyHourStart: 12, happyHourEnd: 16 };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40 };
+    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, depBonusPercent: s.depBonusPercent || 20, depBonusMinAmount: s.depBonusMinAmount || 200, depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart || 12, happyHourEnd: s.happyHourEnd || 16 };
 }
 loadSettings();
 
@@ -75,6 +83,20 @@ const bankAccounts = {
     'TeleBirr': { num: '0933638022', name: 'Tsedey Abebe' },
     'CBEBirr': { num: '0988180301', name: 'Yohannes Aberham' }
 };
+
+function isHappyHour() {
+    let currentHour = new Date().getHours();
+    return currentHour >= GLOBAL_SETTINGS.happyHourStart && currentHour < GLOBAL_SETTINGS.happyHourEnd;
+}
+
+function calculateDepositBonus(amount) {
+    if (amount >= GLOBAL_SETTINGS.depBonusMinAmount) {
+        if (!GLOBAL_SETTINGS.depBonusTimeRestricted || isHappyHour()) {
+            return amount * (GLOBAL_SETTINGS.depBonusPercent / 100);
+        }
+    }
+    return 0;
+}
 
 // ==========================================
 // 🟢 AUTOMATIC DEPOSIT VERIFICATION ENGINE
@@ -87,8 +109,18 @@ async function autoApprovePendingDeposits() {
         for (let tx of pendingTxs) {
             let userMsg = (tx.smsText || "").toUpperCase();
             
-            let userPossibleRefs = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
-            userPossibleRefs.push(userMsg.replace(/\s+/g, ''));
+            // 🔥 የደንበኛውን ፅሁፍ ኮዶች በተሻለ መልኩ እንሰበስባለን (ስልክ ቁጥር እንዳይገባ)
+            let userPossibleRefs = [];
+            
+            // 1. ፊደል እና ቁጥር የተቀላቀለ ለ ቴሌብር
+            let mixMatches = userMsg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g);
+            if(mixMatches) userPossibleRefs.push(...mixMatches);
+            
+            // 2. ንፁህ ቁጥር ለ CBE Birr (ከ 8 ዲጂት በላይ፣ 09/07 የሚጀምሩ ስልክ ቁጥሮችን ያስወግዳል)
+            let numMatches = userMsg.match(/\b(?!(?:09|07|2519|2517)\d{8})\d{8,20}\b/g);
+            if(numMatches) userPossibleRefs.push(...numMatches);
+            
+            userPossibleRefs.push(userMsg.replace(/[^A-Z0-9]/g, ''));
 
             let matchedSMS = null;
 
@@ -106,7 +138,6 @@ async function autoApprovePendingDeposits() {
                         }
                     }
                 }
-
                 if (isMatch) { matchedSMS = sms; break; }
             }
 
@@ -114,7 +145,7 @@ async function autoApprovePendingDeposits() {
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
-                    let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
+                    let bonus = calculateDepositBonus(actualReceivedAmount); 
                     let totalCredit = actualReceivedAmount + bonus;
 
                     tx.amount = actualReceivedAmount; 
@@ -131,27 +162,43 @@ async function autoApprovePendingDeposits() {
                 }
             }
         }
-    } catch (err) { console.log("Auto-Approve Error:", err); }
+    } catch (err) {}
 }
 
+// 🛡️ የገባው SMS ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ (🔥 FIXED FOR CBE PURE NUMBERS 🔥)
 async function isSmsAlreadyUsed(userInputSms) {
     if (!userInputSms || typeof userInputSms !== 'string') return false;
     try {
         let msg = userInputSms.toUpperCase();
-        let refs = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g) || [];
-        
-        let stripped = msg.replace(/[^A-Z0-9]/gi, '');
-        if (stripped.length >= 6 && stripped.length <= 15 && !/^\d+$/.test(stripped) && !/^[A-Z]+$/.test(stripped)) {
-            if(!refs.includes(stripped)) refs.push(stripped);
+        let refs = [];
+
+        // 1. Transaction/Ref ID የሚለውን ፈልጎ ማውጣት (በጣም ትክክለኛው መንገድ)
+        let txMatch = msg.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#.-]+([A-Z0-9]{6,20})/i);
+        if (txMatch) refs.push(txMatch[1]);
+
+        // 2. ፊደል እና ቁጥር የተቀላቀለ ለ ቴሌብር
+        let mixMatches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,20}\b/g);
+        if (mixMatches) {
+            mixMatches.forEach(r => { if(!refs.includes(r)) refs.push(r); });
+        }
+
+        // 3. ንፁህ ቁጥር ለ CBE Birr (ከ 8 ዲጂት በላይ፣ 09/07 የሚጀምሩ ስልክ ቁጥሮችን ያስወግዳል)
+        let numMatches = msg.match(/\b(?!(?:09|07|2519|2517)\d{8})\d{8,20}\b/g);
+        if (numMatches) {
+            numMatches.forEach(r => { if(!refs.includes(r)) refs.push(r); });
         }
 
         if (refs.length === 0) return false; 
 
+        // የተገኙትን ኮዶች ቼክ ማድረግ
         for (let ref of refs) {
             if (ref.length < 6) continue;
+            
+            // 1. ዳታቤዝ ላይ BankSMS ውስጥ ጥቅም ላይ ውሎ እንደሆነ ማየት
             let inBankSms = await BankSMS.findOne({ txRef: ref, isUsed: true });
             if (inBankSms) return true;
             
+            // 2. ሌሎች ተጫዋቾች ጋር Pending ሪኩዌስት ላይ ካለ ማየት
             let inTx = await Transaction.findOne({ 
                 type: 'deposit', 
                 smsText: { $regex: ref, $options: "i" },
@@ -159,12 +206,14 @@ async function isSmsAlreadyUsed(userInputSms) {
             });
             if (inTx) return true;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log("Duplicate Check Error:", e);
+    }
     return false;
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK (🔥 CBE BIRR FIX 🔥)
+// 🔵 IPHONE SMS WEBHOOK
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
@@ -172,24 +221,15 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
 
-        // 🔥 FIX 1: ቴስት ለማድረግ እንዲመች 'sent' እና 'transfer' የሚለውን ፈቅደናል
-        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your account|sent|transfer/i.test(message);
-        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a valid bank message" });
-
-        // 🔥 FIX 2: ለ CBE Birr 'Br.' የሚለውን አፃፃፍ እንዲያነብ ተስተካክሏል
-        let amountMatch = message.match(/(\d+(?:\.\d{1,2})?)\s*(?:ETB|ብር|birr|Birr|Br\.?)/i) || 
-                          message.match(/(?:ETB|ብር|birr|Birr|Br\.?)\s*(\d+(?:\.\d{1,2})?)/i);
+        let amountMatch = message.match(/(?:ETB|ብር|birr|Birr)\s*([\d,]+(?:\.\d+)?)/i) || message.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር|birr|Birr)/i);
         let amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
         
-        // 3. የትራንዛክሽን ቁጥር (Ref/Txn ID) ማውጣት
         let txRef = "";
-        let matches = message.match(/\b(?![A-Za-z]+\b)(?!\d+\b)[A-Za-z0-9]{6,15}\b/g);
-        if (matches && matches.length > 0) {
-            txRef = matches[0].toUpperCase(); 
-        } else {
-            // Backup (Ref/Txn/ID) ፈልጎ ያወጣል
-            let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction)[\s:#.-]+([A-Z0-9]{6,20})/i);
-            if (explicitMatch) txRef = explicitMatch[1].toUpperCase();
+        let explicitMatch = message.match(/(?:Ref|ID|Txn|Transaction|ቁጥር|ማረጋገጫ)[\s:#-]+([A-Z0-9]{6,20})/i);
+        if (explicitMatch) { txRef = explicitMatch[1].toUpperCase(); } 
+        else {
+            let matches = message.match(/\b(?![A-Za-z]+\b)[A-Z0-9]{6,20}\b/g);
+            if (matches && matches.length > 0) txRef = matches[0].toUpperCase(); 
         }
 
         if(amount > 0 && txRef.length >= 6) {
@@ -262,9 +302,7 @@ app.post('/api/request-tx', async (req, res) => {
 
         if(type === 'deposit') {
             let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) {
-                return res.json({ success: false, message: "❌ ይህ sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
-            }
+            if (isUsed) return res.json({ success: false, message: "❌ ይህ sms (TxRef) አገልግሎት ላይ ውሏል!" });
         }
 
         await new Transaction({ phone, type, amount, method, smsText: sms || "" }).save();
@@ -277,10 +315,7 @@ app.post('/api/request-tx', async (req, res) => {
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
-    const txs = await Transaction.find({
-        phone: req.params.phone,
-        $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ]
-    }).sort({ date: -1 }).limit(30);
+    const txs = await Transaction.find({ phone: req.params.phone, $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ] }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
 });
 
@@ -297,7 +332,7 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 
 const auth = (req, res, next) => { 
-    const pass = req.body.password || req.body.adminPass;
+    const pass = req.body.adminPass || req.body.password;
     const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
@@ -320,7 +355,32 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
-    res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, settings: GLOBAL_SETTINGS });
+    
+    let today = new Date(); today.setHours(0,0,0,0);
+    let weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+    let firstDayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    let dGames = await GameHistory.find({ date: { $gte: today } });
+    let wGames = await GameHistory.find({ date: { $gte: weekAgo } });
+    let mGames = await GameHistory.find({ date: { $gte: firstDayMonth } });
+
+    let dSet = new Set(), wSet = new Set(), mSet = new Set();
+    dGames.forEach(g => g.playersData.forEach(p => dSet.add(p.phone)));
+    wGames.forEach(g => g.playersData.forEach(p => wSet.add(p.phone)));
+    mGames.forEach(g => g.playersData.forEach(p => mSet.add(p.phone)));
+
+    res.json({ 
+        totalUsers, 
+        livePlayers: Object.keys(activePlayers).length, 
+        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+        gameId, 
+        totalProfit, 
+        settings: GLOBAL_SETTINGS,
+        dailyActive: dSet.size,
+        weeklyActive: wSet.size,
+        monthlyActive: mSet.size,
+        currentJackpot: totalPrizePool 
+    });
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
@@ -329,7 +389,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
-            let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
+            let bonus = calculateDepositBonus(actualAmount); 
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
         }
@@ -346,14 +406,27 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.ticketPrice) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
+    
+    if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
+    if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
+    if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
+    if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
+    if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
+
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
-    const { oldPhone, newPhone, password, mainBalance, playBalance, won } = req.body;
-    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance, won });
-    res.json({ success: true });
+    try {
+        const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
+        let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) };
+        if (userPass) updateData.password = userPass;
+        await User.findOneAndUpdate({ phone: oldPhone }, updateData);
+        res.json({ success: true });
+    } catch(e) {
+        res.json({ success: false, message: "Error updating user." });
+    }
 });
 
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
@@ -377,51 +450,64 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
     else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
-    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
-    const { maxUsers, amount, minutes } = req.body;
-    let expires = new Date(Date.now() + (minutes * 60000));
-    await ActiveBonus.updateMany({}, { isActive: false });
-    await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
-    res.json({ success: true, message: `✅ Promo Created! ${maxUsers} users can now claim ${amount} ETB in the Telegram Bot.` });
+    try {
+        const { maxUsers, amount, minutes, message, photoUrl } = req.body;
+        if (!message) return res.json({ success: false, message: "No message entered." });
+
+        let expires = new Date(Date.now() + (minutes * 60000));
+        await ActiveBonus.updateMany({}, { isActive: false }); 
+        await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
+
+        const users = await User.find({ telegramId: { $ne: "" } });
+        let count = 0;
+        let keyboard = { inline_keyboard: [[{ text: `🎁 ${amount} ETB Claim Bonus`, callback_data: "claim_promo" }]] };
+        
+        for (let u of users) {
+            try {
+                if (photoUrl && photoUrl.trim() !== "") {
+                    await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML", reply_markup: keyboard });
+                } else { 
+                    await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML", reply_markup: keyboard }); 
+                }
+                count++;
+            } catch(e) {} 
+        }
+        res.json({ success: true, message: `✅ Promo Created & Broadcasted to ${count} users successfully!` });
+    } catch(e) {
+        res.status(500).json({ success: false, message: "Error broadcasting promo." });
+    }
 });
 
-// 🔥 TELEGRAM BOT INTEGRATION 🔥
-const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-const bot = new TelegramBot(telegramToken, { polling: false }); 
-const WEB_URL = "https://bingohabesha.onrender.com";
-let lastBroadcasts = []; 
+app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
+    try {
+        let activeBonus = await ActiveBonus.findOne().sort({ date: -1 });
+        if(!activeBonus) return res.json({ success: false, message: "No bonus history found." });
+        res.json({ success: true, claimedBy: activeBonus.claimedBy, amount: activeBonus.amount, max: activeBonus.maxUsers });
+    } catch(e) { res.json({ success: false }); }
+});
 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
         const { message, photoUrl } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
         const users = await User.find({ telegramId: { $ne: "" } });
-        lastBroadcasts = []; let count = 0;
+        let count = 0;
         for (let u of users) {
             try {
-                let sentMsg;
                 if (photoUrl && photoUrl.startsWith('data:image')) {
                     let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
-                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
-                } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
-                lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
+                    await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
+                } else if (photoUrl && photoUrl.startsWith('http')) { await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                } else { await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
+                count++;
             } catch(e) {} 
         }
         res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
     } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
-});
-
-app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
-    try {
-        if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." });
-        let count = 0;
-        for (let b of lastBroadcasts) { try { await bot.deleteMessage(b.chatId, b.messageId); count++; } catch(e) {} }
-        lastBroadcasts = []; res.json({ success: true, message: `🗑️ Deleted ${count} messages.` });
-    } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
 });
 
 // ==========================================
@@ -524,6 +610,13 @@ io.on('connection', (socket) => {
     });
 });
 
+// ======================================================
+// ✈️ TELEGRAM INTERACTIVE BOT INTEGRATION
+// ======================================================
+const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+const bot = new TelegramBot(telegramToken, { polling: false }); 
+const WEB_URL = "https://bingohabesha.onrender.com";
+
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
@@ -569,22 +662,6 @@ const t = {
         wit_info: (method) => `🏦 Bank: <b>${method}</b>\n\nEnter the <b>Account or Phone number</b>:`,
         invalid_amt: "❌ Invalid Amount. Min 50 ETB:", enter_sms: (amt) => `✅ Amount: <b>${amt} ETB</b>\n\nPaste exact <b>Bank SMS</b>:`,
         dep_success: "✅ <b>Deposit Request Sent!</b>", enter_wit_amt: (acc) => `✅ Account: <b>${acc}</b>\n\nEnter withdrawal amount (Min 50 ETB):`, insufficient: "❌ Insufficient Main Balance!", wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\nAmount: ${amt} ETB\nTo: ${acc}`
-    },
-    or: {
-        welcome: "🎉 <b>Baga nagaan dhuftan!</b> 🎉", btn_play: "🎮 Tapadhu", btn_profile: "👤 Pirofaayilii", btn_balance: "💰 Herrega", btn_deposit: "📥 Galchuu", btn_withdraw: "📤 Baasuu", btn_invite: "🔗 Afeeri", btn_promo: "🗣 Beeksisi", btn_guide: "📖 Qajeelfama", btn_help: "🆘 Gargaarsa", btn_rules: "📜 Seera", btn_lang: "🌐 Afaan", btn_bonus: "🎁 Boonasii", btn_back: "🔙 Duubatti", share_contact: "📱 Lakkoofsa ergi", err_reg_first: "Dura /start tuqi.", err_cancel: "❌ Haqameera.",
-        profile_text: (u) => `👤 <b>Pirofaayilii</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n🔑 <b>Iccitii:</b> <code>${u.password}</code>\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
-        balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Tapha: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
-        dep_msg: "🏦 <b>Baankii filadhu:</b>", wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>", invite_msg: (l) => `🔗 <b>Afeeri</b>\n\nLachuun keessan 10 ETB argattu!\n\n👇 Liinkii Kee:\n${l}`, promo_msg: "🗣 admin dubbisi: @bingohabesha", guide_msg: `📖 <b>Akkaataa Tapha:</b> Sarara guutu BINGO!`, help_msg: "🆘 @bingohabesha", rules_msg: `📜 <b>Seera:</b> Telebirr gara Telebirr QOFA. CBEBirr gara CBEBirr QOFA.`, choose_lang: "Afaan filadhu:", lang_set: "✅ Jijjiirameera!", warn_telebirr: "⚠️ Telebirr gara Telebirr QOFA!\n\n", warn_cbebirr: "⚠️ CBEBirr gara CBEBirr QOFA!\n\n",
-        bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Qarshii ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\n<b>Hamma qarshii</b> asitti barreessaa (Fkn: 100):`,
-        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa barreessaa:`, invalid_amt: "❌ Yoo xiqqaate 50 ETB:", enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma <b>SMS Baankii</b> asitti ergaa:`, dep_success: "✅ <b>Ergameera!</b>", enter_wit_amt: (acc) => `✅ Herrega: <b>${acc}</b>\n\nHamma galchaa (Min 50):`, insufficient: "❌ Qarshiin ga'aan hin jiru!", wit_success: (amt, acc) => `✅ <b>Ergameera!</b>`
-    },
-    ti: {
-        welcome: "🎉 <b>እንቋዕ ብደሓን መጻእኩም!</b> 🎉", btn_play: "🎮 ጻወት", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሕሳብ", btn_deposit: "📥 ኣእቱ", btn_withdraw: "📤 ኣውጽእ", btn_invite: "🔗 ዕደም", btn_promo: "🗣 ኣፋልጥ", btn_guide: "📖 መምርሒ", btn_help: "🆘 ሓገዝ", btn_rules: "📜 ሕግታት", btn_lang: "🌐 ቋንቋ", btn_bonus: "🎁 ቦነስ", btn_back: "🔙 ንድሕሪት", share_contact: "📱 ቁጽሪ ኣካፍል", err_reg_first: "ቅድም /start በሉ።", err_cancel: "❌ ተቋሪጹ።",
-        profile_text: (u) => `👤 <b>ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልኪ:</b> ${u.phone}\n🔑 <b>መሕለፊ ቃል:</b> <code>${u.password}</code>\n\n💰 <b>መጻወቲ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ቀንዲ:</b> ${u.mainBalance.toFixed(2)} ETB`,
-        balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
-        dep_msg: "🏦 <b>ባንኪ ምረጽ?</b>", wit_msg: "🏦 <b>ባንኪ ምረጽ?</b>", invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nንስኹም 10 ብር፡ ንሱ ድማ 10 ብር ክትረኽቡ ኢኹም!\n\n👇 ሊንክ:\n${l}`, promo_msg: "🗣 ንኣድሚን ኣዘራርቡ: @bingohabesha", guide_msg: `📖 <b>መምርሒ:</b> ምሉእ መስመር እንተሰሪሖም BINGO!`, help_msg: "🆘 @bingohabesha", rules_msg: `📜 <b>ሕግታት:</b> ካብ ቴሌብር ናብ ቴሌብር ጥራይ። ካብ CBEBirr ናብ CBEBirr ጥራይ።`, choose_lang: "ቋንቋ ምረጹ:", lang_set: "✅ ተቐይሩ ኣሎ!", warn_telebirr: "⚠️ ካብ ቴሌብር ናብ ቴሌብር ጥራይ!\n\n", warn_cbebirr: "⚠️ ካብ CBEBirr ናብ CBEBirr ጥራይ!\n\n",
-        bank_info: (method, warning, name, num) => `🏦 ባንኪ: <b>${method}</b>\n\n${warning}ገንዘብ ናብዚ ኣእትዉ:\n👤 ስም: <b>${name}</b>\n👉 ቁጽሪ: <b>${num}</b>\n\n<b>መጠን ገንዘብ</b> ኣብዚ ጽሓፉ (ንኣብነት: 100):`,
-        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\n<b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`, invalid_amt: "❌ እንተወሓደ 50 ብር:", enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nሕጂ <b>ትኽክለኛ SMS</b> ስደዱ፦`, dep_success: "✅ <b>ተላኢኹ!</b>", enter_wit_amt: (acc) => `✅ ኣካውንት: <b>${acc}</b>\n\nመጠን ኣእትዉ (Min 50):`, insufficient: "❌ እኹል ገንዘብ የለን!", wit_success: (amt, acc) => `✅ <b>ተላኢኹ!</b>`
     }
 };
 
@@ -639,52 +716,51 @@ bot.on('message', async (msg) => {
     let ln = getLang(user); 
     let state = botState[chatId] || { step: 'idle' };
 
-    // 🔥 BUTTON MATCHING 🔥
-    if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back || text.includes('ተመለስ') || text.includes('Back') || text.includes('Duubatti') || text.includes('ንድሕሪት') || text === '/back') { 
+    if (text === t.am.btn_back || text === t.en.btn_back || text.includes('ተመለስ') || text.includes('Back') || text === '/back') { 
         botState[chatId] = { step: 'idle' }; 
         return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
-    if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
+    if (text === t.am.btn_play || text === t.en.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text === '/play') {
         bot.sendMessage(chatId, "🎮 BINGO HABESHA", { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
-    else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
+    else if (text === t.am.btn_profile || text === t.en.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
         try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
         catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
     }
-    else if (text === t.am.btn_balance || text === t.en.btn_balance || text === t.or.btn_balance || text === t.ti.btn_balance || text.includes('ሂሳብ') || text.includes('Balance') || text.includes('Herrega') || text.includes('ሕሳብ')) { 
+    else if (text === t.am.btn_balance || text === t.en.btn_balance || text.includes('ሂሳብ') || text.includes('Balance')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, ln.balance_text(user), { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
-    else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text === t.or.btn_deposit || text === t.ti.btn_deposit || text.includes('ገቢ') || text.includes('Deposit') || text.includes('Galchuu') || text.includes('ኣእቱ') || text === '/deposit') {
+    else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text.includes('ገቢ') || text.includes('Deposit') || text === '/deposit') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         state.step = 'idle';
         bot.sendMessage(chatId, ln.dep_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"dep_CBEBirr"}]] } });
     } 
-    else if (text === t.am.btn_withdraw || text === t.en.btn_withdraw || text === t.or.btn_withdraw || text === t.ti.btn_withdraw || text.includes('ወጪ') || text.includes('Withdraw') || text.includes('Baasuu') || text.includes('ኣውጽእ') || text === '/withdraw') {
+    else if (text === t.am.btn_withdraw || text === t.en.btn_withdraw || text.includes('ወጪ') || text.includes('Withdraw') || text === '/withdraw') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         state.step = 'idle';
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
-    else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
+    else if (text === t.am.btn_invite || text === t.en.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.phone}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
-    else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Beeksisi') || text.includes('ኣፋልጥ')) { 
+    else if (text === t.am.btn_promo || text === t.en.btn_promo || text.includes('አስተዋውቅ') || text.includes('Promote')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, ln.promo_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
-    else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
+    else if (text === t.am.btn_guide || text === t.en.btn_guide || text.includes('መመሪያ') || text.includes('Guide')) { 
         if(!user) return; 
         bot.sendMessage(chatId, ln.guide_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     }
-    else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
+    else if (text === t.am.btn_help || text === t.en.btn_help || text.includes('እርዳታ') || text.includes('Help') || text === '/help') { 
         if(!user) return; 
         bot.sendMessage(chatId, ln.help_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
-    else if (text === t.am.btn_rules || text === t.en.btn_rules || text === t.or.btn_rules || text === t.ti.btn_rules || text.includes('ደንቦች') || text.includes('Rules') || text.includes('Seera') || text.includes('ሕግታት')) { 
+    else if (text === t.am.btn_rules || text === t.en.btn_rules || text.includes('ደንቦች') || text.includes('Rules')) { 
         if(!user) return; 
         bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
@@ -750,7 +826,6 @@ bot.on('callback_query', async (query) => {
 const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-    
     if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
     res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
@@ -785,9 +860,7 @@ app.get('*', (req, res) => {
 });
 
 setInterval(async () => {
-    try {
-        await autoApprovePendingDeposits();
-    } catch (error) {}
+    try { await autoApprovePendingDeposits(); } catch (error) {}
 }, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
