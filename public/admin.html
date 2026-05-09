@@ -431,7 +431,6 @@
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
             
-            // 🔥 FIXED JACKPOT HERE 🔥
             document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0).toFixed(2) + " ETB";
             
             document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
@@ -494,7 +493,6 @@
 
     function populatePendingDeposits() {
         let deps = allTransactions.filter(t => t.type === 'deposit' && t.status === 'Pending');
-        // 🔥 UPDATE BADGES
         let bDep = document.getElementById('badge-dep');
         if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
 
@@ -509,7 +507,6 @@
 
     function populatePendingWithdraws() {
         let wits = allTransactions.filter(t => t.type === 'withdraw' && t.status === 'Pending');
-        // 🔥 UPDATE BADGES
         let bWit = document.getElementById('badge-wit');
         if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
 
@@ -550,6 +547,29 @@
                 alert(data.message || "ምንም አይነት የተለቀቀ ቦነስ የለም።");
             }
         } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ"; }
+    }
+
+    // 🔥 Added Single Bonus function 🔥
+    async function sendSingleBonus() {
+        let phone = document.getElementById('sb-phone').value;
+        let amt = document.getElementById('sb-amt').value;
+        if(!phone || !amt) return alert("Please fill both phone and amount!");
+        let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})});
+        let data = await res.json();
+        alert(data.message);
+        if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; }
+    }
+
+    // 🔥 Added Bulk Bonus function 🔥
+    async function sendBulkBonus() {
+        let phones = document.getElementById('b-phones').value;
+        let amt = document.getElementById('mb-amt-bulk').value;
+        if(!phones || !amt) return alert("Please fill phones and amount!");
+        let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim());
+        let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})});
+        let data = await res.json();
+        alert(data.message);
+        if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; }
     }
 
     async function createClaimBonus() { 
