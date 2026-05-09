@@ -42,7 +42,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""},
-    txRef: { type: String, default: "" } // አዲስ - ኮዱን ለብቻው ለማስቀመጥ
+    txRef: { type: String, default: "" } 
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -63,14 +63,22 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 }
+    adminPass: { type: String, default: "bingo1234" }, 
+    ticketPrice: { type: Number, default: 10 }, 
+    isGamePaused: { type: Boolean, default: false }, 
+    gameTimer: { type: Number, default: 40 },
+    depBonusPercent: { type: Number, default: 20 },
+    depBonusMinAmount: { type: Number, default: 200 },
+    depBonusTimeRestricted: { type: Boolean, default: false },
+    happyHourStart: { type: Number, default: 12 }, 
+    happyHourEnd: { type: Number, default: 16 }    
 }));
 
-let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40 };
+let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusPercent: 20, depBonusMinAmount: 200, depBonusTimeRestricted: false, happyHourStart: 12, happyHourEnd: 16 };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40 };
+    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, depBonusPercent: s.depBonusPercent || 20, depBonusMinAmount: s.depBonusMinAmount || 200, depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart || 12, happyHourEnd: s.happyHourEnd || 16 };
 }
 loadSettings();
 
@@ -83,27 +91,18 @@ const bankAccounts = {
 // 🛡️ THE GOLDEN EXTRACTOR ENGINE 
 // ==========================================
 
-// 1. የ Transaction Number አውጪ (ለ CBE እና Telebirr)
 function getTxRef(text) {
     if (!text || typeof text !== 'string') return null;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
-
-    // ሀ. የ CBE Birr ስፔሻል ኮድ (FT በመቀጠል ቁጥሮች/ፊደላት)
     let ftMatch = msg.match(/\b(FT[0-9A-Z]{5,15})\b/);
     if (ftMatch) return ftMatch[1];
-
-    // ለ. Telebirr እና መደበኛ ኮዶች (ከ 6 እስከ 15 ፊደልና ቁጥር የተቀላቀለ)
     let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g);
     if (matches && matches.length > 0) return matches[0];
-
-    // ሐ. ደንበኛው ኮዱን ብቻ ኮፒ ፔስት ካደረገ
     let exact = msg.replace(/\s+/g, '');
     if (exact.length >= 6 && exact.length <= 15 && !/^\d+$/.test(exact)) return exact;
-
     return null;
 }
 
-// 2. የባንክ ትክክለኛ Amount አውጪ
 function getBankAmount(text) {
     if (!text || typeof text !== 'string') return 0;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
@@ -112,18 +111,28 @@ function getBankAmount(text) {
     return 0;
 }
 
-// 🛡️ የገባው ኮድ ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ
 async function isSmsAlreadyUsed(userInputSms) {
     let txRef = getTxRef(userInputSms);
     if (!txRef) return false; 
-
     let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
     if (inBankSms) return true;
-
     let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
     if (inTxRef) return true;
-
     return false;
+}
+
+function isHappyHour() {
+    let currentHour = new Date().getHours();
+    return currentHour >= GLOBAL_SETTINGS.happyHourStart && currentHour < GLOBAL_SETTINGS.happyHourEnd;
+}
+
+function calculateDepositBonus(amount) {
+    if (amount >= GLOBAL_SETTINGS.depBonusMinAmount) {
+        if (!GLOBAL_SETTINGS.depBonusTimeRestricted || isHappyHour()) {
+            return amount * (GLOBAL_SETTINGS.depBonusPercent / 100);
+        }
+    }
+    return 0;
 }
 
 // ==========================================
@@ -136,8 +145,6 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             if (!tx.txRef) continue; 
-
-            // ማመሳሰል (Matching) በ Transaction Number ብቻ
             let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
 
             if (matchedSMS) {
@@ -145,7 +152,7 @@ async function autoApprovePendingDeposits() {
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount;
-                    let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
+                    let bonus = calculateDepositBonus(actualReceivedAmount); 
                     let totalCredit = actualReceivedAmount + bonus;
 
                     tx.amount = actualReceivedAmount; 
@@ -200,10 +207,20 @@ app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
+        
+        // 🔥 FIXED: Referral saving logic strictly handled here 🔥
         let actualRef = "";
-        if (refCode) { 
-            let ref = await User.findOne({ phone: refCode.trim() }); 
-            if (ref) { ref.playBalance += 10; await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; } 
+        if (refCode && refCode.trim() !== "") { 
+            let cleanRef = refCode.toString().replace(/[^0-9]/g, '');
+            if(cleanRef.startsWith('251')) cleanRef = '0' + cleanRef.substring(3);
+            
+            let ref = await User.findOne({ phone: cleanRef }); 
+            if (ref) { 
+                ref.playBalance += 10; 
+                await ref.save(); 
+                io.emit('balance_updated', ref.phone); 
+                actualRef = ref.phone; 
+            } 
         }
         await new User({ phone, name, password, referredBy: actualRef, playBalance: 10 }).save();
         res.json({ success: true });
@@ -251,24 +268,17 @@ app.post('/api/request-tx', async (req, res) => {
 
         if(type === 'deposit') {
             let txRef = getTxRef(sms);
-            
-            if (!txRef) {
-                return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" });
-            }
+            if (!txRef) { return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" }); }
 
             let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) {
-                return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
-            }
+            if (isUsed) { return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" }); }
 
             await new Transaction({ phone, type, amount: amount, method, smsText: sms, txRef: txRef }).save();
             await autoApprovePendingDeposits();
         }
         
         res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
-    } catch(e) {
-        res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" });
-    }
+    } catch(e) { res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" }); }
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
@@ -288,8 +298,11 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// ==========================================
+// 🔴 ADMIN & FINANCE APIs
+// ==========================================
 const auth = (req, res, next) => { 
-    const pass = req.body.password || req.body.adminPass;
+    const pass = req.body.adminPass || req.body.password;
     const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
     if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
@@ -304,7 +317,7 @@ app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
         let games = await GameHistory.find();
         let bonuses = await ActiveBonus.find();
-        let users = await User.find({}, 'mainBalance playBalance'); // Added users for Liability Calculation
+        let users = await User.find({}, 'mainBalance playBalance'); 
         res.json({ success: true, txs, games, bonuses, users });
     } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -314,6 +327,19 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
     
+    let today = new Date(); today.setHours(0,0,0,0);
+    let weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+    let firstDayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    let dGames = await GameHistory.find({ date: { $gte: today } });
+    let wGames = await GameHistory.find({ date: { $gte: weekAgo } });
+    let mGames = await GameHistory.find({ date: { $gte: firstDayMonth } });
+
+    let dSet = new Set(), wSet = new Set(), mSet = new Set();
+    dGames.forEach(g => g.playersData.forEach(p => dSet.add(p.phone)));
+    wGames.forEach(g => g.playersData.forEach(p => wSet.add(p.phone)));
+    mGames.forEach(g => g.playersData.forEach(p => mSet.add(p.phone)));
+
     res.json({ 
         totalUsers, 
         livePlayers: Object.keys(activePlayers).length, 
@@ -321,7 +347,10 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         gameId, 
         totalProfit, 
         currentJackpot: totalPrizePool, 
-        settings: GLOBAL_SETTINGS 
+        settings: GLOBAL_SETTINGS,
+        dailyActive: dSet.size,
+        weeklyActive: wSet.size,
+        monthlyActive: mSet.size
     });
 });
 
@@ -331,7 +360,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
-            let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
+            let bonus = calculateDepositBonus(actualAmount); 
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
         }
@@ -348,25 +377,32 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.ticketPrice) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
+    
+    if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
+    if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
+    if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
+    if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
+    if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
+
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
-    const { oldPhone, newPhone, password, mainBalance, playBalance, won } = req.body;
-    await User.findOneAndUpdate({ phone: oldPhone }, { phone: newPhone, password, mainBalance, playBalance, won });
-    res.json({ success: true });
+    try {
+        const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
+        let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) };
+        if (userPass) updateData.password = userPass;
+        await User.findOneAndUpdate({ phone: oldPhone }, updateData);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false, message: "Error updating user." }); }
 });
 
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
 app.post('/api/admin/factory-reset', auth, async (req, res) => {
-    await User.deleteMany({});
-    await Transaction.deleteMany({});
-    await GameHistory.deleteMany({});
-    await BankSMS.deleteMany({});
-    await ActiveBonus.deleteMany({});
+    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({});
     res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
 });
 
@@ -379,7 +415,7 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
     else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
-    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
 app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
@@ -398,14 +434,10 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         await ActiveBonus.updateMany({}, { isActive: false });
         await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
         
-        // ቴሌግራም ላይ ማሰራጨት
         if (message) {
             const users = await User.find({ telegramId: { $ne: "" } });
             lastBroadcasts = []; 
-            const opts = {
-                parse_mode: "HTML",
-                reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] }
-            };
+            const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
             for (let u of users) {
                 try {
@@ -416,17 +448,13 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
                         sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
                     } else if (photoUrl && photoUrl.startsWith('http')) { 
                         sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
-                    } else { 
-                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
-                    }
+                    } else { sentMsg = await bot.sendMessage(u.telegramId, message, opts); }
                     lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
                 } catch(e) {} 
             }
         }
         res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram Bot!` });
-    } catch (e) {
-        res.status(500).json({ success: false, message: "Error processing promo." });
-    }
+    } catch (e) { res.status(500).json({ success: false, message: "Error processing promo." }); }
 });
 
 // 🔥 TELEGRAM BOT INTEGRATION 🔥
@@ -517,13 +545,18 @@ function resetToWaiting() {
 
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId }); return; }
+    
+    // 🔥 FIXED: 00 SECOND BUG (NOW PROPERLY TRANSITIONS TO PLAYING) 🔥
     if (gameState === "WAITING") {
         gameClock--;
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
-            if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
+            // ቢያንስ 1 ሰው (ማለትም Object keys ከ 0 በላይ ከሆነ) ጌሙ ይጀምራል
+            if(Object.keys(activePlayers).length > 0) { 
+                gameState = "PLAYING"; 
+                gameClock = 3; 
+                currentDrawSequence = generateRiggedDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
@@ -593,7 +626,7 @@ const t = {
         enter_wit_amt: (acc) => `✅ አካውንት: <b>${acc}</b>\n\nማውጣት የሚፈልጉትን መጠን ያስገቡ (ቢያንስ 50 ብር):`, insufficient: "❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!", wit_success: (amt, acc) => `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${amt} ETB\nወደ: ${acc}\n\nበቅርቡ ይላካል!`
     },
     en: {
-        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
+        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.",
         btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back",
         share_contact: "📱 Share Contact", err_reg_first: "Register first by sending /start.", err_cancel: "❌ Action cancelled.",
         profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n🔑 <b>Password:</b> <code>${u.password}</code>\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
@@ -656,7 +689,20 @@ bot.on('contact', async (msg) => {
     try {
         if (!user) {
             let actualRef = "";
-            if (state.refCode) { let refUser = await User.findOne({ phone: state.refCode }); if (refUser) { refUser.playBalance += 10; await refUser.save(); io.emit('balance_updated', refUser.phone); actualRef = refUser.phone; } }
+            
+            // 🔥 FIXED: REFERRAL LOGIC FOR BOT REGISTRATION 🔥
+            if (state.refCode) { 
+                let cleanRef = state.refCode.toString().replace(/[^0-9]/g, '');
+                if(cleanRef.startsWith('251')) cleanRef = '0' + cleanRef.substring(3);
+                let refUser = await User.findOne({ phone: cleanRef }); 
+                if (refUser) { 
+                    refUser.playBalance += 10; 
+                    await refUser.save(); 
+                    io.emit('balance_updated', refUser.phone); 
+                    actualRef = refUser.phone; 
+                } 
+            }
+
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: 10, language: 'am' });
             
             const cap = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
@@ -669,7 +715,7 @@ bot.on('contact', async (msg) => {
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
         }
         botState[chatId] = { step: 'idle' };
-    } catch (e) { bot.sendMessage(chatId, "❌ ይቅርታ፣ ችግር አጋጥሟል።"); }
+    } catch (e) {}
 });
 
 bot.on('message', async (msg) => {
@@ -737,30 +783,12 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
             let txRef = getTxRef(text);
-            
-            // 1. ኮዱን ቼክ ማድረግ
-            if (!txRef) {
-                return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
-            }
-
-            // 2. የድግግሞሽ (Duplicate) ቼክ
+            if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም።", { parse_mode: "HTML", ...getMainMenu(user) }); }
             let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) {
-                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
-            }
+            if (isUsed) { return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); }
 
-            // እዚህ ጋር ደንበኛው የፃፈው Temporary Amount ገብቶ ይቆያል። (በኋላ ባንኩ ሲመጣ Amount Update ይደረጋል)
-            await new Transaction({ 
-                phone: user.phone, 
-                type: 'deposit', 
-                amount: state.amount, 
-                method: state.method, 
-                smsText: text, 
-                txRef: txRef // አዲሱ አሰራር - ኮዱ ለብቻው ተቀምጧል
-            }).save(); 
-
+            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
-            
             await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
@@ -809,7 +837,6 @@ bot.on('callback_query', async (query) => {
 const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-    
     if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
     res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
@@ -830,10 +857,11 @@ app.get('*', (req, res) => {
     if (fs.existsSync(target)) {
         let html = fs.readFileSync(target, 'utf8');
         if (GLOBAL_SETTINGS.isGamePaused) {
-            let overlay = `<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:20px;box-sizing:border-box;">
-                <h1 style="color:#ea580c;font-size:45px;margin-bottom:10px;font-family:sans-serif;">⚠️ ጥገና ላይ ነን!</h1>
-                <p style="font-size:20px;color:#cbd5e1;font-family:sans-serif;margin-top:0;">(MAINTENANCE)</p>
-                <p style="font-size:16px;color:#94a3b8;max-width:500px;line-height:1.6;font-family:sans-serif;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
+            // 🔥 FIXED: Added blur effect directly to the injected overlay 🔥
+            let overlay = `<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(10,15,24,0.85);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:20px;box-sizing:border-box;">
+                <h1 style="color:#4ade80;font-size:50px;margin-bottom:10px;text-shadow:0 0 20px rgba(74,222,128,0.6);">⚠️ ጥገና ላይ ነን!</h1>
+                <p style="font-size:20px;color:#cbd5e1;font-weight:bold;margin-top:0;">(MAINTENANCE BREAK)</p>
+                <p style="font-size:15px;color:#94a3b8;max-width:400px;line-height:1.6;margin-top:15px;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
             </div>`;
             html = html.replace('<body>', '<body>' + overlay);
         }
@@ -843,15 +871,7 @@ app.get('*', (req, res) => {
     }
 });
 
-// ==========================================
-// 🔥 የጀርባ አውቶማቲክ ቼክ (CRON JOB) 🔥
-// ==========================================
-setInterval(async () => {
-    try {
-        await autoApprovePendingDeposits();
-    } catch (error) {}
-}, 30000); 
-
+setInterval(async () => { try { await autoApprovePendingDeposits(); } catch (error) {} }, 30000); 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
