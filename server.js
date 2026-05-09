@@ -299,7 +299,6 @@ app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find(
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
 
-// 🔥 NEW FEATURE FOR ADMIN / FINANCE API
 app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
@@ -321,7 +320,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
         gameId, 
         totalProfit, 
-        currentJackpot: totalPrizePool, // 🔥 ADDED THIS FOR ADMIN JACKPOT FIX 🔥
+        currentJackpot: totalPrizePool, 
         settings: GLOBAL_SETTINGS 
     });
 });
@@ -383,12 +382,51 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
 });
 
+app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
+    try {
+        let activeBonus = await ActiveBonus.findOne({ isActive: true });
+        if(!activeBonus) return res.json({ success: false, message: "No active promo." });
+        res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// 🔥 PROMO BONUS & BROADCAST WITH INLINE BUTTON 🔥
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
-    const { maxUsers, amount, minutes } = req.body;
-    let expires = new Date(Date.now() + (minutes * 60000));
-    await ActiveBonus.updateMany({}, { isActive: false });
-    await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
-    res.json({ success: true, message: `✅ Promo Created! ${maxUsers} users can now claim ${amount} ETB in the Telegram Bot.` });
+    try {
+        const { maxUsers, amount, minutes, message, photoUrl } = req.body;
+        let expires = new Date(Date.now() + (minutes * 60000));
+        await ActiveBonus.updateMany({}, { isActive: false });
+        await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
+        
+        // ቴሌግራም ላይ ማሰራጨት
+        if (message) {
+            const users = await User.find({ telegramId: { $ne: "" } });
+            lastBroadcasts = []; 
+            const opts = {
+                parse_mode: "HTML",
+                reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] }
+            };
+
+            for (let u of users) {
+                try {
+                    let sentMsg;
+                    if (photoUrl && photoUrl.startsWith('data:image')) {
+                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                        let photoBuffer = Buffer.from(base64Data, 'base64');
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
+                    } else if (photoUrl && photoUrl.startsWith('http')) { 
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
+                    } else { 
+                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                    }
+                    lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
+                } catch(e) {} 
+            }
+        }
+        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram Bot!` });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Error processing promo." });
+    }
 });
 
 // 🔥 TELEGRAM BOT INTEGRATION 🔥
