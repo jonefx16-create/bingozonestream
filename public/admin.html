@@ -20,10 +20,13 @@
         
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s ease; z-index: 1000;}
         .sidebar-header { text-align: center; color: var(--faded-green); font-size: 18px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;}
-        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
+        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
         .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
         .close-sidebar { display: none; background: transparent; border: none; color: white; font-size: 24px; position: absolute; top: 10px; right: 15px; cursor: pointer; }
+
+        .badge-alert { background: var(--red); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: none; font-weight: 900; box-shadow: 0 0 8px var(--red); animation: pulseAlert 1.5s infinite; }
+        @keyframes pulseAlert { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
@@ -102,19 +105,19 @@
     <div class="sidebar" id="sidebar">
         <button class="close-sidebar" onclick="toggleSidebar()">✖</button>
         <div class="sidebar-header">BINGO HABESHA<br><span style="font-size:12px; color:var(--text-gray);">Admin Panel</span></div>
-        <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();">📊 Live & Analytics</button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)">📥 Pending Deposits</button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)">📤 Pending Withdraws</button>
-        <button class="nav-btn" onclick="switchTab('tab-users', this)">👥 Users & Passwords</button>
-        <button class="nav-btn" onclick="switchTab('tab-history', this)">🏆 Winners History</button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 Financial History</button>
-        <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
-        <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
-        <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Direct Bonus</button>
-        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);">💰 Deposit Auto-Bonus</button>
-        <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
-        <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
-        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Control</button>
+        <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();"><div>📊 Live & Analytics</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
+        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
+        <button class="nav-btn" onclick="switchTab('tab-users', this)"><div>👥 Users & Passwords</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-history', this)"><div>🏆 Winners History</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-history-tx', this)"><div>💸 Financial History</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-referral', this)"><div>🤝 Invite & Earn</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit Auto-Bonus</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
     </div>
 
     <div class="main-content">
@@ -128,7 +131,6 @@
 
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <!-- 🔥 JACKPOT AND TOTAL USERS AT THE TOP OF LIVE PAGE 🔥 -->
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold);"><h3>💰 Current Jackpot</h3><h2 style="color: var(--gold);" id="stat-current-jackpot">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3><h2 style="color: var(--blue);" id="stat-total-profit">0 ETB</h2></div>
@@ -221,7 +223,6 @@
             </div></div>
         </div>
 
-        <!-- 🔥 MANAGE DIRECT BONUS 🔥 -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--faded-green);">
@@ -240,7 +241,6 @@
             </div>
         </div>
 
-        <!-- 🔥 DEPOSIT BONUS TAB 🔥 -->
         <div id="tab-dep-bonus" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); max-width: 600px; margin: 0 auto;">
                 <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
@@ -274,11 +274,8 @@
             </div>
         </div>
 
-        <!-- 🔥 TELEGRAM BROADCAST + CLAIM PROMO COMBINED 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                
-                <!-- Normal Broadcast -->
                 <div class="card" style="border-left: 4px solid var(--blue);">
                     <h3 style="margin-top:0; color:var(--blue);">✈️ Normal Telegram Broadcast</h3>
                     <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
@@ -297,7 +294,6 @@
                     </div>
                 </div>
 
-                <!-- Claimable Promo Broadcast -->
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
                     <p style="font-size:11px; color:gray;">ቦነስ ፈጥረው በቀጥታ ወደ ቴሌግራም ቦት ማስታወቂያ ይላኩ። ተጠቃሚዎች የ "🎁 Claim Bonus" በተንን ሲነኩ ቦነሱ ይሰጣቸዋል።</p>
@@ -418,7 +414,7 @@
     
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
-    function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
+    function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
 
     function toggleTimeInputs() {
@@ -434,7 +430,10 @@
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
-            document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0) + " ETB";
+            
+            // 🔥 FIXED JACKPOT HERE 🔥
+            document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0).toFixed(2) + " ETB";
+            
             document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
             
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
@@ -478,7 +477,10 @@
             document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="4" style="text-align:center;">No referrals yet.</td></tr>`;
 
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            allTransactions = await tRes.json(); populatePendingDeposits(); populatePendingWithdraws(); filterHistoryTx(currentHistType);
+            allTransactions = await tRes.json(); 
+            populatePendingDeposits(); 
+            populatePendingWithdraws(); 
+            filterHistoryTx(currentHistType);
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allGameHistories = await hRes.json();
@@ -492,6 +494,10 @@
 
     function populatePendingDeposits() {
         let deps = allTransactions.filter(t => t.type === 'deposit' && t.status === 'Pending');
+        // 🔥 UPDATE BADGES
+        let bDep = document.getElementById('badge-dep');
+        if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
+
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
             let safeSMS = encodeURIComponent(t.smsText || "No SMS Provided");
             let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
@@ -503,6 +509,10 @@
 
     function populatePendingWithdraws() {
         let wits = allTransactions.filter(t => t.type === 'withdraw' && t.status === 'Pending');
+        // 🔥 UPDATE BADGES
+        let bWit = document.getElementById('badge-wit');
+        if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
+
         document.getElementById('pend-wit-body').innerHTML = wits.map(t => {
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${t.amount} ETB</td>
             <td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td>
