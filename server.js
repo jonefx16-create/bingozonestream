@@ -80,44 +80,46 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🛡️ THE GOLDEN EXTRACTOR ENGINE (100% ACCURATE)
+// 🛡️ THE GOLDEN EXTRACTOR ENGINE (በእርስዎ ሀሳብ የተሰራ)
 // ==========================================
-function extractSmsData(text) {
-    if (!text || typeof text !== 'string') return { amount: 0, txRef: null };
-    let msg = text.toUpperCase();
 
-    // 1. የብር መጠን ማውጫ (ደንበኛው 400 ብሎ 50 የላከ እንደሆነ ለማጋለጥ)
-    let amount = 0;
-    let amtMatch = msg.match(/(?:ETB|ብር|BIRR|BR)\s*([\d,]+(?:\.\d+)?)/i) || msg.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር|BIRR|BR)/i);
-    if (amtMatch) amount = parseFloat(amtMatch[1].replace(/,/g, ''));
+// 1. የ Transaction Number አውጪ (ለ CBE እና Telebirr)
+function getTxRef(text) {
+    if (!text || typeof text !== 'string') return null;
+    let msg = text.toUpperCase().replace(/\n/g, ' ');
 
-    // 2. ትክክለኛውን ኮድ ማውጫ (ፊደል እና ቁጥር የተቀላቀለበት ከ 6 እስከ 15 ፊደል ያለው ብቻ!)
-    let txRef = null;
+    // ሀ. የ CBE Birr ስፔሻል ኮድ (FT በመቀጠል ቁጥሮች/ፊደላት)
+    let ftMatch = msg.match(/\b(FT[0-9A-Z]{5,15})\b/);
+    if (ftMatch) return ftMatch[1];
+
+    // ለ. Telebirr እና መደበኛ ኮዶች (ከ 6 እስከ 15 ፊደልና ቁጥር የተቀላቀለ)
     let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g);
-    
-    if (matches && matches.length > 0) {
-        txRef = matches[0]; // ሁልጊዜ የመጀመሪያው ፊደልና ቁጥር የተቀላቀለበት ቃል የባንክ ኮድ ነው
-    } else {
-        // ደንበኛው ኮዱን ብቻ (ለምሳሌ "DE87P0HBCR") ብሎ ከፃፈ
-        let exactMatch = msg.replace(/\s+/g, '');
-        if (exactMatch.length >= 6 && exactMatch.length <= 15 && !/^\d+$/.test(exactMatch) && !/^[A-Z]+$/.test(exactMatch)) {
-            txRef = exactMatch;
-        }
-    }
+    if (matches && matches.length > 0) return matches[0];
 
-    return { amount, txRef };
+    // ሐ. ደንበኛው ኮዱን ብቻ ኮፒ ፔስት ካደረገ
+    let exact = msg.replace(/\s+/g, '');
+    if (exact.length >= 6 && exact.length <= 15 && !/^\d+$/.test(exact)) return exact;
+
+    return null;
 }
 
-// 🛡️ የገባው ኮድ ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ ፋንክሽን
-async function isSmsAlreadyUsed(userInputSms) {
-    let { txRef } = extractSmsData(userInputSms);
-    if (!txRef) return false; // ኮድ ከሌለ Pending ይሁንና አድሚን ያየዋል
+// 2. የባንክ ትክክለኛ Amount አውጪ
+function getBankAmount(text) {
+    if (!text || typeof text !== 'string') return 0;
+    let msg = text.toUpperCase().replace(/\n/g, ' ');
+    let amtMatch = msg.match(/(?:ETB|BIRR|BR|ብር)\s*([\d,]+(?:\.\d+)?)/i) || msg.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|BIRR|BR|ብር)/i);
+    if (amtMatch) return parseFloat(amtMatch[1].replace(/,/g, ''));
+    return 0;
+}
 
-    // 1. Bank SMS ውስጥ ጥቅም ላይ ከዋለ
+// 🛡️ የገባው ኮድ ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ
+async function isSmsAlreadyUsed(userInputSms) {
+    let txRef = getTxRef(userInputSms);
+    if (!txRef) return false; 
+
     let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
     if (inBankSms) return true;
 
-    // 2. በ Transaction ውስጥ አፕሩቭ ከሆነ ወይም ፔንዲንግ ካለ
     let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
     if (inTxRef) return true;
 
@@ -133,31 +135,21 @@ async function autoApprovePendingDeposits() {
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
         for (let tx of pendingTxs) {
-            let matchedSMS = null;
+            if (!tx.txRef) continue; // ኮድ ከሌለው ይለፈው
 
-            // 1. የቦቱ ትራንዛክሽን ኮድ ካለው ቀጥታ ያመሳስላል
-            if (tx.txRef) {
-                matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
-            } else {
-                // 2. ኮድ ከሌለው አሁን ገብቶ አውጥቶ ሞክሮ ያመሳስላል
-                let txData = extractSmsData(tx.smsText);
-                if (txData.txRef) {
-                    tx.txRef = txData.txRef;
-                    await tx.save();
-                    matchedSMS = unusedSMS.find(sms => sms.txRef === txData.txRef);
-                }
-            }
+            // ማመሳሰል (Matching) በ Transaction Number ብቻ
+            let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
 
             if (matchedSMS) {
-                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone}`);
+                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone} with amount ${matchedSMS.amount}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
-                    // 🛡️ ማጭበርበር መከላከያ (Anti-Fraud): ትክክለኛው ብር የሚወሰደው ባንክ ከገባው (Webhook) ላይ ብቻ ነው!
-                    let actualReceivedAmount = matchedSMS.amount > 0 ? matchedSMS.amount : tx.amount;
+                    // 🔥 የደንበኛውን ውሸት ትተን የባንኩን እውነተኛ Amount እንጠቀማለን!
+                    let actualReceivedAmount = matchedSMS.amount;
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
 
-                    tx.amount = actualReceivedAmount; // የደንበኛው ውሸት መጠን ወደ ትክክለኛው ተቀየረ
+                    tx.amount = actualReceivedAmount; // Update Tx amount to real amount
                     tx.status = 'Approved';
                     await tx.save();
 
@@ -175,7 +167,7 @@ async function autoApprovePendingDeposits() {
 }
 
 // ==========================================
-// 🔵 IPHONE SMS WEBHOOK 
+// 🔵 IPHONE SMS WEBHOOK (THE BANK SIDE)
 // ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
@@ -183,19 +175,20 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
 
-        // ገንዘብ መግባቱን የሚያሳዩ ቃላት ብቻ
-        let isReceivingMsg = /received|ደረሰዎት|ገቢ|ተቀብለዋል|into your|credited/i.test(message);
+        // ገቢ መሆኑን ማረጋገጫ ቃላት (CBE እና Telebirr)
+        let isReceivingMsg = /received|credited|transfer|gebi|into your account/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
 
-        let extracted = extractSmsData(message);
+        let txRef = getTxRef(message);
+        let amount = getBankAmount(message);
 
-        if(extracted.amount > 0 && extracted.txRef) {
-            const exists = await BankSMS.findOne({ txRef: extracted.txRef });
+        if(amount > 0 && txRef) {
+            const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
-                await BankSMS.create({ rawText: message, txRef: extracted.txRef, amount: extracted.amount });
+                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
                 await autoApprovePendingDeposits(); 
             }
-            res.json({ success: true, amount: extracted.amount, txRef: extracted.txRef });
+            res.json({ success: true, amount: amount, txRef: txRef });
         } else {
             res.json({ success: false, msg: "Could not extract valid data" });
         }
@@ -259,9 +252,9 @@ app.post('/api/request-tx', async (req, res) => {
         }
 
         if(type === 'deposit') {
-            let extracted = extractSmsData(sms);
+            let txRef = getTxRef(sms);
             
-            if (!extracted.txRef) {
+            if (!txRef) {
                 return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" });
             }
 
@@ -270,10 +263,7 @@ app.post('/api/request-tx', async (req, res) => {
                 return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
             }
 
-            // የደንበኛው ውሸት መጠን እንዳይገባ Anti-Fraud
-            let finalAmount = extracted.amount > 0 ? extracted.amount : amount;
-
-            await new Transaction({ phone, type, amount: finalAmount, method, smsText: sms, txRef: extracted.txRef }).save();
+            await new Transaction({ phone, type, amount: amount, method, smsText: sms, txRef: txRef }).save();
             await autoApprovePendingDeposits();
         }
         
@@ -699,10 +689,10 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
-            let extracted = extractSmsData(text);
+            let txRef = getTxRef(text);
             
             // 1. ኮዱን ቼክ ማድረግ
-            if (!extracted.txRef) {
+            if (!txRef) {
                 return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
             }
 
@@ -712,19 +702,17 @@ bot.on('message', async (msg) => {
                 return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
             }
 
-            // 3. የማጭበርበር መከላከያ (Anti-Fraud) - የደንበኛውን ውሸት መጠን አንቀበልም
-            let finalAmount = extracted.amount > 0 ? extracted.amount : state.amount;
-
+            // እዚህ ጋር ደንበኛው የፃፈው Temporary Amount ገብቶ ይቆያል። (በኋላ ባንኩ ሲመጣ Amount Update ይደረጋል)
             await new Transaction({ 
                 phone: user.phone, 
                 type: 'deposit', 
-                amount: finalAmount, 
+                amount: state.amount, 
                 method: state.method, 
                 smsText: text, 
-                txRef: extracted.txRef // የተነበበው ኮድ ተመዝግቧል
+                txRef: txRef // አዲሱ አሰራር - ኮዱ ለብቻው ተቀምጧል
             }).save(); 
 
-            bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 የተገኘ መጠን: <b>${finalAmount} ETB</b>\n📌 ማረጋገጫ ኮድ: <b>${extracted.txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
+            bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
             
             await autoApprovePendingDeposits(); 
         }
