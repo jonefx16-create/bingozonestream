@@ -8,9 +8,15 @@
         :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --cyan: #06b6d4; --gold: #fbbf24; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
-        #login-sec { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-dark); z-index: 9999; }
-        .login-card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid var(--faded-green); text-align: center; width: 90%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); box-sizing: border-box;}
-        
+        /* 🔥 NEW BEAUTIFUL LOGIN UI 🔥 */
+        #login-sec { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #161b22 0%, #050810 100%); z-index: 9999; }
+        .login-card { background: rgba(22, 27, 34, 0.7); backdrop-filter: blur(15px); padding: 50px 40px; border-radius: 24px; border: 1px solid rgba(74, 222, 128, 0.3); text-align: center; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(74, 222, 128, 0.1); box-sizing: border-box;}
+        .login-card h2 { color: var(--faded-green); margin-top: 0; margin-bottom: 30px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(74,222,128,0.5); }
+        .login-card input { background: rgba(0,0,0,0.6); border: 1px solid var(--border); padding: 16px; font-size: 16px; border-radius: 12px; transition: 0.3s; text-align: center; letter-spacing: 2px;}
+        .login-card input:focus { border-color: var(--faded-green); box-shadow: 0 0 15px rgba(74,222,128,0.3); outline: none; }
+        .login-card button { padding: 16px; font-size: 16px; border-radius: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; box-shadow: 0 5px 15px rgba(74,222,128,0.4); }
+        .login-card button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74,222,128,0.6); }
+
         #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; position: relative; }
         
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s ease; z-index: 1000;}
@@ -68,6 +74,8 @@
         
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
 
+        .disabled-input { opacity: 0.4; pointer-events: none; }
+
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
             .sidebar { position: fixed; left: -260px; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
@@ -83,8 +91,8 @@
 
 <div id="login-sec">
     <div class="login-card">
-        <h2 style="color: var(--faded-green);">🛡️ Bingo Habesha Admin</h2>
-        <input type="password" id="adminPass" placeholder="Admin Password" onkeyup="if(event.key === 'Enter') login()">
+        <h2>🛡️ Admin Panel</h2>
+        <input type="password" id="adminPass" placeholder="Enter Password" onkeyup="if(event.key === 'Enter') login()">
         <button class="action-btn" style="width: 100%;" onclick="login()">Access Dashboard</button>
     </div>
 </div>
@@ -103,10 +111,12 @@
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this)">💸 Financial History</button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)">🎮 Players & Bets Info</button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this)">🤝 Invite & Earn</button>
-        <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Bonus</button>
+        <button class="nav-btn" onclick="switchTab('tab-bonus', this)">🎁 Manage Direct Bonus</button>
+        <!-- 🔥 NEW DEPOSIT BONUS TAB BUTTON 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);">💰 Deposit Auto-Bonus</button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)">✈️ Telegram Broadcast</button>
-        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Control</button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);">🚫 Banned Users</button>
+        <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ Settings & Control</button>
     </div>
 
     <div class="main-content">
@@ -120,6 +130,8 @@
 
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
+                <!-- 🔥 ADDED TOTAL USERS BOX BACK TO LIVE TAB 🔥 -->
+                <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3><h2 style="color: var(--blue);" id="stat-total-profit">0 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
@@ -210,6 +222,7 @@
             </div></div>
         </div>
 
+        <!-- 🔥 MANAGE BONUS (Direct Bonuses Only) 🔥 -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--faded-green);">
@@ -225,36 +238,86 @@
                     <input type="number" id="mb-amt-bulk" placeholder="Amount per person">
                     <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
                 </div>
+            </div>
+        </div>
 
-                <div class="card" style="border-left: 4px solid var(--orange); grid-column: span 2;">
-                    <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Telegram Broadcast</h3>
+        <!-- 🔥 NEW DEPOSIT BONUS TAB 🔥 -->
+        <div id="tab-dep-bonus" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--gold); max-width: 600px; margin: 0 auto;">
+                <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
+                <p style="font-size:12px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን የቦነስ መጠን እና ሰዓት እዚህ ይቆጣጠሩ።</p>
+                
+                <label style="color:var(--text-gray); font-size:13px; font-weight:bold;">ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Deposit Amount)</label>
+                <input type="number" id="set-dep-min" placeholder="e.g. 200">
+                
+                <label style="color:var(--text-gray); font-size:13px; font-weight:bold;">ስንት ፐርሰንት ይሰጥ? (Bonus Percentage %)</label>
+                <input type="number" id="set-dep-perc" placeholder="e.g. 20">
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+
+                <label style="display:flex; align-items:center; color:white; font-weight:bold; margin-bottom:15px; background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; border:1px solid var(--gold); cursor:pointer;">
+                    <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs()">
+                    በተወሰነ ሰዓት (Happy Hour) ብቻ ይሰጥ? (ካጠፉት ሁልጊዜ ይሰጣል)
+                </label>
+
+                <div id="time-inputs-container" style="display:flex; gap:10px; margin-bottom: 20px; transition:0.3s;" class="disabled-input">
+                    <div style="flex:1;">
+                        <label style="color:var(--text-gray); font-size:12px;">ከ (Start Hour: 0-23)</label>
+                        <input type="number" id="set-dep-start" placeholder="e.g. 12">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="color:var(--text-gray); font-size:12px;">እስከ (End Hour: 0-23)</label>
+                        <input type="number" id="set-dep-end" placeholder="e.g. 16">
+                    </div>
+                </div>
+                
+                <button class="action-btn" style="width: 100%; background:var(--gold); color:black; font-size:16px; padding:15px;" onclick="updateSettings('dep_bonus')">💾 Save Auto-Bonus Settings</button>
+            </div>
+        </div>
+
+        <!-- 🔥 TELEGRAM BROADCAST + CLAIM PROMO COMBINED 🔥 -->
+        <div id="tab-telegram" class="tab-content">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                
+                <!-- Normal Broadcast -->
+                <div class="card" style="border-left: 4px solid var(--blue);">
+                    <h3 style="margin-top:0; color:var(--blue);">✈️ Normal Telegram Broadcast</h3>
+                    <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
+                    
+                    <label style="color:var(--cyan); font-weight:bold; font-size:12px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
+                    <input type="text" id="tg-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL) (ምሳሌ: https://...)" style="margin-bottom:5px;">
+                    <p style="text-align:center; margin:5px 0; color:gray; font-size:12px;">--- ወይም (OR) ፋይል ይምረጡ ---</p>
+                    <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
+                    
+                    <label style="color:var(--cyan); font-weight:bold; font-size:12px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
+                    <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast Normal</button>
+                        <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
+                    </div>
+                </div>
+
+                <!-- Claimable Promo Broadcast -->
+                <div class="card" style="border-left: 4px solid var(--orange);">
+                    <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
                     <p style="font-size:11px; color:gray;">ቦነስ ፈጥረው በቀጥታ ወደ ቴሌግራም ቦት ማስታወቂያ ይላኩ። ተጠቃሚዎች የ "🎁 Claim Bonus" በተንን ሲነኩ ቦነሱ ይሰጣቸዋል።</p>
+                    
                     <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
                         <input type="number" id="cb-max-users" placeholder="ለስንት ሰው? (ምሳሌ: 300)" style="flex:1;">
                         <input type="number" id="cb-amount" placeholder="የብር መጠን (ምሳሌ: 10 ETB)" style="flex:1;">
                         <input type="number" id="cb-minutes" placeholder="ለስንት ደቂቃ ይቆይ? (ምሳሌ: 60)" style="flex:1;">
                     </div>
+                    
                     <label style="color:var(--cyan); font-size:12px; font-weight:bold;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
+                    <input type="text" id="cb-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL) (ምሳሌ: https://...)" style="margin-bottom:5px;">
+                    <p style="text-align:center; margin:5px 0; color:gray; font-size:12px;">--- ወይም (OR) ፋይል ይምረጡ ---</p>
                     <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
+                    
                     <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ... (የ Claim በተኑ ከታች በራሱ ይጨመራል)"></textarea>
                     
-                    <button class="action-btn btn-orange" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast to Telegram</button>
+                    <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast to Telegram</button>
                     <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ የወሰዱትን ሰዎች እይ (View Claimed Users)</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-telegram" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--blue); max-width: 600px;">
-                <h3 style="margin-top:0; color:var(--blue);">✈️ Telegram Bot Broadcast</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ለቦት ተጠቃሚዎች ማስታወቂያ እና ፎቶ ይላኩ።</p>
-                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
-                <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
-                <label style="color:var(--cyan); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📝 መልዕክትዎን ይፃፉ:</label>
-                <textarea id="tg-msg" rows="6" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write your promo message here..."></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo()">Broadcast to Bot</button>
-                    <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
                 </div>
             </div>
         </div>
@@ -273,34 +336,6 @@
                     <div style="display:flex; gap:10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
                 </div>
                 
-                <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width:280px;">
-                    <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን ቦነስ እዚህ ይቆጣጠሩ።</p>
-                    
-                    <label style="display:flex; align-items:center; color:white; font-weight:bold; margin-bottom:15px; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border);">
-                        <input type="checkbox" id="set-dep-time-restrict">
-                        በተወሰነ ሰዓት (Happy Hour) ብቻ ይሰጥ?
-                    </label>
-
-                    <label style="color:var(--text-gray); font-size:12px;">ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Amount)</label>
-                    <input type="number" id="set-dep-min" placeholder="e.g. 200">
-                    
-                    <label style="color:var(--text-gray); font-size:12px;">ስንት ፐርሰንት ይሰጥ? (Bonus %)</label>
-                    <input type="number" id="set-dep-perc" placeholder="e.g. 20">
-                    
-                    <div style="display:flex; gap:10px; margin-bottom: 15px;">
-                        <div style="flex:1;">
-                            <label style="color:var(--text-gray); font-size:12px;">ከ (Start Hr: 0-23)</label>
-                            <input type="number" id="set-dep-start" placeholder="e.g. 12">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="color:var(--text-gray); font-size:12px;">እስከ (End Hr: 0-23)</label>
-                            <input type="number" id="set-dep-end" placeholder="e.g. 16">
-                        </div>
-                    </div>
-                    <button class="action-btn" style="width: 100%; background:var(--gold); color:black;" onclick="updateSettings('dep_bonus')">💾 Save Bonus Settings</button>
-                </div>
-
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
                     <div class="card" style="border-left: 4px solid var(--blue);">
                         <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
@@ -364,7 +399,7 @@
             <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
         </div>
         <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
-        <div id="sms-text" style="font-size: 16px; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;"></div>
+        <div id="sms-text"></div>
         <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
     </div>
 </div>
@@ -381,10 +416,22 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let allTransactions = []; let allGameHistories = []; let currentHistType = 'deposit'; let isGameCurrentlyPaused = false;
+    
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
+
+    // 🔥 TOGGLE TIME INPUTS 🔥
+    function toggleTimeInputs() {
+        let isChecked = document.getElementById('set-dep-time-restrict').checked;
+        let container = document.getElementById('time-inputs-container');
+        if(isChecked) {
+            container.classList.remove('disabled-input');
+        } else {
+            container.classList.add('disabled-input');
+        }
+    }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
@@ -399,13 +446,13 @@
             if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
             if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
             
-            // Set Default values for the Bonus Box if empty
             if(!document.getElementById('set-dep-min').value) {
                 document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted;
                 document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount;
                 document.getElementById('set-dep-perc').value = data.settings.depBonusPercent;
                 document.getElementById('set-dep-start').value = data.settings.happyHourStart;
                 document.getElementById('set-dep-end').value = data.settings.happyHourEnd;
+                toggleTimeInputs(); // Initialize the visual state
             }
         } catch(e) {}
     }
@@ -470,11 +517,7 @@
         currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
         let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
         document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = ''; 
-            if(t.type === 'deposit') { 
-                let safeSMS = encodeURIComponent(t.smsText || "No SMS"); 
-                smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; 
-            }
+            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
             return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${t.amount} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
     }
@@ -483,13 +526,12 @@
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     function viewHistory(grid, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let gHtml = `<div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; }
     
-    // 🔥 NEW: Fetch & Show Claimed Users 🔥
     async function viewClaimedUsers() {
         try {
-            document.querySelector('#tab-bonus .btn-blue').innerText = "እየጫነ ነው...";
+            document.querySelector('#btn-send-promo').nextElementSibling.innerText = "እየጫነ ነው...";
             let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let data = await res.json();
-            document.querySelector('#tab-bonus .btn-blue').innerText = "👁️ የወሰዱትን ሰዎች እይ (View Claimed Users)";
+            document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ (View Claimed Users)";
             
             if(data.success) {
                 document.getElementById('claimed-count').innerText = data.claimedBy.length;
@@ -500,51 +542,64 @@
             } else {
                 alert(data.message || "ምንም አይነት የተለቀቀ ቦነስ የለም።");
             }
-        } catch(e) { alert("Error fetching data."); document.querySelector('#tab-bonus .btn-blue').innerText = "👁️ የወሰዱትን ሰዎች እይ"; }
+        } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ"; }
     }
 
     async function createClaimBonus() { 
-        let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let fileInput = document.getElementById('cb-photo-file');
+        let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; 
+        let photoUrl = document.getElementById('cb-photo-url').value.trim();
+        let fileInput = document.getElementById('cb-photo-file');
+        
         if(!maxUsers || !amount || !minutes || !msg) return alert("እባክዎ ሁሉንም መረጃ እና የቴሌግራም መልዕክቱን ያስገቡ!"); 
         if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; 
-        document.querySelector('#tab-bonus .btn-orange').innerText = "እየላከ ነው (Sending)...";
-        let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: ""};
+        
+        let btn = document.getElementById('btn-send-promo');
+        btn.innerText = "እየላከ ነው (Sending)...";
+        
+        let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl};
+        
         if (fileInput.files.length > 0) {
             let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]);
-            reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload); };
-        } else { sendPromoData(payload); }
+            reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); };
+        } else { 
+            sendPromoData(payload, btn); 
+        }
     }
 
-    async function sendPromoData(payload) {
+    async function sendPromoData(payload, btn) {
         try {
             let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); 
             let data = await res.json(); alert(data.message || "Promo Created successfully!"); 
-            if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = '';}
+            if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';}
         } catch(e) { alert("Error"); }
-        document.querySelector('#tab-bonus .btn-orange').innerText = "Create Promo & Broadcast to Telegram";
+        btn.innerText = "Create Promo & Broadcast to Telegram";
     }
 
     async function sendTelegramPromo() { 
         let msg = document.getElementById('tg-msg').value; 
+        let photoUrl = document.getElementById('tg-photo-url').value.trim();
         let fileInput = document.getElementById('tg-photo-file');
         if(!msg) return alert("Enter a message"); 
 
-        document.querySelector('#tab-telegram .btn-blue').innerText = "እየላከ ነው (Sending)..."; 
+        let btn = document.querySelector('#tab-telegram .btn-blue');
+        btn.innerText = "እየላከ ነው (Sending)..."; 
 
         if (fileInput.files.length > 0) {
             let reader = new FileReader();
             reader.readAsDataURL(fileInput.files[0]);
-            reader.onload = async function () { sendPayloadToTelegram(msg, reader.result); };
-        } else { sendPayloadToTelegram(msg, ""); }
+            reader.onload = async function () { sendPayloadToTelegram(msg, reader.result, btn); };
+        } else { 
+            sendPayloadToTelegram(msg, photoUrl, btn); 
+        }
     }
 
-    async function sendPayloadToTelegram(message, photoUrl) {
+    async function sendPayloadToTelegram(message, photoUrl, btn) {
         try {
             let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
             let data = await res.json(); alert(data.message || "Sent successfully to bot users!"); 
-            if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo-file').value = ''; }
+            if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo-file').value = ''; document.getElementById('tg-photo-url').value = ''; }
         } catch(e) { alert("Error sending message."); }
-        document.querySelector('#tab-telegram .btn-blue').innerText = "Broadcast to Bot";
+        btn.innerText = "Broadcast Normal";
     }
 
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
@@ -556,7 +611,6 @@
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     
-    // 🔥 NEW SETTINGS UPDATER FOR DEPOSIT BONUS 🔥
     async function updateSettings(type) { 
         let payload = { adminPass: pass }; 
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
