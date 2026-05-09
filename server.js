@@ -80,7 +80,7 @@ const bankAccounts = {
 };
 
 // ==========================================
-// 🛡️ THE GOLDEN EXTRACTOR ENGINE (በእርስዎ ሀሳብ የተሰራ)
+// 🛡️ THE GOLDEN EXTRACTOR ENGINE 
 // ==========================================
 
 // 1. የ Transaction Number አውጪ (ለ CBE እና Telebirr)
@@ -135,7 +135,7 @@ async function autoApprovePendingDeposits() {
         const unusedSMS = await BankSMS.find({ isUsed: false });
 
         for (let tx of pendingTxs) {
-            if (!tx.txRef) continue; // ኮድ ከሌለው ይለፈው
+            if (!tx.txRef) continue; 
 
             // ማመሳሰል (Matching) በ Transaction Number ብቻ
             let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
@@ -144,12 +144,11 @@ async function autoApprovePendingDeposits() {
                 console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone} with amount ${matchedSMS.amount}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
-                    // 🔥 የደንበኛውን ውሸት ትተን የባንኩን እውነተኛ Amount እንጠቀማለን!
                     let actualReceivedAmount = matchedSMS.amount;
                     let bonus = (actualReceivedAmount >= 100) ? (actualReceivedAmount * 0.20) : 0;
                     let totalCredit = actualReceivedAmount + bonus;
 
-                    tx.amount = actualReceivedAmount; // Update Tx amount to real amount
+                    tx.amount = actualReceivedAmount; 
                     tx.status = 'Approved';
                     await tx.save();
 
@@ -175,7 +174,6 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
 
-        // ገቢ መሆኑን ማረጋገጫ ቃላት (CBE እና Telebirr)
         let isReceivingMsg = /received|credited|transfer|gebi|into your account/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
 
@@ -301,12 +299,14 @@ app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find(
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
 
+// 🔥 NEW FEATURE FOR ADMIN / FINANCE API
 app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
         let games = await GameHistory.find();
         let bonuses = await ActiveBonus.find();
-        res.json({ success: true, txs, games, bonuses });
+        let users = await User.find({}, 'mainBalance playBalance'); // Added users for Liability Calculation
+        res.json({ success: true, txs, games, bonuses, users });
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
@@ -314,7 +314,16 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
-    res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, settings: GLOBAL_SETTINGS });
+    
+    res.json({ 
+        totalUsers, 
+        livePlayers: Object.keys(activePlayers).length, 
+        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+        gameId, 
+        totalProfit, 
+        currentJackpot: totalPrizePool, // 🔥 ADDED THIS FOR ADMIN JACKPOT FIX 🔥
+        settings: GLOBAL_SETTINGS 
+    });
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
