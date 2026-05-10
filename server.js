@@ -256,7 +256,6 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 ```
 
-```javascript
 // ==========================================
 // 🔵 ADMIN CONTROL APIs
 // ==========================================
