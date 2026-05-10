@@ -244,7 +244,7 @@
         <div id="tab-dep-bonus" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); max-width: 600px; margin: 0 auto;">
                 <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
-                <p style="font-size:12px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን የቦነስ መጠን እና ሰዓት እዚህ ይቆጣጠሩ።</p>
+                <p style="font-size:12px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን የቦነስ መጠን እና ሰዓት እዚህ ይቆጣጠሩ። (ይህ እንዲሰራ Server.js ላይ ማስተካከል ያስፈልጋል)</p>
                 
                 <label style="color:var(--text-gray); font-size:13px; font-weight:bold;">ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Deposit Amount)</label>
                 <input type="number" id="set-dep-min" placeholder="e.g. 200">
@@ -318,7 +318,6 @@
         </div>
 
         <div id="tab-settings" class="tab-content">
-            <!-- 🔥 NEW: Registration & Invite Bonus Controls 🔥 -->
             <div class="card" style="border-left: 4px solid var(--purple); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--purple);">🎁 Registration & Invite Bonus</h3>
                 <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">አዲስ ለሚመዘገብ እና ሰው ለሚጋብዝ ሰው የሚሰጠውን ቦነስ እዚህ ይቀይሩ።</p>
@@ -446,7 +445,9 @@
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
             document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
+            
             document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0).toFixed(2) + " ETB";
+            
             document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
             
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
@@ -487,7 +488,6 @@
             });
             document.getElementById('users-body').innerHTML = activeHtml; document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
 
-            // 🔥 INVITE BONUS AMOUNT FETCHED FROM GLOBAL 🔥
             let tRes2 = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let statsData = await tRes2.json(); let invBonusAmt = statsData.settings.inviteBonus || 10;
 
@@ -652,23 +652,29 @@
 
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
     
-    // 🔥 USER EDIT MODAL FILLING 🔥
+    // 🔥 USER EDIT FUNCTION 🔥
     function openEditModal(phone, passw, main, play, won) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('eu-won').value = won; document.getElementById('edit-user-modal').style.display = 'flex'; }
     
-    // 🔥 SUBMIT ALL USER EDITS TO BACKEND 🔥
     async function saveUserEdit() { 
         let payload = { 
             adminPass: pass, 
             oldPhone: document.getElementById('eu-oldPhone').value, 
             newPhone: document.getElementById('eu-phone').value, 
-            password: document.getElementById('eu-password').value, 
+            userPass: document.getElementById('eu-password').value, 
             mainBalance: document.getElementById('eu-main').value, 
             playBalance: document.getElementById('eu-play').value, 
             won: document.getElementById('eu-won').value 
         }; 
-        await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        document.getElementById('edit-user-modal').style.display='none'; 
-        loadData(); 
+        
+        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+        let data = await res.json();
+        if(data.success) {
+            document.getElementById('edit-user-modal').style.display='none'; 
+            loadData(); 
+            alert("✅ በስኬት ተስተካክሏል (User Updated)!");
+        } else {
+            alert("❌ ማስተካከል አልተቻለም (Failed).");
+        }
     }
     
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
@@ -691,7 +697,6 @@
             payload.gameTimer = Number(tm); 
         } 
 
-        // 🔥 REGISTER & INVITE BONUS SAVE 🔥
         if(type === 'reg_bonus') {
             let rBon = document.getElementById('set-reg-bonus').value;
             let iBon = document.getElementById('set-inv-bonus').value;
@@ -706,8 +711,15 @@
             let mPer = document.getElementById('set-dep-perc').value;
             let start = document.getElementById('set-dep-start').value;
             let end = document.getElementById('set-dep-end').value;
-            if(!mAmt || !mPer || !start || !end) return alert("Please fill all bonus settings!");
-            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = Number(mAmt); payload.depBonusPercent = Number(mPer); payload.happyHourStart = Number(start); payload.happyHourEnd = Number(end);
+            
+            if(!mAmt || !mPer) return alert("እባክዎ የብር መጠን እና ፐርሰንት ያስገቡ!");
+            if(isRestricted && (start==='' || end==='')) return alert("እባክዎ የቦነስ ሰዓት ያስገቡ!");
+
+            payload.depBonusTimeRestricted = isRestricted; 
+            payload.depBonusMinAmount = Number(mAmt); 
+            payload.depBonusPercent = Number(mPer); 
+            payload.happyHourStart = start !== '' ? Number(start) : 0; 
+            payload.happyHourEnd = end !== '' ? Number(end) : 23;
         }
 
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
