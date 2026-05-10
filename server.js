@@ -882,29 +882,34 @@ app.get('*', (req, res) => {
                 justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;
                 backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             }
-            body.paused-mode > *:not(#dynamic-maintenance):not(#top-toast-notification) {
+            body.paused-mode > *:not(#dynamic-maintenance) {
                 filter: blur(12px) grayscale(50%);
                 pointer-events: none;
                 user-select: none;
             }
             
-            /* 🔥 TOP TOAST NOTIFICATION STYLE 🔥 */
-            #top-toast-notification {
-                position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-                background: linear-gradient(135deg, #16a34a, #059669);
-                color: white; padding: 15px 25px; border-radius: 12px; border: 2px solid #4ade80;
-                font-family: sans-serif; font-weight: bold; font-size: 15px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 99999999;
-                transition: top 0.5s ease-out; display: flex; align-items: center; text-align:center;
-                width: 90%; max-width: 400px; justify-content: center; line-height: 1.4;
+            /* 🔥 የተካፋይ (TIE) ብሩህ እና ግልፅ ማሳወቂያ ዲዛይን 🔥 */
+            .shared-alert-box {
+                background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3));
+                border: 2px solid #4ade80;
+                color: #ffffff;
+                padding: 12px;
+                border-radius: 12px;
+                margin-top: 15px;
+                font-size: 15px;
+                font-weight: bold;
+                text-align: center;
+                box-shadow: 0 0 15px rgba(74,222,128,0.5);
+                animation: popBlink 1s infinite alternate;
+                width: 90%;
+                margin-left: auto;
+                margin-right: auto;
             }
-            #top-toast-notification.show { top: 20px; }
+            @keyframes popBlink { 
+                from { transform: scale(1); box-shadow: 0 0 10px rgba(74,222,128,0.4); } 
+                to { transform: scale(1.05); box-shadow: 0 0 25px rgba(74,222,128,0.8); } 
+            }
         </style>
-        
-        <!-- TOP NOTIFICATION ELEMENT -->
-        <div id="top-toast-notification">
-            <span id="toast-msg"></span>
-        </div>
 
         <div id="dynamic-maintenance">
             <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
@@ -929,20 +934,27 @@ app.get('*', (req, res) => {
 
                     // 🟢 Listen for multi-winners (Ties - እኩል ማካፈያ)
                     blurSocket.on('game_winner', (data) => {
+                        // 1. መጀመሪያ የቀድሞ ማሳወቂያ ካለ አጥፋው
+                        let oldAlert = document.getElementById('shared-alert-msg');
+                        if(oldAlert) oldAlert.remove();
+
+                        // 2. ከ 1 ሰው በላይ ካሸነፈ አዲሱን ማሳወቂያ ፍጠር
                         if(data.isShared) {
-                            // 1. Show Top Toast Notification
-                            const toast = document.getElementById('top-toast-notification');
-                            document.getElementById('toast-msg').innerHTML = "🎉 <b>ቢንጎ!</b><br>ሽልማቱ በእነዚህ " + data.winnerCount + " ሰዎች መካከል እኩል ተካፋይ ሆኗል!";
-                            toast.classList.add('show');
-                            setTimeout(() => { toast.classList.remove('show'); }, 8000); 
+                            let alertBox = document.createElement('div');
+                            alertBox.id = 'shared-alert-msg';
+                            alertBox.className = 'shared-alert-box';
+                            alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toFixed(2) + " ETB</span>";
                             
-                            // 2. Add text DIRECTLY to the Main Popup (Pop up ላይ እንዲታይ)
-                            setTimeout(() => {
-                                let winPrizeEl = document.getElementById('win-prize');
-                                if(winPrizeEl) {
-                                    winPrizeEl.innerHTML = data.prize.toFixed(2) + " ETB <br><span style='font-size:11px; color:#4ade80; display:block; margin-top:8px; letter-spacing:0.5px;'>✨ ሽልማቱ ለ " + data.winnerCount + " ሰዎች እኩል ተካፍሏል ✨</span>";
+                            // 3. የ Winner Popup ሲከፈት ፈልገህ ማሳወቂያውን ውስጡ ክተተው (Race Condition እንዳይኖር)
+                            let attempts = 0;
+                            let interval = setInterval(() => {
+                                let winnerCard = document.querySelector('.winner-card');
+                                if(winnerCard) {
+                                    winnerCard.appendChild(alertBox);
+                                    clearInterval(interval);
                                 }
-                            }, 100);
+                                if(attempts++ > 15) clearInterval(interval);
+                            }, 200);
                         }
                     });
                 }
