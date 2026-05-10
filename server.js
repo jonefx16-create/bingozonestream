@@ -457,10 +457,11 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
+// 🔥 BINGO RULES (Horizontal, Vertical, Diagonal, 4 Corners)
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     
-    // Mark called numbers and the FREE space (center)
+    // Mark called numbers and FREE space
     for(let c=0; c<5; c++) {
         for(let r=0; r<5; r++) {
             if((c===2 && r===2) || called.includes(grid[c][r])) {
@@ -469,73 +470,22 @@ function serverCheckBingo(grid, called) {
         }
     }
     
-    // 1. Check Columns (Vertical)
     for(let c=0; c<5; c++) if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; 
-    
-    // 2. Check Rows (Horizontal)
     for(let r=0; r<5; r++) if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; 
-    
-    // 3. Check Diagonals (X shape)
     if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
     if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
-    
-    // 4. Check 4 Corners (NEW ADDITION)
     if(m[0][0] && m[0][4] && m[4][0] && m[4][4]) return true;
 
     return false;
 }
 
-// 🔥 UPDATED: Randomizes Winning Pattern (Horizontal, Vertical, Diagonal, Corners) 🔥
-function generateRiggedDrawSequence() {
+// 🔥 TRUE FAIR DRAW: Generates all 75 numbers and calls them until someone wins!
+function generateDrawSequence() {
     let pool = Array.from({length: 75}, (_, i) => i + 1);
-    let allTickets = [];
-    Object.values(activePlayers).forEach(p => p.ticketsData.forEach(t => allTickets.push({ phone: p.phone, name: p.name, ticket: t })));
-    
-    if (allTickets.length === 0) return pool.sort(() => Math.random() - 0.5).slice(0, 20);
-    
-    // Select random ticket to make it the winner
-    let target = allTickets[Math.floor(Math.random() * allTickets.length)];
-    let grid = target.ticket.grid;
-    
-    // Generate all possible winning paths for this ticket
-    let possiblePatterns = [];
-    
-    // 5 Rows (Horizontal)
-    for(let r=0; r<5; r++) {
-        let p = [];
-        for(let c=0; c<5; c++) if(!(c===2 && r===2)) p.push(grid[c][r]);
-        possiblePatterns.push(p);
-    }
-    
-    // 5 Columns (Vertical)
-    for(let c=0; c<5; c++) {
-        let p = [];
-        for(let r=0; r<5; r++) if(!(c===2 && r===2)) p.push(grid[c][r]);
-        possiblePatterns.push(p);
-    }
-    
-    // 2 Diagonals (X shape)
-    possiblePatterns.push([grid[0][0], grid[1][1], grid[3][3], grid[4][4]]); // Top-Left to Bottom-Right
-    possiblePatterns.push([grid[4][0], grid[3][1], grid[1][3], grid[0][4]]); // Bottom-Left to Top-Right
-    
-    // 4 Corners
-    possiblePatterns.push([grid[0][0], grid[4][0], grid[0][4], grid[4][4]]);
-    
-    // Select one winning pattern randomly
-    let req = possiblePatterns[Math.floor(Math.random() * possiblePatterns.length)];
-    
-    req.forEach(n => { let i = pool.indexOf(n); if(i > -1) pool.splice(i, 1); });
-    
-    let fillers = []; 
-    for(let i=0; i<16; i++) fillers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-    
-    let winBall = req.pop(); 
-    let mixed = [...req, ...fillers].sort(() => Math.random() - 0.5); 
-    mixed.splice(Math.floor(Math.random() * 5) + 15, 0, winBall); 
-    
-    return mixed;
+    return pool.sort(() => Math.random() - 0.5); // Fully random shuffle
 }
 
+// 🟢 Handles TIE-BREAKER cleanly
 async function declareWinners(winners) {
     gameState = "FINISHED"; gameClock = 12; 
     
@@ -559,12 +509,16 @@ async function declareWinners(winners) {
         ticketIds.push(w.ticket.id);
     }
 
+    // Extract unique names just in case one person won with 2 tickets
+    let uniqueNames = [...new Set(winnerNames)];
+    let displayNames = uniqueNames.join(' እና ');
+
     await GameHistory.create({ 
         gameId, 
-        ticketId: ticketIds.join(' & '), 
-        winnerName: winnerNames.join(' & '), 
-        winnerPhone: winnerPhones.join(' & '), 
-        prize: totalPrizePool, 
+        ticketId: ticketIds.join(', '), 
+        winnerName: displayNames, 
+        winnerPhone: winnerPhones.join(', '), 
+        prize: totalPrizePool, // Record full prize
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -572,14 +526,17 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
+    // Broadcast winner(s)
     io.emit('game_winner', { 
-        winnerName: winnerNames.join(' & '), 
-        ticketId: ticketIds.join(' & '), 
-        prize: splitPrize, 
-        phone: winnerPhones.join(' & '), 
+        winnerName: displayNames, 
+        ticketId: ticketIds.join(', '), 
+        prize: splitPrize, // Exact amount each winner got
+        totalPrize: totalPrizePool, // Original amount
+        phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
-        isShared: winners.length > 1 
+        isShared: winners.length > 1,
+        winnerCount: winners.length
     });
 }
 
@@ -598,7 +555,7 @@ setInterval(() => {
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
+                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); // Using Fair Draw
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
@@ -608,9 +565,13 @@ setInterval(() => {
         gameClock--;
         if (gameClock <= 0) {
             gameClock = 3; 
-            if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
-            let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
+            if (currentDrawSequence.length === 0) { resetToWaiting(); return; } // End if no more balls (rare)
             
+            let num = currentDrawSequence.shift(); 
+            calledNumbers.push(num); 
+            io.emit('new_number', num);
+            
+            // 🟢 TIE BREAKER: Check if anyone won on this exact ball
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) { 
@@ -619,6 +580,7 @@ setInterval(() => {
                     } 
                 }
             }
+            // If one or more winners found, split prize and end game
             if(winnersThisRound.length > 0) {
                 declareWinners(winnersThisRound);
                 return;
@@ -928,16 +890,43 @@ app.get('*', (req, res) => {
                 pointer-events: none;
                 user-select: none;
             }
+            /* TIE BREAKER POPUP STYLE */
+            #tie-breaker-popup {
+                display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #161b22, #0f172a); border: 2px solid #fbbf24;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 20px rgba(251,191,36,0.3);
+                border-radius: 16px; padding: 30px; text-align: center; z-index: 9999999;
+                color: white; font-family: sans-serif; min-width: 300px;
+                animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            @keyframes popIn { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
         </style>
         <div id="dynamic-maintenance">
             <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
             <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
             <p style="font-size:18px;color:#f8fafc;max-width:500px;line-height:1.6;font-family:sans-serif;background:rgba(0,0,0,0.7);padding:20px;border-radius:12px;border:1px solid #ea580c;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
         </div>
+
+        <div id="tie-breaker-popup">
+            <h1 style="margin:0; font-size:35px; color:#fbbf24; text-shadow:0 0 10px #fbbf24;">🎉 TIE BINGO!</h1>
+            <p style="font-size:18px; color:#94a3b8; margin:10px 0 20px 0;"><span id="tie-count" style="color:white; font-weight:bold; font-size:22px;">0</span> ሰዎች በአንድ ላይ አሸንፈዋል!</p>
+            
+            <div style="background:rgba(0,0,0,0.5); padding:15px; border-radius:8px; border:1px solid #334155; margin-bottom:20px;">
+                <p style="margin:0 0 5px 0; font-size:14px; color:#94a3b8;">አሸናፊዎች፡</p>
+                <h3 id="tie-names" style="margin:0; color:#4ade80; font-size:18px;"></h3>
+            </div>
+            
+            <p style="margin:0; font-size:16px;">እያንዳንዳቸው <span id="tie-each-prize" style="color:#38bdf8; font-weight:bold; font-size:22px;">0</span> <span style="color:#38bdf8;">ETB</span> ተካፍለዋል።</p>
+            <p style="margin:10px 0 0 0; font-size:12px; color:gray;">(አጠቃላይ ሽልማት: <span id="tie-total-prize">0</span> ETB)</p>
+            
+            <button onclick="document.getElementById('tie-breaker-popup').style.display='none'" style="margin-top:25px; background:#ef4444; color:white; border:none; padding:12px 25px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%;">ዝጋ (Close)</button>
+        </div>
+
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 if (typeof io !== 'undefined') {
                     const blurSocket = io();
+                    
                     blurSocket.on('game_status', (data) => {
                         if (data.state === 'MAINTENANCE') {
                             document.body.classList.add('paused-mode');
@@ -947,15 +936,28 @@ app.get('*', (req, res) => {
                             document.getElementById('dynamic-maintenance').style.display = 'none';
                         }
                     });
+
+                    // 🟢 Listen for multi-winners (Ties)
+                    blurSocket.on('game_winner', (data) => {
+                        if(data.isShared) {
+                            document.getElementById('tie-count').innerText = data.winnerCount;
+                            document.getElementById('tie-names').innerText = data.winnerName;
+                            document.getElementById('tie-each-prize').innerText = Number(data.prize).toFixed(2);
+                            document.getElementById('tie-total-prize').innerText = Number(data.totalPrize).toFixed(2);
+                            
+                            // Show popup after a tiny delay so the normal win animation starts first
+                            setTimeout(() => {
+                                document.getElementById('tie-breaker-popup').style.display = 'block';
+                            }, 500);
+                        }
+                    });
                 }
             });
         </script>
         `;
         
-        // ከ <body> ቀጥሎ የ Maintenance Script እናስገባለን 
         html = html.replace('<body>', '<body>\n' + maintenanceScript);
         
-        // ጌሙ ቀድሞውኑ Pause ከተደረገ የ Body Class ወዲያውኑ ይጨመራል
         if (GLOBAL_SETTINGS.isGamePaused) {
             html = html.replace('<body>', '<body class="paused-mode">');
         }
