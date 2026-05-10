@@ -42,7 +42,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""},
-    txRef: { type: String, default: "" }
+    txRef: { type: String, default: "" } // አዲስ - ኮዱን ለብቻው ለማስቀመጥ
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -82,18 +82,28 @@ const bankAccounts = {
 // ==========================================
 // 🛡️ THE GOLDEN EXTRACTOR ENGINE 
 // ==========================================
+
+// 1. የ Transaction Number አውጪ (ለ CBE እና Telebirr)
 function getTxRef(text) {
     if (!text || typeof text !== 'string') return null;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
+
+    // ሀ. የ CBE Birr ስፔሻል ኮድ (FT በመቀጠል ቁጥሮች/ፊደላት)
     let ftMatch = msg.match(/\b(FT[0-9A-Z]{5,15})\b/);
     if (ftMatch) return ftMatch[1];
+
+    // ለ. Telebirr እና መደበኛ ኮዶች (ከ 6 እስከ 15 ፊደልና ቁጥር የተቀላቀለ)
     let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g);
     if (matches && matches.length > 0) return matches[0];
+
+    // ሐ. ደንበኛው ኮዱን ብቻ ኮፒ ፔስት ካደረገ
     let exact = msg.replace(/\s+/g, '');
     if (exact.length >= 6 && exact.length <= 15 && !/^\d+$/.test(exact)) return exact;
+
     return null;
 }
 
+// 2. የባንክ ትክክለኛ Amount አውጪ
 function getBankAmount(text) {
     if (!text || typeof text !== 'string') return 0;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
@@ -102,13 +112,17 @@ function getBankAmount(text) {
     return 0;
 }
 
+// 🛡️ የገባው ኮድ ቀድሞ ጥቅም ላይ መዋሉን ማረጋገጫ
 async function isSmsAlreadyUsed(userInputSms) {
     let txRef = getTxRef(userInputSms);
     if (!txRef) return false; 
+
     let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
     if (inBankSms) return true;
+
     let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
     if (inTxRef) return true;
+
     return false;
 }
 
@@ -122,9 +136,12 @@ async function autoApprovePendingDeposits() {
 
         for (let tx of pendingTxs) {
             if (!tx.txRef) continue; 
+
+            // ማመሳሰል (Matching) በ Transaction Number ብቻ
             let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
 
             if (matchedSMS) {
+                console.log(`✅ MATCH FOUND! Approving Tx for ${tx.phone} with amount ${matchedSMS.amount}`);
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount;
@@ -141,7 +158,7 @@ async function autoApprovePendingDeposits() {
                     user.playBalance += totalCredit;
                     await user.save();
                     
-                    io.emit('balance_updated', { phone: tx.phone, playBalance: user.playBalance, mainBalance: user.mainBalance });
+                    io.emit('balance_updated', tx.phone);
                 }
             }
         }
@@ -186,7 +203,7 @@ app.post('/api/register', async (req, res) => {
         let actualRef = "";
         if (refCode) { 
             let ref = await User.findOne({ phone: refCode.trim() }); 
-            if (ref) { ref.playBalance += 10; await ref.save(); io.emit('balance_updated', { phone: ref.phone, playBalance: ref.playBalance, mainBalance: ref.mainBalance }); actualRef = ref.phone; } 
+            if (ref) { ref.playBalance += 10; await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; } 
         }
         await new User({ phone, name, password, referredBy: actualRef, playBalance: 10 }).save();
         res.json({ success: true });
@@ -234,13 +251,20 @@ app.post('/api/request-tx', async (req, res) => {
 
         if(type === 'deposit') {
             let txRef = getTxRef(sms);
-            if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" });
+            
+            if (!txRef) {
+                return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" });
+            }
+
             let isUsed = await isSmsAlreadyUsed(sms);
-            if (isUsed) return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+            if (isUsed) {
+                return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+            }
 
             await new Transaction({ phone, type, amount: amount, method, smsText: sms, txRef: txRef }).save();
             await autoApprovePendingDeposits();
         }
+        
         res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል፤ ማመሳሰል እየተከናወነ ነው!" });
     } catch(e) {
         res.json({ success: false, message: "❌ ሲስተም ላይ ስህተት አጋጥሟል! እባክዎ እንደገና ይሞክሩ።" });
@@ -266,7 +290,8 @@ app.get('/api/leaderboard', async (req, res) => {
 
 const auth = (req, res, next) => { 
     const pass = req.body.password || req.body.adminPass;
-    if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
+    const isPassValid = pass === GLOBAL_SETTINGS.adminPass;
+    if(!isPassValid) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
 
@@ -279,7 +304,7 @@ app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
         let games = await GameHistory.find();
         let bonuses = await ActiveBonus.find();
-        let users = await User.find({}, 'mainBalance playBalance'); 
+        let users = await User.find({}, 'mainBalance playBalance'); // Added users for Liability Calculation
         res.json({ success: true, txs, games, bonuses, users });
     } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -288,7 +313,16 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
-    res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS });
+    
+    res.json({ 
+        totalUsers, 
+        livePlayers: Object.keys(activePlayers).length, 
+        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+        gameId, 
+        totalProfit, 
+        currentJackpot: totalPrizePool, 
+        settings: GLOBAL_SETTINGS 
+    });
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
@@ -298,13 +332,14 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         if(tx.type === 'deposit') {
             let actualAmount = tx.amount;
             let bonus = (actualAmount >= 100) ? (actualAmount * 0.20) : 0;
-            user.playBalance += (actualAmount + bonus);
+            let totalCredit = actualAmount + bonus;
+            user.playBalance += totalCredit;
         }
     } else { 
         tx.status = 'Rejected'; 
         if(tx.type === 'withdraw') user.mainBalance += tx.amount; 
     }
-    await tx.save(); await user.save(); io.emit('balance_updated', { phone: tx.phone, playBalance: user.playBalance, mainBalance: user.mainBalance }); res.json({success: true});
+    await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
 });
 
 app.post('/api/admin/update-settings', auth, async (req, res) => {
@@ -313,7 +348,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.ticketPrice) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
-    await s.save(); await loadSettings(); res.json({ success: true });
+    await s.save(); await loadSettings();
+    res.json({ success: true });
 });
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
@@ -326,20 +362,24 @@ app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAn
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
 app.post('/api/admin/factory-reset', auth, async (req, res) => {
-    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({});
+    await User.deleteMany({});
+    await Transaction.deleteMany({});
+    await GameHistory.deleteMany({});
+    await BankSMS.deleteMany({});
+    await ActiveBonus.deleteMany({});
     res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
 });
 
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone });
-    if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', { phone: user.phone, playBalance: user.playBalance, mainBalance: user.mainBalance }); }
-    res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent!` });
+    if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); }
+    res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
 });
 
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
     else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
-    res.json({ success: true, message: `✅ Bulk Bonus successfully sent!` });
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
 });
 
 app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
@@ -351,11 +391,6 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
 });
 
 // 🔥 PROMO BONUS & BROADCAST WITH INLINE BUTTON 🔥
-const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-const bot = new TelegramBot(telegramToken, { polling: false }); 
-const WEB_URL = "https://bingohabesha.onrender.com";
-let lastBroadcasts = []; 
-
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     try {
         const { maxUsers, amount, minutes, message, photoUrl } = req.body;
@@ -363,27 +398,42 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         await ActiveBonus.updateMany({}, { isActive: false });
         await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
         
+        // ቴሌግራም ላይ ማሰራጨት
         if (message) {
             const users = await User.find({ telegramId: { $ne: "" } });
             lastBroadcasts = []; 
-            const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
+            const opts = {
+                parse_mode: "HTML",
+                reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] }
+            };
 
             for (let u of users) {
                 try {
                     let sentMsg;
                     if (photoUrl && photoUrl.startsWith('data:image')) {
                         let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
-                        sentMsg = await bot.sendPhoto(u.telegramId, Buffer.from(base64Data, 'base64'), { caption: message, ...opts });
+                        let photoBuffer = Buffer.from(base64Data, 'base64');
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
                     } else if (photoUrl && photoUrl.startsWith('http')) { 
                         sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
-                    } else { sentMsg = await bot.sendMessage(u.telegramId, message, opts); }
+                    } else { 
+                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                    }
                     lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
                 } catch(e) {} 
             }
         }
-        res.json({ success: true, message: `✅ Promo Created & Broadcasted!` });
-    } catch (e) { res.status(500).json({ success: false, message: "Error processing promo." }); }
+        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram Bot!` });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Error processing promo." });
+    }
 });
+
+// 🔥 TELEGRAM BOT INTEGRATION 🔥
+const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+const bot = new TelegramBot(telegramToken, { polling: false }); 
+const WEB_URL = "https://bingohabesha.onrender.com";
+let lastBroadcasts = []; 
 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
@@ -395,8 +445,8 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
             try {
                 let sentMsg;
                 if (photoUrl && photoUrl.startsWith('data:image')) {
-                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
-                    sentMsg = await bot.sendPhoto(u.telegramId, Buffer.from(base64Data, 'base64'), { caption: message, parse_mode: "HTML" });
+                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
                 } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
                 } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
                 lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
@@ -454,7 +504,7 @@ function generateRiggedDrawSequence() {
 async function declareWinner(player, ticket) {
     gameState = "FINISHED"; gameClock = 12; 
     const user = await User.findOne({phone: player.phone});
-    if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', { phone: player.phone, playBalance: user.playBalance, mainBalance: user.mainBalance }); }
+    if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
     let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
     await GameHistory.create({ gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, prize: totalPrizePool, adminProfit, ticketPrice: GLOBAL_SETTINGS.ticketPrice, winningGrid: ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) });
     io.emit('game_winner', { winnerName: player.name, ticketId: ticket.id, prize: totalPrizePool, phone: player.phone, ticketGrid: ticket.grid, calledNumbers: [...calledNumbers] });
@@ -472,8 +522,7 @@ setInterval(() => {
         io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
         
         if (gameClock <= 0) { 
-            // 🔥 FIXED: ቢያንስ 1 ሰው ( > 0 ) ካለ ጌሙ ይጀምራል (ከዚህ በፊት > 1 ነበር)
-            if(Object.keys(activePlayers).length > 0) { 
+            if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateRiggedDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else { 
@@ -498,39 +547,20 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-    
-    // 🔥 FIXED: ሪፍሬሽ ሲደረግ ጠቁረው የነበሩት ካርዶች እንዳይጠፉ የተሟላ ዴታ ይላካል
-    socket.on('get_initial_data', (phone) => { 
-        let myData = activePlayers[phone]; 
-        socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); 
-    });
-    
+    socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
         const user = await User.findOne({phone: data.phone});
-        
         if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-            // 🔥 FIXED: ብር መቁረጥ
             if (user.playBalance >= betAmount) user.playBalance -= betAmount;
             else { user.mainBalance -= (betAmount - user.playBalance); user.playBalance = 0; }
             user.played += 1; await user.save();
-            
             if (!activePlayers[data.phone]) activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
             else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData.push(...data.ticketsData); }
-            
             totalTickets += data.ticketCount; totalPrizePool = (totalTickets * GLOBAL_SETTINGS.ticketPrice) * 0.85;
-            
-            // 🔥 FIXED: ሌላ ሰው ሲገዛ ካርቴላዎቹ ለሌሎች ደብዝዘው እንዲታዩ ማስተካከያ (Blur)
-            if(data.ticketIds) {
-                data.ticketIds.forEach(id => {
-                    if (!globalTakenTickets.includes(id)) globalTakenTickets.push(id);
-                });
-            }
-            io.emit('update_taken_tickets', globalTakenTickets); 
-            
-            // 🔥 FIXED: የብር መቀነሱን አውቶማቲክ UI ላይ ቶሎ እንዲያሳውቅ
-            socket.emit('balance_updated', { phone: data.phone, playBalance: user.playBalance, mainBalance: user.mainBalance });
+            data.ticketIds.forEach(id => globalTakenTickets.push(id));
+            io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
         }
     });
 });
@@ -539,7 +569,7 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
+const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg"
 
 const t = {
     am: {
@@ -626,7 +656,7 @@ bot.on('contact', async (msg) => {
     try {
         if (!user) {
             let actualRef = "";
-            if (state.refCode) { let refUser = await User.findOne({ phone: state.refCode }); if (refUser) { refUser.playBalance += 10; await refUser.save(); io.emit('balance_updated', { phone: refUser.phone, playBalance: refUser.playBalance, mainBalance: refUser.mainBalance }); actualRef = refUser.phone; } }
+            if (state.refCode) { let refUser = await User.findOne({ phone: state.refCode }); if (refUser) { refUser.playBalance += 10; await refUser.save(); io.emit('balance_updated', refUser.phone); actualRef = refUser.phone; } }
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: 10, language: 'am' });
             
             const cap = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
@@ -707,12 +737,28 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
             let txRef = getTxRef(text);
-            if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) }); }
+            
+            // 1. ኮዱን ቼክ ማድረግ
+            if (!txRef) {
+                return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
+            }
 
+            // 2. የድግግሞሽ (Duplicate) ቼክ
             let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) { return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); }
+            if (isUsed) {
+                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
+            }
 
-            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
+            // እዚህ ጋር ደንበኛው የፃፈው Temporary Amount ገብቶ ይቆያል። (በኋላ ባንኩ ሲመጣ Amount Update ይደረጋል)
+            await new Transaction({ 
+                phone: user.phone, 
+                type: 'deposit', 
+                amount: state.amount, 
+                method: state.method, 
+                smsText: text, 
+                txRef: txRef // አዲሱ አሰራር - ኮዱ ለብቻው ተቀምጧል
+            }).save(); 
+
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
             
             await autoApprovePendingDeposits(); 
@@ -746,8 +792,7 @@ bot.on('callback_query', async (query) => {
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
         if (activeBonus.claimedBy.includes(user.phone)) return bot.answerCallbackQuery(query.id, { text: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!", show_alert: true });
         activeBonus.claimedBy.push(user.phone); activeBonus.currentClaims += 1; await activeBonus.save(); user.playBalance += activeBonus.amount; await user.save();
-        io.emit('balance_updated', { phone: user.phone, playBalance: user.playBalance, mainBalance: user.mainBalance }); 
-        return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
+        io.emit('balance_updated', user.phone); return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
     }
 
     if(!botState[chatId]) botState[chatId] = { step: 'idle' }; let state = botState[chatId];
@@ -807,7 +852,7 @@ setInterval(async () => {
     } catch (error) {}
 }, 30000); 
 
-server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
+server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000
 
 
 
