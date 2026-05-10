@@ -174,14 +174,13 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
 });
 
 // ==========================================
-// 🔵 USER APIs
+// 🔵 USER & ADMIN APIs
 // ==========================================
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         let actualRef = "";
-        
         if (refCode) { 
             let ref = await User.findOne({ phone: refCode.trim() }); 
             if (ref) { 
@@ -254,15 +253,12 @@ app.get('/api/leaderboard', async (req, res) => {
         res.json({ success: true, leaderboard }); 
     } catch(e) { res.json({ success: false }); }
 });
-```
 
 // ==========================================
 // 🔵 ADMIN CONTROL APIs
 // ==========================================
-
-// 🔥 የ USER EDIT ችግር (BUG) መቶ በመቶ ተቀርፏል 🔥
 const auth = (req, res, next) => { 
-    const pass = req.body.adminPass; // አሁን የአድሚንን ፓስወርድ ብቻ ያጣራል
+    const pass = req.body.adminPass; 
     if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
@@ -320,53 +316,32 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
-    
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
     if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
     if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
     if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
-
     if(req.body.registerBonus !== undefined) s.registerBonus = req.body.registerBonus;
     if(req.body.inviteBonus !== undefined) s.inviteBonus = req.body.inviteBonus;
-
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
 
-// 🔥 PERFECTLY FIXED USER EDIT ENDPOINT 🔥
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
         const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
-        
-        let updateData = {
-            phone: newPhone,
-            mainBalance: Number(mainBalance),
-            playBalance: Number(playBalance),
-            won: Number(won)
-        };
-
-        // የአድሚን ፓስወርድ ጋር እንዳይጋጭ userPass ተጠቅመናል
-        if (userPass && userPass.trim() !== "") {
-            updateData.password = userPass;
-        }
-
+        let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) };
+        if (userPass && userPass.trim() !== "") { updateData.password = userPass; }
         await User.findOneAndUpdate({ phone: oldPhone }, updateData);
         res.json({ success: true });
-    } catch(e) {
-        res.json({ success: false });
-    }
+    } catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
 
 app.post('/api/admin/factory-reset', auth, async (req, res) => {
-    await User.deleteMany({});
-    await Transaction.deleteMany({});
-    await GameHistory.deleteMany({});
-    await BankSMS.deleteMany({});
-    await ActiveBonus.deleteMany({});
+    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({});
     res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
 });
 
