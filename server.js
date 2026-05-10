@@ -42,7 +42,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""},
-    txRef: { type: String, default: "" }
+    txRef: { type: String, default: "" } 
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -80,6 +80,8 @@ const bankAccounts = {
     'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' },
     'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' }
 };
+
+const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
 // ==========================================
 // 🛡️ THE GOLDEN EXTRACTOR ENGINE 
@@ -209,7 +211,10 @@ app.post('/api/register', async (req, res) => {
         let actualRef = "";
         if (refCode) { 
             let ref = await User.findOne({ phone: refCode.trim() }); 
-            if (ref) { ref.playBalance += GLOBAL_SETTINGS.inviteBonus; await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; } 
+            if (ref) { 
+                ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; 
+            } 
         }
         await new User({ phone, name, password, referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
         res.json({ success: true });
@@ -258,6 +263,7 @@ app.post('/api/request-tx', async (req, res) => {
         if(type === 'deposit') {
             let txRef = getTxRef(sms);
             if (!txRef) { return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም!" }); }
+
             let isUsed = await isSmsAlreadyUsed(sms);
             if (isUsed) { return res.json({ success: false, message: "❌ ይህ SMS (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" }); }
 
@@ -368,10 +374,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
 // 🔥 EDIT USER BUG FIXED HERE 🔥
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
-        const { oldPhone, newPhone, password, userPass, mainBalance, playBalance, won } = req.body;
+        const { oldPhone, newPhone, password, mainBalance, playBalance, won } = req.body;
         
-        let finalPassword = password || userPass;
-
         let updateData = {
             phone: newPhone,
             mainBalance: Number(mainBalance),
@@ -379,8 +383,8 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
             won: Number(won)
         };
 
-        if (finalPassword && finalPassword.trim() !== "") {
-            updateData.password = finalPassword;
+        if (password && password.trim() !== "") {
+            updateData.password = password;
         }
 
         await User.findOneAndUpdate({ phone: oldPhone }, updateData);
@@ -596,8 +600,6 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
-
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -756,6 +758,7 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
     
+    // Deposit / Withdraw Process
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text); if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt, cancelKeyboard(ln));
         bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
@@ -764,22 +767,25 @@ bot.on('message', async (msg) => {
         if(user) { 
             let txRef = getTxRef(text);
             
+            // 1. ኮዱን ቼክ ማድረግ
             if (!txRef) {
                 return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
             }
 
+            // 2. የድግግሞሽ (Duplicate) ቼክ
             let isUsed = await isSmsAlreadyUsed(text);
             if (isUsed) {
                 return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
             }
 
+            // እዚህ ጋር ደንበኛው የፃፈው Temporary Amount ገብቶ ይቆያል። (በኋላ ባንኩ ሲመጣ Amount Update ይደረጋል)
             await new Transaction({ 
                 phone: user.phone, 
                 type: 'deposit', 
                 amount: state.amount, 
                 method: state.method, 
                 smsText: text, 
-                txRef: txRef 
+                txRef: txRef // አዲሱ አሰራር - ኮዱ ለብቻው ተቀምጧል
             }).save(); 
 
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
