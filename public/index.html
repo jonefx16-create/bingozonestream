@@ -224,6 +224,19 @@
         .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; border: 1px solid #1e293b;}
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
         .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
+
+        /* 🔥 STRICT NUMBER BLURRING FOR MAINTENANCE MODE 🔥 */
+        body.paused-mode .mb-cell,
+        body.paused-mode .num-btn,
+        body.paused-mode .t-cell,
+        body.paused-mode .mini-t-cell,
+        body.paused-mode .caller-ball,
+        body.paused-mode .hist-top-ball {
+            filter: blur(15px) grayscale(100%) !important;
+            opacity: 0.1 !important;
+            pointer-events: none !important;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -284,7 +297,6 @@
         </div>
         
         <span class="trx-label">የእርስዎ ስልክ ቁጥር/አካውንት</span>
-        <!-- 🔥 NEW: Withdraw specific strict warning added here 🔥 -->
         <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 11px; color: #fde047; text-align: center;">
             ⚠️ <b>ማሳሰቢያ:</b> እባክዎ ብሩ የሚላክበትን ትክክለኛውን የራስዎን ስልክ ቁጥር ወይም አካውንት በጥንቃቄ ያስገቡ።
         </div>
@@ -996,12 +1008,22 @@
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
         let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
-        
         let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = data.totalPrizePool.toFixed(2) + " ETB";
         
-        if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
+        if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; 
+        document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
         let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none';
+
+        // 🔥 MAINTENANCE (PAUSE) MODE HANDLER 🔥
+        if (data.state === "MAINTENANCE") {
+            document.body.classList.add('paused-mode');
+            document.getElementById('timer').innerText = "PAUSED";
+            document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Maintenance Mode" : "ጥገና ላይ ነን (Paused)";
+            return; // Stop processing further WAITING or PLAYING code
+        } else {
+            document.body.classList.remove('paused-mode');
+        }
 
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
