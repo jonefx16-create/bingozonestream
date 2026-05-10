@@ -318,6 +318,17 @@
         </div>
 
         <div id="tab-settings" class="tab-content">
+            
+            <!-- 🟢 NEW: Added Admin Profit Control Panel here! -->
+            <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
+                <h3 style="margin-top:0; color:var(--cyan);">📉 Admin Profit (% - የድርጅት ትርፍ)</h3>
+                <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">የድርጅቱ ትርፍ ስንት ፐርሰንት እንዲሆን እንደሚፈልጉ ያስገቡ (ለምሳሌ፡ 15፣ 20)። ቀሪው ፐርሰንት ለአሸናፊዎች ይከፈላል።</p>
+                <div style="display:flex; gap:10px;">
+                    <input type="number" id="set-admin-profit" placeholder="e.g. 15" min="0" max="100">
+                    <button class="action-btn btn-blue" onclick="updateSettings('profit')">Save %</button>
+                </div>
+            </div>
+
             <div class="card" style="border-left: 4px solid var(--purple); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--purple);">🎁 Registration & Invite Bonus</h3>
                 <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">አዲስ ለሚመዘገብ እና ሰው ለሚጋብዝ ሰው የሚሰጠውን ቦነስ እዚህ ይቀይሩ።</p>
@@ -457,6 +468,11 @@
             if(document.activeElement !== document.getElementById('set-timer')) document.getElementById('set-timer').value = data.settings.gameTimer || 40;
             
             if(data.settings) {
+                // 🟢 Populate Admin Profit setting
+                if(document.activeElement !== document.getElementById('set-admin-profit')) {
+                    document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
+                }
+
                 if(document.activeElement !== document.getElementById('set-reg-bonus')) document.getElementById('set-reg-bonus').value = data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10;
                 if(document.activeElement !== document.getElementById('set-inv-bonus')) document.getElementById('set-inv-bonus').value = data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10;
 
@@ -506,7 +522,7 @@
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allGameHistories = await hRes.json();
-            document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${h.prize}</td><td style="color:var(--blue); font-weight:bold;">+${h.adminProfit || 0}</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`).join('');
+            document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toFixed(2)}</td><td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toFixed(2)}</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`).join('');
             let dropHtml = '<option value="">-- Select a Game --</option>'; allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
         } catch (e) { console.log(e); }
     }
@@ -685,6 +701,13 @@
         let payload = { adminPass: pass }; 
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
         
+        // 🟢 NEW: Update Admin Profit Percentage
+        if(type === 'profit') { 
+            let prof = document.getElementById('set-admin-profit').value; 
+            if(!prof || prof < 0 || prof > 100) return alert("እባክዎ ትክክለኛ ፐርሰንት ያስገቡ (0-100)!"); 
+            payload.adminProfitPercent = Number(prof); 
+        }
+
         if(type === 'price') { 
             let pr = document.getElementById('set-price').value; 
             if(!pr) return alert("እባክዎ ዋጋ ያስገቡ!"); 
