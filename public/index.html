@@ -65,87 +65,6 @@
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
         .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
-        .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px;
-42s
-Model 12:00 AM
-ThinkingThoughts
-Expand to view model thoughts
-
-chevron_right
-ይቅርታ፣ ተሳስቼ ነው! አሁን በትክክል እንዳልከው ሌላውን ኮድ ምንም ሳልነካ፣ ጨዋታው **LIVE** በሚሆንበት ጊዜ ከታች ባለው የ **Ticket (ካርቴላ)** በተን ላይ ወደ ታች የሚያሳይ ትንሽ ብልጭ ድርግም የሚል ቀስት (⬇️) ጨምሬበታለሁ።
-
-(ይህ ቀስት ጨዋታው ሲጀመር እና ካርቴላ ገዝተህ ከሆነ ብቻ ብልጭ ድርግም እያለ ወደ ቲኬት ፔጅህ እንድትገባ ያሳይሃል፤ ቲኬት ፔጁን ስትነካው ደግሞ ይጠፋል)።
-
-ሙሉው የተስተካከለ ኮድ ይኸውልህ፡
-
-```html
-<!DOCTYPE html>
-<html lang="am">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BINGO HABESHA - LIVE ULTIMATE</title>
-    <!-- 🔥 የቴሌግራም አውቶ ሎጊን ስክሪፕት 🔥 -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
-        body { background-color: var(--bg-dark); color: var(--white); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
-        .page { display: none; padding: 10px; animation: fadeIn 0.3s; }
-        .active-page { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Auth Modernized */
-        #auth-page.active-page { display: flex !important; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 0; margin: 0; box-sizing: border-box; }
-        .auth-card { background: rgba(10, 15, 24, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 35px 25px; border-radius: 25px; width: 90%; max-width: 360px; text-align: center; border: 1px solid rgba(74, 222, 128, 0.15); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(74, 222, 128, 0.05); }
-        .input-group { margin-bottom: 12px; position: relative; }
-        .auth-input { width: 100%; padding: 14px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: 0.3s; }
-        .auth-input:focus { border-color: var(--faded-green); outline: none; box-shadow: 0 0 8px rgba(74,222,128,0.3); background: rgba(0,0,0,0.8); }
-        .ref-input { background: rgba(74, 222, 128, 0.05); border-color: rgba(74, 222, 128, 0.2); }
-        .ref-input::placeholder { color: #6ee7b7; opacity: 0.7; }
-        .auth-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--faded-green), #059669); color: #000; border: none; border-radius: 12px; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 4px 15px rgba(74,222,128,0.4);}
-        .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; background: #334155; color: #94a3b8;}
-        .eye-icon { position: absolute; right: 15px; top: 14px; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.2s; }
-        .eye-icon:hover { opacity: 1; }
-        .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
-        .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
-        
-        /* HIDE NAV & HEADER ON AUTH PAGE */
-        body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
-
-        /* Header */
-        .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-        .hdr-user-sec { display: flex; align-items: center; gap: 8px; }
-        .hdr-user-sec .icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
-        .hdr-user-sec .name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
-        .hdr-user-sec .phone { font-size: 9px; color: var(--text-gray); }
-        .hdr-wallets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-        .pill-wallet { background: #0b111a; border: 1px solid #1e293b; border-radius: 12px; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; min-width: 125px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); box-sizing: border-box;}
-        .pill-wallet span.title { font-size: 8px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;}
-        .pill-wallet span.title.play { color: var(--faded-green); }
-        .pill-wallet span.title.main { color: var(--gold); }
-        .pill-wallet span.amt { color: white; font-size: 11px; font-weight: 900; font-family: monospace;}
-
-        /* Timer Box */
-        .new-timer-box { background: #111521; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); }
-        .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-        .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .nt-badge { background: rgba(74, 222, 128, 0.15); color: var(--faded-green); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
-        .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
-        .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
-        #timer { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); font-size: 26px; }
-
-        /* Game & Home Page Badge */
-        .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
-        .live-indicator .dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: pulseRed 1.2s infinite; }
-        .jp-amount { color: #38bdf8; font-size: 13px; font-weight: 900; font-family: 'Arial Black', sans-serif; margin-top: 1px;}
-        #game-page .live-circle-badge { width: 90px !important; height: 90px !important; margin: 0 auto; position: relative !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
-        #game-page .jp-amount { font-size: 16px !important; }
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-
-        .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
-        .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
-        .gs-right { font-size: 14px; font-weight: 900; color: var(--faded-green); } 
         .gs-right span.slash { color: #64748b; font-weight: bold; font-size: 13px; margin-left: 3px; }
         
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; padding-bottom: 200px; } 
@@ -269,13 +188,9 @@ chevron_right
         .rank-badge { width: 26px; height: 26px; border-radius: 50%; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; margin-right: 12px; border: 1px solid var(--faded-green); box-shadow: inset 0 0 5px rgba(74,222,128,0.5);}
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: flex; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
-        .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold; position: relative;}
+        .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
-
-        /* 🔥 አዲስ የተጨመረው ቀስት አኒሜሽን 🔥 */
-        @keyframes bounceBlinkArrow { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; } 50% { transform: translateX(-50%) translateY(-6px); opacity: 0.2; } } 
-        .ticket-alert-arrow { display: none; position: absolute; top: -16px; left: 50%; color: #ef4444; font-size: 18px; animation: bounceBlinkArrow 0.7s infinite; text-shadow: 0 0 10px rgba(239, 68, 68, 0.9); z-index: 4000; pointer-events: none; }
 
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4);}
@@ -306,6 +221,9 @@ chevron_right
         .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; border: 1px solid #1e293b;}
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
         .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
+        @keyframes bounceBlinkArrow { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; } 50% { transform: translateX(-50%) translateY(-6px); opacity: 0.2; } } 
+        .ticket-alert-arrow { display: none; position: absolute; top: -16px; left: 50%; color: #ef4444; font-size: 18px; animation: bounceBlinkArrow 0.7s infinite; text-shadow: 0 0 10px rgba(239, 68, 68, 0.9); z-index: 4000; pointer-events: none; }
+        .nav-item { position: relative; } /* Added relative to anchor the absolute arrow */
     </style>
 </head>
 <body>
@@ -659,7 +577,6 @@ chevron_right
 
 <nav id="navbar" class="bottom-nav" style="display: none;">
     <div class="nav-item active" id="nav-home" onclick="handleHomeNav()"><span class="nav-icon" id="nav-icon-home">🏠</span><span id="nav-txt-home">Home</span></div>
-    <!-- 🔥 የቲኬት ቀስት የተጨመረበት ቦታ 🔥 -->
     <div class="nav-item" onclick="showPage('ticket')"><div id="ticket-live-arrow" class="ticket-alert-arrow">⬇️</div><span class="nav-icon">🎟️</span><span id="nav-txt-ticket">Ticket</span></div>
     <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span><span id="nav-txt-wallet">Wallet</span></div>
     <div class="nav-item" onclick="loadLeaderboard()"><span class="nav-icon">🏆</span><span id="nav-txt-rank">Rank</span></div>
@@ -1088,14 +1005,13 @@ chevron_right
         
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
 
+        let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none';
+
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
             document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
-            
-            /* 🔥 ጨዋታው ገና ከሆነ አኒሜሽኑን ደብቀው 🔥 */
-            let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none';
 
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
@@ -1129,7 +1045,6 @@ chevron_right
             isGameRunningLocally = true; document.getElementById('timer').innerText = "LIVE 🔴"; 
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is LIVE" : "ጨዋታው በመካሄድ ላይ ነው";
 
-            /* 🔥 ጨዋታው ላይቭ ሲሆን ካርቴላ ከገዛ አኒሜሽኑን አብርተው 🔥 */
             let tla = document.getElementById('ticket-live-arrow'); if(tla && userTicketsData.length > 0) tla.style.display = 'block';
 
             if (currentGameState !== "PLAYING") {
@@ -1338,8 +1253,7 @@ chevron_right
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         if(id !== 'home') document.getElementById('bet-slip-popup').classList.remove('show'); else if(selected.length > 0) document.getElementById('bet-slip-popup').classList.add('show');
         if(id === 'wallet') loadTransactionHistory();
-
-        /* 🔥 ወደ ቲኬት ፔጅ ከገባ አኒሜሽኑን ደብቀው 🔥 */
+        
         if(id === 'ticket') { let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none'; }
 
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
