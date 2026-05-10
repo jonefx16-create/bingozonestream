@@ -256,7 +256,6 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 ```
 
-#### የ `server.js` ክፍል 2 (ከመስመር 386 ጀምሮ እስከ መጨረሻው ይቀጥሉ)
 ```javascript
 // ==========================================
 // 🔵 ADMIN CONTROL APIs
