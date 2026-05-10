@@ -244,7 +244,7 @@
         <div id="tab-dep-bonus" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); max-width: 600px; margin: 0 auto;">
                 <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
-                <p style="font-size:12px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን የቦነስ መጠን እና ሰዓት እዚህ ይቆጣጠሩ።</p>
+                <p style="font-size:12px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን የቦነስ መጠን እና ሰዓት እዚህ ይቆጣጠሩ። (ይህ እንዲሰራ Server.js ላይ ማስተካከል ያስፈልጋል)</p>
                 
                 <label style="color:var(--text-gray); font-size:13px; font-weight:bold;">ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Deposit Amount)</label>
                 <input type="number" id="set-dep-min" placeholder="e.g. 200">
@@ -425,6 +425,7 @@
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
+    // 🔥 FIXED: Input fields won't overwrite your typing!
     async function loadLiveStats() {
         if(!pass || !document.getElementById('tab-live').classList.contains('active')) return;
         try {
@@ -438,16 +439,23 @@
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             
-            if(!document.getElementById('set-price').value) document.getElementById('set-price').value = data.settings.ticketPrice;
-            if(!document.getElementById('set-timer').value) document.getElementById('set-timer').value = data.settings.gameTimer;
+            // Only update the input if the user is NOT currently clicking/typing inside it
+            if(document.activeElement !== document.getElementById('set-price')) {
+                document.getElementById('set-price').value = data.settings.ticketPrice || 10;
+            }
+            if(document.activeElement !== document.getElementById('set-timer')) {
+                document.getElementById('set-timer').value = data.settings.gameTimer || 40;
+            }
             
-            if(!document.getElementById('set-dep-min').value) {
-                document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted;
-                document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount;
-                document.getElementById('set-dep-perc').value = data.settings.depBonusPercent;
-                document.getElementById('set-dep-start').value = data.settings.happyHourStart;
-                document.getElementById('set-dep-end').value = data.settings.happyHourEnd;
-                toggleTimeInputs(); 
+            if(data.settings && data.settings.depBonusMinAmount !== undefined) {
+                if(document.activeElement !== document.getElementById('set-dep-min')) {
+                    document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
+                    document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount || '';
+                    document.getElementById('set-dep-perc').value = data.settings.depBonusPercent || '';
+                    document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
+                    document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
+                    toggleTimeInputs(); 
+                }
             }
         } catch(e) {}
     }
@@ -549,7 +557,6 @@
         } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ"; }
     }
 
-    // 🔥 Added Single Bonus function 🔥
     async function sendSingleBonus() {
         let phone = document.getElementById('sb-phone').value;
         let amt = document.getElementById('sb-amt').value;
@@ -560,7 +567,6 @@
         if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; }
     }
 
-    // 🔥 Added Bulk Bonus function 🔥
     async function sendBulkBonus() {
         let phones = document.getElementById('b-phones').value;
         let amt = document.getElementById('mb-amt-bulk').value;
@@ -638,11 +644,22 @@
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     
+    // 🔥 FIXED: Data is properly casted to Number before sending!
     async function updateSettings(type) { 
         let payload = { adminPass: pass }; 
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
-        if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("እባክዎ ዋጋ ያስገቡ!"); payload.ticketPrice = pr; } 
-        if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("እባክዎ የጌም ሰከንድ ያስገቡ!"); payload.gameTimer = tm; } 
+        
+        if(type === 'price') { 
+            let pr = document.getElementById('set-price').value; 
+            if(!pr) return alert("እባክዎ ዋጋ ያስገቡ!"); 
+            payload.ticketPrice = Number(pr); // Cast to number
+        } 
+        
+        if(type === 'timer') { 
+            let tm = document.getElementById('set-timer').value; 
+            if(!tm) return alert("እባክዎ የጌም ሰከንድ ያስገቡ!"); 
+            payload.gameTimer = Number(tm); // Cast to number
+        } 
         
         if(type === 'dep_bonus') {
             let isRestricted = document.getElementById('set-dep-time-restrict').checked;
@@ -651,11 +668,11 @@
             let start = document.getElementById('set-dep-start').value;
             let end = document.getElementById('set-dep-end').value;
             if(!mAmt || !mPer || !start || !end) return alert("Please fill all bonus settings!");
-            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = mAmt; payload.depBonusPercent = mPer; payload.happyHourStart = start; payload.happyHourEnd = end;
+            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = Number(mAmt); payload.depBonusPercent = Number(mPer); payload.happyHourStart = Number(start); payload.happyHourEnd = Number(end);
         }
 
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        alert("✅ Saved!"); 
+        alert("✅ በስኬት ተስተካክሏል (Saved)!"); 
     }
 
     async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); loadData(); loadLiveStats(); }
