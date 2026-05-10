@@ -479,10 +479,10 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
-// 🔥 TRUE FAIR DRAW: Generates all 75 numbers and calls them until someone wins!
+// 🔥 TRUE FAIR DRAW
 function generateDrawSequence() {
     let pool = Array.from({length: 75}, (_, i) => i + 1);
-    return pool.sort(() => Math.random() - 0.5); // Fully random shuffle
+    return pool.sort(() => Math.random() - 0.5); 
 }
 
 // 🟢 Handles TIE-BREAKER cleanly
@@ -509,7 +509,6 @@ async function declareWinners(winners) {
         ticketIds.push(w.ticket.id);
     }
 
-    // Extract unique names just in case one person won with 2 tickets
     let uniqueNames = [...new Set(winnerNames)];
     let displayNames = uniqueNames.join(' እና ');
 
@@ -518,7 +517,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: totalPrizePool, // Record full prize
+        prize: totalPrizePool,
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -530,8 +529,8 @@ async function declareWinners(winners) {
     io.emit('game_winner', { 
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
-        prize: splitPrize, // Exact amount each winner got
-        totalPrize: totalPrizePool, // Original amount
+        prize: splitPrize, 
+        totalPrize: totalPrizePool, 
         phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
@@ -555,7 +554,7 @@ setInterval(() => {
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); // Using Fair Draw
+                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
@@ -565,13 +564,13 @@ setInterval(() => {
         gameClock--;
         if (gameClock <= 0) {
             gameClock = 3; 
-            if (currentDrawSequence.length === 0) { resetToWaiting(); return; } // End if no more balls (rare)
+            if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
             let num = currentDrawSequence.shift(); 
             calledNumbers.push(num); 
             io.emit('new_number', num);
             
-            // 🟢 TIE BREAKER: Check if anyone won on this exact ball
+            // 🟢 Check if anyone won on this exact ball
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) { 
@@ -580,7 +579,6 @@ setInterval(() => {
                     } 
                 }
             }
-            // If one or more winners found, split prize and end game
             if(winnersThisRound.length > 0) {
                 declareWinners(winnersThisRound);
                 return;
@@ -876,7 +874,6 @@ app.get('*', (req, res) => {
     if (fs.existsSync(target)) {
         let html = fs.readFileSync(target, 'utf8');
         
-        // 🟢 የ Blur ማስተካከያ (Maintenance Overlay Logic)
         let maintenanceScript = `
         <style>
             #dynamic-maintenance {
@@ -885,12 +882,26 @@ app.get('*', (req, res) => {
                 justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;
                 backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             }
-            body.paused-mode > *:not(#dynamic-maintenance) {
+            body.paused-mode > *:not(#dynamic-maintenance):not(#top-toast-notification) {
                 filter: blur(12px) grayscale(50%);
                 pointer-events: none;
                 user-select: none;
             }
-            /* TIE BREAKER POPUP STYLE */
+            
+            /* 🔥 TOP TOAST NOTIFICATION STYLE 🔥 */
+            #top-toast-notification {
+                position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+                background: linear-gradient(135deg, #ef4444, #f97316);
+                color: white; padding: 15px 30px; border-radius: 50px; border: 2px solid #ffedd5;
+                font-family: sans-serif; font-weight: bold; font-size: 16px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 99999999;
+                transition: top 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                display: flex; align-items: center; gap: 10px; text-align:center;
+                white-space: nowrap;
+            }
+            #top-toast-notification.show { top: 30px; }
+
+            /* TIE BREAKER POPUP STYLE (CENTER) */
             #tie-breaker-popup {
                 display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 background: linear-gradient(135deg, #161b22, #0f172a); border: 2px solid #fbbf24;
@@ -901,6 +912,13 @@ app.get('*', (req, res) => {
             }
             @keyframes popIn { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
         </style>
+        
+        <!-- TOP NOTIFICATION ELEMENT -->
+        <div id="top-toast-notification">
+            <span style="font-size: 24px;">🏆</span> 
+            <span id="toast-msg">በ ተጫዋቾች መካከል ብሩ ተካፍሏል!</span>
+        </div>
+
         <div id="dynamic-maintenance">
             <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
             <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
@@ -940,12 +958,19 @@ app.get('*', (req, res) => {
                     // 🟢 Listen for multi-winners (Ties)
                     blurSocket.on('game_winner', (data) => {
                         if(data.isShared) {
+                            // 1. Show Top Toast Notification
+                            const toast = document.getElementById('top-toast-notification');
+                            document.getElementById('toast-msg').innerText = "በ " + data.winnerCount + " ተጫዋቾች መካከል ብሩ ተካፍሏል!";
+                            toast.classList.add('show');
+                            setTimeout(() => { toast.classList.remove('show'); }, 6000); // Hide after 6s
+                            
+                            // 2. Prepare Center Popup Data
                             document.getElementById('tie-count').innerText = data.winnerCount;
                             document.getElementById('tie-names').innerText = data.winnerName;
                             document.getElementById('tie-each-prize').innerText = Number(data.prize).toFixed(2);
                             document.getElementById('tie-total-prize').innerText = Number(data.totalPrize).toFixed(2);
                             
-                            // Show popup after a tiny delay so the normal win animation starts first
+                            // Show Center Popup after a tiny delay
                             setTimeout(() => {
                                 document.getElementById('tie-breaker-popup').style.display = 'block';
                             }, 500);
