@@ -188,9 +188,12 @@
         .rank-badge { width: 26px; height: 26px; border-radius: 50%; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; margin-right: 12px; border: 1px solid var(--faded-green); box-shadow: inset 0 0 5px rgba(74,222,128,0.5);}
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 58px; background: #0d1117; display: flex; padding: 6px 0; border-top: 1px solid var(--border-color); z-index: 3000; justify-content: space-around; box-sizing: border-box; }
-        .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold;}
+        .nav-item { text-align: center; color: var(--text-gray); font-size: 11px; cursor: pointer; flex: 1; transition: 0.2s; font-weight: bold; position: relative;}
         .nav-item.active { color: var(--faded-green); text-shadow: 0 0 10px rgba(74,222,128,0.5);}
         .nav-icon { font-size: 20px; margin-bottom: 2px; display: block;}
+
+        @keyframes bounceBlinkArrow { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; } 50% { transform: translateX(-50%) translateY(-6px); opacity: 0.2; } } 
+        .ticket-alert-arrow { display: none; position: absolute; top: -16px; left: 50%; color: #ef4444; font-size: 18px; animation: bounceBlinkArrow 0.7s infinite; text-shadow: 0 0 10px rgba(239, 68, 68, 0.9); z-index: 4000; pointer-events: none; }
 
         .profile-stat-box { background: var(--panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 10px;}
         .prof-avatar-circle { width: 50px; height: 50px; background: linear-gradient(135deg, var(--faded-green), #059669); border-radius: 50%; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #000; box-shadow: 0 4px 10px rgba(74, 222, 128, 0.4);}
@@ -221,25 +224,14 @@
         .pw-modal { background: #131b2f; border-radius: 20px; padding: 30px 25px; width: 85%; max-width: 350px; border: 1px solid #1e293b;}
         .pw-btn-row { display: flex; gap: 15px; margin-top: 10px; }
         .pw-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
-        @keyframes bounceBlinkArrow { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; } 50% { transform: translateX(-50%) translateY(-6px); opacity: 0.2; } } 
-        .ticket-alert-arrow { display: none; position: absolute; top: -16px; left: 50%; color: #ef4444; font-size: 18px; animation: bounceBlinkArrow 0.7s infinite; text-shadow: 0 0 10px rgba(239, 68, 68, 0.9); z-index: 4000; pointer-events: none; }
-        .nav-item { position: relative; } /* Added relative to anchor the absolute arrow */
     </style>
 </head>
 <body>
 
 <div id="bingo-overlay" class="bingo-overlay">
     <div class="bling-text">✨ ሽልማት ገቢ እየተደረገ ነው... ✨</div>
-    <div class="winner-card">
-        <h3 style="margin:0; color:white; font-size:12px; letter-spacing: 2px; text-transform: uppercase;">Winner</h3>
-        <h1 class="bingo-text">B I N G O !</h1>
-        <div id="win-ticket-display"></div>
-        <h2 id="win-name" style="margin:10px 0 0 0; color:white; font-size:24px; font-weight:900;">---</h2>
-        <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#---</b></p>
-        <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
-            <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
-            <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">0 ETB</h1>
-        </div>
+    <div class="winner-card" id="winner-card-container">
+        <!-- 🔴 BINGO CONTENT WILL BE INJECTED HERE DYNAMICALLY 🔴 -->
     </div>
 </div>
 
@@ -273,7 +265,6 @@
         
         <span class="trx-label" id="lbl-dep-sms">የከፈሉበት ማረጋገጫ (SMS)</span>
         <textarea id="m-dep-sms" class="trx-input" style="height: 60px; resize: none; margin-bottom: 5px;" placeholder="ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)"></textarea>
-        <!-- 🔥 አዲሱ ማሳሰቢያ እዚህ ተጨመረ 🔥 -->
         <div id="dep-sms-hint" style="font-size: 10px; color: var(--gold); margin-bottom: 20px; line-height: 1.4;">💡 <b>ማሳሰቢያ:</b> ከባንክ የተላከሎትን SMS <b>ሙሉውን</b> ኮፒ በማድረግ እዚህ ይለጥፉ። በተለይ በ <b>CBE Birr</b> ሲያስገቡ የባንኩን ሙሉ ደረሰኝ (SMS) ማካተትዎን አይርሱ።</div>
         
         <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ጨርስ</button>
@@ -1071,14 +1062,56 @@
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
 
+    // 🔥 አሸናፊ እና ተሸናፊን የሚለየው ትክክለኛው ዲዛይን (Modified according to specific wording) 🔥
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
-        document.getElementById('win-name').innerText = data.winnerName; 
-        document.getElementById('win-ticket').innerText = "#" + data.ticketId; 
-        document.getElementById('win-prize').innerText = data.prize.toFixed(2) + " ETB";
         
+        let amIWinner = false;
+        if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) {
+            amIWinner = true;
+        }
+
+        let titleHtml = "";
+        let nameHtml = "";
+        let alertHtml = "";
+
+        if (amIWinner) {
+            // 🏆 እኔ አሸናፊ ስሆን 🏆
+            titleHtml = "🎉 እንኳን ደስ አሎት! 🎉";
+            nameHtml = "የዚህን ዙር ሽልማት አሸንፈዋል! 👏";
+            
+            if (data.isShared) {
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል ተካፍሏል! ✨<br><span style='font-size:14px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>የደረሶት መጠን: ${data.prize.toFixed(2)} ETB</span></div>`;
+            } else {
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3)); border: 2px solid #fbbf24; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(251,191,36,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የደራሽ ሽልማት: ${data.prize.toFixed(2)} ETB ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>ሂሳብዎ ላይ ገቢ ተደርጓል!</span></div>`;
+            }
+        } else {
+            // 😢 እኔ ሳላሸንፍ (ሌላ ሰው ሲያሸንፍ) 😢
+            titleHtml = "አሸናፊ (WINNER)";
+            nameHtml = data.winnerName;
+
+            if (data.isShared) {
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toFixed(2)} ETB አግኝተዋል</span></div>`;
+            }
+        }
+
+        // ሙሉ ፖፕ አፑን (Card) ማሳየት
+        let winnerCard = document.querySelector('.winner-card');
+        winnerCard.innerHTML = `
+            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '16px' : '12px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
+            <h1 class="bingo-text">B I N G O !</h1>
+            <div id="win-ticket-display"></div>
+            <h2 id="win-name" style="margin:10px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:18px; font-weight:900;">${nameHtml}</h2>
+            <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
+            <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
+                <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
+                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toFixed(2)} ETB</h1>
+            </div>
+            ${alertHtml}
+        `;
+
         let g = data.ticketGrid; let cld = data.calledNumbers;
-        let html = `<div style="width:200px; margin: 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
+        let html = `<div style="width:200px; margin: 15px auto 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
         html += `<div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
         for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color:#fff; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; }
         for(let r=0; r<5; r++){
@@ -1095,8 +1128,10 @@
                 }
             }
         }
-        html += `</div></div>`; document.getElementById('win-ticket-display').innerHTML = html;
-        if(currentUser && data.phone === currentUser.phone) fetchUpdatedBalance(); 
+        html += `</div></div>`; 
+        document.getElementById('win-ticket-display').innerHTML = html;
+
+        if(amIWinner) fetchUpdatedBalance(); 
     });
 
     function initGrid() { 
