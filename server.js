@@ -916,7 +916,7 @@ app.get('*', (req, res) => {
         <!-- TOP NOTIFICATION ELEMENT -->
         <div id="top-toast-notification">
             <span style="font-size: 24px;">🏆</span> 
-            <span id="toast-msg">በ 2 ሰዎች መካከል ሽልማቱ ተካፋይ ሆኗል!</span>
+            <span id="toast-msg">ሽልማቱ በእነዚህ ሰዎች መካከል ተካፋይ ሆኗል!</span>
         </div>
 
         <div id="dynamic-maintenance">
@@ -960,7 +960,7 @@ app.get('*', (req, res) => {
                         if(data.isShared) {
                             // 1. Show Top Toast Notification
                             const toast = document.getElementById('top-toast-notification');
-                            document.getElementById('toast-msg').innerText = "በ " + data.winnerCount + " ሰዎች መካከል ሽልማቱ ተካፋይ ሆኗል!";
+                            document.getElementById('toast-msg').innerText = "ሽልማቱ በእነዚህ " + data.winnerCount + " ሰዎች መካከል ተካፋይ ሆኗል!";
                             toast.classList.add('show');
                             setTimeout(() => { toast.classList.remove('show'); }, 6000); // Hide after 6s
                             
