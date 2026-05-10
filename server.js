@@ -461,7 +461,6 @@ let globalTakenTickets = [];
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     
-    // Mark called numbers and FREE space
     for(let c=0; c<5; c++) {
         for(let r=0; r<5; r++) {
             if((c===2 && r===2) || called.includes(grid[c][r])) {
@@ -485,11 +484,12 @@ function generateDrawSequence() {
     return pool.sort(() => Math.random() - 0.5); 
 }
 
-// 🟢 Handles TIE-BREAKER cleanly
+// 🟢 Handles TIE-BREAKER cleanly (እኩል ማካፈያ)
 async function declareWinners(winners) {
     gameState = "FINISHED"; gameClock = 12; 
     
-    let splitPrize = totalPrizePool / winners.length;
+    // ብሩን አሸናፊ ለሆኑት ሰዎች በትክክል እኩል ያካፍላል
+    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
     let adminProfit = totalCollectedMoney - totalPrizePool; 
     
     let winnerNames = [];
@@ -891,53 +891,25 @@ app.get('*', (req, res) => {
             /* 🔥 TOP TOAST NOTIFICATION STYLE 🔥 */
             #top-toast-notification {
                 position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-                background: linear-gradient(135deg, #ef4444, #f97316);
-                color: white; padding: 15px 30px; border-radius: 50px; border: 2px solid #ffedd5;
-                font-family: sans-serif; font-weight: bold; font-size: 16px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 99999999;
-                transition: top 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-                display: flex; align-items: center; gap: 10px; text-align:center;
-                white-space: nowrap;
+                background: linear-gradient(135deg, #16a34a, #059669);
+                color: white; padding: 15px 25px; border-radius: 12px; border: 2px solid #4ade80;
+                font-family: sans-serif; font-weight: bold; font-size: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 99999999;
+                transition: top 0.5s ease-out; display: flex; align-items: center; text-align:center;
+                width: 90%; max-width: 400px; justify-content: center; line-height: 1.4;
             }
-            #top-toast-notification.show { top: 30px; }
-
-            /* TIE BREAKER POPUP STYLE (CENTER) */
-            #tie-breaker-popup {
-                display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                background: linear-gradient(135deg, #161b22, #0f172a); border: 2px solid #fbbf24;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 20px rgba(251,191,36,0.3);
-                border-radius: 16px; padding: 30px; text-align: center; z-index: 9999999;
-                color: white; font-family: sans-serif; min-width: 300px;
-                animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            }
-            @keyframes popIn { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+            #top-toast-notification.show { top: 20px; }
         </style>
         
         <!-- TOP NOTIFICATION ELEMENT -->
         <div id="top-toast-notification">
-            <span style="font-size: 24px;">🏆</span> 
-            <span id="toast-msg">ሽልማቱ በእነዚህ ሰዎች መካከል ተካፋይ ሆኗል!</span>
+            <span id="toast-msg"></span>
         </div>
 
         <div id="dynamic-maintenance">
             <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
             <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
             <p style="font-size:18px;color:#f8fafc;max-width:500px;line-height:1.6;font-family:sans-serif;background:rgba(0,0,0,0.7);padding:20px;border-radius:12px;border:1px solid #ea580c;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
-        </div>
-
-        <div id="tie-breaker-popup">
-            <h1 style="margin:0; font-size:35px; color:#fbbf24; text-shadow:0 0 10px #fbbf24;">🎉 TIE BINGO!</h1>
-            <p style="font-size:18px; color:#94a3b8; margin:10px 0 20px 0;"><span id="tie-count" style="color:white; font-weight:bold; font-size:22px;">0</span> ሰዎች በአንድ ላይ አሸንፈዋል!</p>
-            
-            <div style="background:rgba(0,0,0,0.5); padding:15px; border-radius:8px; border:1px solid #334155; margin-bottom:20px;">
-                <p style="margin:0 0 5px 0; font-size:14px; color:#94a3b8;">አሸናፊዎች፡</p>
-                <h3 id="tie-names" style="margin:0; color:#4ade80; font-size:18px;"></h3>
-            </div>
-            
-            <p style="margin:0; font-size:16px;">እያንዳንዳቸው <span id="tie-each-prize" style="color:#38bdf8; font-weight:bold; font-size:22px;">0</span> <span style="color:#38bdf8;">ETB</span> ተካፍለዋል።</p>
-            <p style="margin:10px 0 0 0; font-size:12px; color:gray;">(አጠቃላይ ሽልማት: <span id="tie-total-prize">0</span> ETB)</p>
-            
-            <button onclick="document.getElementById('tie-breaker-popup').style.display='none'" style="margin-top:25px; background:#ef4444; color:white; border:none; padding:12px 25px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%;">ዝጋ (Close)</button>
         </div>
 
         <script>
@@ -955,25 +927,22 @@ app.get('*', (req, res) => {
                         }
                     });
 
-                    // 🟢 Listen for multi-winners (Ties)
+                    // 🟢 Listen for multi-winners (Ties - እኩል ማካፈያ)
                     blurSocket.on('game_winner', (data) => {
                         if(data.isShared) {
                             // 1. Show Top Toast Notification
                             const toast = document.getElementById('top-toast-notification');
-                            document.getElementById('toast-msg').innerText = "ሽልማቱ በእነዚህ " + data.winnerCount + " ሰዎች መካከል ተካፋይ ሆኗል!";
+                            document.getElementById('toast-msg').innerHTML = "🎉 <b>ቢንጎ!</b><br>ሽልማቱ በእነዚህ " + data.winnerCount + " ሰዎች መካከል እኩል ተካፋይ ሆኗል!";
                             toast.classList.add('show');
-                            setTimeout(() => { toast.classList.remove('show'); }, 6000); // Hide after 6s
+                            setTimeout(() => { toast.classList.remove('show'); }, 8000); 
                             
-                            // 2. Prepare Center Popup Data
-                            document.getElementById('tie-count').innerText = data.winnerCount;
-                            document.getElementById('tie-names').innerText = data.winnerName;
-                            document.getElementById('tie-each-prize').innerText = Number(data.prize).toFixed(2);
-                            document.getElementById('tie-total-prize').innerText = Number(data.totalPrize).toFixed(2);
-                            
-                            // Show Center Popup after a tiny delay
+                            // 2. Add text DIRECTLY to the Main Popup (Pop up ላይ እንዲታይ)
                             setTimeout(() => {
-                                document.getElementById('tie-breaker-popup').style.display = 'block';
-                            }, 500);
+                                let winPrizeEl = document.getElementById('win-prize');
+                                if(winPrizeEl) {
+                                    winPrizeEl.innerHTML = data.prize.toFixed(2) + " ETB <br><span style='font-size:11px; color:#4ade80; display:block; margin-top:8px; letter-spacing:0.5px;'>✨ ሽልማቱ ለ " + data.winnerCount + " ሰዎች እኩል ተካፍሏል ✨</span>";
+                                }
+                            }, 100);
                         }
                     });
                 }
