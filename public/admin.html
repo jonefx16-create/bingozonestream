@@ -115,7 +115,6 @@
         <button class="nav-btn" onclick="switchTab('tab-referral', this)"><div>🤝 Invite & Earn</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
-        <!-- 🔥 NEW: Separate Admin Profit Button 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--cyan);"><div>📉 Admin Profit %</div></button>
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit Auto-Bonus</div></button>
         
@@ -186,7 +185,10 @@
                 <button class="action-btn" onclick="exportTableToCSV('table-winners', 'Winners_History.csv')" style="padding: 10px;">📥 Export Excel</button>
             </div>
             <div class="card"><div class="table-responsive">
-                <table id="table-winners"><thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead><tbody id="game-history-body"></tbody></table>
+                <table id="table-winners">
+                    <thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead>
+                    <tbody id="game-history-body"></tbody>
+                </table>
             </div></div>
         </div>
 
@@ -227,7 +229,6 @@
             </div></div>
         </div>
 
-        <!-- 🔥 Manage Direct Bonus Tab (Includes Reg/Invite Bonus) 🔥 -->
         <div id="tab-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--faded-green);">
@@ -245,7 +246,6 @@
                 </div>
             </div>
 
-            <!-- Moved Reg & Invite Bonus here -->
             <div class="card" style="border-left: 4px solid var(--orange); margin-top: 20px;">
                 <h3 style="margin-top:0; color:var(--orange);">🎁 Registration & Invite Bonus</h3>
                 <p style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">አዲስ ለሚመዘገብ እና ሰው ለሚጋብዝ ሰው የሚሰጠውን ቦነስ እዚህ ይቀይሩ።</p>
@@ -263,7 +263,6 @@
             </div>
         </div>
 
-        <!-- 🔥 Separate Admin Profit Tab 🔥 -->
         <div id="tab-admin-profit" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--cyan); max-width: 500px; margin: 0 auto;">
                 <h3 style="margin-top:0; color:var(--cyan);">📉 Admin Profit (% - የድርጅት ትርፍ)</h3>
@@ -412,8 +411,14 @@
     </div>
 </div>
 
+<!-- 🔥 አዲሱ የ Winner History መመልከቻ Modal 🔥 -->
 <div class="modal" id="history-modal">
-    <div class="modal-content" style="text-align: center;"><h3 style="color: var(--faded-green); margin-top:0;">🎟️ Player Tickets</h3><p id="m-called" style="font-size: 12px; color: var(--text-gray); word-wrap: break-word;"></p><div id="m-grid" style="text-align: left;"></div><button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button></div>
+    <div class="modal-content" style="text-align: center; max-width: 600px;">
+        <h3 style="color: var(--faded-green); margin-top:0;">🎟️ Winner Cards (አሸናፊ ካርቴላዎች)</h3>
+        <p id="m-called" style="font-size: 13px; color: var(--text-gray); word-wrap: break-word;"></p>
+        <div id="m-grid" style="text-align: left; max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button>
+    </div>
 </div>
 
 <div class="modal" id="sms-modal">
@@ -473,7 +478,6 @@
             if(document.activeElement !== document.getElementById('set-timer')) document.getElementById('set-timer').value = data.settings.gameTimer || 40;
             
             if(data.settings) {
-                // 🟢 Populate Admin Profit setting
                 if(document.activeElement !== document.getElementById('set-admin-profit')) {
                     document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
                 }
@@ -527,7 +531,10 @@
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allGameHistories = await hRes.json();
-            document.getElementById('game-history-body').innerHTML = allGameHistories.map(h => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toFixed(2)}</td><td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toFixed(2)}</td><td><button class="btn-sm btn-blue" onclick='viewHistory(${JSON.stringify(h.winningGrid)}, ${JSON.stringify(h.calledNumbers)})'>Winner Card</button></td></tr>`).join('');
+            
+            // 🔥 አዲሱ የ Winners History ሰንጠረዥ (Table) ማሳያ 🔥
+            document.getElementById('game-history-body').innerHTML = allGameHistories.map((h, idx) => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toFixed(2)}</td><td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toFixed(2)}</td><td><button class="btn-sm btn-blue" onclick="viewHistory(${idx})">Winner Cards (ካርቴላዎች)</button></td></tr>`).join('');
+            
             let dropHtml = '<option value="">-- Select a Game --</option>'; allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
         } catch (e) { console.log(e); }
     }
@@ -572,7 +579,54 @@
 
     function renderGamePlayers(index) { if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } let game = allGameHistories[index]; document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${p.tickets * (game.ticketPrice || 10)} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; }
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
-    function viewHistory(grid, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let gHtml = `<div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) gHtml += `<div class="${called.includes(grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : grid[c][r]}</div>`; document.getElementById('m-grid').innerHTML = gHtml + `</div>`; document.getElementById('history-modal').style.display = 'flex'; }
+    
+    // 🔥 የተሻሻለው የ Winners History እይታ (ከ1 በላይ አሸናፊዎችን በአንድ ላይ የሚያሳይ) 🔥
+    function viewHistory(index) {
+        let h = allGameHistories[index];
+        let called = h.calledNumbers || [];
+        let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim());
+        let grids = [];
+
+        // ከአጠቃላይ ተጫዋቾች ውስጥ አሸናፊ የሆኑትን ካርቴላዎች መፈለግ
+        if (h.playersData && h.playersData.length > 0) {
+            h.playersData.forEach(p => {
+                if(p.ticketsData) {
+                    p.ticketsData.forEach(t => {
+                        if (ticketIds.includes(t.id.toString())) {
+                            grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ለድሮ ዳታ (playersData ከሌለ)
+        if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) {
+            grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone });
+        }
+
+        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", ");
+        
+        let fullHtml = "";
+        grids.forEach((gObj, i) => {
+            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`;
+            for(let r=0; r<5; r++) {
+                for(let c=0; c<5; c++) {
+                    let num = gObj.grid[c][r];
+                    let isMarked = called.includes(num) || (c===2&&r===2);
+                    fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`;
+                }
+            }
+            fullHtml += `</div>`;
+            // በመካከላቸው መስመር ለማድረግ
+            if(i !== grids.length - 1) {
+                fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`;
+            }
+        });
+        
+        document.getElementById('m-grid').innerHTML = fullHtml;
+        document.getElementById('history-modal').style.display = 'flex';
+    }
     
     async function viewClaimedUsers() {
         try {
