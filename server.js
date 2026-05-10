@@ -61,14 +61,21 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
     depBonusMinAmount: { type: Number, default: 100 }, depBonusPercent: { type: Number, default: 20 }, depBonusTimeRestricted: { type: Boolean, default: false }, happyHourStart: { type: Number, default: 0 }, happyHourEnd: { type: Number, default: 23 },
-    registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }
+    registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 }
 }));
 
-let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusMinAmount: 100, depBonusPercent: 20, depBonusTimeRestricted: false, happyHourStart: 0, happyHourEnd: 23, registerBonus: 10, inviteBonus: 10 };
+let GLOBAL_SETTINGS = { adminPass: "bingo1234", ticketPrice: 10, isGamePaused: false, gameTimer: 40, depBonusMinAmount: 100, depBonusPercent: 20, depBonusTimeRestricted: false, happyHourStart: 0, happyHourEnd: 23, registerBonus: 10, inviteBonus: 10, adminProfitPercent: 15 };
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10 };
+    GLOBAL_SETTINGS = { 
+        adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
+        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
+        depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
+        happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, 
+        inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
+        adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15 
+    };
 }
 loadSettings();
 
@@ -323,6 +330,7 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
     if(req.body.registerBonus !== undefined) s.registerBonus = req.body.registerBonus;
     if(req.body.inviteBonus !== undefined) s.inviteBonus = req.body.inviteBonus;
+    if(req.body.adminProfitPercent !== undefined) s.adminProfitPercent = req.body.adminProfitPercent; 
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
@@ -442,6 +450,7 @@ let gameState = "WAITING";
 let gameClock = 40; 
 let activePlayers = {}; 
 let totalPrizePool = 0; 
+let totalCollectedMoney = 0; 
 let totalTickets = 0;
 let calledNumbers = []; 
 let currentDrawSequence = []; 
@@ -471,17 +480,57 @@ function generateRiggedDrawSequence() {
     mixed.splice(Math.floor(Math.random() * 5) + 15, 0, winBall); return mixed;
 }
 
-async function declareWinner(player, ticket) {
+async function declareWinners(winners) {
     gameState = "FINISHED"; gameClock = 12; 
-    const user = await User.findOne({phone: player.phone});
-    if(user) { user.mainBalance += totalPrizePool; user.won += totalPrizePool; await user.save(); io.emit('balance_updated', player.phone); }
-    let adminProfit = (totalTickets * GLOBAL_SETTINGS.ticketPrice) - totalPrizePool; 
-    await GameHistory.create({ gameId, ticketId: ticket.id, winnerName: player.name, winnerPhone: player.phone, prize: totalPrizePool, adminProfit, ticketPrice: GLOBAL_SETTINGS.ticketPrice, winningGrid: ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) });
-    io.emit('game_winner', { winnerName: player.name, ticketId: ticket.id, prize: totalPrizePool, phone: player.phone, ticketGrid: ticket.grid, calledNumbers: [...calledNumbers] });
+    
+    let splitPrize = totalPrizePool / winners.length;
+    let adminProfit = totalCollectedMoney - totalPrizePool; 
+    
+    let winnerNames = [];
+    let winnerPhones = [];
+    let ticketIds = [];
+    
+    for (let w of winners) {
+        const user = await User.findOne({phone: w.player.phone});
+        if(user) { 
+            user.mainBalance += splitPrize; 
+            user.won += splitPrize; 
+            await user.save(); 
+            io.emit('balance_updated', w.player.phone); 
+        }
+        winnerNames.push(w.player.name);
+        winnerPhones.push(w.player.phone);
+        ticketIds.push(w.ticket.id);
+    }
+
+    await GameHistory.create({ 
+        gameId, 
+        ticketId: ticketIds.join(' & '), 
+        winnerName: winnerNames.join(' & '), 
+        winnerPhone: winnerPhones.join(' & '), 
+        prize: totalPrizePool, 
+        adminProfit, 
+        ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
+        winningGrid: winners[0].ticket.grid, 
+        calledNumbers: [...calledNumbers], 
+        playersData: Object.values(activePlayers) 
+    });
+
+    io.emit('game_winner', { 
+        winnerName: winnerNames.join(' & '), 
+        ticketId: ticketIds.join(' & '), 
+        prize: splitPrize, 
+        phone: winnerPhones.join(' & '), 
+        ticketGrid: winners[0].ticket.grid, 
+        calledNumbers: [...calledNumbers],
+        isShared: winners.length > 1 
+    });
 }
 
 function resetToWaiting() {
-    gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; totalPrizePool = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = [];
+    gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
+    totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
+    calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -505,8 +554,18 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
             let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
+            
+            let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
-                for (let ticket of player.ticketsData) { if (serverCheckBingo(ticket.grid, calledNumbers)) { declareWinner(player, ticket); return; } }
+                for (let ticket of player.ticketsData) { 
+                    if (serverCheckBingo(ticket.grid, calledNumbers)) { 
+                        winnersThisRound.push({ player, ticket });
+                    } 
+                }
+            }
+            if(winnersThisRound.length > 0) {
+                declareWinners(winnersThisRound);
+                return;
             }
         }
     } else if (gameState === "FINISHED") {
@@ -528,7 +587,11 @@ io.on('connection', (socket) => {
             user.played += 1; await user.save();
             if (!activePlayers[data.phone]) activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
             else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData.push(...data.ticketsData); }
-            totalTickets += data.ticketCount; totalPrizePool = (totalTickets * GLOBAL_SETTINGS.ticketPrice) * 0.85;
+            
+            totalTickets += data.ticketCount; 
+            totalCollectedMoney += betAmount;
+            totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
+            
             data.ticketIds.forEach(id => globalTakenTickets.push(id));
             io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
         }
@@ -794,14 +857,53 @@ app.get('*', (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'index.html')) ? path.join(__dirname, 'index.html') : path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(target)) {
         let html = fs.readFileSync(target, 'utf8');
+        
+        // 🟢 የ Blur ማስተካከያ (Maintenance Overlay Logic)
+        let maintenanceScript = `
+        <style>
+            #dynamic-maintenance {
+                display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(0,0,0,0.5); z-index: 9999999; flex-direction: column; align-items: center;
+                justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;
+                backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            }
+            body.paused-mode > *:not(#dynamic-maintenance) {
+                filter: blur(12px) grayscale(50%);
+                pointer-events: none;
+                user-select: none;
+            }
+        </style>
+        <div id="dynamic-maintenance">
+            <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
+            <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
+            <p style="font-size:18px;color:#f8fafc;max-width:500px;line-height:1.6;font-family:sans-serif;background:rgba(0,0,0,0.7);padding:20px;border-radius:12px;border:1px solid #ea580c;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
+        </div>
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                if (typeof io !== 'undefined') {
+                    const blurSocket = io();
+                    blurSocket.on('game_status', (data) => {
+                        if (data.state === 'MAINTENANCE') {
+                            document.body.classList.add('paused-mode');
+                            document.getElementById('dynamic-maintenance').style.display = 'flex';
+                        } else {
+                            document.body.classList.remove('paused-mode');
+                            document.getElementById('dynamic-maintenance').style.display = 'none';
+                        }
+                    });
+                }
+            });
+        </script>
+        `;
+        
+        // ከ <body> ቀጥሎ የ Maintenance Script እናስገባለን 
+        html = html.replace('<body>', '<body>\n' + maintenanceScript);
+        
+        // ጌሙ ቀድሞውኑ Pause ከተደረገ የ Body Class ወዲያውኑ ይጨመራል
         if (GLOBAL_SETTINGS.isGamePaused) {
-            let overlay = `<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:20px;box-sizing:border-box;">
-                <h1 style="color:#ea580c;font-size:45px;margin-bottom:10px;font-family:sans-serif;">⚠️ ጥገና ላይ ነን!</h1>
-                <p style="font-size:20px;color:#cbd5e1;font-family:sans-serif;margin-top:0;">(MAINTENANCE)</p>
-                <p style="font-size:16px;color:#94a3b8;max-width:500px;line-height:1.6;font-family:sans-serif;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
-            </div>`;
-            html = html.replace('<body>', '<body>' + overlay);
+            html = html.replace('<body>', '<body class="paused-mode">');
         }
+        
         res.send(html);
     } else {
         res.send("<h1>Bingo Habesha System is Running.</h1>");
