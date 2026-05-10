@@ -457,7 +457,6 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
-// 🔥 UPDATED: FULL BINGO RULES (Horizontal, Vertical, Diagonal, 4 Corners) 🔥
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     
@@ -486,20 +485,57 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
+// 🔥 UPDATED: Randomizes Winning Pattern (Horizontal, Vertical, Diagonal, Corners) 🔥
 function generateRiggedDrawSequence() {
     let pool = Array.from({length: 75}, (_, i) => i + 1);
     let allTickets = [];
     Object.values(activePlayers).forEach(p => p.ticketsData.forEach(t => allTickets.push({ phone: p.phone, name: p.name, ticket: t })));
+    
     if (allTickets.length === 0) return pool.sort(() => Math.random() - 0.5).slice(0, 20);
+    
+    // Select random ticket to make it the winner
     let target = allTickets[Math.floor(Math.random() * allTickets.length)];
-    let req = [target.ticket.grid[0][2], target.ticket.grid[1][2], target.ticket.grid[3][2], target.ticket.grid[4][2]];
+    let grid = target.ticket.grid;
+    
+    // Generate all possible winning paths for this ticket
+    let possiblePatterns = [];
+    
+    // 5 Rows (Horizontal)
+    for(let r=0; r<5; r++) {
+        let p = [];
+        for(let c=0; c<5; c++) if(!(c===2 && r===2)) p.push(grid[c][r]);
+        possiblePatterns.push(p);
+    }
+    
+    // 5 Columns (Vertical)
+    for(let c=0; c<5; c++) {
+        let p = [];
+        for(let r=0; r<5; r++) if(!(c===2 && r===2)) p.push(grid[c][r]);
+        possiblePatterns.push(p);
+    }
+    
+    // 2 Diagonals (X shape)
+    possiblePatterns.push([grid[0][0], grid[1][1], grid[3][3], grid[4][4]]); // Top-Left to Bottom-Right
+    possiblePatterns.push([grid[4][0], grid[3][1], grid[1][3], grid[0][4]]); // Bottom-Left to Top-Right
+    
+    // 4 Corners
+    possiblePatterns.push([grid[0][0], grid[4][0], grid[0][4], grid[4][4]]);
+    
+    // Select one winning pattern randomly
+    let req = possiblePatterns[Math.floor(Math.random() * possiblePatterns.length)];
+    
     req.forEach(n => { let i = pool.indexOf(n); if(i > -1) pool.splice(i, 1); });
-    let fillers = []; for(let i=0; i<16; i++) fillers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-    let winBall = req.pop(); let mixed = [...req, ...fillers].sort(() => Math.random() - 0.5); 
-    mixed.splice(Math.floor(Math.random() * 5) + 15, 0, winBall); return mixed;
+    
+    let fillers = []; 
+    for(let i=0; i<16; i++) fillers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    
+    let winBall = req.pop(); 
+    let mixed = [...req, ...fillers].sort(() => Math.random() - 0.5); 
+    mixed.splice(Math.floor(Math.random() * 5) + 15, 0, winBall); 
+    
+    return mixed;
 }
 
-// 🟢 Handles single or multiple winners (Tie-Breaker - Splits Prize Equally)
 async function declareWinners(winners) {
     gameState = "FINISHED"; gameClock = 12; 
     
@@ -575,7 +611,6 @@ setInterval(() => {
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; }
             let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
             
-            // 🟢 TIE BREAKER: Gathers ALL winning tickets at this exact second
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) { 
@@ -584,7 +619,6 @@ setInterval(() => {
                     } 
                 }
             }
-            // If one or more winners found, declare them and split prize if tie
             if(winnersThisRound.length > 0) {
                 declareWinners(winnersThisRound);
                 return;
