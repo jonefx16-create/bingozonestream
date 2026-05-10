@@ -531,7 +531,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
         totalPrize: totalPrizePool, 
-        phone: winnerPhones.join(', '), 
+        phone: winnerPhones.join(', '), // የሁሉንም አሸናፊዎች ስልክ ይይዛል
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
         isShared: winners.length > 1,
@@ -888,7 +888,7 @@ app.get('*', (req, res) => {
                 user-select: none;
             }
             
-            /* 🔥 የተካፋይ (TIE) ብሩህ እና ግልፅ ማሳወቂያ ዲዛይን 🔥 */
+            /* 🔥 የልዩ ፅሁፎች ማሳወቂያ ዲዛይን 🔥 */
             .shared-alert-box {
                 background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3));
                 border: 2px solid #4ade80;
@@ -932,30 +932,64 @@ app.get('*', (req, res) => {
                         }
                     });
 
-                    // 🟢 Listen for multi-winners (Ties - እኩል ማካፈያ)
+                    // 🟢 Listen for winners and customize overlay (ለአሸናፊውም ላላሸነፈውም)
                     blurSocket.on('game_winner', (data) => {
                         // 1. መጀመሪያ የቀድሞ ማሳወቂያ ካለ አጥፋው
                         let oldAlert = document.getElementById('shared-alert-msg');
                         if(oldAlert) oldAlert.remove();
 
-                        // 2. ከ 1 ሰው በላይ ካሸነፈ አዲሱን ማሳወቂያ ፍጠር
-                        if(data.isShared) {
-                            let alertBox = document.createElement('div');
-                            alertBox.id = 'shared-alert-msg';
-                            alertBox.className = 'shared-alert-box';
-                            alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toFixed(2) + " ETB</span>";
-                            
-                            // 3. የ Winner Popup ሲከፈት ፈልገህ ማሳወቂያውን ውስጡ ክተተው (Race Condition እንዳይኖር)
-                            let attempts = 0;
-                            let interval = setInterval(() => {
-                                let winnerCard = document.querySelector('.winner-card');
-                                if(winnerCard) {
-                                    winnerCard.appendChild(alertBox);
-                                    clearInterval(interval);
+                        setTimeout(() => {
+                            // 2. እኔ አሸናፊ ነኝ ወይስ ሌላ ሰው? (Check if current user is a winner)
+                            let amIWinner = false;
+                            if (window.currentUser && window.currentUser.phone && data.phone.includes(window.currentUser.phone)) {
+                                amIWinner = true;
+                            }
+
+                            let titleEl = document.querySelector('.winner-card h3');
+                            let nameEl = document.getElementById('win-name');
+                            let winnerCard = document.querySelector('.winner-card');
+
+                            if (amIWinner) {
+                                // 🔥 አሸናፊ ለሆነው ሰው የሚወጣው ልዩ ፅሁፍ 🔥
+                                if (titleEl) {
+                                    titleEl.innerHTML = "🎉 እንኳን ደስ አሎት! 🎉";
+                                    titleEl.style.color = "#4ade80";
+                                    titleEl.style.fontSize = "16px";
                                 }
-                                if(attempts++ > 15) clearInterval(interval);
-                            }, 200);
-                        }
+                                if (nameEl) {
+                                    nameEl.innerHTML = "እርስዎ አሸንፈዋል! 👏";
+                                    nameEl.style.color = "#fbbf24";
+                                }
+
+                                let alertBox = document.createElement('div');
+                                alertBox.id = 'shared-alert-msg';
+                                alertBox.className = 'shared-alert-box';
+
+                                if (data.isShared) {
+                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toFixed(2) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                } else {
+                                    alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
+                                    alertBox.style.borderColor = "#fbbf24";
+                                    alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
+                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toFixed(2) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                }
+                                if(winnerCard) winnerCard.appendChild(alertBox);
+
+                            } else {
+                                // 😥 ለሌሎች ሰዎች (ላላሸነፉት) የሚወጣው ፅሁፍ 😥
+                                if (titleEl) {
+                                    titleEl.innerHTML = "አሸናፊ (WINNER)";
+                                    titleEl.style.color = "white";
+                                }
+                                if (data.isShared) {
+                                    let alertBox = document.createElement('div');
+                                    alertBox.id = 'shared-alert-msg';
+                                    alertBox.className = 'shared-alert-box';
+                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toFixed(2) + " ETB</span>";
+                                    if(winnerCard) winnerCard.appendChild(alertBox);
+                                }
+                            }
+                        }, 150); // 150ms delay to override UI changes
                     });
                 }
             });
