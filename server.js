@@ -227,12 +227,12 @@ app.get('/api/getUser/:phone', async (req, res) => {
 
 app.post('/api/request-tx', async (req, res) => {
     try {
-        const { phone, type, amount, method, sms } = req.body; 
+        const { phone, type, amount, method, sms, destinationPhone } = req.body; 
         let user = await User.findOne({phone}); if(!user) return res.json({success: false});
         if(type === 'withdraw') {
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
             user.mainBalance -= amount; await user.save();
-            await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${phone}` }).save();
+            await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
         } else {
             let txRef = getTxRef(sms);
             if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) አልተገኘም!" });
@@ -484,11 +484,10 @@ function generateDrawSequence() {
     return pool.sort(() => Math.random() - 0.5); 
 }
 
-// 🟢 Handles TIE-BREAKER cleanly (እኩል ማካፈያ)
+// 🟢 Handles TIE-BREAKER cleanly
 async function declareWinners(winners) {
     gameState = "FINISHED"; gameClock = 12; 
     
-    // ብሩን አሸናፊ ለሆኑት ሰዎች በትክክል እኩል ያካፍላል
     let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
     let adminProfit = totalCollectedMoney - totalPrizePool; 
     
@@ -531,7 +530,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
         totalPrize: totalPrizePool, 
-        phone: winnerPhones.join(', '), // የሁሉንም አሸናፊዎች ስልክ ይይዛል
+        phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
         isShared: winners.length > 1,
@@ -932,14 +931,12 @@ app.get('*', (req, res) => {
                         }
                     });
 
-                    // 🟢 Listen for winners and customize overlay (ለአሸናፊውም ላላሸነፈውም)
+                    // 🟢 Listen for winners and customize overlay
                     blurSocket.on('game_winner', (data) => {
-                        // 1. መጀመሪያ የቀድሞ ማሳወቂያ ካለ አጥፋው
                         let oldAlert = document.getElementById('shared-alert-msg');
                         if(oldAlert) oldAlert.remove();
 
                         setTimeout(() => {
-                            // 2. እኔ አሸናፊ ነኝ ወይስ ሌላ ሰው? (Check if current user is a winner)
                             let amIWinner = false;
                             if (window.currentUser && window.currentUser.phone && data.phone.includes(window.currentUser.phone)) {
                                 amIWinner = true;
@@ -950,7 +947,6 @@ app.get('*', (req, res) => {
                             let winnerCard = document.querySelector('.winner-card');
 
                             if (amIWinner) {
-                                // 🔥 አሸናፊ ለሆነው ሰው የሚወጣው ልዩ ፅሁፍ 🔥
                                 if (titleEl) {
                                     titleEl.innerHTML = "🎉 እንኳን ደስ አሎት! 🎉";
                                     titleEl.style.color = "#4ade80";
@@ -976,7 +972,6 @@ app.get('*', (req, res) => {
                                 if(winnerCard) winnerCard.appendChild(alertBox);
 
                             } else {
-                                // 😥 ለሌሎች ሰዎች (ላላሸነፉት) የሚወጣው ፅሁፍ 😥
                                 if (titleEl) {
                                     titleEl.innerHTML = "አሸናፊ (WINNER)";
                                     titleEl.style.color = "white";
@@ -989,7 +984,7 @@ app.get('*', (req, res) => {
                                     if(winnerCard) winnerCard.appendChild(alertBox);
                                 }
                             }
-                        }, 150); // 150ms delay to override UI changes
+                        }, 150); 
                     });
                 }
             });
