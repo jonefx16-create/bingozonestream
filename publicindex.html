@@ -1000,8 +1000,6 @@
                     initGrid(); updateBetPreview(); 
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
                     document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
-                    
-                    // Do not auto redirect here if pop-up is showing. Wait for the 5-sec timer!
                 }
             }
             
@@ -1045,7 +1043,7 @@
         playNumberSound(num);
     });
 
-socket.on('game_winner', (data) => {
+    socket.on('game_winner', (data) => {
         // 🔥 BINGO ድምፅ ይጮሃል 🔥
         playBingoSound();
 
@@ -1070,9 +1068,6 @@ socket.on('game_winner', (data) => {
                 document.getElementById('bet-btn').disabled = false;
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
                 document.getElementById('bet-slip-popup').classList.remove('show');
-                
-                // ማሳሰቢያ፡ ሰዓቱን እና "LIVE" የሚለውን Text እዚህ ጋር አላጠፋነውም። 
-                // ምክንያቱም ከ Server በየሰከንዱ በሚመጣው ዳታ ራሱ ያለ ምንም መዘግየት (Delay) አፕዴት ስለሚያደርገው ነው!
             }
         }, 5000);
 
@@ -1089,36 +1084,6 @@ socket.on('game_winner', (data) => {
             titleHtml = "አሸናፊ (WINNER)"; nameHtml = data.winnerName;
             if (data.isShared) { alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toFixed(2)} ETB አግኝተዋል</span></div>`; }
         }
-
-        let winnerCard = document.querySelector('.winner-card');
-        winnerCard.innerHTML = `
-            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '16px' : '12px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
-            <h1 class="bingo-text">B I N G O !</h1>
-            <div id="win-ticket-display"></div>
-            <h2 id="win-name" style="margin:10px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:18px; font-weight:900;">${nameHtml}</h2>
-            <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
-            <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
-                <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
-                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize ? data.totalPrize.toFixed(2) : data.prize.toFixed(2)} ETB</h1>
-            </div>
-            ${alertHtml}
-        `;
-
-        let g = data.ticketGrid; let cld = data.calledNumbers;
-        let html = `<div style="width:200px; margin: 15px auto 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
-        html += `<div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
-        for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color:#fff; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; }
-        for(let r=0; r<5; r++){
-            for(let c=0; c<5; c++){
-                let num = g[c][r];
-                if(r===2 && c===2) { html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; } 
-                else if(cld.includes(num)) { html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; } 
-                else { html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; }
-            }
-        }
-        html += `</div></div>`; document.getElementById('win-ticket-display').innerHTML = html;
-        if(amIWinner) fetchUpdatedBalance(); 
-    });
 
         let winnerCard = document.querySelector('.winner-card');
         winnerCard.innerHTML = `
