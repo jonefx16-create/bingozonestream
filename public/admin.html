@@ -77,6 +77,19 @@
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
         .disabled-input { opacity: 0.4; pointer-events: none; }
 
+        /* 🔥 CHAT SYSTEM CSS 🔥 */
+        .chat-container { display: flex; height: 65vh; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #050810;}
+        .chat-sidebar { width: 35%; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; }
+        .chat-user { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s;}
+        .chat-user:hover { background: rgba(74, 222, 128, 0.1); }
+        .chat-user.active { background: rgba(74, 222, 128, 0.15); border-left: 3px solid var(--faded-green); }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #000; }
+        .chat-history { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .chat-bubble { max-width: 75%; padding: 10px 15px; border-radius: 15px; font-size: 13px; line-height: 1.4; word-wrap: break-word;}
+        .chat-user-msg { background: #1e293b; color: white; align-self: flex-start; border-bottom-left-radius: 0; }
+        .chat-admin-msg { background: var(--faded-green); color: black; align-self: flex-end; border-bottom-right-radius: 0; font-weight: bold;}
+        .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--panel); }
+
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
             .sidebar { position: fixed; left: -260px; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
@@ -86,6 +99,8 @@
             .header-top h2 { font-size: 16px; }
             .search-container { flex-direction: column; align-items: stretch; }
             .login-card { padding: 40px 20px; }
+            .chat-container { flex-direction: column; height: 75vh;}
+            .chat-sidebar { width: 100%; height: 30%; border-right: none; border-bottom: 1px solid var(--border); }
         }
     </style>
 </head>
@@ -108,15 +123,21 @@
         <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();"><div>📊 Live & Analytics</div></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
+        
+        <!-- 🔥 NEW: User Support Messages Tab 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-messages', this); loadMessages();"><div>💬 User Messages</div> <span class="badge-alert" id="badge-msg" style="background:var(--cyan);">0</span></button>
+        
         <button class="nav-btn" onclick="switchTab('tab-users', this)"><div>👥 Users & Passwords</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this)"><div>🏆 Winners History</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this)"><div>💸 Financial History</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-referral', this)"><div>🤝 Invite & Earn</div></button>
         
+        <!-- 🔥 CHANGED: Rename to Direct Bonus 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--cyan);"><div>📉 Admin Profit %</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit Auto-Bonus</div></button>
+        
+        <!-- 🔥 CHANGED: Rename to Auto-Bonuses & Cashback 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Auto-Bonuses & Cashback</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
@@ -158,6 +179,26 @@
                     <tbody id="pend-wit-body"></tbody>
                 </table>
             </div></div>
+        </div>
+
+        <!-- 🔥 NEW: USER MESSAGES TAB 🔥 -->
+        <div id="tab-messages" class="tab-content">
+            <div class="card" style="padding: 0;">
+                <div class="chat-container">
+                    <div class="chat-sidebar" id="chat-sidebar-list">
+                        <div style="padding: 15px; text-align: center; color: var(--text-gray);">Loading users...</div>
+                    </div>
+                    <div class="chat-main">
+                        <div class="chat-history" id="chat-history-box">
+                            <div style="margin: auto; color: var(--text-gray);">Select a user to view messages</div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chat-input" placeholder="Type reply here..." style="margin-bottom:0; flex:1;" onkeyup="if(event.key === 'Enter') sendReply()">
+                            <button class="action-btn" style="width:auto;" onclick="sendReply()">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="tab-users" class="tab-content">
@@ -217,12 +258,6 @@
             </div>
         </div>
 
-        <div id="tab-referral" class="tab-content">
-            <div class="card"><div class="table-responsive">
-                <table id="table-referrals"><thead><tr><th>Referrer Phone</th><th>Total Invited</th><th>Bonus Earned</th><th>Action</th></tr></thead><tbody id="ref-body"></tbody></table>
-            </div></div>
-        </div>
-
         <div id="tab-banned" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table><thead><tr><th>Name</th><th>Phone Number</th><th>Status</th><th>Action</th></tr></thead><tbody id="banned-body"></tbody></table>
@@ -272,36 +307,82 @@
             </div>
         </div>
 
+        <!-- 🔥 UPDATED: Auto-Bonuses & Cashback Tab 🔥 -->
         <div id="tab-dep-bonus" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--gold); max-width: 600px; margin: 0 auto;">
-                <h3 style="margin-top:0; color:var(--gold);">💰 Deposit Auto-Bonus Control</h3>
-                <p style="font-size:12px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ (Deposit) አውቶማቲክ የሚሰጠውን የቦነስ መጠን እና ሰዓት እዚህ ይቆጣጠሩ። (ይህ እንዲሰራ Server.js ላይ ማስተካከል ያስፈልጋል)</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 
-                <label style="color:var(--text-gray); font-size:13px; font-weight:bold;">ከስንት ብር በላይ ሲያስገቡ ይሰጥ? (Min Deposit Amount)</label>
-                <input type="number" id="set-dep-min" placeholder="e.g. 200">
-                
-                <label style="color:var(--text-gray); font-size:13px; font-weight:bold;">ስንት ፐርሰንት ይሰጥ? (Bonus Percentage %)</label>
-                <input type="number" id="set-dep-perc" placeholder="e.g. 20">
-                
-                <hr style="border-color: var(--border); margin: 20px 0;">
+                <!-- DEPOSIT BONUS -->
+                <div class="card" style="border-left: 4px solid var(--gold);">
+                    <h3 style="margin-top:0; color:var(--gold);">📥 Deposit Auto-Bonus</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ አውቶማቲክ የሚሰጠውን የቦነስ መጠን።</p>
+                    
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Minimum Deposit (ከስንት ብር ጀምሮ?)</label>
+                    <input type="number" id="set-dep-min" placeholder="e.g. 100">
+                    
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
+                    <input type="number" id="set-dep-perc" placeholder="e.g. 20">
+                    
+                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
+                        <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs()"> Happy Hour (በተወሰነ ሰዓት ብቻ)
+                    </label>
 
-                <label style="display:flex; align-items:center; color:white; font-weight:bold; margin-bottom:15px; background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; border:1px solid var(--gold); cursor:pointer;">
-                    <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs()">
-                    በተወሰነ ሰዓት (Happy Hour) ብቻ ይሰጥ? (ካጠፉት ሁልጊዜ ይሰጣል)
-                </label>
-
-                <div id="time-inputs-container" style="display:flex; gap:10px; margin-bottom: 20px; transition:0.3s;" class="disabled-input">
-                    <div style="flex:1;">
-                        <label style="color:var(--text-gray); font-size:12px;">ከ (Start Hour: 0-23)</label>
-                        <input type="number" id="set-dep-start" placeholder="e.g. 12">
+                    <div id="time-inputs-container" style="display:flex; gap:10px; transition:0.3s;" class="disabled-input">
+                        <div style="flex:1;">
+                            <label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label>
+                            <input type="number" id="set-dep-start" placeholder="12">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label>
+                            <input type="number" id="set-dep-end" placeholder="16">
+                        </div>
                     </div>
-                    <div style="flex:1;">
-                        <label style="color:var(--text-gray); font-size:12px;">እስከ (End Hour: 0-23)</label>
-                        <input type="number" id="set-dep-end" placeholder="e.g. 16">
+                    <button class="action-btn" style="width: 100%; margin-top:10px;" onclick="updateSettings('dep_bonus')">Save Deposit Settings</button>
+                </div>
+
+                <!-- WITHDRAW BONUS -->
+                <div class="card" style="border-left: 4px solid var(--cyan);">
+                    <h3 style="margin-top:0; color:var(--cyan);">📤 Withdraw Auto-Bonus</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">ሲያወጡ እንደማበረታቻ የመጫወቻ ሂሳብ (Play Balance) ላይ የሚሰጥ።</p>
+                    
+                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin-bottom:15px; border:1px solid var(--cyan); padding:10px; border-radius:8px;">
+                        <input type="checkbox" id="set-wit-active"> ማበረታቻው ክፍት ይሁን? (Is Active?)
+                    </label>
+
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Minimum Withdraw (ከስንት ብር ጀምሮ?)</label>
+                    <input type="number" id="set-wit-min" placeholder="e.g. 100">
+                    
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
+                    <input type="number" id="set-wit-perc" placeholder="e.g. 5">
+                    
+                    <button class="action-btn btn-blue" style="width: 100%; margin-top:10px;" onclick="updateSettings('wit_bonus')">Save Withdraw Settings</button>
+                </div>
+
+                <!-- CASHBACK -->
+                <div class="card" style="border-left: 4px solid var(--purple); grid-column: 1 / -1;">
+                    <h3 style="margin-top:0; color:var(--purple);">🔄 Cashback (ካሽባክ)</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">የተጫወቱትን መጠን አይቶ ለሰዎች የተወሰነ ብር (Cashback) የሚሰጥበት ሲስተም።</p>
+                    
+                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
+                        <div style="flex:1; min-width: 200px;">
+                            <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">ስንት ካርቴላ ለገዙ ሰዎች ይሰጥ? (Min Played Tickets)</label>
+                            <input type="number" id="set-cb-min" placeholder="e.g. 10">
+                        </div>
+                        <div style="flex:1; min-width: 200px;">
+                            <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">ስንት ብር ይሸለሙ? (Cashback Amount)</label>
+                            <input type="number" id="set-cb-amt" placeholder="e.g. 10">
+                        </div>
+                    </div>
+
+                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin-bottom:15px;">
+                        <input type="checkbox" id="set-cb-active"> ሲስተሙ ክፍት ይሁን? (Is Active?)
+                    </label>
+
+                    <div style="display:flex; gap:10px;">
+                        <button class="action-btn btn-purple" style="flex:1;" onclick="updateSettings('cashback')">💾 Save Settings</button>
+                        <button class="action-btn btn-orange" style="flex:1;" onclick="triggerCashbackNow()">🚀 Send Cashback NOW</button>
                     </div>
                 </div>
-                
-                <button class="action-btn" style="width: 100%; background:var(--gold); color:black; font-size:16px; padding:15px;" onclick="updateSettings('dep_bonus')">💾 Save Auto-Bonus Settings</button>
+
             </div>
         </div>
 
@@ -361,7 +442,6 @@
                     <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds - የጌም ሰከንድ)</label>
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
 
-                    <!-- 🔥 NEW MAX TICKET CONTROL 🔥 -->
                     <label style="font-weight:bold; color:var(--purple);">🔢 Max Tickets (ለ1 ሰው የተፈቀደ የካርቴላ ብዛት)</label>
                     <div style="display:flex; gap:10px;"><input type="number" id="set-max-tickets" placeholder="e.g. 4"><button class="action-btn" onclick="updateSettings('maxtickets')">Save</button></div>
                 </div>
@@ -451,7 +531,8 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let allTransactions = []; let allGameHistories = []; let currentHistType = 'deposit'; let isGameCurrentlyPaused = false;
-    
+    let chatData = {}; let activeChatTgId = null;
+
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
@@ -466,30 +547,26 @@
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
     async function loadLiveStats() {
-        if(!pass || !document.getElementById('tab-live').classList.contains('active')) return;
+        if(!pass) return;
         try {
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
-            document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
-            
-            document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0).toFixed(2) + " ETB";
-            
-            document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
+            if(document.getElementById('tab-live').classList.contains('active')) {
+                document.getElementById('stat-total-users').innerText = data.totalUsers; document.getElementById('box-total-reg').innerText = data.totalUsers; document.getElementById('stat-total-profit').innerText = data.totalProfit + " ETB"; document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
+                document.getElementById('stat-current-jackpot').innerText = (data.currentJackpot || 0).toFixed(2) + " ETB";
+                document.getElementById('u-daily').innerText = data.dailyActive || 0; document.getElementById('u-weekly').innerText = data.weeklyActive || 0; document.getElementById('u-monthly').innerText = data.monthlyActive || 0;
+            }
             
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             
-            if(document.activeElement !== document.getElementById('set-price')) document.getElementById('set-price').value = data.settings.ticketPrice || 10;
-            if(document.activeElement !== document.getElementById('set-timer')) document.getElementById('set-timer').value = data.settings.gameTimer || 40;
-            if(document.activeElement !== document.getElementById('set-max-tickets')) document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
-            
             if(data.settings) {
-                if(document.activeElement !== document.getElementById('set-admin-profit')) {
-                    document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
-                }
-
+                if(document.activeElement !== document.getElementById('set-price')) document.getElementById('set-price').value = data.settings.ticketPrice || 10;
+                if(document.activeElement !== document.getElementById('set-timer')) document.getElementById('set-timer').value = data.settings.gameTimer || 40;
+                if(document.activeElement !== document.getElementById('set-max-tickets')) document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
+                if(document.activeElement !== document.getElementById('set-admin-profit')) document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
                 if(document.activeElement !== document.getElementById('set-reg-bonus')) document.getElementById('set-reg-bonus').value = data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10;
                 if(document.activeElement !== document.getElementById('set-inv-bonus')) document.getElementById('set-inv-bonus').value = data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10;
-
+                
                 if(document.activeElement !== document.getElementById('set-dep-min')) {
                     document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
                     document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount || '';
@@ -497,6 +574,18 @@
                     document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
                     document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
                     toggleTimeInputs(); 
+                }
+
+                if(document.activeElement !== document.getElementById('set-wit-min')) {
+                    document.getElementById('set-wit-active').checked = data.settings.isWitBonusActive || false;
+                    document.getElementById('set-wit-min').value = data.settings.witBonusMinAmount || '';
+                    document.getElementById('set-wit-perc').value = data.settings.witBonusPercent || '';
+                }
+
+                if(document.activeElement !== document.getElementById('set-cb-min')) {
+                    document.getElementById('set-cb-active').checked = data.settings.isCashbackActive || false;
+                    document.getElementById('set-cb-min').value = data.settings.cashbackMinPlayed || '';
+                    document.getElementById('set-cb-amt').value = data.settings.cashbackAmount || '';
                 }
             }
         } catch(e) {}
@@ -542,6 +631,80 @@
             let dropHtml = '<option value="">-- Select a Game --</option>'; allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
         } catch (e) { console.log(e); }
     }
+
+    // 🔥 SUPPORT CHAT LOGIC 🔥
+    async function loadMessages() {
+        try {
+            let res = await fetch('/api/admin/get-messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
+            let data = await res.json();
+            if(data.success) {
+                chatData = {};
+                let unreadCount = 0;
+                data.msgs.forEach(m => {
+                    if(!chatData[m.telegramId]) { chatData[m.telegramId] = { name: m.name, phone: m.phone, msgs: [] }; }
+                    chatData[m.telegramId].msgs.push(m);
+                    if(m.sender === 'user' && !m.isRead) unreadCount++;
+                });
+
+                document.getElementById('badge-msg').innerText = unreadCount;
+                document.getElementById('badge-msg').style.display = unreadCount > 0 ? 'inline-block' : 'none';
+
+                let sbHtml = "";
+                for (const [tgId, uData] of Object.entries(chatData)) {
+                    let lastMsg = uData.msgs[uData.msgs.length - 1].text;
+                    let shortMsg = lastMsg.length > 20 ? lastMsg.substring(0, 20) + "..." : lastMsg;
+                    sbHtml += `<div class="chat-user ${activeChatTgId === tgId ? 'active' : ''}" onclick="openChat('${tgId}')">
+                        <div style="font-weight:bold; color:white; font-size:13px;">${uData.name} <span style="font-size:10px; color:var(--cyan);">(${uData.phone})</span></div>
+                        <div style="color:var(--text-gray); font-size:11px; margin-top:3px;">${shortMsg}</div>
+                    </div>`;
+                }
+                document.getElementById('chat-sidebar-list').innerHTML = sbHtml || `<div style="padding: 15px; text-align: center; color: var(--text-gray);">No messages yet</div>`;
+                
+                if(activeChatTgId) openChat(activeChatTgId);
+            }
+        } catch(e) {}
+    }
+
+    function openChat(tgId) {
+        activeChatTgId = tgId;
+        document.querySelectorAll('.chat-user').forEach(el => el.classList.remove('active'));
+        // Re-render sidebar to set active class
+        loadMessages(); 
+        
+        let uData = chatData[tgId];
+        let chatBox = document.getElementById('chat-history-box');
+        
+        let html = `<div style="text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:15px; color:var(--gold); font-weight:bold; font-size:14px;">Chatting with ${uData.name} (${uData.phone})</div>`;
+        
+        uData.msgs.forEach(m => {
+            if(m.sender === 'user') {
+                html += `<div class="chat-bubble chat-user-msg">${m.text}<br><span style="font-size:9px; color:gray; float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`;
+            } else {
+                html += `<div class="chat-bubble chat-admin-msg">${m.text}<br><span style="font-size:9px; color:rgba(0,0,0,0.5); float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`;
+            }
+        });
+        
+        chatBox.innerHTML = html;
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
+    }
+
+    async function sendReply() {
+        let input = document.getElementById('chat-input');
+        let text = input.value.trim();
+        if(!activeChatTgId || !text) return;
+        
+        input.disabled = true;
+        try {
+            await fetch('/api/admin/reply-message', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, telegramId: activeChatTgId, text})});
+            input.value = '';
+            await loadMessages();
+        } catch(e) {}
+        input.disabled = false;
+        input.focus();
+    }
+    // Set interval to refresh messages if tab is open
+    setInterval(() => { if(document.getElementById('tab-messages').classList.contains('active')) loadMessages(); }, 5000);
+
 
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = amount; document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
@@ -723,6 +886,17 @@
         btn.innerText = "Broadcast Normal";
     }
 
+    // 🔥 NEW: Trigger Cashback Function
+    async function triggerCashbackNow() {
+        if(!confirm("⚠️ እርግጠኛ ነዎት አሁን የተጫወቱትን አይቶ ካሽባክ (Cashback) ለሁሉም ተጠቃሚዎች ይላክ?")) return;
+        try {
+            let res = await fetch('/api/admin/trigger-cashback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
+            let data = await res.json();
+            alert(data.message);
+            loadData();
+        } catch(e) { alert("Error triggering cashback."); }
+    }
+
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
     
     function openEditModal(phone, passw, main, play, won) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('eu-won').value = won; document.getElementById('edit-user-modal').style.display = 'flex'; }
@@ -775,7 +949,6 @@
             payload.gameTimer = Number(tm); 
         } 
         
-        // 🔥 NEW MAX TICKETS SAVE 🔥
         if(type === 'maxtickets') { 
             let mt = document.getElementById('set-max-tickets').value; 
             if(!mt || mt < 1) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ!"); 
@@ -805,6 +978,28 @@
             payload.depBonusPercent = Number(mPer); 
             payload.happyHourStart = start !== '' ? Number(start) : 0; 
             payload.happyHourEnd = end !== '' ? Number(end) : 23;
+        }
+
+        if(type === 'wit_bonus') {
+            let isActive = document.getElementById('set-wit-active').checked;
+            let wMin = document.getElementById('set-wit-min').value;
+            let wPerc = document.getElementById('set-wit-perc').value;
+
+            if(!wMin || !wPerc) return alert("እባክዎ ትክክለኛ የቦነስ መጠን ያስገቡ!");
+            payload.isWitBonusActive = isActive;
+            payload.witBonusMinAmount = Number(wMin);
+            payload.witBonusPercent = Number(wPerc);
+        }
+
+        if(type === 'cashback') {
+            let isActive = document.getElementById('set-cb-active').checked;
+            let cMin = document.getElementById('set-cb-min').value;
+            let cAmt = document.getElementById('set-cb-amt').value;
+
+            if(!cMin || !cAmt) return alert("እባክዎ ትክክለኛ ካሽባክ መረጃ ያስገቡ!");
+            payload.isCashbackActive = isActive;
+            payload.cashbackMinPlayed = Number(cMin);
+            payload.cashbackAmount = Number(cAmt);
         }
 
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
