@@ -58,7 +58,6 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
 }));
 
-// 🔥 NEW: Support Message Model
 const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
     telegramId: String, phone: String, name: String, text: String, sender: { type: String, enum: ['user', 'admin'] }, date: { type: Date, default: Date.now }, isRead: { type: Boolean, default: false }
 }));
@@ -68,8 +67,9 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     
     depBonusMinAmount: { type: Number, default: 100 }, depBonusPercent: { type: Number, default: 20 }, depBonusTimeRestricted: { type: Boolean, default: false }, happyHourStart: { type: Number, default: 0 }, happyHourEnd: { type: Number, default: 23 },
     
-    witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false },
-    cashbackMinPlayed: { type: Number, default: 100 }, cashbackAmount: { type: Number, default: 10 }, isCashbackActive: { type: Boolean, default: false },
+    witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false }, witBonusTimeRestricted: { type: Boolean, default: false }, witHappyHourStart: { type: Number, default: 0 }, witHappyHourEnd: { type: Number, default: 23 },
+    
+    cashbackMinLoss: { type: Number, default: 200 }, cashbackAmount: { type: Number, default: 10 }, isCashbackActive: { type: Boolean, default: false },
 
     registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 }
@@ -84,8 +84,12 @@ async function loadSettings() {
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
         depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
         happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
+        
         witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, isWitBonusActive: s.isWitBonusActive || false,
-        cashbackMinPlayed: s.cashbackMinPlayed !== undefined ? s.cashbackMinPlayed : 100, cashbackAmount: s.cashbackAmount !== undefined ? s.cashbackAmount : 10, isCashbackActive: s.isCashbackActive || false,
+        witBonusTimeRestricted: s.witBonusTimeRestricted || false, witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
+        
+        cashbackMinLoss: s.cashbackMinLoss !== undefined ? s.cashbackMinLoss : 200, cashbackAmount: s.cashbackAmount !== undefined ? s.cashbackAmount : 10, isCashbackActive: s.isCashbackActive || false,
+        
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4
     };
@@ -326,8 +330,15 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             // 🔥 WITHDRAW BONUS LOGIC
             let set = GLOBAL_SETTINGS;
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
-                let wBonus = tx.amount * (set.witBonusPercent / 100);
-                user.playBalance += wBonus; // Give as play balance
+                let giveBonus = true;
+                if (set.witBonusTimeRestricted) {
+                    let currentHour = new Date().getHours();
+                    if (currentHour < set.witHappyHourStart || currentHour > set.witHappyHourEnd) { giveBonus = false; }
+                }
+                if(giveBonus) {
+                    let wBonus = tx.amount * (set.witBonusPercent / 100);
+                    user.playBalance += wBonus; 
+                }
             }
         }
     } else { 
@@ -353,8 +364,11 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.witBonusMinAmount !== undefined) s.witBonusMinAmount = req.body.witBonusMinAmount;
     if(req.body.witBonusPercent !== undefined) s.witBonusPercent = req.body.witBonusPercent;
     if(req.body.isWitBonusActive !== undefined) s.isWitBonusActive = req.body.isWitBonusActive;
+    if(req.body.witBonusTimeRestricted !== undefined) s.witBonusTimeRestricted = req.body.witBonusTimeRestricted;
+    if(req.body.witHappyHourStart !== undefined) s.witHappyHourStart = req.body.witHappyHourStart;
+    if(req.body.witHappyHourEnd !== undefined) s.witHappyHourEnd = req.body.witHappyHourEnd;
     
-    if(req.body.cashbackMinPlayed !== undefined) s.cashbackMinPlayed = req.body.cashbackMinPlayed;
+    if(req.body.cashbackMinLoss !== undefined) s.cashbackMinLoss = req.body.cashbackMinLoss;
     if(req.body.cashbackAmount !== undefined) s.cashbackAmount = req.body.cashbackAmount;
     if(req.body.isCashbackActive !== undefined) s.isCashbackActive = req.body.isCashbackActive;
 
@@ -366,24 +380,32 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
-// 🔥 Trigger Cashback API
+// 🔥 Trigger Cashback API (Loss Based Only)
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
         if(!GLOBAL_SETTINGS.isCashbackActive) return res.json({ success: false, message: "Cashback is currently turned OFF in settings." });
         
-        const minP = GLOBAL_SETTINGS.cashbackMinPlayed;
+        const minL = GLOBAL_SETTINGS.cashbackMinLoss;
         const cAmt = GLOBAL_SETTINGS.cashbackAmount;
         
-        let usersToReward = await User.find({ played: { $gte: minP } });
-        if(usersToReward.length === 0) return res.json({ success: false, message: `No users have played >= ${minP} games.` });
+        let users = await User.find();
+        let count = 0;
 
-        for(let u of usersToReward) {
-            u.playBalance += cAmt;
-            u.played = 0; // Reset played count after rewarding (or you can remove this if you want it to accumulate forever)
-            await u.save();
-            io.emit('balance_updated', u.phone);
+        for(let u of users) {
+            let totalLoss = (u.played * GLOBAL_SETTINGS.ticketPrice) - u.won;
+            if(totalLoss >= minL) {
+                u.playBalance += cAmt;
+                u.played = 0; // Reset
+                u.won = 0;    // Reset
+                await u.save();
+                io.emit('balance_updated', u.phone);
+                count++;
+            }
         }
-        res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${usersToReward.length} users!` });
+
+        if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
+        
+        res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
     } catch(e) {
         res.status(500).json({ success: false });
     }
@@ -859,7 +881,7 @@ bot.on('message', async (msg) => {
     // 🔥 NEW: Help button now opens support chat
     else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
         if(!user) return; 
-        bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት እዚሁ ይፃፉልን፣ በቅርቡ እንመልስሎታለን።</b>", { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
+        bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት እዚሁ ይፃፉልን፣ በቅርቡ እንመልስሎታለን።</b>\n\n👉 (ወይም አድሚኑን ቀጥታ በ @bingohabesha ያናግሩ)", { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
         state.step = 'support_chat';
     } 
     // 🔥 NEW: Language Selection Button
