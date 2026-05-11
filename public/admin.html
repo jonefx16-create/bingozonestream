@@ -1,3 +1,5 @@
+--- START OF FILE admin.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,10 +20,10 @@
 
         #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; position: relative; }
         
-        /* 🔥 FIXED: Sidebar scroll issue resolved here 🔥 */
-        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; transition: 0.3s ease; z-index: 1000; padding-bottom: 50px;}
+        /* 🔥 FIXED: Mobile & Desktop Sidebar Scroll Issue Solved 🔥 */
+        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: block; padding: 20px 0 80px 0; flex-shrink: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; transition: 0.3s ease; z-index: 1000; height: 100%; box-sizing: border-box;}
         .sidebar-header { text-align: center; color: var(--faded-green); font-size: 18px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;}
-        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
+        .nav-btn { width: 100%; background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap; box-sizing: border-box;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
         .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
         .close-sidebar { display: none; background: transparent; border: none; color: white; font-size: 24px; position: absolute; top: 10px; right: 15px; cursor: pointer; }
@@ -29,7 +31,7 @@
         .badge-alert { background: var(--red); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: none; font-weight: 900; box-shadow: 0 0 8px var(--red); animation: pulseAlert 1.5s infinite; }
         @keyframes pulseAlert { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px;}
         
@@ -78,7 +80,6 @@
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
         .disabled-input { opacity: 0.4; pointer-events: none; }
 
-        /* 🔥 CHAT SYSTEM CSS 🔥 */
         .chat-container { display: flex; height: 65vh; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #050810;}
         .chat-sidebar { width: 35%; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; }
         .chat-user { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s;}
@@ -91,20 +92,23 @@
         .chat-admin-msg { background: var(--faded-green); color: black; align-self: flex-end; border-bottom-right-radius: 0; font-weight: bold;}
         .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--panel); }
 
-        /* 🔥 FIXED: Mobile Sidebar Scroll CSS 🔥 */
+        /* 🔥 MOBILE RESPONSIVE FIXES 🔥 */
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
             .sidebar { 
-                position: fixed; left: -260px; 
-                height: 100%; height: 100dvh; max-height: 100vh; 
-                box-shadow: 2px 0 10px rgba(0,0,0,0.8); 
+                position: fixed; 
+                top: 0; left: -260px; bottom: 0;
+                width: 250px;
+                height: 100vh;
+                height: 100dvh; 
+                box-shadow: 2px 0 15px rgba(0,0,0,0.9); 
                 overflow-y: auto !important; 
-                padding-bottom: 80px; 
                 -webkit-overflow-scrolling: touch;
+                z-index: 10000; /* Ensure on top */
             }
             .sidebar.open { left: 0; }
             .close-sidebar { display: block; }
-            .main-content { padding: 15px; width: 100vw;}
+            .main-content { padding: 15px; width: 100vw; overflow-x: hidden; }
             .header-top h2 { font-size: 16px; }
             .search-container { flex-direction: column; align-items: stretch; }
             .login-card { padding: 40px 20px; }
@@ -123,7 +127,7 @@
     </div>
 </div>
 
-<div class="overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
+<div class="overlay" id="mobile-overlay" onclick="toggleSidebar()" style="z-index: 9999;"></div>
 
 <div id="dash-sec">
     <div class="sidebar" id="sidebar">
@@ -336,10 +340,22 @@
                         <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs('dep')"> Happy Hour (በተወሰነ ሰዓት ብቻ)
                     </label>
 
-                    <div id="time-inputs-container-dep" style="display:flex; gap:10px; transition:0.3s;" class="disabled-input">
+                    <div id="time-inputs-container-dep" style="display:flex; gap:10px; transition:0.3s; margin-bottom:15px;" class="disabled-input">
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label><input type="number" id="set-dep-start" placeholder="12"></div>
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label><input type="number" id="set-dep-end" placeholder="16"></div>
                     </div>
+
+                    <hr style="border-color:var(--border); margin:15px 0;">
+                    
+                    <h4 style="color:white; margin:0 0 10px 0; font-size:13px;">📝 Deposit Banner Text (የስጦታ ማስታወቂያ ፅሁፍ)</h4>
+                    <p style="font-size:10px; color:var(--text-gray); margin-bottom:10px;">ባዶ ከተዉት የድሮውን ይጠቀማል። ከታች ካስገቡ ግን ጌም ፔጅ ላይ ለተጠቃሚዎች ይህ ፅሁፍ ይታያል።</p>
+                    
+                    <label style="color:var(--text-gray); font-size:11px; font-weight:bold;">Amharic Text (በአማርኛ)</label>
+                    <textarea id="set-dep-text-am" rows="2" placeholder="ልዩ ስጦታ..."></textarea>
+                    
+                    <label style="color:var(--text-gray); font-size:11px; font-weight:bold;">English Text (በእንግሊዝኛ)</label>
+                    <textarea id="set-dep-text-en" rows="2" placeholder="Special Gift..."></textarea>
+
                     <button class="action-btn" style="width: 100%; margin-top:10px;" onclick="updateSettings('dep_bonus')">Save Deposit Settings</button>
                 </div>
 
@@ -590,6 +606,11 @@
                     document.getElementById('set-dep-perc').value = data.settings.depBonusPercent || '';
                     document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
                     document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
+                    
+                    /* 🔥 NEW: Text Inputs loading from database */
+                    document.getElementById('set-dep-text-am').value = data.settings.depBannerTextAm || '';
+                    document.getElementById('set-dep-text-en').value = data.settings.depBannerTextEn || '';
+
                     toggleTimeInputs('dep'); 
                 }
 
@@ -999,6 +1020,10 @@
             payload.depBonusPercent = Number(mPer); 
             payload.happyHourStart = start !== '' ? Number(start) : 0; 
             payload.happyHourEnd = end !== '' ? Number(end) : 23;
+
+            // 🔥 NEW: Add Banner Texts into payload
+            payload.depBannerTextAm = document.getElementById('set-dep-text-am').value;
+            payload.depBannerTextEn = document.getElementById('set-dep-text-en').value;
         }
 
         if(type === 'wit_bonus') {
