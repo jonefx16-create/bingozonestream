@@ -1,3 +1,5 @@
+--- START OF FILE admin.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +20,8 @@
 
         #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; position: relative; }
         
-        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; transition: 0.3s ease; z-index: 1000;}
+        /* 🔥 FIXED: Sidebar scroll issue resolved here 🔥 */
+        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; transition: 0.3s ease; z-index: 1000; padding-bottom: 50px;}
         .sidebar-header { text-align: center; color: var(--faded-green); font-size: 18px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;}
         .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
@@ -90,9 +93,17 @@
         .chat-admin-msg { background: var(--faded-green); color: black; align-self: flex-end; border-bottom-right-radius: 0; font-weight: bold;}
         .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--panel); }
 
+        /* 🔥 FIXED: Mobile Sidebar Scroll CSS 🔥 */
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
-            .sidebar { position: fixed; left: -260px; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
+            .sidebar { 
+                position: fixed; left: -260px; 
+                height: 100%; height: 100dvh; max-height: 100vh; 
+                box-shadow: 2px 0 10px rgba(0,0,0,0.8); 
+                overflow-y: auto !important; 
+                padding-bottom: 80px; 
+                -webkit-overflow-scrolling: touch;
+            }
             .sidebar.open { left: 0; }
             .close-sidebar { display: block; }
             .main-content { padding: 15px; width: 100vw;}
@@ -348,7 +359,6 @@
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
                     <input type="number" id="set-wit-perc" placeholder="e.g. 5">
 
-                    <!-- 🔥 NEW: Withdraw Time Restrict (Happy Hour) 🔥 -->
                     <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
                         <input type="checkbox" id="set-wit-time-restrict" onchange="toggleTimeInputs('wit')"> Happy Hour (በተወሰነ ሰዓት ብቻ)
                     </label>
