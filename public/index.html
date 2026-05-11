@@ -509,7 +509,7 @@
 <div id="wallet-page" class="page">
     <h3 id="wal-title" style="text-align:center; margin-top: 0; font-size: 20px;">የእኔ ሂሳብ (Wallet)</h3>
     <div style="background: linear-gradient(135deg, #0b111a, #131b2f); border-radius: 15px; padding: 25px 20px; margin-bottom: 10px; border: 1px solid var(--border-color); text-align: center;">
-        <div id="wal-main-lbl" style="color: var(--text-gray); font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span></div>
+        <div id="wal-main-lbl" style="color: var(--text-gray); font-size: 13px; font-weight:bold;">ዋና ሂሳብ <span style="font-size:9px; color:#fbbf24;">(ያሸነፉት/ወጪ የሚደረግ)</span></div>
         <div style="font-size: 36px; font-weight: 900; color: white; margin: 5px 0; font-family: monospace;" id="main-bal">0.00</div>
         <div style="color: #dbeafe; font-size: 12px; margin-bottom: 10px; display: inline-block;">
             <span id="wal-play-lbl">መጫወቻ ሂሳብ:</span> <b style="color:#38bdf8;"><span id="play-bal">0.00</span> ETB</b>
@@ -542,6 +542,7 @@
         <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
 
+    <!-- 🔥 መጋበዣ ሊንክ (Referral Link) አሁን የተጠቃሚውን ስልክ ይይዛል 🔥 -->
     <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border: 1px solid var(--faded-green); border-radius: 12px; padding: 12px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
         <div style="overflow: hidden;">
             <div id="prof-bot-lbl" style="font-size: 11px; color: var(--faded-green); font-weight: bold; margin-bottom: 4px;">🤖 የራስዎ መጋበዣ ሊንክ (Share)</div>
@@ -564,7 +565,6 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <!-- 🔥 NEW: Removed Telegram Help link, added function to switch to Telegram App to chat 🔥 -->
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span id="prof-help-lbl" style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
@@ -607,6 +607,7 @@
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
+    // 🔥 ሙሉ ቋንቋውን የሚቀይረው ፈንክሽን 🔥
     function setLang(lang) {
         let btnAm = document.getElementById('btn-am');
         let btnEn = document.getElementById('btn-en');
@@ -615,19 +616,61 @@
             btnAm.style.background = 'white'; btnAm.style.color = 'black';
             btnEn.style.background = 'black'; btnEn.style.color = 'white';
             
-            document.getElementById('g-lbl-round').innerText = "#ዙር (Round)"; document.getElementById('g-lbl-bet').innerText = "መወራረጃ"; document.getElementById('g-lbl-prize').innerText = "ሽልማት (Prize)"; document.getElementById('g-lbl-balls').innerText = "እጣ (Balls)"; document.getElementById('lbl-my-ticket').innerText = "የእኔ ካርቴላ (My Ticket)"; document.getElementById('lbl-derash-game').innerText = "ደራሽ";
-            document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; document.getElementById('h-lbl-select').innerText = "ካርቴላ ይምረጡ (10 ብር)"; document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
+            // ጌም ፔጅ
+            document.getElementById('g-lbl-round').innerText = "#ዙር (Round)";
+            document.getElementById('g-lbl-bet').innerText = "መወራረጃ";
+            document.getElementById('g-lbl-prize').innerText = "ሽልማት (Prize)";
+            document.getElementById('g-lbl-balls').innerText = "እጣ (Balls)";
+            document.getElementById('lbl-my-ticket').innerText = "የእኔ ካርቴላ (My Ticket)";
+            document.getElementById('lbl-derash-game').innerText = "ደራሽ";
+
+            // ሆም ፔጅ (Page 1)
+            document.getElementById('h-lbl-derash').innerText = "ደራሽ";
+            document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ";
+            document.getElementById('h-lbl-select').innerText = "ካርቴላ ይምረጡ (10 ብር)";
+            document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
             
             let status = document.querySelector('.nt-status');
-            if(status.innerText.includes("Starting") || status.innerText.includes("ሊጀምር")) { status.innerText = "ጨዋታው ሊጀምር ነው"; } else if(status.innerText.includes("LIVE") || status.innerText.includes("በመካሄድ")) { status.innerText = "ጨዋታው በመካሄድ ላይ ነው"; }
+            if(status.innerText.includes("Starting") || status.innerText.includes("ሊጀምር")) {
+                status.innerText = "ጨዋታው ሊጀምር ነው";
+            } else if(status.innerText.includes("LIVE") || status.innerText.includes("በመካሄድ")) {
+                status.innerText = "ጨዋታው በመካሄድ ላይ ነው";
+            }
             
-            document.getElementById('nav-txt-home').innerText = "Home"; document.getElementById('nav-txt-ticket').innerText = "Ticket"; document.getElementById('nav-txt-wallet').innerText = "Wallet"; document.getElementById('nav-txt-rank').innerText = "Rank"; document.getElementById('nav-txt-profile').innerText = "Profile";
-            document.getElementById('wal-title').innerText = "የእኔ ሂሳብ (Wallet)"; document.getElementById('wal-main-lbl').innerHTML = "ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span>"; document.getElementById('wal-play-lbl').innerText = "መጫወቻ ሂሳብ:"; document.getElementById('wal-hist-lbl').innerText = "የሂሳብ ዝውውር ታሪክ (Approved)"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+            // Navbar
+            document.getElementById('nav-txt-home').innerText = "Home";
+            document.getElementById('nav-txt-ticket').innerText = "Ticket";
+            document.getElementById('nav-txt-wallet').innerText = "Wallet";
+            document.getElementById('nav-txt-rank').innerText = "Rank";
+            document.getElementById('nav-txt-profile').innerText = "Profile";
+
+            // Wallet Page
+            document.getElementById('wal-title').innerText = "የእኔ ሂሳብ (Wallet)";
+            document.getElementById('wal-main-lbl').innerHTML = "ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span>";
+            document.getElementById('wal-play-lbl').innerText = "መጫወቻ ሂሳብ:";
+            document.getElementById('wal-hist-lbl').innerText = "የሂሳብ ዝውውር ታሪክ (Approved)";
+            document.getElementById('wal-btn-dep').innerText = "➕ Deposit";
+            document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+
+            // Rank Page
             document.getElementById('rnk-title').innerText = "🏆 አሸናፊዎች (Top 10 Rank)";
-            document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል"; document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)"; document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)"; document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)"; document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?"; document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር"; document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
-            document.getElementById('t-page-title').innerText = "የእኔ ካርቴላዎች"; document.getElementById('t-btn-mb-txt').innerText = "ሙሉ ቦርድ እይ (Master Board)";
-            
-            document.getElementById('dep-title').innerText = "Deposit Funds"; document.getElementById('wit-title').innerText = "Withdraw Funds";
+
+            // Profile Page
+            document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል";
+            document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)";
+            document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)";
+            document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)";
+            document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?";
+            document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር";
+            document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
+
+            // Ticket Page
+            document.getElementById('t-page-title').innerText = "የእኔ ካርቴላዎች";
+            document.getElementById('t-btn-mb-txt').innerText = "ሙሉ ቦርድ እይ (Master Board)";
+
+            // Modals
+            document.getElementById('dep-title').innerText = "Deposit Funds";
+            document.getElementById('wit-title').innerText = "Withdraw Funds";
             document.getElementById('dep-strict-warn').innerHTML = "⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።";
             document.getElementById('lbl-dep-sms').innerText = "የከፈሉበት ማረጋገጫ (SMS)";
             document.getElementById('m-dep-sms').placeholder = "ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)";
@@ -639,19 +682,61 @@
             btnEn.style.background = 'white'; btnEn.style.color = 'black';
             btnAm.style.background = 'black'; btnAm.style.color = 'white';
             
-            document.getElementById('g-lbl-round').innerText = "Game Round"; document.getElementById('g-lbl-bet').innerText = "Bet Amount"; document.getElementById('g-lbl-prize').innerText = "Prize Pool"; document.getElementById('g-lbl-balls').innerText = "Called Balls"; document.getElementById('lbl-my-ticket').innerText = "My Tickets"; document.getElementById('lbl-derash-game').innerText = "JACKPOT";
-            document.getElementById('h-lbl-derash').innerText = "JACKPOT"; document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT"; document.getElementById('h-lbl-select').innerText = "Select Tickets (10 ETB)"; document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
+            // Game Page
+            document.getElementById('g-lbl-round').innerText = "Game Round";
+            document.getElementById('g-lbl-bet').innerText = "Bet Amount";
+            document.getElementById('g-lbl-prize').innerText = "Prize Pool";
+            document.getElementById('g-lbl-balls').innerText = "Called Balls";
+            document.getElementById('lbl-my-ticket').innerText = "My Tickets";
+            document.getElementById('lbl-derash-game').innerText = "JACKPOT";
+
+            // Home Page (Page 1)
+            document.getElementById('h-lbl-derash').innerText = "JACKPOT";
+            document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT";
+            document.getElementById('h-lbl-select').innerText = "Select Tickets (10 ETB)";
+            document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
             
             let status = document.querySelector('.nt-status');
-            if(status.innerText.includes("ሊጀምር") || status.innerText.includes("Starting")) { status.innerText = "Game is Starting"; } else if(status.innerText.includes("በመካሄድ") || status.innerText.includes("LIVE")) { status.innerText = "Game is LIVE"; }
+            if(status.innerText.includes("ሊጀምር") || status.innerText.includes("Starting")) {
+                status.innerText = "Game is Starting";
+            } else if(status.innerText.includes("በመካሄድ") || status.innerText.includes("LIVE")) {
+                status.innerText = "Game is LIVE";
+            }
 
-            document.getElementById('nav-txt-home').innerText = "Home"; document.getElementById('nav-txt-ticket').innerText = "Tickets"; document.getElementById('nav-txt-wallet').innerText = "Wallet"; document.getElementById('nav-txt-rank').innerText = "Rank"; document.getElementById('nav-txt-profile').innerText = "Profile";
-            document.getElementById('wal-title').innerText = "My Wallet"; document.getElementById('wal-main-lbl').innerHTML = "Main Balance <span style='font-size:9px; color:#fbbf24;'>(Withdrawable)</span>"; document.getElementById('wal-play-lbl').innerText = "Play Balance:"; document.getElementById('wal-hist-lbl').innerText = "Transaction History (Approved)"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+            // Navbar
+            document.getElementById('nav-txt-home').innerText = "Home";
+            document.getElementById('nav-txt-ticket').innerText = "Tickets";
+            document.getElementById('nav-txt-wallet').innerText = "Wallet";
+            document.getElementById('nav-txt-rank').innerText = "Rank";
+            document.getElementById('nav-txt-profile').innerText = "Profile";
+
+            // Wallet Page
+            document.getElementById('wal-title').innerText = "My Wallet";
+            document.getElementById('wal-main-lbl').innerHTML = "Main Balance <span style='font-size:9px; color:#fbbf24;'>(Withdrawable)</span>";
+            document.getElementById('wal-play-lbl').innerText = "Play Balance:";
+            document.getElementById('wal-hist-lbl').innerText = "Transaction History (Approved)";
+            document.getElementById('wal-btn-dep').innerText = "➕ Deposit";
+            document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+
+            // Rank Page
             document.getElementById('rnk-title').innerText = "🏆 Leaderboard (Top 10)";
-            document.getElementById('prof-title').innerText = "👤 My Profile"; document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)"; document.getElementById('prof-played-lbl').innerText = "Games Played"; document.getElementById('prof-won-lbl').innerText = "Total Won"; document.getElementById('prof-help-lbl').innerText = "Need Help?"; document.getElementById('prof-pw-lbl').innerText = "Change Password"; document.getElementById('prof-out-lbl').innerText = "Logout";
-            document.getElementById('t-page-title').innerText = "My Tickets"; document.getElementById('t-btn-mb-txt').innerText = "View Master Board";
-            
-            document.getElementById('dep-title').innerText = "Deposit Funds"; document.getElementById('wit-title').innerText = "Withdraw Funds";
+
+            // Profile Page
+            document.getElementById('prof-title').innerText = "👤 My Profile";
+            document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)";
+            document.getElementById('prof-played-lbl').innerText = "Games Played";
+            document.getElementById('prof-won-lbl').innerText = "Total Won";
+            document.getElementById('prof-help-lbl').innerText = "Need Help?";
+            document.getElementById('prof-pw-lbl').innerText = "Change Password";
+            document.getElementById('prof-out-lbl').innerText = "Logout";
+
+            // Ticket Page
+            document.getElementById('t-page-title').innerText = "My Tickets";
+            document.getElementById('t-btn-mb-txt').innerText = "View Master Board";
+
+            // Modals
+            document.getElementById('dep-title').innerText = "Deposit Funds";
+            document.getElementById('wit-title').innerText = "Withdraw Funds";
             document.getElementById('dep-strict-warn').innerHTML = "⚠️ <b>Notice:</b> Please transfer Telebirr to Telebirr ONLY, and CBE Birr to CBE Birr ONLY.";
             document.getElementById('lbl-dep-sms').innerText = "Payment Confirmation (SMS)";
             document.getElementById('m-dep-sms').placeholder = "Paste the full SMS receipt from your bank here";
@@ -668,14 +753,19 @@
         processAudioQueue();
     }
 
+    // 🔥 NEW: BINGO WINNER SOUND 🔥
+    function playBingoSound() {
+        if (!isSoundOn) return;
+        audioQueue.push('Jo bingo');
+        processAudioQueue();
+    }
+
     function processAudioQueue() {
         if (isPlayingAudio || audioQueue.length === 0) return;
         isPlayingAudio = true;
-        let num = audioQueue.shift();
+        let file = audioQueue.shift();
         
-        // ድምፆቹ 'jo sound' በሚለው ፎልደር ውስጥ እንደሆኑ ታስቦ ነው የተሰራው 
-        // ምሳሌ: /jo sound/1.mp3
-        let audio = new Audio(`/jo sound/${num}.mp3`); 
+        let audio = new Audio(`/jo sound/${file}.mp3`); 
         
         audio.onended = () => {
             isPlayingAudio = false;
@@ -683,8 +773,7 @@
         };
         
         audio.onerror = () => {
-            // ፋይሉ ከሌለ አቋርጦ ወደ ሚቀጥለው ይለፋል
-            console.log(`Sound missing for number: ${num}`);
+            console.log(`Sound missing for file: ${file}`);
             isPlayingAudio = false;
             processAudioQueue();
         };
@@ -701,6 +790,7 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
+        // 1. ቴሌግራም WebApp መሆኑን ማረጋገጥ እና Auto-Login ማድረግ
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
             const tgId = tgUser.id.toString();
@@ -708,16 +798,25 @@
             document.getElementById('start-btn').innerText = "በቴሌግራም እየገባ ነው...";
             document.getElementById('start-btn').disabled = true;
             try {
-                let res = await fetch('/api/telegram-login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ telegramId: tgId }) });
+                let res = await fetch('/api/telegram-login', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ telegramId: tgId }) 
+                });
                 let data = await res.json();
                 
                 if (data.success) {
                     processLoginSuccess(data.user);
+                    
+                    // Fetch Active Tickets & History
                     let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
                     let tData = await tRes.json();
                     
                     if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
-                        userTicketsData = tData.ticketsData; renderConfirmedTickets(); renderGridTakenStates(); 
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); 
+                        renderGridTakenStates(); 
+                        
                         if(tData.calledNumbers && tData.calledNumbers.length > 0) {
                             called = tData.calledNumbers;
                             called.forEach(num => {
@@ -726,10 +825,12 @@
                                 let topH = document.getElementById('history-scroll-top'); 
                                 let tickH = document.getElementById('ticket-history-bar');
                                 if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
                                 let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
                                 let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
                                 topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
                             });
+
                             called.forEach(num => {
                                 document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
                                 let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
@@ -737,22 +838,41 @@
                             });
                         }
                     }
-                    socket.emit('get_initial_data', data.user.phone); return; 
-                } else { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('start-btn').disabled = false; alert(data.message || "Please register via Telegram bot first!"); }
-            } catch(e) { document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; document.getElementById('start-btn').disabled = false; }
+                    socket.emit('get_initial_data', data.user.phone);
+                    return; // Stop here, no need for localStorage fallback
+                } else {
+                    document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
+                    document.getElementById('start-btn').disabled = false;
+                    alert(data.message || "Please register via Telegram bot first!");
+                }
+            } catch(e) {
+                document.getElementById('start-btn').innerText = "ወደ ጌም ግባ (REGISTER)"; 
+                document.getElementById('start-btn').disabled = false;
+            }
         }
 
-        let savedPhone = localStorage.getItem('bingo_user_phone'); let savedPass = localStorage.getItem('bingo_user_pass');
+        // 2. Fallback to LocalStorage (for standard browsers outside Telegram)
+        let savedPhone = localStorage.getItem('bingo_user_phone');
+        let savedPass = localStorage.getItem('bingo_user_pass');
+        
         if(savedPhone && savedPass) {
-            document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)"; document.getElementById('start-btn').disabled = true;
+            document.getElementById('start-btn').innerText = "እየገባ ነው... (Logging in...)"; 
+            document.getElementById('start-btn').disabled = true;
             try {
                 let res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: savedPhone, password: savedPass}) });
                 let data = await res.json();
+                
                 if(data.success) { 
                     processLoginSuccess(data.user); 
-                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`); let tData = await tRes.json();
+                    
+                    let tRes = await fetch(`/api/user/my-active-tickets/${data.user.phone}`);
+                    let tData = await tRes.json();
+                    
                     if(tData.success && tData.ticketsData && tData.ticketsData.length > 0) {
-                        userTicketsData = tData.ticketsData; renderConfirmedTickets(); renderGridTakenStates(); 
+                        userTicketsData = tData.ticketsData;
+                        renderConfirmedTickets(); 
+                        renderGridTakenStates(); 
+                        
                         if(tData.calledNumbers && tData.calledNumbers.length > 0) {
                             called = tData.calledNumbers;
                             called.forEach(num => {
@@ -761,10 +881,12 @@
                                 let topH = document.getElementById('history-scroll-top'); 
                                 let tickH = document.getElementById('ticket-history-bar');
                                 if (topH.innerHTML === '' || tickH.innerText.includes("ገና")) { tickH.innerHTML = ''; }
+                                
                                 let topDiv = document.createElement('div'); topDiv.className = 'hist-top-ball'; topDiv.innerText = ballText;
                                 let tickDiv = document.createElement('div'); tickDiv.className = 'hist-top-ball'; tickDiv.innerText = ballText;
                                 topH.insertBefore(topDiv, topH.firstChild); tickH.insertBefore(tickDiv, tickH.firstChild); 
                             });
+
                             called.forEach(num => {
                                 document.querySelectorAll('.t-v-' + num).forEach(c => c.classList.add('marked'));
                                 let mbCell = document.getElementById('mb-' + num); if(mbCell) mbCell.classList.add('called');
@@ -797,12 +919,18 @@
         if(page.classList.contains('show-mb')) { arrow.innerText = '▲'; } else { arrow.innerText = '▼'; }
     }
 
-    function logout() { localStorage.removeItem('bingo_user_phone'); localStorage.removeItem('bingo_user_pass'); window.location.href = "/"; }
+    function logout() { 
+        localStorage.removeItem('bingo_user_phone'); 
+        localStorage.removeItem('bingo_user_pass'); 
+        window.location.href = "/"; 
+    }
+    
     function togglePass() { let x = document.getElementById("reg-pass"); let icon = document.getElementById("eye-icon"); if (x.type === "password") { x.type = "text"; icon.innerText = "🙈"; } else { x.type = "password"; icon.innerText = "👁️"; } }
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
     function closeDepositModal(e) { if(e && e.target.id !== 'dep-modal-overlay') return; document.getElementById('dep-modal').classList.remove('show'); setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300); }
     
+    // 🔥 NEW: Withdraw Modal pre-fills the registered phone number 🔥
     function openWithdrawModal() { 
         if(currentUser && currentUser.phone) {
             document.getElementById('m-wit-phone').value = currentUser.phone;
@@ -836,16 +964,20 @@
 
         if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
         if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!");
+        
         if(!smsText) return alert("እባክዎ የSMS ማረጋገጫ ያስገቡ!");
 
         let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
+        
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); 
             alert(data.message); 
-            if(data.success) { document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal(); }
+            if(data.success) {
+                document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal();
+            }
         } catch(e) {}
-        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Send" : "ላክ";
+        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
     }
 
     async function processNewWithdraw() {
@@ -868,7 +1000,7 @@
             if(data.success) { await fetchUpdatedBalance(); alert(data.message); document.getElementById('m-wit-amt').value = ''; document.getElementById('m-wit-phone').value = ''; closeWithdrawModal(); } 
             else { alert(data.message); } 
         } catch(e) {}
-        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Send" : "ላክ";
+        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
     }
 
     async function savePassword() {
@@ -879,7 +1011,10 @@
             let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
             let data = await res.json();
             alert(data.message);
-            if(data.success) { localStorage.setItem('bingo_user_pass', newPass); document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; }
+            if(data.success) { 
+                localStorage.setItem('bingo_user_pass', newPass); 
+                document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; 
+            }
         } catch(e) {}
     }
 
@@ -919,7 +1054,8 @@
         let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
         let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
 
-        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; 
+        document.getElementById('start-btn').disabled = true;
         
         let endpoint = isLoginMode ? '/api/login' : '/api/register';
         let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
@@ -927,14 +1063,19 @@
         
         if(data.success) { 
             if(isLoginMode) {
-                localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); 
+                localStorage.setItem('bingo_user_phone', phone); 
+                localStorage.setItem('bingo_user_pass', pass); 
                 processLoginSuccess(data.user); 
             } else {
                 alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)");
                 toggleAuthMode();
             }
         } 
-        else { alert(data.message || "ስህተት አጋጥሟል!"); document.getElementById('start-btn').disabled = false; document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)"; }
+        else { 
+            alert(data.message || "ስህተት አጋጥሟል!"); 
+            document.getElementById('start-btn').disabled = false; 
+            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)";
+        }
     }
 
     function processLoginSuccess(userObj) {
@@ -946,6 +1087,7 @@
         document.getElementById('prof-id-display').innerText = "ID: #" + displayId;
         document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = (currentUser.won || 0) + " ETB";
         
+        // 🔥 የራሱ የሆነ Referral Link 🔥
         let myRefLink = "https://t.me/bingo_habesha_bot?start=" + currentUser.phone;
         document.getElementById('prof-ref-text').innerText = "t.me/bingo_habesha_bot?start=" + currentUser.phone;
         document.getElementById('prof-btn-open').onclick = () => window.location.href = myRefLink;
@@ -1088,7 +1230,6 @@
             document.getElementById('timer').innerText = "PAUSED";
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Maintenance Mode" : "ጥገና ላይ ነን (Paused)";
             
-            // 🔥 MAINTENANCE ሲሆን ሰልፍ ላይ የነበሩ ድምፆችን እናጥፋቸው
             audioQueue = [];
             isPlayingAudio = false;
 
@@ -1106,7 +1247,6 @@
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
                 
-                // 🔥 WAITING ሲሆንም አሮጌ ድምፆችን እናጥፋቸው
                 audioQueue = [];
                 isPlayingAudio = false;
 
@@ -1170,11 +1310,14 @@
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
         
-        // 🔥 አዲሱ ኳስ ሲወጣ ድምፁም በሰልፍ (Queue) እንዲጠራ እናደርጋለን 🔥
+        // 🔥 የቁጥር መጥሪያ ድምፅ
         playNumberSound(num);
     });
 
     socket.on('game_winner', (data) => {
+        // 🔥 አሸናፊ ሲወጣ BINGO ድምፅ ይጮሃል 🔥
+        playBingoSound();
+
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
         let amIWinner = false;
@@ -1414,6 +1557,8 @@
 </script>
 </body>
 </html>
+
+
         
 
 
