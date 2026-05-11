@@ -604,6 +604,7 @@
     let currentGameState = null;
     let globalTakenTickets = []; 
     let isSoundOn = true;
+    let maxTicketsLimit = 4; // Default value, will be updated by server
 
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -962,6 +963,20 @@
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) { await fetchUpdatedBalance(); if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory(); } });
 
+    socket.on('bet_error', (msg) => {
+        alert(msg);
+        document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
+        document.getElementById('bet-btn').disabled = false;
+        
+        // ምርጫዎችን እናጥፋለት
+        selected = [];
+        pendingTicketsData = [];
+        document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
+        document.getElementById('bet-slip-popup').classList.remove('show'); 
+        document.getElementById('grid-sel-count').innerText = "0"; 
+        renderGridTakenStates();
+    });
+
     socket.on('sync_data', (data) => {
         globalTakenTickets = data.globalTakenTickets || [];
         called = data.calledNumbers || [];
@@ -1012,6 +1027,12 @@
         
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; 
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
+        
+        // Update maxTickets dynamically
+        if(data.maxTickets) {
+            maxTicketsLimit = data.maxTickets;
+            document.getElementById('grid-sel-count').nextElementSibling.innerText = "/ " + maxTicketsLimit;
+        }
 
         let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none';
 
@@ -1172,12 +1193,12 @@
                 if(d.classList.contains('selected')) { 
                     d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); 
                 } 
-                else if((selected.length + userTicketsData.length) < 4) { 
+                else if((selected.length + userTicketsData.length) < maxTicketsLimit) { 
                     d.classList.add('selected'); selected.push(i); 
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
-                } else { alert("በአጠቃላይ ከ 4 ካርቴላ በላይ መግዛት አይቻልም!"); } 
+                } else { alert("በአጠቃላይ ከ " + maxTicketsLimit + " ካርቴላ በላይ መግዛት አይቻልም!"); } 
                 updateBetPreview(); 
             }; box.appendChild(d); 
         } 
