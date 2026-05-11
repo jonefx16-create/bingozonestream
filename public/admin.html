@@ -357,8 +357,13 @@
                     <hr style="border-color: var(--border);">
                     <label style="font-weight:bold; color:var(--cyan);">🎟️ Ticket Price (ETB - የካርቴላ ዋጋ)</label>
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
+                    
                     <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds - የጌም ሰከንድ)</label>
-                    <div style="display:flex; gap:10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
+
+                    <!-- 🔥 NEW MAX TICKET CONTROL 🔥 -->
+                    <label style="font-weight:bold; color:var(--purple);">🔢 Max Tickets (ለ1 ሰው የተፈቀደ የካርቴላ ብዛት)</label>
+                    <div style="display:flex; gap:10px;"><input type="number" id="set-max-tickets" placeholder="e.g. 4"><button class="action-btn" onclick="updateSettings('maxtickets')">Save</button></div>
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
@@ -411,7 +416,6 @@
     </div>
 </div>
 
-<!-- 🔥 አዲሱ የ Winner History መመልከቻ Modal 🔥 -->
 <div class="modal" id="history-modal">
     <div class="modal-content" style="text-align: center; max-width: 600px;">
         <h3 style="color: var(--faded-green); margin-top:0;">🎟️ Winner Cards (አሸናፊ ካርቴላዎች)</h3>
@@ -476,6 +480,7 @@
             
             if(document.activeElement !== document.getElementById('set-price')) document.getElementById('set-price').value = data.settings.ticketPrice || 10;
             if(document.activeElement !== document.getElementById('set-timer')) document.getElementById('set-timer').value = data.settings.gameTimer || 40;
+            if(document.activeElement !== document.getElementById('set-max-tickets')) document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
             
             if(data.settings) {
                 if(document.activeElement !== document.getElementById('set-admin-profit')) {
@@ -532,7 +537,6 @@
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allGameHistories = await hRes.json();
             
-            // 🔥 አዲሱ የ Winners History ሰንጠረዥ (Table) ማሳያ 🔥
             document.getElementById('game-history-body').innerHTML = allGameHistories.map((h, idx) => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toFixed(2)}</td><td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toFixed(2)}</td><td><button class="btn-sm btn-blue" onclick="viewHistory(${idx})">Winner Cards (ካርቴላዎች)</button></td></tr>`).join('');
             
             let dropHtml = '<option value="">-- Select a Game --</option>'; allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
@@ -580,14 +584,12 @@
     function renderGamePlayers(index) { if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } let game = allGameHistories[index]; document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${p.tickets * (game.ticketPrice || 10)} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; }
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     
-    // 🔥 የተሻሻለው የ Winners History እይታ (ከ1 በላይ አሸናፊዎችን በአንድ ላይ የሚያሳይ) 🔥
     function viewHistory(index) {
         let h = allGameHistories[index];
         let called = h.calledNumbers || [];
         let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim());
         let grids = [];
 
-        // ከአጠቃላይ ተጫዋቾች ውስጥ አሸናፊ የሆኑትን ካርቴላዎች መፈለግ
         if (h.playersData && h.playersData.length > 0) {
             h.playersData.forEach(p => {
                 if(p.ticketsData) {
@@ -600,7 +602,6 @@
             });
         }
 
-        // ለድሮ ዳታ (playersData ከሌለ)
         if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) {
             grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone });
         }
@@ -618,10 +619,7 @@
                 }
             }
             fullHtml += `</div>`;
-            // በመካከላቸው መስመር ለማድረግ
-            if(i !== grids.length - 1) {
-                fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`;
-            }
+            if(i !== grids.length - 1) { fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; }
         });
         
         document.getElementById('m-grid').innerHTML = fullHtml;
@@ -727,7 +725,6 @@
 
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
     
-    // 🔥 USER EDIT FUNCTION 🔥
     function openEditModal(phone, passw, main, play, won) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('eu-won').value = won; document.getElementById('edit-user-modal').style.display = 'flex'; }
     
     async function saveUserEdit() { 
@@ -760,7 +757,6 @@
         let payload = { adminPass: pass }; 
         if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
         
-        // 🟢 NEW: Update Admin Profit Percentage
         if(type === 'profit') { 
             let prof = document.getElementById('set-admin-profit').value; 
             if(!prof || prof < 0 || prof > 100) return alert("እባክዎ ትክክለኛ ፐርሰንት ያስገቡ (0-100)!"); 
@@ -778,6 +774,13 @@
             if(!tm) return alert("እባክዎ የጌም ሰከንድ ያስገቡ!"); 
             payload.gameTimer = Number(tm); 
         } 
+        
+        // 🔥 NEW MAX TICKETS SAVE 🔥
+        if(type === 'maxtickets') { 
+            let mt = document.getElementById('set-max-tickets').value; 
+            if(!mt || mt < 1) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ!"); 
+            payload.maxTicketsPerUser = Number(mt); 
+        }
 
         if(type === 'reg_bonus') {
             let rBon = document.getElementById('set-reg-bonus').value;
