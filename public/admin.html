@@ -124,19 +124,17 @@
         <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
         
-        <!-- 🔥 NEW: User Support Messages Tab 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-messages', this); loadMessages();"><div>💬 User Messages</div> <span class="badge-alert" id="badge-msg" style="background:var(--cyan);">0</span></button>
         
         <button class="nav-btn" onclick="switchTab('tab-users', this)"><div>👥 Users & Passwords</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this)"><div>🏆 Winners History</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this)"><div>💸 Financial History</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-referral', this)"><div>🤝 Invite & Earn</div></button>
         
-        <!-- 🔥 CHANGED: Rename to Direct Bonus 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--cyan);"><div>📉 Admin Profit %</div></button>
         
-        <!-- 🔥 CHANGED: Rename to Auto-Bonuses & Cashback 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Auto-Bonuses & Cashback</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
@@ -181,7 +179,6 @@
             </div></div>
         </div>
 
-        <!-- 🔥 NEW: USER MESSAGES TAB 🔥 -->
         <div id="tab-messages" class="tab-content">
             <div class="card" style="padding: 0;">
                 <div class="chat-container">
@@ -258,6 +255,12 @@
             </div>
         </div>
 
+        <div id="tab-referral" class="tab-content">
+            <div class="card"><div class="table-responsive">
+                <table id="table-referrals"><thead><tr><th>Referrer Phone</th><th>Total Invited</th><th>Bonus Earned</th><th>Action</th></tr></thead><tbody id="ref-body"></tbody></table>
+            </div></div>
+        </div>
+
         <div id="tab-banned" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table><thead><tr><th>Name</th><th>Phone Number</th><th>Status</th><th>Action</th></tr></thead><tbody id="banned-body"></tbody></table>
@@ -307,11 +310,9 @@
             </div>
         </div>
 
-        <!-- 🔥 UPDATED: Auto-Bonuses & Cashback Tab 🔥 -->
         <div id="tab-dep-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 
-                <!-- DEPOSIT BONUS -->
                 <div class="card" style="border-left: 4px solid var(--gold);">
                     <h3 style="margin-top:0; color:var(--gold);">📥 Deposit Auto-Bonus</h3>
                     <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">ሰዎች ብር ሲያስገቡ አውቶማቲክ የሚሰጠውን የቦነስ መጠን።</p>
@@ -323,23 +324,16 @@
                     <input type="number" id="set-dep-perc" placeholder="e.g. 20">
                     
                     <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
-                        <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs()"> Happy Hour (በተወሰነ ሰዓት ብቻ)
+                        <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs('dep')"> Happy Hour (በተወሰነ ሰዓት ብቻ)
                     </label>
 
-                    <div id="time-inputs-container" style="display:flex; gap:10px; transition:0.3s;" class="disabled-input">
-                        <div style="flex:1;">
-                            <label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label>
-                            <input type="number" id="set-dep-start" placeholder="12">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label>
-                            <input type="number" id="set-dep-end" placeholder="16">
-                        </div>
+                    <div id="time-inputs-container-dep" style="display:flex; gap:10px; transition:0.3s;" class="disabled-input">
+                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label><input type="number" id="set-dep-start" placeholder="12"></div>
+                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label><input type="number" id="set-dep-end" placeholder="16"></div>
                     </div>
                     <button class="action-btn" style="width: 100%; margin-top:10px;" onclick="updateSettings('dep_bonus')">Save Deposit Settings</button>
                 </div>
 
-                <!-- WITHDRAW BONUS -->
                 <div class="card" style="border-left: 4px solid var(--cyan);">
                     <h3 style="margin-top:0; color:var(--cyan);">📤 Withdraw Auto-Bonus</h3>
                     <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">ሲያወጡ እንደማበረታቻ የመጫወቻ ሂሳብ (Play Balance) ላይ የሚሰጥ።</p>
@@ -353,19 +347,28 @@
                     
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
                     <input type="number" id="set-wit-perc" placeholder="e.g. 5">
+
+                    <!-- 🔥 NEW: Withdraw Time Restrict (Happy Hour) 🔥 -->
+                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
+                        <input type="checkbox" id="set-wit-time-restrict" onchange="toggleTimeInputs('wit')"> Happy Hour (በተወሰነ ሰዓት ብቻ)
+                    </label>
+
+                    <div id="time-inputs-container-wit" style="display:flex; gap:10px; transition:0.3s;" class="disabled-input">
+                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label><input type="number" id="set-wit-start" placeholder="12"></div>
+                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label><input type="number" id="set-wit-end" placeholder="16"></div>
+                    </div>
                     
                     <button class="action-btn btn-blue" style="width: 100%; margin-top:10px;" onclick="updateSettings('wit_bonus')">Save Withdraw Settings</button>
                 </div>
 
-                <!-- CASHBACK -->
                 <div class="card" style="border-left: 4px solid var(--purple); grid-column: 1 / -1;">
                     <h3 style="margin-top:0; color:var(--purple);">🔄 Cashback (ካሽባክ)</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">የተጫወቱትን መጠን አይቶ ለሰዎች የተወሰነ ብር (Cashback) የሚሰጥበት ሲስተም።</p>
+                    <p style="font-size:11px; color:var(--text-gray); margin-bottom:15px;">በተከታታይ ለተሸነፉ ሰዎች (Loss amount) አይቶ የተወሰነ ብር (Cashback) የሚሰጥበት ሲስተም።</p>
                     
                     <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
                         <div style="flex:1; min-width: 200px;">
-                            <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">ስንት ካርቴላ ለገዙ ሰዎች ይሰጥ? (Min Played Tickets)</label>
-                            <input type="number" id="set-cb-min" placeholder="e.g. 10">
+                            <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">ከስንት ብር በላይ ለተሸነፉ ሰዎች ይሰጥ? (Min Loss Amount)</label>
+                            <input type="number" id="set-cb-min" placeholder="e.g. 200">
                         </div>
                         <div style="flex:1; min-width: 200px;">
                             <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">ስንት ብር ይሸለሙ? (Cashback Amount)</label>
@@ -538,10 +541,16 @@
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
 
-    function toggleTimeInputs() {
-        let isChecked = document.getElementById('set-dep-time-restrict').checked;
-        let container = document.getElementById('time-inputs-container');
-        if(isChecked) { container.classList.remove('disabled-input'); } else { container.classList.add('disabled-input'); }
+    function toggleTimeInputs(type) {
+        if(type === 'dep') {
+            let isChecked = document.getElementById('set-dep-time-restrict').checked;
+            let container = document.getElementById('time-inputs-container-dep');
+            if(isChecked) { container.classList.remove('disabled-input'); } else { container.classList.add('disabled-input'); }
+        } else if (type === 'wit') {
+            let isChecked = document.getElementById('set-wit-time-restrict').checked;
+            let container = document.getElementById('time-inputs-container-wit');
+            if(isChecked) { container.classList.remove('disabled-input'); } else { container.classList.add('disabled-input'); }
+        }
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
@@ -573,18 +582,22 @@
                     document.getElementById('set-dep-perc').value = data.settings.depBonusPercent || '';
                     document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
                     document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
-                    toggleTimeInputs(); 
+                    toggleTimeInputs('dep'); 
                 }
 
                 if(document.activeElement !== document.getElementById('set-wit-min')) {
                     document.getElementById('set-wit-active').checked = data.settings.isWitBonusActive || false;
+                    document.getElementById('set-wit-time-restrict').checked = data.settings.witBonusTimeRestricted || false;
                     document.getElementById('set-wit-min').value = data.settings.witBonusMinAmount || '';
                     document.getElementById('set-wit-perc').value = data.settings.witBonusPercent || '';
+                    document.getElementById('set-wit-start').value = data.settings.witHappyHourStart || '';
+                    document.getElementById('set-wit-end').value = data.settings.witHappyHourEnd || '';
+                    toggleTimeInputs('wit'); 
                 }
 
                 if(document.activeElement !== document.getElementById('set-cb-min')) {
                     document.getElementById('set-cb-active').checked = data.settings.isCashbackActive || false;
-                    document.getElementById('set-cb-min').value = data.settings.cashbackMinPlayed || '';
+                    document.getElementById('set-cb-min').value = data.settings.cashbackMinLoss || '';
                     document.getElementById('set-cb-amt').value = data.settings.cashbackAmount || '';
                 }
             }
@@ -888,7 +901,7 @@
 
     // 🔥 NEW: Trigger Cashback Function
     async function triggerCashbackNow() {
-        if(!confirm("⚠️ እርግጠኛ ነዎት አሁን የተጫወቱትን አይቶ ካሽባክ (Cashback) ለሁሉም ተጠቃሚዎች ይላክ?")) return;
+        if(!confirm("⚠️ እርግጠኛ ነዎት አሁን የተጫወቱትን (Loss amount) አይቶ ካሽባክ ለሁሉም ተጠቃሚዎች ይላክ?")) return;
         try {
             let res = await fetch('/api/admin/trigger-cashback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let data = await res.json();
@@ -982,13 +995,21 @@
 
         if(type === 'wit_bonus') {
             let isActive = document.getElementById('set-wit-active').checked;
+            let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked;
             let wMin = document.getElementById('set-wit-min').value;
             let wPerc = document.getElementById('set-wit-perc').value;
+            let start = document.getElementById('set-wit-start').value;
+            let end = document.getElementById('set-wit-end').value;
 
             if(!wMin || !wPerc) return alert("እባክዎ ትክክለኛ የቦነስ መጠን ያስገቡ!");
+            if(isTimeRestricted && (start==='' || end==='')) return alert("እባክዎ የቦነስ ሰዓት ያስገቡ!");
+
             payload.isWitBonusActive = isActive;
             payload.witBonusMinAmount = Number(wMin);
             payload.witBonusPercent = Number(wPerc);
+            payload.witBonusTimeRestricted = isTimeRestricted;
+            payload.witHappyHourStart = start !== '' ? Number(start) : 0;
+            payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
         }
 
         if(type === 'cashback') {
@@ -998,7 +1019,7 @@
 
             if(!cMin || !cAmt) return alert("እባክዎ ትክክለኛ ካሽባክ መረጃ ያስገቡ!");
             payload.isCashbackActive = isActive;
-            payload.cashbackMinPlayed = Number(cMin);
+            payload.cashbackMinLoss = Number(cMin);
             payload.cashbackAmount = Number(cAmt);
         }
 
