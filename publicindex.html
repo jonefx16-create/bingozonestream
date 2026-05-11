@@ -968,7 +968,6 @@
         document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
         document.getElementById('bet-btn').disabled = false;
         
-        // ምርጫዎችን እናጥፋለት
         selected = [];
         pendingTicketsData = [];
         document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
@@ -1028,7 +1027,6 @@
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; 
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
         
-        // Update maxTickets dynamically
         if(data.maxTickets) {
             maxTicketsLimit = data.maxTickets;
             document.getElementById('grid-sel-count').nextElementSibling.innerText = "/ " + maxTicketsLimit;
@@ -1036,12 +1034,11 @@
 
         let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none';
 
-        // 🔥 MAINTENANCE (PAUSE) MODE HANDLER 🔥
         if (data.state === "MAINTENANCE") {
             document.body.classList.add('paused-mode');
             document.getElementById('timer').innerText = "PAUSED";
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Maintenance Mode" : "ጥገና ላይ ነን (Paused)";
-            return; // Stop processing further WAITING or PLAYING code
+            return; 
         } else {
             document.body.classList.remove('paused-mode');
         }
@@ -1061,7 +1058,7 @@
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
                 document.getElementById('g-balls').innerText = "0/20"; 
-                document.getElementById('t-page-balls').innerText = "0/20"; // Reset Ticket page balls
+                document.getElementById('t-page-balls').innerText = "0/20"; 
                 called = []; 
                 
                 if (currentUser) {
@@ -1072,10 +1069,16 @@
                     if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
+            
+            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
-                document.getElementById('bet-slip-popup').classList.add('show');
+                if (document.getElementById('home-page').classList.contains('active-page')) {
+                    document.getElementById('bet-slip-popup').classList.add('show');
+                } else {
+                    document.getElementById('bet-slip-popup').classList.remove('show');
+                }
             } else {
                 document.getElementById('bet-slip-popup').classList.remove('show');
             }
@@ -1093,7 +1096,7 @@
             }
             called = data.calledNumbers || []; 
             document.getElementById('g-balls').innerText = called.length + "/20";
-            document.getElementById('t-page-balls').innerText = called.length + "/20"; // Ticket page balls live
+            document.getElementById('t-page-balls').innerText = called.length + "/20"; 
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -1209,7 +1212,11 @@
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
-            popup.classList.add('show'); document.getElementById('slip-count').innerText = selected.length; document.getElementById('slip-price').innerText = selected.length * 10;
+            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
+            if (document.getElementById('home-page').classList.contains('active-page')) {
+                popup.classList.add('show'); 
+            }
+            document.getElementById('slip-count').innerText = selected.length; document.getElementById('slip-price').innerText = selected.length * 10;
             pendingTicketsData.forEach(t => {
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
                 let html = `<div style="text-align:center; font-size:10px; font-weight:bold; color:#1e293b; padding:1px;">#${t.id}</div><div class="preview-t-grid">`;
@@ -1330,7 +1337,14 @@
     function handleHomeNav() { if(isGameRunningLocally) showPage('game'); else showPage('home'); }
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
-        if(id !== 'home') document.getElementById('bet-slip-popup').classList.remove('show'); else if(selected.length > 0) document.getElementById('bet-slip-popup').classList.add('show');
+        
+        // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
+        if(id !== 'home') {
+            document.getElementById('bet-slip-popup').classList.remove('show'); 
+        } else if(selected.length > 0) {
+            document.getElementById('bet-slip-popup').classList.add('show');
+        }
+
         if(id === 'wallet') loadTransactionHistory();
         
         if(id === 'ticket') { let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none'; }
