@@ -359,9 +359,6 @@
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
         <p style="font-size: 13px; color: #4ade80; cursor: pointer; margin-top: 25px; font-weight: bold; text-decoration: underline;" onclick="toggleAuthMode()" id="toggle-auth-text">አካውንት አለዎት? ይግቡ (Login)</p>
         
-        <button class="auth-help-btn" onclick="window.location.href='https://t.me/bingohabesha'">
-            📞 <span>እርዳታ ያስፈልጎታል? (Need Help)</span>
-        </button>
     </div>
 </div>
 
@@ -567,6 +564,7 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
+        <!-- 🔥 NEW: Removed Telegram Help link, added function to switch to Telegram App to chat 🔥 -->
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span id="prof-help-lbl" style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
@@ -599,7 +597,11 @@
     let currentGameState = null;
     let globalTakenTickets = []; 
     let isSoundOn = true;
-    let maxTicketsLimit = 4; // Default value, will be updated by server
+    let maxTicketsLimit = 4; 
+
+    // 🔥 NEW: Audio Queue Variables 🔥
+    let audioQueue = [];
+    let isPlayingAudio = false;
 
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -656,6 +658,43 @@
             document.getElementById('dep-sms-hint').innerHTML = "💡 <b>Hint:</b> Copy and paste the <b>full</b> SMS message you received from the bank. Especially for <b>CBE Birr</b>, make sure to include the entire receipt.";
             document.getElementById('m-dep-btn').innerText = "Send";
             document.getElementById('m-wit-btn').innerText = "Send";
+        }
+    }
+
+    // 🔥 NEW: SEQUENTIAL AUDIO QUEUE PROCESSOR 🔥
+    function playNumberSound(num) {
+        if (!isSoundOn) return;
+        audioQueue.push(num);
+        processAudioQueue();
+    }
+
+    function processAudioQueue() {
+        if (isPlayingAudio || audioQueue.length === 0) return;
+        isPlayingAudio = true;
+        let num = audioQueue.shift();
+        
+        // ድምፆቹ 'jo sound' በሚለው ፎልደር ውስጥ እንደሆኑ ታስቦ ነው የተሰራው 
+        // ምሳሌ: /jo sound/1.mp3
+        let audio = new Audio(`/jo sound/${num}.mp3`); 
+        
+        audio.onended = () => {
+            isPlayingAudio = false;
+            processAudioQueue();
+        };
+        
+        audio.onerror = () => {
+            // ፋይሉ ከሌለ አቋርጦ ወደ ሚቀጥለው ይለፋል
+            console.log(`Sound missing for number: ${num}`);
+            isPlayingAudio = false;
+            processAudioQueue();
+        };
+        
+        let playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => {
+                isPlayingAudio = false;
+                processAudioQueue();
+            });
         }
     }
 
@@ -743,6 +782,12 @@
         isSoundOn = !isSoundOn;
         let st = document.getElementById('sound-toggle');
         if(st) st.innerText = isSoundOn ? '🔊' : '🔇';
+        
+        // ድምፁ ከጠፋ በመጠባበቅ ላይ ያሉትን ድምፆችም እናጥፋቸው
+        if (!isSoundOn) {
+            audioQueue = [];
+            isPlayingAudio = false;
+        }
     }
 
     function toggleTicketMasterBoard() {
@@ -758,7 +803,6 @@
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
     function closeDepositModal(e) { if(e && e.target.id !== 'dep-modal-overlay') return; document.getElementById('dep-modal').classList.remove('show'); setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300); }
     
-    // 🔥 NEW: Withdraw Modal sets readonly phone value
     function openWithdrawModal() { 
         if(currentUser && currentUser.phone) {
             document.getElementById('m-wit-phone').value = currentUser.phone;
@@ -1043,6 +1087,11 @@
             document.body.classList.add('paused-mode');
             document.getElementById('timer').innerText = "PAUSED";
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Maintenance Mode" : "ጥገና ላይ ነን (Paused)";
+            
+            // 🔥 MAINTENANCE ሲሆን ሰልፍ ላይ የነበሩ ድምፆችን እናጥፋቸው
+            audioQueue = [];
+            isPlayingAudio = false;
+
             return; 
         } else {
             document.body.classList.remove('paused-mode');
@@ -1056,6 +1105,11 @@
 
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
+                
+                // 🔥 WAITING ሲሆንም አሮጌ ድምፆችን እናጥፋቸው
+                audioQueue = [];
+                isPlayingAudio = false;
+
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>`;
@@ -1075,7 +1129,6 @@
                 }
             }
             
-            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
@@ -1116,6 +1169,9 @@
         document.getElementById('t-page-balls').innerText = called.length + "/20"; 
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
+        
+        // 🔥 አዲሱ ኳስ ሲወጣ ድምፁም በሰልፍ (Queue) እንዲጠራ እናደርጋለን 🔥
+        playNumberSound(num);
     });
 
     socket.on('game_winner', (data) => {
@@ -1217,7 +1273,6 @@
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
-            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (document.getElementById('home-page').classList.contains('active-page')) {
                 popup.classList.add('show'); 
             }
@@ -1343,7 +1398,6 @@
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         
-        // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
         if(id !== 'home') {
             document.getElementById('bet-slip-popup').classList.remove('show'); 
         } else if(selected.length > 0) {
