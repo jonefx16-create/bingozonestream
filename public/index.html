@@ -544,7 +544,6 @@
         <p id="prof-id-display" style="color: var(--cyan); margin-top: 2px; font-size: 10px; font-weight: bold;">ID: #---</p>
     </div>
 
-    <!-- 🔥 መጋበዣ ሊንክ (Referral Link) አሁን የተጠቃሚውን ስልክ ይይዛል 🔥 -->
     <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border: 1px solid var(--faded-green); border-radius: 12px; padding: 12px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
         <div style="overflow: hidden;">
             <div id="prof-bot-lbl" style="font-size: 11px; color: var(--faded-green); font-weight: bold; margin-bottom: 4px;">🤖 የራስዎ መጋበዣ ሊንክ (Share)</div>
@@ -567,7 +566,6 @@
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
-        <!-- 🔥 NEW: Removed Telegram Help link, added function to switch to Telegram App to chat 🔥 -->
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span id="prof-help-lbl" style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
@@ -606,6 +604,7 @@
     let audioQueue = [];
     let isPlayingAudio = false;
     let currentAudioObj = null;
+    let redirectTimer = null; // 🔥 NEW: Auto-Redirect Timer
 
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -778,9 +777,9 @@
         
         let path = '';
         if (item.type === 'bingo') {
-            path = `/jo sound/${item.file}.m4a`; // ለቢንጎው .m4a ፎርማት ይጠቀማል
+            path = `/jo sound/${item.file}.m4a`; 
         } else {
-            path = `/jo sound/${item.file}.mp3`; // ለተራ ቁጥሮች
+            path = `/jo sound/${item.file}.mp3`; 
         }
 
         currentAudioObj = new Audio(path); 
@@ -811,6 +810,7 @@
     window.onload = async () => {
         buildMasterBoard(); buildTicketMasterBoard(); initGrid();
         
+        // 1. ቴሌግራም WebApp መሆኑን ማረጋገጥ እና Auto-Login ማድረግ
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
             const tgId = tgUser.id.toString();
@@ -870,6 +870,7 @@
             }
         }
 
+        // 2. Fallback to LocalStorage (for standard browsers outside Telegram)
         let savedPhone = localStorage.getItem('bingo_user_phone');
         let savedPass = localStorage.getItem('bingo_user_pass');
         
@@ -984,18 +985,14 @@
 
         if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
         if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!");
-        
         if(!smsText) return alert("እባክዎ የSMS ማረጋገጫ ያስገቡ!");
 
         let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
-        
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); 
             alert(data.message); 
-            if(data.success) {
-                document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal();
-            }
+            if(data.success) { document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal(); }
         } catch(e) {}
         btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
     }
@@ -1031,10 +1028,7 @@
             let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
             let data = await res.json();
             alert(data.message);
-            if(data.success) { 
-                localStorage.setItem('bingo_user_pass', newPass); 
-                document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; 
-            }
+            if(data.success) { localStorage.setItem('bingo_user_pass', newPass); document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; }
         } catch(e) {}
     }
 
@@ -1074,8 +1068,7 @@
         let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
         let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
 
-        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; 
-        document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; document.getElementById('start-btn').disabled = true;
         
         let endpoint = isLoginMode ? '/api/login' : '/api/register';
         let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
@@ -1083,19 +1076,14 @@
         
         if(data.success) { 
             if(isLoginMode) {
-                localStorage.setItem('bingo_user_phone', phone); 
-                localStorage.setItem('bingo_user_pass', pass); 
+                localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); 
                 processLoginSuccess(data.user); 
             } else {
                 alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)");
                 toggleAuthMode();
             }
         } 
-        else { 
-            alert(data.message || "ስህተት አጋጥሟል!"); 
-            document.getElementById('start-btn').disabled = false; 
-            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)";
-        }
+        else { alert(data.message || "ስህተት አጋጥሟል!"); document.getElementById('start-btn').disabled = false; document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)"; }
     }
 
     function processLoginSuccess(userObj) {
@@ -1338,6 +1326,13 @@
 
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
+        // 🔥 Auto Redirect to Home after 5 seconds 🔥
+        if (redirectTimer) clearTimeout(redirectTimer);
+        redirectTimer = setTimeout(() => {
+            document.getElementById('bingo-overlay').style.display = 'none';
+            if(currentUser) { showPage('home'); }
+        }, 5000); // 5000 ms = 5 seconds
+
         let amIWinner = false;
         if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) {
             amIWinner = true;
@@ -1374,7 +1369,7 @@
             <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
             <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
                 <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
-                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toFixed(2)} ETB</h1>
+                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize ? data.totalPrize.toFixed(2) : data.prize.toFixed(2)} ETB</h1>
             </div>
             ${alertHtml}
         `;
