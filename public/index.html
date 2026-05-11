@@ -599,7 +599,6 @@
     let globalTakenTickets = []; 
     let isSoundOn = true;
     let maxTicketsLimit = 4; 
-    let globalTimerSeconds = 40; // 🔥 NEW: To store timer seconds locally
 
     // 🔥 AUDIO QUEUE VARIABLES
     let audioQueue = [];
@@ -954,8 +953,6 @@
     });
 
     socket.on('sync_data', (data) => {
-        if (data.settings && data.settings.gameTimer !== undefined) { globalTimerSeconds = data.settings.gameTimer; }
-        
         // 🔥 Update Deposit Settings if available 🔥
         if (data.settings && data.settings.depBonusMinAmount !== undefined) {
             let changed = false;
@@ -984,8 +981,6 @@
     socket.on('update_taken_tickets', (ticketsArr) => { globalTakenTickets = ticketsArr; renderGridTakenStates(); });
 
     socket.on('game_status', (data) => {
-        if (data.settings && data.settings.gameTimer !== undefined) { globalTimerSeconds = data.settings.gameTimer; }
-
         // 🔥 Update Deposit Settings dynamically if sent from backend 🔥
         if (data.settings && data.settings.depBonusMinAmount !== undefined) {
             let changed = false;
@@ -1113,9 +1108,8 @@
                 let stEl = document.querySelector('.nt-status');
                 if(stEl) stEl.innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
                 
-                // 🔥 FIX: FORCING TIMER TO SHOW NEXT ROUND TIME IMMEDIATELY INSTEAD OF 00:00
                 let tEl = document.getElementById('timer');
-                if(tEl) tEl.innerText = formatTime(globalTimerSeconds); 
+                if(tEl && tEl.innerText.includes("LIVE")) tEl.innerText = "00:00"; 
 
                 document.getElementById('ticket-list').innerHTML = ''; 
                 document.getElementById('game-mini-tickets').innerHTML = '';
