@@ -74,8 +74,8 @@
         .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; }
 
         /* 🔥 STRICT HIDE FOR BET SLIP POPUP 🔥 */
-        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 150%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; opacity: 0; visibility: hidden; pointer-events: none; }
-        .bet-slip-popup.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; } 
+        .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 150%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; }
+        .bet-slip-popup.show { transform: translate(-50%, 0); } 
         
         .preview-tickets-wrapper { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; width: 100%; scrollbar-width: none; min-height: 48px; padding-bottom: 4px; }
         .preview-tickets-wrapper::-webkit-scrollbar { display: none; }
@@ -988,18 +988,14 @@
 
         if(!method) return alert("እባክዎ ባንክ ይምረጡ!");
         if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!");
-        
         if(!smsText) return alert("እባክዎ የSMS ማረጋገጫ ያስገቡ!");
 
         let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
-        
         try { 
             let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
             let data = await res.json(); 
             alert(data.message); 
-            if(data.success) {
-                document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal();
-            }
+            if(data.success) { document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal(); }
         } catch(e) {}
         btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
     }
@@ -1035,10 +1031,7 @@
             let res = await fetch('/api/user/change-password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: currentUser.phone, oldPass, newPass}) });
             let data = await res.json();
             alert(data.message);
-            if(data.success) { 
-                localStorage.setItem('bingo_user_pass', newPass); 
-                document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; 
-            }
+            if(data.success) { localStorage.setItem('bingo_user_pass', newPass); document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-conf').value = ''; document.getElementById('pw-modal-overlay').style.display='none'; }
         } catch(e) {}
     }
 
@@ -1078,8 +1071,7 @@
         let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim();
         let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
 
-        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; 
-        document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; document.getElementById('start-btn').disabled = true;
         
         let endpoint = isLoginMode ? '/api/login' : '/api/register';
         let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) });
@@ -1087,19 +1079,14 @@
         
         if(data.success) { 
             if(isLoginMode) {
-                localStorage.setItem('bingo_user_phone', phone); 
-                localStorage.setItem('bingo_user_pass', pass); 
+                localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); 
                 processLoginSuccess(data.user); 
             } else {
                 alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)");
                 toggleAuthMode();
             }
         } 
-        else { 
-            alert(data.message || "ስህተት አጋጥሟል!"); 
-            document.getElementById('start-btn').disabled = false; 
-            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)";
-        }
+        else { alert(data.message || "ስህተት አጋጥሟል!"); document.getElementById('start-btn').disabled = false; document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)"; }
     }
 
     function processLoginSuccess(userObj) {
@@ -1306,14 +1293,11 @@
                 }
             }
             
-            if (selected.length > 0) { 
+            // 🔥 FIXED BET SLIP BUG 🔥
+            if (selected.length > 0 && document.getElementById('home-page').classList.contains('active-page')) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
-                if (document.getElementById('home-page').classList.contains('active-page')) {
-                    document.getElementById('bet-slip-popup').classList.add('show');
-                } else {
-                    document.getElementById('bet-slip-popup').classList.remove('show');
-                }
+                document.getElementById('bet-slip-popup').classList.add('show');
             } else {
                 document.getElementById('bet-slip-popup').classList.remove('show');
             }
@@ -1604,7 +1588,6 @@
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         
-        // 🔥 FIXED: Only show bet slip if we have selected tickets AND we are on the Home Page
         if(id !== 'home') {
             document.getElementById('bet-slip-popup').classList.remove('show'); 
         } else if(selected.length > 0) {
