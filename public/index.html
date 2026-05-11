@@ -280,10 +280,7 @@
         <textarea id="m-dep-sms" class="trx-input" style="height: 60px; resize: none; margin-bottom: 5px;" placeholder="ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)"></textarea>
         <div id="dep-sms-hint" style="font-size: 10px; color: var(--gold); margin-bottom: 20px; line-height: 1.4;">💡 <b>ማሳሰቢያ:</b> ከባንክ የተላከሎትን SMS <b>ሙሉውን</b> ኮፒ በማድረግ እዚህ ይለጥፉ። በተለይ በ <b>CBE Birr</b> ሲያስገቡ የባንኩን ሙሉ ደረሰኝ (SMS) ማካተትዎን አይርሱ።</div>
         
-        <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ጨርስ</button>
-        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
-            📞 <span>እርዳታ ያስፈልጎታል?</span>
-        </button>
+        <button class="trx-submit-btn" onclick="processNewDeposit()" id="m-dep-btn">ላክ</button>
     </div>
 </div>
 
@@ -296,20 +293,17 @@
             <div class="bank-btn" data-bankname="cbe" onclick="selectBank('cbe', this, 'wit')"><div class="bank-logo logo-cbe">CBE</div> CBE Birr</div>
         </div>
         
-        <span class="trx-label">የእርስዎ ስልክ ቁጥር/አካውንት</span>
+        <span class="trx-label">ወጪ የሚደረግበት ስልክ ቁጥር (የተመዘገቡበት)</span>
         <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 11px; color: #fde047; text-align: center;">
-            ⚠️ <b>ማሳሰቢያ:</b> እባክዎ ብሩ የሚላክበትን ትክክለኛውን የራስዎን ስልክ ቁጥር ወይም አካውንት በጥንቃቄ ያስገቡ።
+            ⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።
         </div>
-        <input type="tel" id="m-wit-phone" class="trx-input" placeholder="09********">
+        <input type="tel" id="m-wit-phone" class="trx-input disabled-input" readonly style="opacity:0.6; pointer-events:none; background: #111827;">
         
         <span style="display: block; margin-bottom: 10px;">&nbsp;</span>
         <span class="trx-label">መጠን (ብር)</span>
         <input type="number" id="m-wit-amt" class="trx-input" placeholder="">
         <span style="color: #475569; font-size: 10px; display: block; margin-bottom: 25px;">Min: 50 ETB | Max: 300,000 ETB</span>
-        <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn">ወጪ ጠይቅ</button>
-        <button class="auth-help-btn" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan);" onclick="window.location.href='https://t.me/bingohabesha'">
-            📞 <span>እርዳታ ያስፈልጎታል?</span>
-        </button>
+        <button class="trx-submit-btn red-btn" onclick="processNewWithdraw()" id="m-wit-btn">ላክ</button>
     </div>
 </div>
 
@@ -408,14 +402,15 @@
         <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
     </div>
 
-    <div class="new-timer-box">
-        <div class="nt-left">
-            <div class="nt-status">ጨዋታው ሊጀምር ነው</div>
+    <!-- 🔥 SPLIT TIMER AND JACKPOT UI 🔥 -->
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <div class="new-timer-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px;">
+            <div class="nt-status" style="margin-bottom: 5px;">ጨዋታው ሊጀምር ነው</div>
             <div class="nt-value" id="timer">00:40</div> 
         </div>
-        <div class="nt-right">
-            <div class="nt-badge" id="h-lbl-derash">ደራሽ</div>
-            <div class="nt-value"><span id="jp">0</span> <span class="nt-currency">ETB</span></div>
+        <div class="new-timer-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px; border-color: var(--cyan); box-shadow: 0 4px 15px rgba(56, 189, 248, 0.05);">
+            <div class="nt-badge" id="h-lbl-derash" style="margin-bottom: 5px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">ደራሽ</div>
+            <div class="nt-value"><span id="jp">0</span> <span class="nt-currency" style="font-size: 12px; color: #94a3b8;">ETB</span></div>
         </div>
     </div>
 
@@ -635,7 +630,8 @@
             document.getElementById('lbl-dep-sms').innerText = "የከፈሉበት ማረጋገጫ (SMS)";
             document.getElementById('m-dep-sms').placeholder = "ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)";
             document.getElementById('dep-sms-hint').innerHTML = "💡 <b>ማሳሰቢያ:</b> ከባንክ የተላከሎትን SMS <b>ሙሉውን</b> ኮፒ በማድረግ እዚህ ይለጥፉ። በተለይ በ <b>CBE Birr</b> ሲያስገቡ የባንኩን ሙሉ ደረሰኝ (SMS) ማካተትዎን አይርሱ።";
-            document.getElementById('m-dep-btn').innerText = "ጨርስ";
+            document.getElementById('m-dep-btn').innerText = "ላክ";
+            document.getElementById('m-wit-btn').innerText = "ላክ";
 
         } else {
             btnEn.style.background = 'white'; btnEn.style.color = 'black';
@@ -658,7 +654,8 @@
             document.getElementById('lbl-dep-sms').innerText = "Payment Confirmation (SMS)";
             document.getElementById('m-dep-sms').placeholder = "Paste the full SMS receipt from your bank here";
             document.getElementById('dep-sms-hint').innerHTML = "💡 <b>Hint:</b> Copy and paste the <b>full</b> SMS message you received from the bank. Especially for <b>CBE Birr</b>, make sure to include the entire receipt.";
-            document.getElementById('m-dep-btn').innerText = "Submit";
+            document.getElementById('m-dep-btn').innerText = "Send";
+            document.getElementById('m-wit-btn').innerText = "Send";
         }
     }
 
@@ -760,7 +757,15 @@
 
     function openDepositModal() { document.getElementById('dep-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('dep-modal').classList.add('show'); }, 10); }
     function closeDepositModal(e) { if(e && e.target.id !== 'dep-modal-overlay') return; document.getElementById('dep-modal').classList.remove('show'); setTimeout(() => { document.getElementById('dep-modal-overlay').style.display = 'none'; }, 300); }
-    function openWithdrawModal() { document.getElementById('wit-modal-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('wit-modal').classList.add('show'); }, 10); }
+    
+    // 🔥 NEW: Withdraw Modal sets readonly phone value
+    function openWithdrawModal() { 
+        if(currentUser && currentUser.phone) {
+            document.getElementById('m-wit-phone').value = currentUser.phone;
+        }
+        document.getElementById('wit-modal-overlay').style.display = 'flex'; 
+        setTimeout(() => { document.getElementById('wit-modal').classList.add('show'); }, 10); 
+    }
     function closeWithdrawModal(e) { if(e && e.target.id !== 'wit-modal-overlay') return; document.getElementById('wit-modal').classList.remove('show'); setTimeout(() => { document.getElementById('wit-modal-overlay').style.display = 'none'; }, 300); }
     
     function selectBank(method, element, type) {
@@ -796,7 +801,7 @@
             alert(data.message); 
             if(data.success) { document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal(); }
         } catch(e) {}
-        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ጨርስ";
+        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Send" : "ላክ";
     }
 
     async function processNewWithdraw() {
@@ -819,7 +824,7 @@
             if(data.success) { await fetchUpdatedBalance(); alert(data.message); document.getElementById('m-wit-amt').value = ''; document.getElementById('m-wit-phone').value = ''; closeWithdrawModal(); } 
             else { alert(data.message); } 
         } catch(e) {}
-        btn.innerText = "ወጪ ጠይቅ";
+        btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Send" : "ላክ";
     }
 
     async function savePassword() {
