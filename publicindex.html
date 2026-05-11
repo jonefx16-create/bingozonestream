@@ -1045,23 +1045,51 @@
         playNumberSound(num);
     });
 
-    socket.on('game_winner', (data) => {
+socket.on('game_winner', (data) => {
         // 🔥 BINGO ድምፅ ይጮሃል 🔥
         playBingoSound();
 
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
-        // 🔥 Auto Redirect to Home after 5 seconds 🔥
+        // 🔥 Auto Redirect to Home after 5 seconds & STRICT DATA RESET 🔥
         if (redirectTimer) clearTimeout(redirectTimer);
         redirectTimer = setTimeout(() => {
             document.getElementById('bingo-overlay').style.display = 'none';
             if(currentUser) { 
                 showPage('home'); 
+                
+                // 1. የድሮ ዳታዎችን በአንዴ ማጥፋት (Clear Data)
+                userTicketsData = []; selected = []; pendingTicketsData = []; globalTakenTickets = [];
                 document.getElementById('ticket-list').innerHTML = ''; 
                 document.getElementById('game-mini-tickets').innerHTML = '';
                 document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
-                userTicketsData = []; selected = []; pendingTicketsData = []; 
+                
+                // 2. ግሪዱን አዲስ ማድረግ እና Bet Slip መዝጋት
                 initGrid();
+                updateBetPreview(); // Bet slip Popup እንዲጠፋ ያደርጋል
+                document.getElementById('bet-btn').disabled = false;
+                document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
+                document.getElementById('bet-slip-popup').classList.remove('show');
+                
+                // 3. LIVE የሚለውን አጥፍቶ አዲስ ጨዋታ መጠበቂያ (Waiting) ማድረግ
+                isGameRunningLocally = false;
+                currentGameState = "WAITING";
+                document.getElementById('live-text-bottom').innerText = "";
+                let liveTextGame = document.getElementById('live-text-game'); if(liveTextGame) liveTextGame.innerText = "";
+                document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
+                
+                // 4. ሰዓቱን 00:40 ብሎ እንዲጀምር ማድረግ
+                document.getElementById('timer').innerText = "00:40";
+                
+                // 5. ያለፉትን ኳሶች እና ቦርዱን ማፅዳት
+                called = [];
+                document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
+                document.getElementById('history-scroll-top').innerHTML = '';
+                document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>`;
+                document.getElementById('caller-ball').innerText = "--";
+                let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
+                document.getElementById('g-balls').innerText = "0/20";
+                document.getElementById('t-page-balls').innerText = "0/20";
             }
         }, 5000);
 
