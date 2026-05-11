@@ -971,7 +971,13 @@ bot.on('callback_query', async (query) => {
         let warn = state.method === 'TeleBirr' ? ln.warn_telebirr : (state.method === 'CBEBirr' ? ln.warn_cbebirr : "");
         bot.sendMessage(chatId, ln.bank_info(state.method, warn, accInfo.name, accInfo.num), { parse_mode: "HTML", ...cancelKeyboard(ln) });
     }
-    else if (data.startsWith('wit_')) { state.method = data.split('_')[1]; state.step = 'awaiting_wit_acc'; bot.sendMessage(chatId, ln.wit_info(state.method), { parse_mode: "HTML", ...cancelKeyboard(ln) }); }
+    else if (data.startsWith('wit_')) { 
+        if(!user) return bot.answerCallbackQuery(query.id);
+        state.method = data.split('_')[1]; 
+        state.destinationPhone = user.phone; 
+        state.step = 'awaiting_wit_amt'; 
+        bot.sendMessage(chatId, ln.enter_wit_amt(user.phone), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
+    }
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
 });
 
