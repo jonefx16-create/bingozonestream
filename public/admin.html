@@ -89,18 +89,20 @@
         .chat-admin-msg { background: var(--faded-green); color: black; align-self: flex-end; border-bottom-right-radius: 0; font-weight: bold;}
         .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--panel); }
 
+        /* 🔥 PROMOTER PROFILE MODAL SPECIFIC STYLES 🔥 */
+        .promoter-header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; border: 1px solid var(--cyan); margin-bottom: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .promoter-stats { display: flex; justify-content: space-between; background: #000; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .p-stat-box { text-align: center; flex: 1; }
+        .p-stat-title { font-size: 10px; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .p-stat-val { font-size: 18px; font-weight: 900; color: white; }
+        .ref-users-table th { background: #1e293b; font-size: 10px; }
+        .ref-users-table td { font-size: 12px; }
+
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
             .sidebar { 
-                position: fixed; 
-                top: 0; left: -260px; bottom: 0;
-                width: 250px;
-                height: 100vh;
-                height: 100dvh; 
-                box-shadow: 2px 0 15px rgba(0,0,0,0.9); 
-                overflow-y: auto !important; 
-                -webkit-overflow-scrolling: touch;
-                z-index: 10000; 
+                position: fixed; top: 0; left: -260px; bottom: 0; width: 250px; height: 100vh; height: 100dvh; 
+                box-shadow: 2px 0 15px rgba(0,0,0,0.9); overflow-y: auto !important; -webkit-overflow-scrolling: touch; z-index: 10000; 
             }
             .sidebar.open { left: 0; }
             .close-sidebar { display: block; }
@@ -291,7 +293,7 @@
             </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-promoters">
-                    <thead><tr><th>Name</th><th>Phone</th><th>Commission %</th><th>People Brought</th><th>Total Deposits</th><th>Total Earned</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Phone</th><th>Commission %</th><th>People Brought</th><th>Total Earned</th><th>Action</th></tr></thead>
                     <tbody id="promoters-body"></tbody>
                 </table>
             </div></div>
@@ -527,6 +529,42 @@
 </div>
 
 <!-- ================= MODALS ================= -->
+
+<!-- 🔥 NEW: PROMOTER PROFILE MODAL 🔥 -->
+<div class="modal" id="promoter-profile-modal">
+    <div class="modal-content" style="max-width: 600px; padding:0;">
+        <div class="promoter-header">
+            <h2 id="pp-name" style="margin:0 0 5px 0; color:var(--faded-green); text-transform:uppercase;">Promoter Name</h2>
+            <p id="pp-phone" style="margin:0; color:var(--cyan); font-family:monospace; font-size:16px;">09...</p>
+            <div class="promoter-stats">
+                <div class="p-stat-box" style="border-right: 1px solid var(--border);">
+                    <span class="p-stat-title">Users</span>
+                    <span class="p-stat-val" id="pp-users">0</span>
+                </div>
+                <div class="p-stat-box" style="border-right: 1px solid var(--border);">
+                    <span class="p-stat-title">Total 1st Deposits</span>
+                    <span class="p-stat-val" style="color:var(--gold);" id="pp-deposits">0.00</span>
+                </div>
+                <div class="p-stat-box">
+                    <span class="p-stat-title">Total Earned</span>
+                    <span class="p-stat-val" style="color:var(--faded-green);" id="pp-earned">0.00</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 0 20px 20px 20px;">
+            <h4 style="margin-top:0; color:var(--text-gray); border-bottom:1px solid var(--border); padding-bottom:5px;">👥 Users Brought (ያመጣቸው ሰዎች ዝርዝር)</h4>
+            <div style="max-height: 35vh; overflow-y: auto;">
+                <table class="ref-users-table">
+                    <thead><tr><th>Name</th><th>Phone</th><th>First Deposit</th><th>Commission Cut</th></tr></thead>
+                    <tbody id="pp-users-body"></tbody>
+                </table>
+            </div>
+            <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('promoter-profile-modal').style.display='none'">Close Profile</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal" id="edit-user-modal">
     <div class="modal-content">
         <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
@@ -719,9 +757,9 @@
                         <td style="color:var(--cyan); font-weight:bold;">${p.phone}</td>
                         <td>${p.percent}%</td>
                         <td>${p.usersBrought} Users</td>
-                        <td style="color:var(--gold);">${Number(p.totalDeposits).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td>
+                            <button class="btn-sm" style="background:var(--cyan); color:black;" onclick="openPromoterProfile('${p.phone}')">👁️ View Profile</button>
                             <button class="btn-sm btn-blue" onclick="setPromoterAction(true, '${p.phone}')">Edit %</button>
                             <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button>
                         </td>
@@ -755,6 +793,37 @@
                 alert(data.message || "User not found!");
             }
         } catch(e) {}
+    }
+
+    // 🔥 NEW: OPEN PROMOTER PROFILE 🔥
+    async function openPromoterProfile(phone) {
+        try {
+            let res = await fetch('/api/admin/promoter-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})});
+            let data = await res.json();
+            
+            if(data.success) {
+                let p = data.promoter;
+                document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`;
+                document.getElementById('pp-phone').innerText = p.phone;
+                document.getElementById('pp-users').innerText = data.details.length;
+                
+                let totalFirstDeps = data.details.reduce((sum, d) => sum + d.totalDeposit, 0); // Note: The API sums all approved deposits for simplicity, but logic pays on first
+                document.getElementById('pp-deposits').innerText = Number(totalFirstDeps).toLocaleString('en-US', {minimumFractionDigits: 2});
+                document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
+
+                let tableHtml = data.details.map(d => `
+                    <tr>
+                        <td>${d.name}</td>
+                        <td style="color:var(--cyan);">${d.phone}</td>
+                        <td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
+
+                document.getElementById('pp-users-body').innerHTML = tableHtml;
+                document.getElementById('promoter-profile-modal').style.display = 'flex';
+            }
+        } catch(e) { alert("Error loading profile"); }
     }
 
     // 🔥 SUPPORT CHAT LOGIC 🔥
