@@ -1,3 +1,4 @@
+// --- START OF FILE server.js ---
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -161,18 +162,18 @@ async function autoApprovePendingDeposits() {
                     await matchedSMS.save();
                     user.playBalance += totalCredit;
 
-                    // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
-                    if(user.referredBy && !user.hasMadeFirstDeposit) {
+                    // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY & TELEGRAM USERS ONLY) 🔥
+                    if(user.referredBy && !user.hasMadeFirstDeposit && user.telegramId && user.telegramId.trim() !== "") {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
                             let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
                             promoter.mainBalance += commission; 
                             promoter.promoterEarned += commission;
                             await promoter.save();
-                            user.promoterCommissionGenerated = commission;
+                            user.promoterCommissionGenerated = commission; // Store how much this user generated
                             io.emit('balance_updated', promoter.phone);
                         }
-                        user.hasMadeFirstDeposit = true;
+                        user.hasMadeFirstDeposit = true; // Mark as done
                     }
                     
                     await user.save();
@@ -287,7 +288,7 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 NEW: CLAIM WEB PROMO BONUS API 🔥
+// 🔥 CLAIM WEB PROMO BONUS API 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
@@ -414,8 +415,8 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
 
-            // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
-            if(user.referredBy && !user.hasMadeFirstDeposit) {
+            // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY & TELEGRAM USERS ONLY) 🔥
+            if(user.referredBy && !user.hasMadeFirstDeposit && user.telegramId && user.telegramId.trim() !== "") {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
                     let commission = actualAmount * (promoter.promoterPercent / 100);
@@ -815,6 +816,7 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
+// ... (Rest of language dictionary)
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -1149,6 +1151,9 @@ app.get('*', (req, res) => {
                 from { transform: scale(1); box-shadow: 0 0 10px rgba(74,222,128,0.4); } 
                 to { transform: scale(1.05); box-shadow: 0 0 25px rgba(74,222,128,0.8); } 
             }
+            /* 🔥 WEB PROMO POPUP CSS 🔥 */
+            .web-promo-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%); background: linear-gradient(135deg, #ea580c, #d97706); border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100000; width: 90%; max-width: 350px; text-align: center; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1); backdrop-filter: blur(10px); visibility: hidden; }
+            .web-promo-popup.show { transform: translateX(-50%) translateY(0); visibility: visible; }
         </style>
 
         <div id="dynamic-maintenance">
@@ -1202,12 +1207,12 @@ app.get('*', (req, res) => {
                                 alertBox.className = 'shared-alert-box';
 
                                 if (data.isShared) {
-                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
                                 } else {
                                     alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
                                     alertBox.style.borderColor = "#fbbf24";
                                     alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
-                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
                                 }
                                 if(winnerCard) winnerCard.appendChild(alertBox);
 
@@ -1220,7 +1225,7 @@ app.get('*', (req, res) => {
                                     let alertBox = document.createElement('div');
                                     alertBox.id = 'shared-alert-msg';
                                     alertBox.className = 'shared-alert-box';
-                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB</span>";
+                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB</span>";
                                     if(winnerCard) winnerCard.appendChild(alertBox);
                                 }
                             }
