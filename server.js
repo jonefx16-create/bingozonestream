@@ -985,7 +985,7 @@ bot.on('message', async (msg) => {
                 bot.sendMessage(chatId, "❌ ስህተት አጋጥሟል", { ...getMainMenu(user) });
             }
         } else {
-            bot.sendMessage(chatId, "🗣 <b>አስተዋዋቂ (Promoter) መሆን ይፈልጋሉ?</b>\n\nልዩ አስተዋዋቂ በመሆን ሰዎች በሚያስገቡት የመጀመሪያ ክፍያ ላይ ቋሚ ፐርሰንት ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user) });
+            bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nበእርስዎ መጋበዣ ሊንክ (Referral Link) የሚመጡ አዳዲስ ተጠቃሚዎች <b>ለመጀመሪያ ጊዜ (1st Deposit)</b> በሚያስገቡት የገንዘብ መጠን ላይ ቋሚ <b>ኮሚሽን (Commission)</b> ማግኘት ይፈልጋሉ?\n\n👉 ልዩ አስተዋዋቂ (Special Promoter) ለመሆን እና አብረውን ለመስራት አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
         }
     } 
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
