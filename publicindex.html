@@ -981,16 +981,16 @@
     }
 
     socket.on('game_status', (data) => {
-        socket.on('game_status', (data) => {
-        /* 🔥 አድሚኑ የቀየረው የዲፖዚት ፅሁፍ እዚህ ጋር አፕዴት ይሆናል 🔥 */
+        /* 🔥 የአድሚን የዲፖዚት ፅሁፍ ማስተካከያ 🔥 */
         let bannerTextAm = data.depBannerTextAm || (data.settings && data.settings.depBannerTextAm) || "ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!";
         let bannerTextEn = data.depBannerTextEn || (data.settings && data.settings.depBannerTextEn) || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
+        
         let isAm = document.getElementById('btn-am').style.background === 'white';
         let dynBanner = document.getElementById('dynamic-dep-banner');
         if(dynBanner) {
             dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>');
         }
-        /* ==================================================== */
+        /* ======================================= */
 
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
