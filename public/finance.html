@@ -76,28 +76,27 @@
         </div>
 
         <div class="kpi-grid">
-            <!-- 🔥 አዲሱ የደንበኞች ሂሳብ እይታ 🔥 -->
             <div class="kpi-card" style="border-left-color: var(--orange); grid-column: 1 / -1;">
                 <span class="kpi-title" style="color: var(--orange);">🏦 System Liability (Total Users Balance)</span>
                 <p style="font-size: 11px; color: var(--text-gray); margin-top:-5px; margin-bottom:5px;">ይህ ብር ሲስተሙ ውስጥ ተጫዋቾች አካውንታቸው ላይ ያላቸው አጠቃላይ (Main + Play) ድምር ሂሳብ ነው።</p>
-                <h2 class="kpi-value" id="val-liability" style="color: var(--orange);">0</h2>
+                <h2 class="kpi-value" id="val-liability" style="color: var(--orange);">0.00</h2>
             </div>
             
             <div class="kpi-card" style="border-left-color: var(--faded-green);">
                 <span class="kpi-title">⬇️ Deposits</span>
-                <h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0</h2>
+                <h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0.00</h2>
             </div>
             <div class="kpi-card" style="border-left-color: var(--red);">
                 <span class="kpi-title">⬆️ Withdrawals</span>
-                <h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0</h2>
+                <h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0.00</h2>
             </div>
             <div class="kpi-card" style="border-left-color: var(--purple);">
                 <span class="kpi-title">🎮 Gross Game Profit (15%)</span>
-                <h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0</h2>
+                <h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0.00</h2>
             </div>
             <div class="kpi-card" style="border-left-color: var(--red);">
                 <span class="kpi-title">🎁 Bonus Expenses</span>
-                <h2 class="kpi-value" id="val-bonus" style="color: #fca5a5;">0</h2>
+                <h2 class="kpi-value" id="val-bonus" style="color: #fca5a5;">0.00</h2>
             </div>
         </div>
     </div>
@@ -186,15 +185,15 @@
         let net = tProf - tBon;
 
         let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
-        document.getElementById('val-liability').innerText = totalLiability.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-liability').innerText = totalLiability.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
 
-        document.getElementById('val-deposit').innerText = tDep.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('val-withdraw').innerText = tWit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('val-game-profit').innerText = tProf.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('val-bonus').innerText = tBon.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-deposit').innerText = tDep.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-withdraw').innerText = tWit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-game-profit').innerText = tProf.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('val-bonus').innerText = tBon.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
         let netEl = document.getElementById('net-profit');
-        netEl.innerText = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
+        netEl.innerText = net.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
         
         if (net < 0) { netEl.style.color = "var(--red)"; } 
         else if (net > 0) { netEl.style.color = "var(--faded-green)"; } 
@@ -205,5 +204,6 @@
 </script>
 </body>
 </html>
+
 
 
