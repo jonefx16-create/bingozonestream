@@ -1,4 +1,3 @@
-// --- START OF FILE server.js ---
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -25,7 +24,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
-// 🔵 MODELS (Promoter Fields Added)
+// 🔵 MODELS (Promoter Fields & First Deposit Added)
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
@@ -39,10 +38,12 @@ const User = mongoose.model('User', new mongoose.Schema({
     won: { type: Number, default: 0 }, 
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
-    // 🔥 NEW PROMOTER FIELDS 🔥
+    // 🔥 NEW PROMOTER & FIRST DEPOSIT FIELDS 🔥
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
-    promoterEarned: { type: Number, default: 0 }
+    promoterEarned: { type: Number, default: 0 },
+    hasMadeFirstDeposit: { type: Boolean, default: false }, // Tracks if it's their first time
+    promoterCommissionGenerated: { type: Number, default: 0 } // Tracks how much commission this user generated for their promoter
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -69,14 +70,10 @@ const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
-    
     depBonusMinAmount: { type: Number, default: 100 }, depBonusPercent: { type: Number, default: 20 }, depBonusTimeRestricted: { type: Boolean, default: false }, happyHourStart: { type: Number, default: 0 }, happyHourEnd: { type: Number, default: 23 },
-    depBannerTextAm: { type: String, default: "" }, depBannerTextEn: { type: String, default: "" }, // 🔥 New
-    
+    depBannerTextAm: { type: String, default: "" }, depBannerTextEn: { type: String, default: "" },
     witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false }, witBonusTimeRestricted: { type: Boolean, default: false }, witHappyHourStart: { type: Number, default: 0 }, witHappyHourEnd: { type: Number, default: 23 },
-    
     cashbackMinLoss: { type: Number, default: 200 }, cashbackAmount: { type: Number, default: 10 }, isCashbackActive: { type: Boolean, default: false },
-
     registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 }
 }));
@@ -91,28 +88,18 @@ async function loadSettings() {
         depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
         happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
         depBannerTextAm: s.depBannerTextAm || "", depBannerTextEn: s.depBannerTextEn || "",
-        
         witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, isWitBonusActive: s.isWitBonusActive || false,
         witBonusTimeRestricted: s.witBonusTimeRestricted || false, witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
-        
         cashbackMinLoss: s.cashbackMinLoss !== undefined ? s.cashbackMinLoss : 200, cashbackAmount: s.cashbackAmount !== undefined ? s.cashbackAmount : 10, isCashbackActive: s.isCashbackActive || false,
-        
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4
     };
 }
 loadSettings();
 
-const bankAccounts = {
-    'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' },
-    'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' }
-};
-
+const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
-// ==========================================
-// 🛡️ THE GOLDEN EXTRACTOR ENGINE 
-// ==========================================
 function getTxRef(text) {
     if (!text || typeof text !== 'string') return null;
     let msg = text.toUpperCase().replace(/\n/g, ' ');
@@ -173,20 +160,23 @@ async function autoApprovePendingDeposits() {
                     matchedSMS.isUsed = true;
                     await matchedSMS.save();
                     user.playBalance += totalCredit;
-                    await user.save();
-                    io.emit('balance_updated', tx.phone);
 
-                    // 🔥 PROMOTER COMMISSION LOGIC 🔥
-                    if(user.referredBy) {
+                    // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
+                    if(user.referredBy && !user.hasMadeFirstDeposit) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
                             let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
-                            promoter.mainBalance += commission; // Give commission to main balance
+                            promoter.mainBalance += commission; 
                             promoter.promoterEarned += commission;
                             await promoter.save();
+                            user.promoterCommissionGenerated = commission; // Store how much this user generated
                             io.emit('balance_updated', promoter.phone);
                         }
+                        user.hasMadeFirstDeposit = true; // Mark as done
                     }
+                    
+                    await user.save();
+                    io.emit('balance_updated', tx.phone);
                 }
             }
         }
@@ -217,7 +207,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
 });
 
 // ==========================================
-// 🔵 USER & ADMIN APIs
+// 🔵 USER APIs
 // ==========================================
 app.post('/api/register', async (req, res) => {
     try {
@@ -361,6 +351,28 @@ app.post('/api/admin/set-promoter', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
+// 🔥 NEW API: Get Detailed Profile of a Promoter
+app.post('/api/admin/promoter-details', auth, async (req, res) => {
+    try {
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        if(!p) return res.json({ success: false });
+
+        let refUsers = await User.find({ referredBy: p.phone });
+        let details = [];
+        for(let u of refUsers) {
+            let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
+            let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
+            details.push({
+                name: u.name, 
+                phone: u.phone, 
+                totalDeposit: totalDep, 
+                commission: u.promoterCommissionGenerated || 0
+            });
+        }
+        res.json({ success: true, promoter: p, details });
+    } catch (e) { res.json({ success: false }); }
+});
+
 app.post('/api/admin/action-tx', auth, async (req, res) => {
     const tx = await Transaction.findById(req.body.txId); const user = await User.findOne({phone: tx.phone});
     if (req.body.action === 'Approve') { 
@@ -380,16 +392,18 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
 
-            // 🔥 PROMOTER COMMISSION LOGIC 🔥
-            if(user.referredBy) {
+            // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
+            if(user.referredBy && !user.hasMadeFirstDeposit) {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
                     let commission = actualAmount * (promoter.promoterPercent / 100);
                     promoter.mainBalance += commission; 
                     promoter.promoterEarned += commission;
                     await promoter.save();
+                    user.promoterCommissionGenerated = commission;
                     io.emit('balance_updated', promoter.phone);
                 }
+                user.hasMadeFirstDeposit = true;
             }
 
         } else if (tx.type === 'withdraw') {
@@ -426,7 +440,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
     if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
     
-    // 🔥 New Banner Texts Update
     if(req.body.depBannerTextAm !== undefined) s.depBannerTextAm = req.body.depBannerTextAm;
     if(req.body.depBannerTextEn !== undefined) s.depBannerTextEn = req.body.depBannerTextEn;
     
@@ -449,7 +462,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
-// 🔥 Trigger Cashback API (Loss Based Only)
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
         if(!GLOBAL_SETTINGS.isCashbackActive) return res.json({ success: false, message: "Cashback is currently turned OFF in settings." });
@@ -464,8 +476,8 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
             let totalLoss = (u.played * GLOBAL_SETTINGS.ticketPrice) - u.won;
             if(totalLoss >= minL) {
                 u.playBalance += cAmt;
-                u.played = 0; // Reset
-                u.won = 0;    // Reset
+                u.played = 0; 
+                u.won = 0;    
                 await u.save();
                 io.emit('balance_updated', u.phone);
                 count++;
@@ -926,7 +938,7 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.phone}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
-    // 🔥 NEW: PROMOTER BOT LOGIC 🔥
+    // 🔥 PROMOTER BOT LOGIC 🔥
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('አስተዋውቅ') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(user.isPromoter) {
@@ -940,7 +952,7 @@ bot.on('message', async (msg) => {
                           `👥 ያመጧቸው ሰዎች ብዛት: <b>${referredUsers.length}</b>\n` +
                           `💰 ያስገቡት ጠቅላላ የብር መጠን: <b>${totalDep.toLocaleString()} ETB</b>\n` +
                           `🎁 የእርስዎ የኮሚሽን ትርፍ (${user.promoterPercent}%): <b>${(user.promoterEarned || 0).toLocaleString()} ETB</b>\n\n` +
-                          `💸 <i>ኮሚሽንዎ በቀጥታ ወደ 'ዋና ሂሳብዎ' ተደምሯል፣ ወጪ ማድረግ ይችላሉ!</i>\n\n` +
+                          `💸 <i>ማሳሰቢያ፡ ኮሚሽን የሚታሰበው ሰዎች 'ለመጀመሪያ ጊዜ' በሚያስገቡት ዲፖዚት ላይ ብቻ ነው።</i>\n\n` +
                           `🔗 መጋበዣ ሊንክዎ:\nhttps://t.me/bingo_habesha_bot?start=${user.phone}`;
                 
                 bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
@@ -948,7 +960,7 @@ bot.on('message', async (msg) => {
                 bot.sendMessage(chatId, "❌ ስህተት አጋጥሟል", { ...getMainMenu(user) });
             }
         } else {
-            bot.sendMessage(chatId, "🗣 <b>አስተዋዋቂ (Promoter) መሆን ይፈልጋሉ?</b>\n\nልዩ አስተዋዋቂ በመሆን ሰዎች በሚያስገቡት ብር ላይ ቋሚ ፐርሰንት (ለምሳሌ 10% ወይም 20%) ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user) });
+            bot.sendMessage(chatId, "🗣 <b>አስተዋዋቂ (Promoter) መሆን ይፈልጋሉ?</b>\n\nልዩ አስተዋዋቂ በመሆን ሰዎች በሚያስገቡት የመጀመሪያ ክፍያ ላይ ቋሚ ፐርሰንት ማግኘት ከፈለጉ፣ እባክዎ አድሚን ያናግሩ: @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user) });
         }
     } 
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
