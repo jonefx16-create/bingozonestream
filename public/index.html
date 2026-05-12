@@ -238,9 +238,40 @@
             transition: all 0.3s ease;
         }
 
-        /* 🔥 WEB PROMO POPUP CSS 🔥 */
-        .web-promo-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%); background: linear-gradient(135deg, #ea580c, #d97706); border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100000; width: 90%; max-width: 350px; text-align: center; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1); backdrop-filter: blur(10px); visibility: hidden; }
-        .web-promo-popup.show { transform: translateX(-50%) translateY(0); visibility: visible; }
+        /* 🔥 NEW MINI WEB PROMO POPUP CSS 🔥 */
+        .mini-promo-alert {
+            position: fixed; top: 65px; right: -150%; 
+            background: linear-gradient(135deg, #ea580c, #b45309);
+            border: 1px solid #fbbf24; border-right: none;
+            border-radius: 30px 0 0 30px; padding: 4px 8px 4px 4px;
+            color: white; box-shadow: 0 4px 15px rgba(234,88,12,0.6);
+            z-index: 99999; display: flex; align-items: center; gap: 8px;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1);
+            cursor: pointer; animation: pulseGlow 1.2s infinite alternate;
+        }
+        .mini-promo-alert.show { right: 0; }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px rgba(251,191,36,0.4); filter: brightness(1); }
+            100% { box-shadow: 0 0 20px rgba(251,191,36,0.9); filter: brightness(1.2); transform: scale(1.02); }
+        }
+        .promo-icon-circle {
+            background: #fff; width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; animation: shakeGift 2s infinite; box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+        @keyframes shakeGift {
+            0%, 100% { transform: rotate(0deg); }
+            10%, 30%, 50% { transform: rotate(-15deg) scale(1.1); }
+            20%, 40% { transform: rotate(15deg) scale(1.1); }
+            60% { transform: rotate(0deg); }
+        }
+        .promo-text-cont { display: flex; flex-direction: column; line-height: 1.1; }
+        .promo-close-btn {
+            background: rgba(0,0,0,0.3); border: none; color: white; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 8px; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; margin-left: 5px;
+        }
+        .promo-close-btn:hover { background: rgba(239, 68, 68, 0.8); }
     </style>
 </head>
 <body>
@@ -252,13 +283,14 @@
     </div>
 </div>
 
-<div id="web-promo-popup" class="web-promo-popup">
-    <h3 style="margin:0 0 10px 0; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.5);">🎁 ልዩ ስጦታ (BONUS)</h3>
-    <p id="web-promo-msg" style="font-size:13px; margin-bottom:15px; font-weight:bold;"></p>
-    <div style="display:flex; gap:10px;">
-        <button class="action-btn" style="flex:1; background:#4ade80; color:#000; padding:10px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;" onclick="claimWebPromo()">Claim Now</button>
-        <button class="action-btn" style="background:#ef4444; color:#fff; padding:10px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;" onclick="document.getElementById('web-promo-popup').classList.remove('show')">Close</button>
+<!-- 🔥 MINI PROMO POPUP (RIGHT EDGE) 🔥 -->
+<div id="web-promo-popup" class="mini-promo-alert" onclick="claimWebPromo()">
+    <div class="promo-icon-circle">🎁</div>
+    <div class="promo-text-cont">
+        <span style="font-size: 9px; font-weight: bold; color: #fde68a;">ልዩ ስጦታ (CLAIM)</span>
+        <span id="web-promo-amt" style="font-size: 13px; font-weight: 900; text-shadow: 0 0 5px rgba(255,255,255,0.5);">0 ETB</span>
     </div>
+    <button class="promo-close-btn" onclick="event.stopPropagation(); document.getElementById('web-promo-popup').classList.remove('show')">✖</button>
 </div>
 
 <div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
@@ -603,7 +635,7 @@
     let selected = [], called = []; 
     let currentUser = null;
     let pendingTicketsData = []; 
-    let userTicketsData = []; 
+    let userTicketsData = [];
     let isLoginMode = false;
     let isGameRunningLocally = false;
     let currentGameState = null;
@@ -896,7 +928,7 @@
         currentUser = userObj;
         document.getElementById('hdr-name').innerText = currentUser.name; document.getElementById('hdr-phone').innerText = currentUser.phone; document.getElementById('prof-name').innerText = currentUser.name; document.getElementById('prof-phone').innerText = currentUser.phone; document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
         let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5); document.getElementById('prof-id-display').innerText = "ID: #" + displayId; document.getElementById('prof-played').innerText = currentUser.played || 0; 
-        document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+        document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         
         let myRefLink = "https://t.me/bingo_habesha_bot?start=" + currentUser.phone;
         document.getElementById('prof-ref-text').innerText = "t.me/bingo_habesha_bot?start=" + currentUser.phone;
@@ -908,7 +940,7 @@
     async function fetchUpdatedBalance() {
         if(!currentUser) return;
         let res = await fetch(`/api/getUser/${currentUser.phone}`); let data = await res.json();
-        if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB"; }
+        if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB"; }
     }
 
     // 🔥 FORMATTED RANKING & LEADERBOARD 🔥
@@ -965,10 +997,10 @@
         renderGridTakenStates();
     });
 
-    // 🔥 WEB APP PROMO POPUP HANDLER 🔥
+    // 🔥 WEB APP MINI PROMO POPUP HANDLER 🔥
     socket.on('new_promo_alert', (data) => {
         if(!currentUser) return;
-        document.getElementById('web-promo-msg').innerHTML = data.msg + `<br><br><span style="color:#fbbf24; font-size:18px;">${data.amount} ETB</span>`;
+        document.getElementById('web-promo-amt').innerText = data.amount + " ETB";
         document.getElementById('web-promo-popup').classList.add('show');
     });
 
@@ -1133,16 +1165,16 @@
             nameHtml = "የዚህን ዙር ሽልማት አሸንፈዋል! 👏";
             
             if (data.isShared) {
-                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል ተካፍሏል! ✨<br><span style='font-size:14px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>የደረሶት መጠን: ${data.prize.toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</span></div>`;
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል ተካፍሏል! ✨<br><span style='font-size:14px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>የደረሶት መጠን: ${data.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</span></div>`;
             } else {
-                alertHtml = `<div style="background: linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3)); border: 2px solid #fbbf24; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(251,191,36,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የደራሽ ሽልማት: ${data.prize.toLocaleString('en-US', {minimumFractionDigits: 2})} ETB ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>ሂሳብዎ ላይ ገቢ ተደርጓል!</span></div>`;
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3)); border: 2px solid #fbbf24; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(251,191,36,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የደራሽ ሽልማት: ${data.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>ሂሳብዎ ላይ ገቢ ተደርጓል!</span></div>`;
             }
         } else {
             titleHtml = "አሸናፊ (WINNER)";
             nameHtml = data.winnerName;
 
             if (data.isShared) {
-                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toLocaleString('en-US', {minimumFractionDigits: 2})} ETB አግኝተዋል</span></div>`;
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB አግኝተዋል</span></div>`;
             }
         }
 
@@ -1155,7 +1187,7 @@
             <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
             <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
                 <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
-                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</h1>
+                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
             </div>
             ${alertHtml}
         `;
@@ -1355,7 +1387,7 @@
     }
 </script>
 </body>
-</html
+</html>
 
 
 
