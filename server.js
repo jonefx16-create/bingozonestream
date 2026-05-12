@@ -24,7 +24,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
-// 🔵 MODELS (Promoter Fields & First Deposit Added)
+// 🔵 MODELS 
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
@@ -38,12 +38,12 @@ const User = mongoose.model('User', new mongoose.Schema({
     won: { type: Number, default: 0 }, 
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
-    // 🔥 NEW PROMOTER & FIRST DEPOSIT FIELDS 🔥
+    // 🔥 PROMOTER & FIRST DEPOSIT FIELDS 🔥
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
     promoterEarned: { type: Number, default: 0 },
-    hasMadeFirstDeposit: { type: Boolean, default: false }, // Tracks if it's their first time
-    promoterCommissionGenerated: { type: Number, default: 0 } // Tracks how much commission this user generated for their promoter
+    hasMadeFirstDeposit: { type: Boolean, default: false }, 
+    promoterCommissionGenerated: { type: Number, default: 0 } 
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -169,10 +169,10 @@ async function autoApprovePendingDeposits() {
                             promoter.mainBalance += commission; 
                             promoter.promoterEarned += commission;
                             await promoter.save();
-                            user.promoterCommissionGenerated = commission; // Store how much this user generated
+                            user.promoterCommissionGenerated = commission;
                             io.emit('balance_updated', promoter.phone);
                         }
-                        user.hasMadeFirstDeposit = true; // Mark as done
+                        user.hasMadeFirstDeposit = true;
                     }
                     
                     await user.save();
@@ -287,6 +287,29 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 NEW: CLAIM WEB PROMO BONUS API 🔥
+app.post('/api/claim-promo-web', async (req, res) => {
+    try {
+        let user = await User.findOne({ phone: req.body.phone });
+        if(!user) return res.json({success: false, message: "User not found!"});
+        
+        let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
+        if (!activeBonus) return res.json({ success: false, message: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!" });
+        if (activeBonus.currentClaims >= activeBonus.maxUsers) return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" });
+        if (activeBonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" });
+        
+        activeBonus.claimedBy.push(user.phone);
+        activeBonus.currentClaims += 1;
+        await activeBonus.save();
+        
+        user.playBalance += activeBonus.amount;
+        await user.save();
+        io.emit('balance_updated', user.phone);
+        
+        res.json({ success: true, amount: activeBonus.amount });
+    } catch(e) { res.json({success: false}); }
+});
+
 // ==========================================
 // 🔵 ADMIN CONTROL APIs
 // ==========================================
@@ -351,7 +374,6 @@ app.post('/api/admin/set-promoter', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
-// 🔥 NEW API: Get Detailed Profile of a Promoter
 app.post('/api/admin/promoter-details', auth, async (req, res) => {
     try {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
@@ -462,10 +484,9 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
+// 🔥 Trigger Cashback API (Manual Force Override allowed)
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
-        if(!GLOBAL_SETTINGS.isCashbackActive) return res.json({ success: false, message: "Cashback is currently turned OFF in settings." });
-        
         const minL = GLOBAL_SETTINGS.cashbackMinLoss;
         const cAmt = GLOBAL_SETTINGS.cashbackAmount;
         
@@ -485,7 +506,6 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
         }
 
         if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
-        
         res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
     } catch(e) {
         res.status(500).json({ success: false });
@@ -555,6 +575,9 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         await ActiveBonus.updateMany({}, { isActive: false });
         await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
         
+        // 🔥 BROADCAST TO WEB APP USERS 🔥
+        io.emit('new_promo_alert', { amount: amount, msg: message });
+
         if (message) {
             const users = await User.find({ telegramId: { $ne: "" } });
             lastBroadcasts = []; 
@@ -576,7 +599,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
                 } catch(e) {} 
             }
         }
-        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram Bot!` });
+        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram & Web App!` });
     } catch (e) {
         res.status(500).json({ success: false, message: "Error processing promo." });
     }
@@ -1179,12 +1202,12 @@ app.get('*', (req, res) => {
                                 alertBox.className = 'shared-alert-box';
 
                                 if (data.isShared) {
-                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
                                 } else {
                                     alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
                                     alertBox.style.borderColor = "#fbbf24";
                                     alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
-                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
                                 }
                                 if(winnerCard) winnerCard.appendChild(alertBox);
 
@@ -1197,7 +1220,7 @@ app.get('*', (req, res) => {
                                     let alertBox = document.createElement('div');
                                     alertBox.id = 'shared-alert-msg';
                                     alertBox.className = 'shared-alert-box';
-                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB</span>";
+                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB</span>";
                                     if(winnerCard) winnerCard.appendChild(alertBox);
                                 }
                             }
