@@ -954,7 +954,10 @@
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; 
         document.getElementById('g-prize').innerText = data.totalPrizePool.toFixed(2);
         
-        if(data.maxTickets) { maxTicketsLimit = data.maxTickets; document.getElementById('grid-sel-count').nextElementSibling.innerText = "/ " + maxTicketsLimit; }
+        if(data.maxTickets) {
+            maxTicketsLimit = data.maxTickets;
+            document.getElementById('grid-sel-count').nextElementSibling.innerText = "/ " + maxTicketsLimit;
+        }
 
         let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none';
 
@@ -962,37 +965,27 @@
             document.body.classList.add('paused-mode');
             document.getElementById('timer').innerText = "PAUSED";
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Maintenance Mode" : "ጥገና ላይ ነን (Paused)";
-            audioQueue = []; isPlayingAudio = false; return; 
+            return; 
         } else {
             document.body.classList.remove('paused-mode');
         }
 
         if (data.state === "WAITING") {
-            // 🔥 REMOVE LIVE TEXT IMMEDIATELY 🔥
-            document.getElementById('live-text-bottom').innerText = "";
-            let liveTextGame = document.getElementById('live-text-game'); if(liveTextGame) liveTextGame.innerText = "";
-
             isGameRunningLocally = false;
-            
-            // Pop-up check
-            if(document.getElementById('bingo-overlay').style.display !== 'flex') {
-                document.getElementById('bingo-overlay').style.display = 'none';
-            }
-
+            // ፖፕ አፑን እዚህ ጋር አናጠፋውም (የ 5 ሰከንዱ ታይመር ራሱ ያጠፋዋል)
             document.getElementById('timer').innerText = formatTime(data.timer); 
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
 
             if (currentGameState !== "WAITING") {
                 currentGameState = "WAITING";
-                audioQueue = []; isPlayingAudio = false;
-
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = ''; 
                 document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>`;
                 
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
-                document.getElementById('g-balls').innerText = "0/20"; document.getElementById('t-page-balls').innerText = "0/20"; 
+                document.getElementById('g-balls').innerText = "0/20"; 
+                document.getElementById('t-page-balls').innerText = "0/20"; 
                 called = []; 
                 
                 if (currentUser) {
@@ -1000,22 +993,24 @@
                     initGrid(); updateBetPreview(); 
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
                     document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
+                    if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
                 }
             }
             
             if (selected.length > 0) { 
-                document.getElementById('bet-btn').disabled = false; document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
-                if (document.getElementById('home-page').classList.contains('active-page')) { document.getElementById('bet-slip-popup').classList.add('show');
-                } else { document.getElementById('bet-slip-popup').classList.remove('show'); }
-            } else { document.getElementById('bet-slip-popup').classList.remove('show'); }
+                document.getElementById('bet-btn').disabled = false; 
+                document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
+                if (document.getElementById('home-page').classList.contains('active-page')) {
+                    document.getElementById('bet-slip-popup').classList.add('show');
+                } else {
+                    document.getElementById('bet-slip-popup').classList.remove('show');
+                }
+            } else {
+                document.getElementById('bet-slip-popup').classList.remove('show');
+            }
             
         } else if (data.state === "PLAYING") {
-            // 🔥 SHOW LIVE TEXT 🔥
-            document.getElementById('live-text-bottom').innerText = "LIVE";
-            let liveTextGame = document.getElementById('live-text-game'); if(liveTextGame) liveTextGame.innerText = "LIVE";
-
-            isGameRunningLocally = true; 
-            document.getElementById('timer').innerText = "LIVE 🔴"; 
+            isGameRunningLocally = true; document.getElementById('timer').innerText = "LIVE 🔴"; 
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is LIVE" : "ጨዋታው በመካሄድ ላይ ነው";
 
             let tla = document.getElementById('ticket-live-arrow'); if(tla && userTicketsData.length > 0) tla.style.display = 'block';
@@ -1026,7 +1021,8 @@
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
             called = data.calledNumbers || []; 
-            document.getElementById('g-balls').innerText = called.length + "/20"; document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+            document.getElementById('g-balls').innerText = called.length + "/20";
+            document.getElementById('t-page-balls').innerText = called.length + "/20"; 
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -1043,46 +1039,37 @@
         playNumberSound(num);
     });
 
-socket.on('game_winner', (data) => {
-        // 🔥 BINGO ድምፅ ይጮሃል 🔥
-        playBingoSound();
-
+    socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
-        // 🔥 ወደ Home Page የሚመለስበትን ወደ 7 ሰከንድ ቀይረነዋል (7000ms) 🔥
+        // 🔥 ወደ 5 ሰከንድ ተመልሷል። ሲዘጋ ቀጥታ ወደ Home ይወስዳል። 🔥
         if (redirectTimer) clearTimeout(redirectTimer);
         redirectTimer = setTimeout(() => {
             document.getElementById('bingo-overlay').style.display = 'none';
             if(currentUser) { 
-                showPage('home'); 
+                showPage('home'); // የትም ፔጅ ላይ ቢሆኑ ወደ Home ይወስዳል
                 
-                // 1. የድሮ ዳታዎችን በአንዴ ማጥፋት (Clear Data)
+                // የድሮ ዳታዎችን በአንዴ ማጥፋት
                 userTicketsData = []; selected = []; pendingTicketsData = []; globalTakenTickets = [];
                 document.getElementById('ticket-list').innerHTML = ''; 
                 document.getElementById('game-mini-tickets').innerHTML = '';
                 document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
                 
-                // 2. ግሪዱን አዲስ ማድረግ እና Bet Slip መዝጋት
+                // ግሪዱን አዲስ ማድረግ እና Bet Slip መዝጋት
                 initGrid();
                 updateBetPreview(); 
                 document.getElementById('bet-btn').disabled = false;
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
                 document.getElementById('bet-slip-popup').classList.remove('show');
 
-                // 3. LIVE የሚለውን አጥፍቶ አዲስ ጨዋታ መጠበቂያ (Waiting) ማድረግ
+                // LIVE የሚለውን ማጥፋት
                 isGameRunningLocally = false;
                 currentGameState = "WAITING";
-                
                 document.getElementById('live-text-bottom').innerText = "";
                 let liveTextGame = document.getElementById('live-text-game'); 
                 if(liveTextGame) liveTextGame.innerText = "";
                 
-                document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
-                
-                // 4. ሰዓቱን ሳይዘገይ ወዲያው 00:40 ብሎ እንዲጀምር ማድረግ
-                document.getElementById('timer').innerText = "00:40";
-                
-                // 5. ያለፉትን ኳሶች እና ቦርዱን ማፅዳት
+                // Board እና History ማፅዳት (ሰዓቱን አንነካውም፣ ሰርቨሩ ራሱ አፕዴት ያደርገዋል!)
                 called = [];
                 document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
                 document.getElementById('history-scroll-top').innerHTML = '';
@@ -1092,20 +1079,33 @@ socket.on('game_winner', (data) => {
                 document.getElementById('g-balls').innerText = "0/20";
                 document.getElementById('t-page-balls').innerText = "0/20";
             }
-        }, 7000);
+        }, 5000); // <--- ወደ 5 ሰከንድ ተመልሷል
 
         let amIWinner = false;
-        if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) { amIWinner = true; }
+        if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) {
+            amIWinner = true;
+        }
 
-        let titleHtml = ""; let nameHtml = ""; let alertHtml = "";
+        let titleHtml = "";
+        let nameHtml = "";
+        let alertHtml = "";
 
         if (amIWinner) {
-            titleHtml = "🎉 እንኳን ደስ አሎት! 🎉"; nameHtml = "የዚህን ዙር ሽልማት አሸንፈዋል! 👏";
-            if (data.isShared) { alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል ተካፍሏል! ✨<br><span style='font-size:14px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>የደረሶት መጠን: ${data.prize.toFixed(2)} ETB</span></div>`;
-            } else { alertHtml = `<div style="background: linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3)); border: 2px solid #fbbf24; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(251,191,36,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የደራሽ ሽልማት: ${data.prize.toFixed(2)} ETB ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>ሂሳብዎ ላይ ገቢ ተደርጓል!</span></div>`; }
+            titleHtml = "🎉 እንኳን ደስ አሎት! 🎉";
+            nameHtml = "የዚህን ዙር ሽልማት አሸንፈዋል! 👏";
+            
+            if (data.isShared) {
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል ተካፍሏል! ✨<br><span style='font-size:14px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>የደረሶት መጠን: ${data.prize.toFixed(2)} ETB</span></div>`;
+            } else {
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3)); border: 2px solid #fbbf24; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(251,191,36,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የደራሽ ሽልማት: ${data.prize.toFixed(2)} ETB ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>ሂሳብዎ ላይ ገቢ ተደርጓል!</span></div>`;
+            }
         } else {
-            titleHtml = "አሸናፊ (WINNER)"; nameHtml = data.winnerName;
-            if (data.isShared) { alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toFixed(2)} ETB አግኝተዋል</span></div>`; }
+            titleHtml = "አሸናፊ (WINNER)";
+            nameHtml = data.winnerName;
+
+            if (data.isShared) {
+                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toFixed(2)} ETB አግኝተዋል</span></div>`;
+            }
         }
 
         let winnerCard = document.querySelector('.winner-card');
@@ -1117,7 +1117,7 @@ socket.on('game_winner', (data) => {
             <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
             <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
                 <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
-                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize ? data.totalPrize.toFixed(2) : data.prize.toFixed(2)} ETB</h1>
+                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toFixed(2)} ETB</h1>
             </div>
             ${alertHtml}
         `;
@@ -1129,12 +1129,20 @@ socket.on('game_winner', (data) => {
         for(let r=0; r<5; r++){
             for(let c=0; c<5; c++){
                 let num = g[c][r];
-                if(r===2 && c===2) { html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; } 
-                else if(cld.includes(num)) { html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; } 
-                else { html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; }
+                if(r===2 && c===2) { 
+                    html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
+                } 
+                else if(cld.includes(num)) { 
+                    html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; 
+                } 
+                else { 
+                    html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; 
+                }
             }
         }
-        html += `</div></div>`; document.getElementById('win-ticket-display').innerHTML = html;
+        html += `</div></div>`; 
+        document.getElementById('win-ticket-display').innerHTML = html;
+
         if(amIWinner) fetchUpdatedBalance(); 
     });
 
@@ -1146,9 +1154,7 @@ socket.on('game_winner', (data) => {
             let isMine = userTicketsData && userTicketsData.some(t=>t.id===i);
             if(isMine) { d.classList.add('bought-by-me'); } else if(globalTakenTickets.includes(i)) { d.classList.add('taken'); }
 
-            // 🔥 FIXED: Click issue completely resolved!
-            d.onclick = (e) => { 
-                e.preventDefault(); 
+            d.onclick = () => { 
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
                 if(d.classList.contains('taken') || d.classList.contains('bought-by-me')) return; 
 
@@ -1171,7 +1177,9 @@ socket.on('game_winner', (data) => {
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
-            if (document.getElementById('home-page').classList.contains('active-page')) { popup.classList.add('show'); } else { popup.classList.remove('show'); }
+            if (document.getElementById('home-page').classList.contains('active-page')) {
+                popup.classList.add('show'); 
+            }
             document.getElementById('slip-count').innerText = selected.length; document.getElementById('slip-price').innerText = selected.length * 10;
             pendingTicketsData.forEach(t => {
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
