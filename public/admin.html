@@ -663,39 +663,6 @@
             
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
-            
-            // 🔥 FIXED TYPING BUG: ONLY LOAD SETTINGS ONCE 🔥
-            if(data.settings && !settingsLoaded) {
-                document.getElementById('set-price').value = data.settings.ticketPrice || 10;
-                document.getElementById('set-timer').value = data.settings.gameTimer || 40;
-                document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
-                document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
-                document.getElementById('set-reg-bonus').value = data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10;
-                document.getElementById('set-inv-bonus').value = data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10;
-                
-                document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
-                document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount || '';
-                document.getElementById('set-dep-perc').value = data.settings.depBonusPercent || '';
-                document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
-                document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
-                document.getElementById('set-dep-text-am').value = data.settings.depBannerTextAm || '';
-                document.getElementById('set-dep-text-en').value = data.settings.depBannerTextEn || '';
-                toggleTimeInputs('dep'); 
-
-                document.getElementById('set-wit-active').checked = data.settings.isWitBonusActive || false;
-                document.getElementById('set-wit-time-restrict').checked = data.settings.witBonusTimeRestricted || false;
-                document.getElementById('set-wit-min').value = data.settings.witBonusMinAmount || '';
-                document.getElementById('set-wit-perc').value = data.settings.witBonusPercent || '';
-                document.getElementById('set-wit-start').value = data.settings.witHappyHourStart || '';
-                document.getElementById('set-wit-end').value = data.settings.witHappyHourEnd || '';
-                toggleTimeInputs('wit'); 
-
-                document.getElementById('set-cb-active').checked = data.settings.isCashbackActive || false;
-                document.getElementById('set-cb-min').value = data.settings.cashbackMinLoss || '';
-                document.getElementById('set-cb-amt').value = data.settings.cashbackAmount || '';
-
-                settingsLoaded = true;
-            }
         } catch(e) {}
     }
     setInterval(loadLiveStats, 3000);
@@ -716,7 +683,39 @@
             document.getElementById('users-body').innerHTML = activeHtml; document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
 
             let tRes2 = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let statsData = await tRes2.json(); let invBonusAmt = statsData.settings.inviteBonus || 10;
+            let statsData = await tRes2.json(); 
+            let invBonusAmt = statsData.settings.inviteBonus || 10;
+
+            // 🔥 ማስታወቂያውን ሲፅፉበት እንዳይጠፋ ማስተካከያ (Settings are populated ONLY on load/refresh) 🔥
+            if(statsData.settings) {
+                document.getElementById('set-price').value = statsData.settings.ticketPrice || 10;
+                document.getElementById('set-timer').value = statsData.settings.gameTimer || 40;
+                document.getElementById('set-max-tickets').value = statsData.settings.maxTicketsPerUser !== undefined ? statsData.settings.maxTicketsPerUser : 4;
+                document.getElementById('set-admin-profit').value = statsData.settings.adminProfitPercent !== undefined ? statsData.settings.adminProfitPercent : 15;
+                document.getElementById('set-reg-bonus').value = statsData.settings.registerBonus !== undefined ? statsData.settings.registerBonus : 10;
+                document.getElementById('set-inv-bonus').value = statsData.settings.inviteBonus !== undefined ? statsData.settings.inviteBonus : 10;
+                
+                document.getElementById('set-dep-time-restrict').checked = statsData.settings.depBonusTimeRestricted || false;
+                document.getElementById('set-dep-min').value = statsData.settings.depBonusMinAmount || '';
+                document.getElementById('set-dep-perc').value = statsData.settings.depBonusPercent || '';
+                document.getElementById('set-dep-start').value = statsData.settings.happyHourStart || '';
+                document.getElementById('set-dep-end').value = statsData.settings.happyHourEnd || '';
+                document.getElementById('set-dep-text-am').value = statsData.settings.depBannerTextAm || '';
+                document.getElementById('set-dep-text-en').value = statsData.settings.depBannerTextEn || '';
+                toggleTimeInputs('dep'); 
+
+                document.getElementById('set-wit-active').checked = statsData.settings.isWitBonusActive || false;
+                document.getElementById('set-wit-time-restrict').checked = statsData.settings.witBonusTimeRestricted || false;
+                document.getElementById('set-wit-min').value = statsData.settings.witBonusMinAmount || '';
+                document.getElementById('set-wit-perc').value = statsData.settings.witBonusPercent || '';
+                document.getElementById('set-wit-start').value = statsData.settings.witHappyHourStart || '';
+                document.getElementById('set-wit-end').value = statsData.settings.witHappyHourEnd || '';
+                toggleTimeInputs('wit'); 
+
+                document.getElementById('set-cb-active').checked = statsData.settings.isCashbackActive || false;
+                document.getElementById('set-cb-min').value = statsData.settings.cashbackMinLoss || '';
+                document.getElementById('set-cb-amt').value = statsData.settings.cashbackAmount || '';
+            }
 
             let refHtml = ""; 
             for (const [refPhone, invitedList] of Object.entries(refList)) { 
