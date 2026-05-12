@@ -993,9 +993,12 @@
                     initGrid(); updateBetPreview(); 
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
                     document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
-                    if (document.getElementById('game-page').classList.contains('active-page')) { showPage('home'); }
+                    
+                    /* 🔥 TICKET PAGE ላይ ያለንም ሰው ወደ HOME እንዲወስደው የተጨመረ ኮድ 🔥 */
+                    if (document.getElementById('game-page').classList.contains('active-page') || document.getElementById('ticket-page').classList.contains('active-page')) { 
+                        showPage('home'); 
+                    }
                 }
-            }
             
             // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (selected.length > 0) { 
