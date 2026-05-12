@@ -277,7 +277,7 @@
             </div>
         </div>
 
-        <!-- 🔥 NEW: PROMOTERS TAB 🔥 -->
+        <!-- 🔥 PROMOTERS TAB 🔥 -->
         <div id="tab-promoters" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--cyan);">➕ Add Promoter (አዲስ አስተዋዋቂ)</h3>
@@ -628,7 +628,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let allTransactions = []; let allGameHistories = []; let currentHistType = 'deposit'; let isGameCurrentlyPaused = false;
-    let chatData = {}; let activeChatTgId = null;
+    let chatData = {}; let activeChatTgId = null; let settingsLoaded = false;
 
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); loadPromoters(); }
@@ -664,40 +664,37 @@
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             
-            if(data.settings) {
-                if(document.activeElement !== document.getElementById('set-price')) document.getElementById('set-price').value = data.settings.ticketPrice || 10;
-                if(document.activeElement !== document.getElementById('set-timer')) document.getElementById('set-timer').value = data.settings.gameTimer || 40;
-                if(document.activeElement !== document.getElementById('set-max-tickets')) document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
-                if(document.activeElement !== document.getElementById('set-admin-profit')) document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
-                if(document.activeElement !== document.getElementById('set-reg-bonus')) document.getElementById('set-reg-bonus').value = data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10;
-                if(document.activeElement !== document.getElementById('set-inv-bonus')) document.getElementById('set-inv-bonus').value = data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10;
+            // 🔥 FIXED TYPING BUG: ONLY LOAD SETTINGS ONCE 🔥
+            if(data.settings && !settingsLoaded) {
+                document.getElementById('set-price').value = data.settings.ticketPrice || 10;
+                document.getElementById('set-timer').value = data.settings.gameTimer || 40;
+                document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
+                document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
+                document.getElementById('set-reg-bonus').value = data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10;
+                document.getElementById('set-inv-bonus').value = data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10;
                 
-                if(document.activeElement !== document.getElementById('set-dep-min')) {
-                    document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
-                    document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount || '';
-                    document.getElementById('set-dep-perc').value = data.settings.depBonusPercent || '';
-                    document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
-                    document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
-                    document.getElementById('set-dep-text-am').value = data.settings.depBannerTextAm || '';
-                    document.getElementById('set-dep-text-en').value = data.settings.depBannerTextEn || '';
-                    toggleTimeInputs('dep'); 
-                }
+                document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
+                document.getElementById('set-dep-min').value = data.settings.depBonusMinAmount || '';
+                document.getElementById('set-dep-perc').value = data.settings.depBonusPercent || '';
+                document.getElementById('set-dep-start').value = data.settings.happyHourStart || '';
+                document.getElementById('set-dep-end').value = data.settings.happyHourEnd || '';
+                document.getElementById('set-dep-text-am').value = data.settings.depBannerTextAm || '';
+                document.getElementById('set-dep-text-en').value = data.settings.depBannerTextEn || '';
+                toggleTimeInputs('dep'); 
 
-                if(document.activeElement !== document.getElementById('set-wit-min')) {
-                    document.getElementById('set-wit-active').checked = data.settings.isWitBonusActive || false;
-                    document.getElementById('set-wit-time-restrict').checked = data.settings.witBonusTimeRestricted || false;
-                    document.getElementById('set-wit-min').value = data.settings.witBonusMinAmount || '';
-                    document.getElementById('set-wit-perc').value = data.settings.witBonusPercent || '';
-                    document.getElementById('set-wit-start').value = data.settings.witHappyHourStart || '';
-                    document.getElementById('set-wit-end').value = data.settings.witHappyHourEnd || '';
-                    toggleTimeInputs('wit'); 
-                }
+                document.getElementById('set-wit-active').checked = data.settings.isWitBonusActive || false;
+                document.getElementById('set-wit-time-restrict').checked = data.settings.witBonusTimeRestricted || false;
+                document.getElementById('set-wit-min').value = data.settings.witBonusMinAmount || '';
+                document.getElementById('set-wit-perc').value = data.settings.witBonusPercent || '';
+                document.getElementById('set-wit-start').value = data.settings.witHappyHourStart || '';
+                document.getElementById('set-wit-end').value = data.settings.witHappyHourEnd || '';
+                toggleTimeInputs('wit'); 
 
-                if(document.activeElement !== document.getElementById('set-cb-min')) {
-                    document.getElementById('set-cb-active').checked = data.settings.isCashbackActive || false;
-                    document.getElementById('set-cb-min').value = data.settings.cashbackMinLoss || '';
-                    document.getElementById('set-cb-amt').value = data.settings.cashbackAmount || '';
-                }
+                document.getElementById('set-cb-active').checked = data.settings.isCashbackActive || false;
+                document.getElementById('set-cb-min').value = data.settings.cashbackMinLoss || '';
+                document.getElementById('set-cb-amt').value = data.settings.cashbackAmount || '';
+
+                settingsLoaded = true;
             }
         } catch(e) {}
     }
@@ -764,7 +761,7 @@
                             <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button>
                         </td>
                     </tr>
-                `).join('') || `<tr><td colspan="7" style="text-align:center;">No promoters found.</td></tr>`;
+                `).join('') || `<tr><td colspan="6" style="text-align:center;">No promoters found.</td></tr>`;
             }
         } catch(e) {}
     }
@@ -807,7 +804,7 @@
                 document.getElementById('pp-phone').innerText = p.phone;
                 document.getElementById('pp-users').innerText = data.details.length;
                 
-                let totalFirstDeps = data.details.reduce((sum, d) => sum + d.totalDeposit, 0); // Note: The API sums all approved deposits for simplicity, but logic pays on first
+                let totalFirstDeps = data.details.reduce((sum, d) => sum + (d.totalDeposit || 0), 0); 
                 document.getElementById('pp-deposits').innerText = Number(totalFirstDeps).toLocaleString('en-US', {minimumFractionDigits: 2});
                 document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
 
@@ -1077,6 +1074,7 @@
         btn.innerText = "Broadcast Normal";
     }
 
+    // 🔥 FIXED: CASHBACK BUTTON ALWAYS WORKS MANUALLY 🔥
     async function triggerCashbackNow() {
         if(!confirm("⚠️ እርግጠኛ ነዎት አሁን የተጫወቱትን (Loss amount) አይቶ ካሽባክ ለሁሉም ተጠቃሚዎች ይላክ?")) return;
         try {
