@@ -485,7 +485,7 @@
 <div id="game-page" class="page">
     <div class="top-info-wrapper">
         <div class="top-info-box"><div class="info-title" id="g-lbl-round">#ዙር (Round)</div><div class="info-val" id="g-id">#---</div></div>
-        <div class="top-info-box"><div class="info-title" id="g-lbl-bet">መወራረጃ</div><div class="info-val">10.00</div></div>
+        <div class="top-info-box"><div class="info-title" id="g-lbl-bet">መወራረጃ</div><div class="info-val" id="g-val-bet">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title prize-title" id="g-lbl-prize">ሽልማት (Prize)</div><div class="info-val highlight" id="g-prize">0.00</div></div>
         <div class="top-info-box"><div class="info-title" id="g-lbl-balls">እጣ (Balls)</div><div class="info-val" id="g-balls">0/20</div></div>
     </div>
@@ -642,6 +642,7 @@
     let globalTakenTickets = []; 
     let isSoundOn = true;
     let maxTicketsLimit = 4; 
+    let currentTicketPrice = 10; // 🔥 አዲስ: ዋጋውን ለመቆጣጠር
 
     // 🔥 NEW: SEQUENTIAL & PERFECT AUDIO QUEUE VARIABLES 🔥
     let audioQueue = [];
@@ -662,7 +663,9 @@
             btnEn.style.background = 'black'; btnEn.style.color = 'white';
             
             document.getElementById('g-lbl-round').innerText = "#ዙር (Round)"; document.getElementById('g-lbl-bet').innerText = "መወራረጃ"; document.getElementById('g-lbl-prize').innerText = "ሽልማት (Prize)"; document.getElementById('g-lbl-balls').innerText = "እጣ (Balls)"; document.getElementById('lbl-my-ticket').innerText = "የእኔ ካርቴላ (My Ticket)"; document.getElementById('lbl-derash-game').innerText = "ደራሽ";
-            document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; document.getElementById('h-lbl-select').innerText = "ካርቴላ ይምረጡ (10 ብር)"; document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
+            document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; 
+            document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
+            document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
             
             let status = document.querySelector('.nt-status');
             if(status.innerText.includes("Starting") || status.innerText.includes("ሊጀምር")) { status.innerText = "ጨዋታው ሊጀምር ነው"; } else if(status.innerText.includes("LIVE") || status.innerText.includes("በመካሄድ")) { status.innerText = "ጨዋታው በመካሄድ ላይ ነው"; }
@@ -686,7 +689,9 @@
             btnAm.style.background = 'black'; btnAm.style.color = 'white';
             
             document.getElementById('g-lbl-round').innerText = "Game Round"; document.getElementById('g-lbl-bet').innerText = "Bet Amount"; document.getElementById('g-lbl-prize').innerText = "Prize Pool"; document.getElementById('g-lbl-balls').innerText = "Called Balls"; document.getElementById('lbl-my-ticket').innerText = "My Tickets"; document.getElementById('lbl-derash-game').innerText = "JACKPOT";
-            document.getElementById('h-lbl-derash').innerText = "JACKPOT"; document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT"; document.getElementById('h-lbl-select').innerText = "Select Tickets (10 ETB)"; document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
+            document.getElementById('h-lbl-derash').innerText = "JACKPOT"; document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT"; 
+            document.getElementById('h-lbl-select').innerText = `Select Tickets (${currentTicketPrice} ETB)`; 
+            document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
             
             let status = document.querySelector('.nt-status');
             if(status.innerText.includes("ሊጀምር") || status.innerText.includes("Starting")) { status.innerText = "Game is Starting"; } else if(status.innerText.includes("በመካሄድ") || status.innerText.includes("LIVE")) { status.innerText = "Game is LIVE"; }
@@ -1048,9 +1053,17 @@
     }
 
     socket.on('game_status', (data) => {
+        // 🔥 አዲስ: የካርቴላ ዋጋን አውቶማቲክ መቀበያ 🔥
+        currentTicketPrice = data.ticketPrice || 10;
+        let betValEl = document.getElementById('g-val-bet');
+        if(betValEl) betValEl.innerText = currentTicketPrice.toFixed(2);
+
+        let isAm = document.getElementById('btn-am').style.background === 'white';
+        let lblSelect = document.getElementById('h-lbl-select');
+        if(lblSelect) lblSelect.innerText = isAm ? `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)` : `Select Tickets (${currentTicketPrice} ETB)`;
+
         let bannerTextAm = data.depBannerTextAm || "ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!";
         let bannerTextEn = data.depBannerTextEn || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
-        let isAm = document.getElementById('btn-am').style.background === 'white';
         let dynBanner = document.getElementById('dynamic-dep-banner');
         if(dynBanner) { dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>'); }
 
@@ -1243,14 +1256,16 @@
     }
 
     function updateBetPreview() {
-        document.getElementById('jp').innerText = (selected.length * 10).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('grid-sel-count').innerText = selected.length;
+        document.getElementById('jp').innerText = (selected.length * currentTicketPrice).toLocaleString('en-US', {minimumFractionDigits: 2}); 
+        document.getElementById('grid-sel-count').innerText = selected.length;
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
             if (document.getElementById('home-page').classList.contains('active-page')) {
                 popup.classList.add('show'); 
             }
-            document.getElementById('slip-count').innerText = selected.length; document.getElementById('slip-price').innerText = selected.length * 10;
+            document.getElementById('slip-count').innerText = selected.length; 
+            document.getElementById('slip-price').innerText = selected.length * currentTicketPrice;
             pendingTicketsData.forEach(t => {
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
                 let html = `<div style="text-align:center; font-size:10px; font-weight:bold; color:#1e293b; padding:1px;">#${t.id}</div><div class="preview-t-grid">`;
@@ -1269,7 +1284,8 @@
         let stolenTickets = selected.filter(x => globalTakenTickets.includes(x));
         if (stolenTickets.length > 0) { alert("የመረጧቸው አንዳንድ ካርቴላዎች በሌላ ሰው ተገዝተዋል!"); renderGridTakenStates(); return; }
 
-        let betAmount = selected.length * 10; let currentPlayBal = parseFloat(currentUser.playBalance) || 0; let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
+        let betAmount = selected.length * currentTicketPrice; 
+        let currentPlayBal = parseFloat(currentUser.playBalance) || 0; let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
         if((currentPlayBal + currentMainBal) < betAmount) { alert("በሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); return; }
         
         document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
