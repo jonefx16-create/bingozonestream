@@ -972,7 +972,7 @@
 
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
-            // ፖፕ አፑን እዚህ ጋር አናጠፋውም (የ 5 ሰከንዱ ታይመር ራሱ ያጠፋዋል)
+            document.getElementById('bingo-overlay').style.display = 'none';
             document.getElementById('timer').innerText = formatTime(data.timer); 
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
 
@@ -997,6 +997,7 @@
                 }
             }
             
+            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
@@ -1033,54 +1034,15 @@
     socket.on('new_number', (num) => {
         if (!isGameRunningLocally) return;
         called.push(num); 
-        document.getElementById('g-balls').innerText = called.length + "/20"; document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+        document.getElementById('g-balls').innerText = called.length + "/20"; 
+        document.getElementById('t-page-balls').innerText = called.length + "/20"; 
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
-        playNumberSound(num);
     });
 
     socket.on('game_winner', (data) => {
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
-        // 🔥 ወደ 5 ሰከንድ ተመልሷል። ሲዘጋ ቀጥታ ወደ Home ይወስዳል። 🔥
-        if (redirectTimer) clearTimeout(redirectTimer);
-        redirectTimer = setTimeout(() => {
-            document.getElementById('bingo-overlay').style.display = 'none';
-            if(currentUser) { 
-                showPage('home'); // የትም ፔጅ ላይ ቢሆኑ ወደ Home ይወስዳል
-                
-                // የድሮ ዳታዎችን በአንዴ ማጥፋት
-                userTicketsData = []; selected = []; pendingTicketsData = []; globalTakenTickets = [];
-                document.getElementById('ticket-list').innerHTML = ''; 
-                document.getElementById('game-mini-tickets').innerHTML = '';
-                document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
-                
-                // ግሪዱን አዲስ ማድረግ እና Bet Slip መዝጋት
-                initGrid();
-                updateBetPreview(); 
-                document.getElementById('bet-btn').disabled = false;
-                document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)";
-                document.getElementById('bet-slip-popup').classList.remove('show');
-
-                // LIVE የሚለውን ማጥፋት
-                isGameRunningLocally = false;
-                currentGameState = "WAITING";
-                document.getElementById('live-text-bottom').innerText = "";
-                let liveTextGame = document.getElementById('live-text-game'); 
-                if(liveTextGame) liveTextGame.innerText = "";
-                
-                // Board እና History ማፅዳት (ሰዓቱን አንነካውም፣ ሰርቨሩ ራሱ አፕዴት ያደርገዋል!)
-                called = [];
-                document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
-                document.getElementById('history-scroll-top').innerHTML = '';
-                document.getElementById('ticket-history-bar').innerHTML = `<span style="color:var(--text-gray); font-size:11px;">ገና አልጀመረም...</span>`;
-                document.getElementById('caller-ball').innerText = "--";
-                let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
-                document.getElementById('g-balls').innerText = "0/20";
-                document.getElementById('t-page-balls').innerText = "0/20";
-            }
-        }, 5000); // <--- ወደ 5 ሰከንድ ተመልሷል
-
         let amIWinner = false;
         if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) {
             amIWinner = true;
@@ -1177,6 +1139,7 @@
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
+            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (document.getElementById('home-page').classList.contains('active-page')) {
                 popup.classList.add('show'); 
             }
@@ -1302,6 +1265,7 @@
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         
+        // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
         if(id !== 'home') {
             document.getElementById('bet-slip-popup').classList.remove('show'); 
         } else if(selected.length > 0) {
@@ -1318,3 +1282,7 @@
 </script>
 </body>
 </html>
+
+
+
+
