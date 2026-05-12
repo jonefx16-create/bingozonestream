@@ -29,6 +29,7 @@ mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).cat
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
+    refCode: { type: String, default: "" }, // 🔥 አጭር መጋበዣ ኮድ መያዣ
     telegramId: { type: String, default: "" }, 
     name: String, 
     password: { type: String, required: true },
@@ -97,6 +98,11 @@ async function loadSettings() {
     };
 }
 loadSettings();
+
+// 🔥 አጭር ኮድ መፍጠሪያ 🔥
+function generateRefCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
 const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
@@ -216,13 +222,14 @@ app.post('/api/register', async (req, res) => {
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         let actualRef = "";
         if (refCode) { 
-            let ref = await User.findOne({ phone: refCode.trim() }); 
+            let ref = await User.findOne({ $or: [{ phone: refCode.trim() }, { refCode: refCode.trim() }] }); 
             if (ref) { 
                 ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                 await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; 
             } 
         }
-        await new User({ phone, name, password, referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
+        let myRefCode = generateRefCode();
+        await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -230,12 +237,14 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone, password: req.body.password });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } // Backward compatibility
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
 });
 
 app.post('/api/telegram-login', async (req, res) => {
     let user = await User.findOne({ telegramId: req.body.telegramId.toString() });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ የታገደ አካውንት!" });
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } // Backward compatibility
     if(user) res.json({ success: true, user });
     else res.json({ success: false, message: "Share contact in bot first." });
 });
@@ -898,8 +907,9 @@ bot.on('contact', async (msg) => {
     try {
         if (!user) {
             let actualRef = "";
-            if (state.refCode) { let refUser = await User.findOne({ phone: state.refCode }); if (refUser) { refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; await refUser.save(); io.emit('balance_updated', refUser.phone); actualRef = refUser.phone; } }
-            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
+            if (state.refCode) { let refUser = await User.findOne({ $or: [{ phone: state.refCode }, { refCode: state.refCode }] }); if (refUser) { refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; await refUser.save(); io.emit('balance_updated', refUser.phone); actualRef = refUser.phone; } }
+            let myRefCode = generateRefCode();
+            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
             const cap = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -961,7 +971,8 @@ bot.on('message', async (msg) => {
     } 
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.phone}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
+        if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
+        bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.refCode}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
     // 🔥 PROMOTER BOT LOGIC 🔥
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
@@ -973,12 +984,13 @@ bot.on('message', async (msg) => {
                 let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
                 let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
                 
+                let myCode = user.refCode ? user.refCode : user.phone;
                 let msg = `📊 <b>የአስተዋዋቂ (Promoter) ዳሽቦርድ</b>\n\n` +
                           `👥 ያመጧቸው ሰዎች ብዛት: <b>${referredUsers.length}</b>\n` +
                           `💰 ያስገቡት ጠቅላላ የብር መጠን: <b>${totalDep.toLocaleString()} ETB</b>\n` +
                           `🎁 የእርስዎ የኮሚሽን ትርፍ (${user.promoterPercent}%): <b>${(user.promoterEarned || 0).toLocaleString()} ETB</b>\n\n` +
                           `💸 <i>ማሳሰቢያ፡ ኮሚሽን የሚታሰበው ሰዎች 'ለመጀመሪያ ጊዜ' በሚያስገቡት ዲፖዚት ላይ ብቻ ነው።</i>\n\n` +
-                          `🔗 መጋበዣ ሊንክዎ:\nhttps://t.me/bingo_habesha_bot?start=${user.phone}`;
+                          `🔗 መጋበዣ ሊንክዎ:\nhttps://t.me/bingo_habesha_bot?start=${myCode}`;
                 
                 bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
             } catch(e) {
