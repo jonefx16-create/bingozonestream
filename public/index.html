@@ -352,8 +352,9 @@
         </div>
         
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
-            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
-            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
+            <!-- 🔥 PRE-CHECKED ADDED HERE 🔥 -->
+            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" checked onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
+            <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" checked onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
         </div>
         
         <button id="start-btn" class="auth-btn" disabled onclick="authAction()">ወደ ጌም ግባ (REGISTER)</button>
@@ -668,21 +669,23 @@
         processAudioQueue();
     }
 
+    /* 🔥 ተስተካክሏል: የቢንጎ ድምፅ ፋይል ስም "Jo bingo" ሆኗል 🔥 */
     function playBingoSound() {
         if (!isSoundOn) return;
         audioQueue = []; 
         if(currentAudioObj) { currentAudioObj.pause(); currentAudioObj.currentTime = 0; isPlayingAudio = false; }
-        audioQueue.push({ type: 'bingo', file: 'New Recording 9' });
+        audioQueue.push({ type: 'bingo', file: 'Jo bingo' });
         processAudioQueue();
     }
 
+    /* 🔥 ተስተካክሏል: የድምፅ ፋይል ማነቢያ መንገድ 🔥 */
     function processAudioQueue() {
         if (isPlayingAudio || audioQueue.length === 0) return;
         isPlayingAudio = true;
         let item = audioQueue.shift();
         
         let path = '';
-        if (item.type === 'bingo') { path = `/jo sound/${item.file}.m4a`; } 
+        if (item.type === 'bingo') { path = `/jo sound/${item.file}.mp3`; } 
         else { path = `/jo sound/${item.file}.mp3`; }
 
         currentAudioObj = new Audio(path); 
@@ -839,11 +842,44 @@
         let phone = document.getElementById('reg-phone').value.trim(); let pass = document.getElementById('reg-pass').value.trim(); let name = document.getElementById('reg-name').value.trim(); let refCode = document.getElementById('reg-ref').value.trim();
         document.getElementById('start-btn').innerText = "እባክዎ ይጠብቁ..."; document.getElementById('start-btn').disabled = true;
         let endpoint = isLoginMode ? '/api/login' : '/api/register';
-        let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) }); let data = await res.json();
-        if(data.success) { 
-            if(isLoginMode) { localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); processLoginSuccess(data.user); 
-            } else { alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! አሁን ይግቡ (Login)"); toggleAuthMode(); }
-        } else { alert(data.message || "ስህተት አጋጥሟል!"); document.getElementById('start-btn').disabled = false; document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)"; }
+        
+        try {
+            let res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass, name, refCode}) }); 
+            let data = await res.json();
+            
+            if(data.success) { 
+                if(isLoginMode) { 
+                    localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); 
+                    processLoginSuccess(data.user); 
+                } else { 
+                    alert("✅ በተሳካ ሁኔታ ተመዝግበዋል! ወደ አካውንትዎ እየገባ ነው...");
+                    toggleAuthMode();
+                    
+                    document.getElementById('start-btn').disabled = true;
+                    document.getElementById('start-btn').innerText = "እየገባ ነው...";
+                    
+                    let logRes = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, password: pass}) });
+                    let logData = await logRes.json();
+                    
+                    if(logData.success) {
+                        localStorage.setItem('bingo_user_phone', phone); localStorage.setItem('bingo_user_pass', pass); 
+                        processLoginSuccess(logData.user); 
+                    } else {
+                        alert("እባክዎ ዳግም ይግቡ (Login)");
+                        document.getElementById('start-btn').disabled = false;
+                        document.getElementById('start-btn').innerText = "ግባ (LOGIN)";
+                    }
+                }
+            } else { 
+                alert(data.message || "ስህተት አጋጥሟል!"); 
+                document.getElementById('start-btn').disabled = false; 
+                document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)"; 
+            }
+        } catch(e) {
+            alert("ኮኔክሽን ተቋርጧል! እባክዎ ኢንተርኔትዎን አረጋግጠው እንደገና ይሞክሩ።");
+            document.getElementById('start-btn').disabled = false; 
+            document.getElementById('start-btn').innerText = isLoginMode ? "ግባ (LOGIN)" : "ወደ ጌም ግባ (REGISTER)"; 
+        }
     }
 
     function processLoginSuccess(userObj) {
@@ -994,14 +1030,12 @@
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
                     document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
                     
-                    /* 🔥 TICKET PAGE ላይ ያለንም ሰው ወደ HOME እንዲወስደው የተጨመረ ኮድ 🔥 */
                     if (document.getElementById('game-page').classList.contains('active-page') || document.getElementById('ticket-page').classList.contains('active-page')) { 
                         showPage('home'); 
                     }
                 }
             }
             
-            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (selected.length > 0) { 
                 document.getElementById('bet-btn').disabled = false; 
                 document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
@@ -1035,16 +1069,20 @@
         }
     });
 
+    /* 🔥 ተስተካክሏል: አዲስ ቁጥር ሲወጣ ድምፁን ይጠራል 🔥 */
     socket.on('new_number', (num) => {
         if (!isGameRunningLocally) return;
         called.push(num); 
+        playNumberSound(num); /* ይህ ነው የተጨመረው */
         document.getElementById('g-balls').innerText = called.length + "/20"; 
         document.getElementById('t-page-balls').innerText = called.length + "/20"; 
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
 
+    /* 🔥 ተስተካክሏል: ሰው ሲያሸንፍ የቢንጎውን ድምፅ ይጠራል 🔥 */
     socket.on('game_winner', (data) => {
+        playBingoSound(); /* ይህ ነው የተጨመረው */
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
         let amIWinner = false;
@@ -1143,7 +1181,6 @@
         const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
         if(selected.length > 0) {
-            // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
             if (document.getElementById('home-page').classList.contains('active-page')) {
                 popup.classList.add('show'); 
             }
@@ -1269,7 +1306,6 @@
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
         
-        // 🔥 FIXED LOGIC: ፖፕ አፑ የሚወጣው Home Page ላይ ከሆኑ ብቻ ነው!
         if(id !== 'home') {
             document.getElementById('bet-slip-popup').classList.remove('show'); 
         } else if(selected.length > 0) {
