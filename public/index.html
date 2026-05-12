@@ -253,7 +253,7 @@
         <div class="trx-header"><button class="trx-close" onclick="closeDepositModal()">Close</button><h3 class="trx-title" id="dep-title">Deposit Funds</h3><span style="width:40px;"></span></div>
         <div class="dep-banner">
             <div class="dep-banner-icon">🔥</div>
-            <div class="dep-banner-text">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div>
+            <div class="dep-banner-text" id="dynamic-dep-banner">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div>
         </div>
         
         <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 11px; color: #fca5a5; text-align: center;" id="dep-strict-warn">
@@ -352,7 +352,6 @@
         </div>
         
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
-            <!-- 🔥 PRE-CHECKED ADDED HERE 🔥 -->
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" checked onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" checked onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
         </div>
@@ -669,23 +668,23 @@
         processAudioQueue();
     }
 
-    /* 🔥 ተስተካክሏል: የቢንጎ ድምፅ ፋይል ስም "Jo bingo" ሆኗል 🔥 */
+    /* 🔥 ተስተካክሏል: የቢንጎ ድምፅ ፋይል ስም "New Recording 9" ሆኗል 🔥 */
     function playBingoSound() {
         if (!isSoundOn) return;
         audioQueue = []; 
         if(currentAudioObj) { currentAudioObj.pause(); currentAudioObj.currentTime = 0; isPlayingAudio = false; }
-        audioQueue.push({ type: 'bingo', file: 'Jo bingo' });
+        audioQueue.push({ type: 'bingo', file: 'New Recording 9' });
         processAudioQueue();
     }
 
-    /* 🔥 ተስተካክሏል: የድምፅ ፋይል ማነቢያ መንገድ 🔥 */
+    /* 🔥 ተስተካክሏል: ለቢንጎ ድምፅ ብቻ `.m4a` የሚለውን ያነባል 🔥 */
     function processAudioQueue() {
         if (isPlayingAudio || audioQueue.length === 0) return;
         isPlayingAudio = true;
         let item = audioQueue.shift();
         
         let path = '';
-        if (item.type === 'bingo') { path = `/jo sound/${item.file}.mp3`; } 
+        if (item.type === 'bingo') { path = `/jo sound/${item.file}.m4a`; } 
         else { path = `/jo sound/${item.file}.mp3`; }
 
         currentAudioObj = new Audio(path); 
@@ -982,6 +981,17 @@
     }
 
     socket.on('game_status', (data) => {
+        /* 🔥 የአድሚን የዲፖዚት ፅሁፍ ማስተካከያ 🔥 */
+        let bannerTextAm = data.depBannerTextAm || (data.settings && data.settings.depBannerTextAm) || "ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!";
+        let bannerTextEn = data.depBannerTextEn || (data.settings && data.settings.depBannerTextEn) || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
+        
+        let isAm = document.getElementById('btn-am').style.background === 'white';
+        let dynBanner = document.getElementById('dynamic-dep-banner');
+        if(dynBanner) {
+            dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>');
+        }
+        /* ======================================= */
+
         document.getElementById('jp').innerText = data.totalPrizePool.toFixed(2); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toFixed(2);
         let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toFixed(2);
@@ -1321,7 +1331,7 @@
     }
 </script>
 </body>
-</html
+</html>
 
 
 
