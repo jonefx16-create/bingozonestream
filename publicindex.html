@@ -237,6 +237,10 @@
             pointer-events: none !important;
             transition: all 0.3s ease;
         }
+
+        /* 🔥 WEB PROMO POPUP CSS 🔥 */
+        .web-promo-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%); background: linear-gradient(135deg, #ea580c, #d97706); border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100000; width: 90%; max-width: 350px; text-align: center; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1); backdrop-filter: blur(10px); visibility: hidden; }
+        .web-promo-popup.show { transform: translateX(-50%) translateY(0); visibility: visible; }
     </style>
 </head>
 <body>
@@ -245,6 +249,15 @@
     <div class="bling-text">✨ ሽልማት ገቢ እየተደረገ ነው... ✨</div>
     <div class="winner-card" id="winner-card-container">
         <!-- 🔴 BINGO CONTENT WILL BE INJECTED HERE DYNAMICALLY 🔴 -->
+    </div>
+</div>
+
+<div id="web-promo-popup" class="web-promo-popup">
+    <h3 style="margin:0 0 10px 0; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.5);">🎁 ልዩ ስጦታ (BONUS)</h3>
+    <p id="web-promo-msg" style="font-size:13px; margin-bottom:15px; font-weight:bold;"></p>
+    <div style="display:flex; gap:10px;">
+        <button class="action-btn" style="flex:1; background:#4ade80; color:#000; padding:10px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;" onclick="claimWebPromo()">Claim Now</button>
+        <button class="action-btn" style="background:#ef4444; color:#fff; padding:10px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;" onclick="document.getElementById('web-promo-popup').classList.remove('show')">Close</button>
     </div>
 </div>
 
@@ -560,7 +573,7 @@
         </div>
         <div class="profile-stat-box" style="flex: 1; margin: 0; border-color: var(--faded-green); padding: 12px;">
             <div id="prof-won-lbl" style="font-size: 10px; color: var(--text-gray);">ያሸነፉት (Won)</div>
-            <div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0.00</div>
+            <div style="font-size: 18px; font-weight: bold; color: var(--faded-green);" id="prof-won">0 ETB</div>
         </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:0px;">
@@ -883,7 +896,7 @@
         currentUser = userObj;
         document.getElementById('hdr-name').innerText = currentUser.name; document.getElementById('hdr-phone').innerText = currentUser.phone; document.getElementById('prof-name').innerText = currentUser.name; document.getElementById('prof-phone').innerText = currentUser.phone; document.getElementById('prof-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
         let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5); document.getElementById('prof-id-display').innerText = "ID: #" + displayId; document.getElementById('prof-played').innerText = currentUser.played || 0; 
-        document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
         
         let myRefLink = "https://t.me/bingo_habesha_bot?start=" + currentUser.phone;
         document.getElementById('prof-ref-text').innerText = "t.me/bingo_habesha_bot?start=" + currentUser.phone;
@@ -895,7 +908,7 @@
     async function fetchUpdatedBalance() {
         if(!currentUser) return;
         let res = await fetch(`/api/getUser/${currentUser.phone}`); let data = await res.json();
-        if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB"; }
+        if(data.success) { currentUser = data.user; updateUIBalance(); document.getElementById('prof-played').innerText = currentUser.played || 0; document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB"; }
     }
 
     // 🔥 FORMATTED RANKING & LEADERBOARD 🔥
@@ -907,11 +920,11 @@
                 if(data.leaderboard.length === 0) { content.innerHTML = `<div style="background:rgba(15,23,42,0.5); border-radius:12px; padding:15px; text-align:center; color:var(--text-gray);">እስካሁን አሸናፊ የለም</div>`; } 
                 else {
                     let top3 = data.leaderboard.slice(0, 3); let others = data.leaderboard.slice(3); let html = '<div class="podium-container">';
-                    if(top3[1]) html += `<div class="podium-box podium-2"><div class="podium-avatar p-2-ava">2</div><div class="podium-name">${top3[1].name}</div><div class="podium-prize">${Number(top3[1].won).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2})} ETB</div></div>`;
-                    if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${Number(top3[0].won).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2})} ETB</div></div>`;
-                    if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${Number(top3[2].won).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2})} ETB</div></div>`;
+                    if(top3[1]) html += `<div class="podium-box podium-2"><div class="podium-avatar p-2-ava">2</div><div class="podium-name">${top3[1].name}</div><div class="podium-prize">${Number(top3[1].won).toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div></div>`;
+                    if(top3[0]) html += `<div class="podium-box podium-1"><div class="crown-icon">👑</div><div class="podium-avatar p-1-ava">1</div><div class="podium-name">${top3[0].name}</div><div class="podium-prize">${Number(top3[0].won).toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div></div>`;
+                    if(top3[2]) html += `<div class="podium-box podium-3"><div class="podium-avatar p-3-ava">3</div><div class="podium-name">${top3[2].name}</div><div class="podium-prize">${Number(top3[2].won).toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div></div>`;
                     html += '</div>';
-                    others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${Number(u.won).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2})} ETB</div></div>`; });
+                    others.forEach((u, i) => { html += `<div class="rank-card"><div style="display:flex; align-items:center;"><div class="rank-badge">${i+4}</div><div style="font-weight:bold; color:white; font-size:12px;">${u.name}</div></div><div style="color:var(--faded-green); font-weight:bold; font-size:12px;">${Number(u.won).toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div></div>`; });
                     content.innerHTML = html;
                 }
             }
@@ -952,6 +965,28 @@
         renderGridTakenStates();
     });
 
+    // 🔥 WEB APP PROMO POPUP HANDLER 🔥
+    socket.on('new_promo_alert', (data) => {
+        if(!currentUser) return;
+        document.getElementById('web-promo-msg').innerHTML = data.msg + `<br><br><span style="color:#fbbf24; font-size:18px;">${data.amount} ETB</span>`;
+        document.getElementById('web-promo-popup').classList.add('show');
+    });
+
+    async function claimWebPromo() {
+        if(!currentUser) return;
+        try {
+            let res = await fetch('/api/claim-promo-web', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: currentUser.phone }) });
+            let data = await res.json();
+            if(data.success) {
+                alert(`🎉 እንኳን ደስ አሎት! የ ${data.amount} ETB ቦነስ አግኝተዋል! ሂሳብዎ ላይ ተደምሯል።`);
+                document.getElementById('web-promo-popup').classList.remove('show');
+            } else {
+                alert(data.message);
+                document.getElementById('web-promo-popup').classList.remove('show');
+            }
+        } catch(e) { alert("Network Error"); }
+    }
+
     socket.on('sync_data', (data) => {
         globalTakenTickets = data.globalTakenTickets || []; called = data.calledNumbers || []; userTicketsData = data.myTickets || [];
         selected = userTicketsData.map(t => t.id); pendingTicketsData = []; 
@@ -981,7 +1016,6 @@
     }
 
     socket.on('game_status', (data) => {
-        // 🔥 Dynamic Banner Update 🔥
         let bannerTextAm = data.depBannerTextAm || "ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!";
         let bannerTextEn = data.depBannerTextEn || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
         let isAm = document.getElementById('btn-am').style.background === 'white';
