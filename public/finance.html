@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance Dashboard - Private</title>
     <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; --orange: #ea580c; }
+        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #10b981; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --purple: #a855f7; --orange: #ea580c; --cyan: #06b6d4; --gold: #f59e0b; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
         #login-sec { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #161b22 0%, #050810 100%); position: absolute; z-index: 100; }
-        .login-card { background: rgba(0,0,0,0.8); padding: 40px; border-radius: 15px; border: 1px solid var(--red); text-align: center; width: 90%; max-width: 380px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2); }
+        .login-card { background: rgba(0,0,0,0.8); padding: 40px; border-radius: 15px; border: 1px solid var(--red); text-align: center; width: 90%; max-width: 380px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2); backdrop-filter: blur(10px); }
         input { padding: 14px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 20px; outline: none; font-size: 16px; text-align: center; letter-spacing: 2px;}
+        input:focus { border-color: var(--red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
         button.action-btn { background: var(--faded-green); color: black; border: none; padding: 14px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;}
+        button.action-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4); }
         
-        #dash-sec { display: none; width: 100%; height: 100%; display: flex; flex-direction: row; }
+        #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; }
         
-        /* 🔥 MOBILE RESPONSIVE SIDEBAR 🔥 */
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; transition: 0.3s;}
         .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
@@ -23,12 +24,24 @@
         
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
         
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .kpi-card { background: var(--panel); border-radius: 12px; padding: 20px; border: 1px solid var(--border); border-left: 4px solid var(--blue); }
-        .kpi-title { color: var(--text-gray); font-size: 12px; text-transform: uppercase; font-weight: bold; margin-bottom: 10px; display: block; }
-        .kpi-value { font-size: 28px; font-weight: 900; margin: 0; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px;}
+        .kpi-card { background: var(--panel); border-radius: 12px; padding: 20px; border: 1px solid var(--border); border-left: 4px solid var(--blue); position: relative;}
+        .kpi-title { color: var(--text-gray); font-size: 11px; text-transform: uppercase; font-weight: bold; margin-bottom: 10px; display: block; }
+        .kpi-value { font-size: 26px; font-weight: 900; margin: 0; }
         
-        .summary-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--faded-green); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+        .summary-box { background: rgba(16, 185, 129, 0.05); border: 1px solid var(--faded-green); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.1);}
+
+        /* Custom Colors for Cards */
+        .card-dep { border-left-color: var(--faded-green); }
+        .card-wit { border-left-color: var(--red); }
+        .card-cash { border-left-color: var(--cyan); }
+        .card-turnover { border-left-color: var(--blue); }
+        .card-win { border-left-color: var(--gold); }
+        .card-ggr { border-left-color: var(--purple); }
+        .card-bonus { border-left-color: #fca5a5; }
+        .card-promo { border-left-color: var(--orange); }
+
+        .hint-text { font-size: 9px; color: var(--text-gray); position: absolute; bottom: 10px; right: 15px; }
 
         @media (max-width: 768px) {
             #dash-sec { flex-direction: column; }
@@ -37,6 +50,7 @@
             .nav-btn.active { background: transparent; border-bottom-color: var(--faded-green); }
             .main-content { padding: 15px; }
             .summary-box h1 { font-size: 32px !important; }
+            .kpi-value { font-size: 22px; }
         }
     </style>
 </head>
@@ -60,51 +74,83 @@
         <button class="nav-btn" onclick="switchTab('monthly', this)">🗓️ Monthly Profit</button>
         <button class="nav-btn" onclick="switchTab('all', this)">🏆 All Time Profit</button>
         <div style="flex:1"></div>
-        <button class="nav-btn" style="color: var(--blue);" onclick="location.href='/admin'">🛡️ Go to Admin</button>
+        <button class="nav-btn" style="color: var(--cyan);" onclick="location.href='/admin'">🛡️ Go to Admin Panel</button>
     </div>
 
     <div class="main-content">
-        <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px;">
-            <h2 id="page-title" style="margin: 0;">📅 Daily Profit Report</h2>
-            <button class="action-btn" style="width: auto; padding: 8px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh</button>
+        <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2 id="page-title" style="margin: 0; color:white;">📅 Daily Profit Report</h2>
+                <span id="date-display" style="color: var(--cyan); font-size: 12px; font-weight: bold;">Loading Date...</span>
+            </div>
+            <button class="action-btn" style="width: auto; padding: 8px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh Data</button>
         </div>
 
         <div class="summary-box">
-            <p style="color: var(--text-gray); font-weight: bold; margin-bottom:5px; text-transform:uppercase;">Net Profit (15% - Bonus Expenses)</p>
+            <p style="color: var(--text-gray); font-weight: bold; margin-bottom:5px; text-transform:uppercase; font-size:11px;">
+                Net Profit (Gross Profit - Bonus - Promoter Commissions)
+            </p>
             <h1 id="net-profit" style="margin:0; font-size:45px; color:var(--faded-green);">0.00 ETB</h1>
-            <p id="period-info" style="font-size:12px; color:var(--text-gray); margin-top:10px;">Showing data for today.</p>
+            <p style="font-size:11px; color:var(--text-gray); margin-top:10px;">የተጣራ የድርጅት ትርፍ (ኮሚሽን እና ቦነስ ከተቀነሰ በኋላ)</p>
         </div>
 
+        <h3 style="color:var(--text-gray); font-size:14px; border-bottom:1px solid var(--border); padding-bottom:5px;">🏦 Bank Flow (የባንክ ዝውውር)</h3>
         <div class="kpi-grid">
-            <div class="kpi-card" style="border-left-color: var(--orange); grid-column: 1 / -1;">
-                <span class="kpi-title" style="color: var(--orange);">🏦 System Liability (Total Users Balance)</span>
-                <p style="font-size: 11px; color: var(--text-gray); margin-top:-5px; margin-bottom:5px;">ይህ ብር ሲስተሙ ውስጥ ተጫዋቾች አካውንታቸው ላይ ያላቸው አጠቃላይ (Main + Play) ድምር ሂሳብ ነው።</p>
-                <h2 class="kpi-value" id="val-liability" style="color: var(--orange);">0.00</h2>
-            </div>
-            
-            <div class="kpi-card" style="border-left-color: var(--faded-green);">
-                <span class="kpi-title">⬇️ Deposits</span>
+            <div class="kpi-card card-dep">
+                <span class="kpi-title">⬇️ Total Deposits</span>
                 <h2 class="kpi-value" id="val-deposit" style="color: var(--faded-green);">0.00</h2>
             </div>
-            <div class="kpi-card" style="border-left-color: var(--red);">
-                <span class="kpi-title">⬆️ Withdrawals</span>
+            <div class="kpi-card card-wit">
+                <span class="kpi-title">⬆️ Total Withdrawals</span>
                 <h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0.00</h2>
             </div>
-            <div class="kpi-card" style="border-left-color: var(--purple);">
-                <span class="kpi-title">🎮 Gross Game Profit (15%)</span>
-                <h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0.00</h2>
+            <div class="kpi-card card-cash">
+                <span class="kpi-title">💵 Net Cash Flow</span>
+                <h2 class="kpi-value" id="val-net-cash" style="color: var(--cyan);">0.00</h2>
+                <span class="hint-text">Deposit - Withdraw</span>
             </div>
-            <div class="kpi-card" style="border-left-color: var(--red);">
+        </div>
+
+        <h3 style="color:var(--text-gray); font-size:14px; border-bottom:1px solid var(--border); padding-bottom:5px; margin-top:10px;">🎮 Gaming Revenue & Expenses (የጌም ገቢ እና ወጪ)</h3>
+        <div class="kpi-grid">
+            <div class="kpi-card card-turnover">
+                <span class="kpi-title">🎟️ Turnover (Bets Placed)</span>
+                <h2 class="kpi-value" id="val-turnover" style="color: var(--blue);">0.00</h2>
+                <span class="hint-text">Total Ticket Sales</span>
+            </div>
+            <div class="kpi-card card-win">
+                <span class="kpi-title">🏆 Winnings Paid</span>
+                <h2 class="kpi-value" id="val-winnings" style="color: var(--gold);">0.00</h2>
+                <span class="hint-text">Prizes Won</span>
+            </div>
+            <div class="kpi-card card-ggr">
+                <span class="kpi-title">📈 Gross Game Profit</span>
+                <h2 class="kpi-value" id="val-game-profit" style="color: var(--purple);">0.00</h2>
+                <span class="hint-text">Company's % Cut</span>
+            </div>
+            <div class="kpi-card card-bonus">
                 <span class="kpi-title">🎁 Bonus Expenses</span>
                 <h2 class="kpi-value" id="val-bonus" style="color: #fca5a5;">0.00</h2>
+                <span class="hint-text">Claimed Promos</span>
             </div>
+            <div class="kpi-card card-promo">
+                <span class="kpi-title">🗣️ Promoter Commission</span>
+                <h2 class="kpi-value" id="val-promoter" style="color: var(--orange);">0.00</h2>
+                <span class="hint-text">*All-Time Total</span>
+            </div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: gray; text-align:center; margin-top:10px;">
+            <span class="kpi-title" style="color: gray;">🏦 System Liability (ተጫዋቾች አካውንታቸው ላይ ያላቸው ብር)</span>
+            <h2 class="kpi-value" id="val-liability" style="color: white;">0.00</h2>
+            <p style="font-size: 11px; color: var(--text-gray); margin:5px 0 0 0;">(Total Main Balance + Total Play Balance of all users)</p>
         </div>
     </div>
 </div>
 
 <script>
     let pass = "";
-    let rawData = { txs: [], games: [], bonuses: [], users: [] };
+    let rawData = { txs: [], games: [], bonuses: [], users: [], promoters: [] };
     let currentFilter = 'daily';
 
     function login() { 
@@ -116,7 +162,14 @@
     function switchTab(period, btn) { 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
         btn.classList.add('active'); 
-        document.getElementById('page-title').innerText = btn.innerText.replace('📅', '').replace('📆', '').replace('🗓️', '').replace('🏆', '').trim() + " Report";
+        
+        let titles = {
+            'daily': '📅 Daily Profit Report',
+            'weekly': '📆 Weekly Profit Report',
+            'monthly': '🗓️ Monthly Profit Report',
+            'all': '🏆 All Time Profit Report'
+        };
+        document.getElementById('page-title').innerText = titles[period];
         
         currentFilter = period;
         filterData(period);
@@ -124,22 +177,33 @@
 
     async function loadFinancialData() {
         try {
-            document.getElementById('page-title').innerText = "Loading...";
+            document.getElementById('page-title').innerText = "Loading Data...";
             
+            // Fetch normal finance data
             let res = await fetch('/api/admin/finance-raw-data', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify({ password: pass, adminPass: pass }) 
+                body: JSON.stringify({ adminPass: pass }) 
             });
             
             if(res.status === 401) { alert("❌ Wrong Password!"); document.getElementById('page-title').innerText = "Finance Report"; return; }
             
             let data = await res.json();
+            
+            // Fetch promoter data separately for commissions
+            let resPromo = await fetch('/api/admin/promoters-data', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({ adminPass: pass }) 
+            });
+            let promoData = await resPromo.json();
+
             if(data.success) {
                 document.getElementById('login-sec').style.display = 'none'; 
                 document.getElementById('dash-sec').style.display = 'flex';
                 
                 rawData = data;
+                rawData.promoters = promoData.success ? promoData.promoters : [];
                 
                 if(window.innerWidth > 768) document.getElementById('sidebar-title').style.display = 'block';
 
@@ -151,24 +215,31 @@
     function filterData(period) {
         let now = new Date();
         let startTime = new Date(0); 
-        let periodText = "Showing all time data.";
+        let dateDisplayStr = "All Time History";
+
+        // Date Formatting
+        let options = { year: 'numeric', month: 'short', day: 'numeric' };
+        let todayStr = now.toLocaleDateString('en-US', options);
 
         if(period === 'daily') { 
             startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
-            periodText = "Showing data for today.";
+            dateDisplayStr = `Date: ${todayStr}`;
         } 
         else if(period === 'weekly') { 
             startTime = new Date();
             startTime.setDate(now.getDate() - 7); 
-            periodText = "Showing data for the last 7 days.";
+            let lastWeekStr = startTime.toLocaleDateString('en-US', options);
+            dateDisplayStr = `From: ${lastWeekStr} — To: ${todayStr}`;
         } 
         else if(period === 'monthly') { 
             startTime = new Date(now.getFullYear(), now.getMonth(), 1); 
-            periodText = "Showing data for this month.";
+            let monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+            dateDisplayStr = `Month: ${monthName}`;
         }
 
-        document.getElementById('period-info').innerText = periodText;
+        document.getElementById('date-display').innerText = dateDisplayStr;
 
+        // Apply Filters
         let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
         let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
         let filteredBonus = rawData.bonuses.filter(b => {
@@ -176,30 +247,45 @@
             return bDate >= startTime;
         });
 
+        // Calculations
         let tDep = filteredTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tWit = filteredTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + (t.amount || 0), 0);
+        let netCash = tDep - tWit;
+
         let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
-        
+        let tWinnings = filteredGames.reduce((sum, g) => sum + (g.prize || 0), 0);
+        let tTurnover = tProf + tWinnings; // Total bets placed
+
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-        let net = tProf - tBon;
+        // Promoter Commission (All-Time total as DB doesn't store exact date of commission earning)
+        let tPromoter = rawData.promoters.reduce((sum, p) => sum + (p.earned || 0), 0);
+
+        // Final Net Profit Calculation
+        let net = tProf - tBon - tPromoter;
 
         let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
-        document.getElementById('val-liability').innerText = totalLiability.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
-
-        document.getElementById('val-deposit').innerText = tDep.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('val-withdraw').innerText = tWit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('val-game-profit').innerText = tProf.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('val-bonus').innerText = tBon.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
+        // Update UI
+        document.getElementById('val-deposit').innerText = tDep.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-withdraw').innerText = tWit.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-net-cash').innerText = netCash.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        
+        document.getElementById('val-turnover').innerText = tTurnover.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-winnings').innerText = tWinnings.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-game-profit').innerText = tProf.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        
+        document.getElementById('val-bonus').innerText = tBon.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-promoter').innerText = tPromoter.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        
+        document.getElementById('val-liability').innerText = totalLiability.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+
         let netEl = document.getElementById('net-profit');
-        netEl.innerText = net.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ETB";
+        netEl.innerText = net.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         
         if (net < 0) { netEl.style.color = "var(--red)"; } 
         else if (net > 0) { netEl.style.color = "var(--faded-green)"; } 
         else { netEl.style.color = "white"; }
-        
-        document.getElementById('page-title').innerText = period.charAt(0).toUpperCase() + period.slice(1) + " Profit Report";
     }
 </script>
 </body>
