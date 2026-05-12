@@ -352,7 +352,6 @@
         </div>
         
         <div id="terms-box" style="text-align:left; font-size:12px; margin: 5px 0 20px 0; color: #cbd5e1; line-height: 2.2;">
-            <!-- 🔥 PRE-CHECKED ADDED HERE 🔥 -->
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c1" checked onchange="v()"> እድሜዬ 21+ መሆኑን አረጋግጣለሁ</label>
             <label style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="c2" checked onchange="v()"> በውልና ደንቦች እስማማለሁ</label>
         </div>
@@ -669,23 +668,23 @@
         processAudioQueue();
     }
 
-    /* 🔥 ተስተካክሏል: የቢንጎ ድምፅ ፋይል ስም "Jo bingo" ሆኗል 🔥 */
+    /* 🔥 ተስተካክሏል: የቢንጎ ድምፅ ፋይል ስም "New Recording 9" ሆኗል 🔥 */
     function playBingoSound() {
         if (!isSoundOn) return;
         audioQueue = []; 
         if(currentAudioObj) { currentAudioObj.pause(); currentAudioObj.currentTime = 0; isPlayingAudio = false; }
-        audioQueue.push({ type: 'bingo', file: 'Jo bingo' });
+        audioQueue.push({ type: 'bingo', file: 'New Recording 9' });
         processAudioQueue();
     }
 
-    /* 🔥 ተስተካክሏል: የድምፅ ፋይል ማነቢያ መንገድ 🔥 */
+    /* 🔥 ተስተካክሏል: ለቢንጎ ድምፅ ብቻ `.m4a` የሚለውን ያነባል 🔥 */
     function processAudioQueue() {
         if (isPlayingAudio || audioQueue.length === 0) return;
         isPlayingAudio = true;
         let item = audioQueue.shift();
         
         let path = '';
-        if (item.type === 'bingo') { path = `/jo sound/${item.file}.mp3`; } 
+        if (item.type === 'bingo') { path = `/jo sound/${item.file}.m4a`; } 
         else { path = `/jo sound/${item.file}.mp3`; }
 
         currentAudioObj = new Audio(path); 
