@@ -935,8 +935,9 @@
         let displayId = currentUser.userId || currentUser.id || currentUser._id || currentUser.phone.slice(-5); document.getElementById('prof-id-display').innerText = "ID: #" + displayId; document.getElementById('prof-played').innerText = currentUser.played || 0; 
         document.getElementById('prof-won').innerText = Number(currentUser.won || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         
-        let myRefLink = "https://t.me/bingo_habesha_bot?start=" + currentUser.phone;
-        document.getElementById('prof-ref-text').innerText = "t.me/bingo_habesha_bot?start=" + currentUser.phone;
+        let myCode = currentUser.refCode ? currentUser.refCode : currentUser.phone;
+        let myRefLink = "https://t.me/bingo_habesha_bot?start=" + myCode;
+        document.getElementById('prof-ref-text').innerText = "t.me/bingo_habesha_bot?start=" + myCode;
         document.getElementById('prof-btn-open').onclick = () => window.location.href = myRefLink; document.getElementById('prof-btn-copy').onclick = () => { navigator.clipboard.writeText(myRefLink); alert('ሊንኩ ኮፒ ተደርጓል!'); };
         
         updateUIBalance(); document.getElementById('auth-page').classList.remove('active-page'); document.getElementById('navbar').style.display = 'flex'; document.getElementById('global-header').style.display = 'flex'; handleHomeNav();
