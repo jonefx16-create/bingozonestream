@@ -1049,7 +1049,7 @@
 
         document.getElementById('bingo-overlay').style.display = 'flex'; 
         
-        // 🔥 Auto Redirect to Home after 5 seconds 🔥
+        // 🔥 ወደ Home Page የሚመለስበትን ወደ 7 ሰከንድ ቀይረነዋል (7000ms) 🔥
         if (redirectTimer) clearTimeout(redirectTimer);
         redirectTimer = setTimeout(() => {
             document.getElementById('bingo-overlay').style.display = 'none';
@@ -1072,11 +1072,14 @@
                 // 3. LIVE የሚለውን አጥፍቶ አዲስ ጨዋታ መጠበቂያ (Waiting) ማድረግ
                 isGameRunningLocally = false;
                 currentGameState = "WAITING";
+                
                 document.getElementById('live-text-bottom').innerText = "";
-                let liveTextGame = document.getElementById('live-text-game'); if(liveTextGame) liveTextGame.innerText = "";
+                let liveTextGame = document.getElementById('live-text-game'); 
+                if(liveTextGame) liveTextGame.innerText = "";
+                
                 document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is Starting" : "ጨዋታው ሊጀምር ነው";
                 
-                // 4. ሰዓቱን 00:40 ብሎ እንዲጀምር ማድረግ
+                // 4. ሰዓቱን ሳይዘገይ ወዲያው 00:40 ብሎ እንዲጀምር ማድረግ
                 document.getElementById('timer').innerText = "00:40";
                 
                 // 5. ያለፉትን ኳሶች እና ቦርዱን ማፅዳት
@@ -1089,7 +1092,7 @@
                 document.getElementById('g-balls').innerText = "0/20";
                 document.getElementById('t-page-balls').innerText = "0/20";
             }
-        }, 5000);
+        }, 7000);
 
         let amIWinner = false;
         if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) { amIWinner = true; }
@@ -1307,9 +1310,6 @@
 </script>
 </body>
 </html>
-        
-
-
 
 
 
