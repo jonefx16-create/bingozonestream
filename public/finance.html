@@ -1,3 +1,10 @@
+```
+
+---
+
+### 2. `finance.html` (ሙሉ ኮድ)
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -215,7 +222,6 @@
         let startTime = new Date(0); 
         let dateDisplayStr = "All Time History";
 
-        // Date Formatting
         let options = { year: 'numeric', month: 'short', day: 'numeric' };
         let todayStr = now.toLocaleDateString('en-US', options);
 
@@ -237,7 +243,6 @@
 
         document.getElementById('date-display').innerText = dateDisplayStr;
 
-        // Apply Filters
         let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
         let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
         let filteredBonus = rawData.bonuses.filter(b => {
@@ -245,7 +250,6 @@
             return bDate >= startTime;
         });
 
-        // Calculations
         let tDep = filteredTxs.filter(t => t.type === 'deposit' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
         let tWit = filteredTxs.filter(t => t.type === 'withdraw' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
         let netCash = tDep - tWit;
@@ -256,7 +260,7 @@
 
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-        // 🔥 CALCULATE EXACT PROMOTER PAYOUTS FOR THE SELECTED PERIOD 🔥
+        // 🔥 PROMOTER PAID CALCULATION 🔥
         let tPromoterPaid = filteredTxs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
 
         // Final Net Profit Calculation (የተጣራ ትርፍ)
@@ -264,7 +268,6 @@
 
         let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
         
-        // Update UI
         document.getElementById('val-deposit').innerText = tDep.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         document.getElementById('val-withdraw').innerText = tWit.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         document.getElementById('val-net-cash').innerText = netCash.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
@@ -287,7 +290,7 @@
     }
 </script>
 </body>
-</html>
+</html
 
 
 
