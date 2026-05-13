@@ -29,7 +29,7 @@ mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).cat
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
-    refCode: { type: String, default: "" }, // 🔥 አጭር መጋበዣ ኮድ መያዣ
+    refCode: { type: String, default: "" }, 
     telegramId: { type: String, default: "" }, 
     name: String, 
     password: { type: String, required: true },
@@ -38,13 +38,15 @@ const User = mongoose.model('User', new mongoose.Schema({
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
     won: { type: Number, default: 0 }, 
+    totalDeposited: { type: Number, default: 0 }, // 🔥 VIP/Betting Strategy Tracking
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
-    // 🔥 PROMOTER & FIRST DEPOSIT FIELDS 🔥
+    
+    // 🔥 PROMOTER FIELDS 🔥
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
     promoterEarned: { type: Number, default: 0 },
-    hasMadeFirstDeposit: { type: Boolean, default: false }, 
+    promoterUnpaidBalance: { type: Number, default: 0 }, // 🔥 ያልተከፈለ ቀሪ ኮሚሽን
     promoterCommissionGenerated: { type: Number, default: 0 } 
 }));
 
@@ -99,10 +101,7 @@ async function loadSettings() {
 }
 loadSettings();
 
-// 🔥 አጭር ኮድ መፍጠሪያ 🔥
-function generateRefCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
 const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
@@ -137,7 +136,7 @@ async function isSmsAlreadyUsed(userInputSms) {
 }
 
 // ==========================================
-// 🟢 AUTOMATIC DEPOSIT ENGINE (Promoter Included)
+// 🟢 AUTOMATIC DEPOSIT & PROMOTER ENGINE
 // ==========================================
 async function autoApprovePendingDeposits() {
     try {
@@ -150,8 +149,8 @@ async function autoApprovePendingDeposits() {
                 let user = await User.findOne({ phone: tx.phone });
                 if (user) {
                     let actualReceivedAmount = matchedSMS.amount;
-                    let bonus = 0;
-                    let set = GLOBAL_SETTINGS;
+                    let bonus = 0; let set = GLOBAL_SETTINGS;
+                    
                     if (actualReceivedAmount >= set.depBonusMinAmount) {
                         let giveBonus = true;
                         if (set.depBonusTimeRestricted) {
@@ -160,30 +159,28 @@ async function autoApprovePendingDeposits() {
                         }
                         if (giveBonus) { bonus = actualReceivedAmount * (set.depBonusPercent / 100); }
                     }
+                    
                     let totalCredit = actualReceivedAmount + bonus;
                     tx.amount = actualReceivedAmount; 
                     tx.status = 'Approved';
                     await tx.save();
                     matchedSMS.isUsed = true;
                     await matchedSMS.save();
-                    user.playBalance += totalCredit;
-
-                    // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
-                    if (!user.hasMadeFirstDeposit) {
-                        if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
-                            let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
-                            if(promoter) {
-                                let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
-                                promoter.mainBalance += commission; 
-                                promoter.promoterEarned += commission;
-                                await promoter.save();
-                                user.promoterCommissionGenerated = commission; 
-                                io.emit('balance_updated', promoter.phone);
-                            }
-                        }
-                        user.hasMadeFirstDeposit = true; 
-                    }
                     
+                    user.playBalance += totalCredit;
+                    user.totalDeposited += actualReceivedAmount; // VIP Tracking
+
+                    // 🔥 PROMOTER COMMISSION (EVERY DEPOSIT) 🔥
+                    if(user.referredBy && user.referredBy.trim() !== "") {
+                        let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                        if(promoter) {
+                            let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
+                            promoter.promoterEarned += commission;
+                            promoter.promoterUnpaidBalance += commission; // Add to unpaid
+                            await promoter.save();
+                            user.promoterCommissionGenerated += commission; 
+                        }
+                    }
                     await user.save();
                     io.emit('balance_updated', tx.phone);
                 }
@@ -192,9 +189,7 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
-// ==========================================
-// 🔵 IPHONE SMS WEBHOOK
-// ==========================================
+// Webhook for iPhone
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         const { secret, message } = req.body;
@@ -202,22 +197,16 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         if (!message) return res.json({ success: false, msg: "Empty message" });
         let isReceivingMsg = /received|credited|transfer|gebi|into your account/i.test(message);
         if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
-        let txRef = getTxRef(message);
-        let amount = getBankAmount(message);
+        let txRef = getTxRef(message); let amount = getBankAmount(message);
         if(amount > 0 && txRef) {
             const exists = await BankSMS.findOne({ txRef: txRef });
-            if (!exists) {
-                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
-                await autoApprovePendingDeposits(); 
-            }
+            if (!exists) { await BankSMS.create({ rawText: message, txRef: txRef, amount: amount }); await autoApprovePendingDeposits(); }
             res.json({ success: true, amount, txRef });
         } else { res.json({ success: false }); }
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// ==========================================
-// 🔵 USER APIs
-// ==========================================
+// User APIs
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
@@ -239,24 +228,22 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone, password: req.body.password });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
-    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } // Backward compatibility
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); }
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
 });
 
 app.post('/api/telegram-login', async (req, res) => {
     let user = await User.findOne({ telegramId: req.body.telegramId.toString() });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ የታገደ አካውንት!" });
-    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } // Backward compatibility
-    if(user) res.json({ success: true, user });
-    else res.json({ success: false, message: "Share contact in bot first." });
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); }
+    if(user) res.json({ success: true, user }); else res.json({ success: false, message: "Share contact in bot first." });
 });
 
 app.post('/api/user/change-password', async (req, res) => {
     const { phone, oldPass, newPass } = req.body;
     let user = await User.findOne({ phone, password: oldPass });
     if (!user) return res.json({ success: false, message: "❌ የድሮው ፓስወርድ ትክክል አይደለም!" });
-    user.password = newPass; await user.save();
-    res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!" });
+    user.password = newPass; await user.save(); res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!" });
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
@@ -293,57 +280,32 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 });
 
 app.get('/api/leaderboard', async (req, res) => { 
-    try {
-        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); 
-        res.json({ success: true, leaderboard }); 
-    } catch(e) { res.json({ success: false }); }
+    try { let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); res.json({ success: true, leaderboard }); } 
+    catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 CLAIM WEB PROMO BONUS API 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
-        let user = await User.findOne({ phone: req.body.phone });
-        if(!user) return res.json({success: false, message: "User not found!"});
-        
+        let user = await User.findOne({ phone: req.body.phone }); if(!user) return res.json({success: false, message: "User not found!"});
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
         if (!activeBonus) return res.json({ success: false, message: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!" });
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" });
         if (activeBonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" });
         
-        activeBonus.claimedBy.push(user.phone);
-        activeBonus.currentClaims += 1;
-        await activeBonus.save();
-        
-        user.playBalance += activeBonus.amount;
-        await user.save();
-        io.emit('balance_updated', user.phone);
-        
-        res.json({ success: true, amount: activeBonus.amount });
+        activeBonus.claimedBy.push(user.phone); activeBonus.currentClaims += 1; await activeBonus.save();
+        user.playBalance += activeBonus.amount; await user.save();
+        io.emit('balance_updated', user.phone); res.json({ success: true, amount: activeBonus.amount });
     } catch(e) { res.json({success: false}); }
 });
 
 // ==========================================
-// 🔵 ADMIN CONTROL APIs
+// 🔵 ADMIN APIs
 // ==========================================
-const auth = (req, res, next) => { 
-    const pass = req.body.adminPass; 
-    if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
-    next(); 
-};
+const auth = (req, res, next) => { const pass = req.body.adminPass; if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); next(); };
 
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
-
-app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
-    try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
-        let games = await GameHistory.find();
-        let bonuses = await ActiveBonus.find();
-        let users = await User.find({}, 'mainBalance playBalance'); 
-        res.json({ success: true, txs, games, bonuses, users });
-    } catch(e) { res.status(500).json({ success: false }); }
-});
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
@@ -352,48 +314,33 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS });
 });
 
-// 🔥 BULK & SINGLE DELETE APIs 🔥
-app.post('/api/admin/delete-users', auth, async (req, res) => {
-    try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
-    catch(e) { res.json({ success: false }); }
-});
+app.post('/api/admin/delete-users', auth, async (req, res) => { try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/delete-history', auth, async (req, res) => { try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/delete-transactions', auth, async (req, res) => { try { await Transaction.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-app.post('/api/admin/delete-history', auth, async (req, res) => {
-    try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
-    catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/delete-transactions', auth, async (req, res) => {
-    try { await Transaction.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
-    catch(e) { res.json({ success: false }); }
-});
-
-// 🔥 NEW: DELETE PLAYER BET FROM GAME HISTORY 🔥
-app.post('/api/admin/delete-game-player', auth, async (req, res) => {
+// 🔥 DELETE GAMES OLDER THAN 2 DAYS 🔥
+app.post('/api/admin/delete-old-history', auth, async (req, res) => {
     try {
-        let h = await GameHistory.findById(req.body.id);
-        if(h) {
-            h.playersData = h.playersData.filter(p => p.phone !== req.body.phone);
-            await h.save();
-            res.json({ success: true });
-        } else { res.json({ success: false }); }
+        let twoDaysAgo = new Date(Date.now() - (48 * 60 * 60 * 1000));
+        await GameHistory.deleteMany({ date: { $lt: twoDaysAgo } });
+        res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 PROMOTER APIs 🔥
+app.post('/api/admin/delete-game-player', auth, async (req, res) => {
+    try {
+        let h = await GameHistory.findById(req.body.id);
+        if(h) { h.playersData = h.playersData.filter(p => p.phone !== req.body.phone); await h.save(); res.json({ success: true }); } else { res.json({ success: false }); }
+    } catch(e) { res.json({ success: false }); }
+});
+
+// 🔥 PROMOTER ADMIN APIs 🔥
 app.post('/api/admin/promoters-data', auth, async (req, res) => {
     try {
-        let promoters = await User.find({ isPromoter: true });
-        let data = [];
+        let promoters = await User.find({ isPromoter: true }); let data = [];
         for (let p of promoters) {
             let refUsers = await User.find({ referredBy: p.phone });
-            let refPhones = refUsers.map(u => u.phone);
-            let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
-            let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
-            data.push({
-                name: p.name, phone: p.phone, percent: p.promoterPercent,
-                earned: p.promoterEarned, usersBrought: refUsers.length, totalDeposits: totalDep
-            });
+            data.push({ name: p.name, phone: p.phone, percent: p.promoterPercent, earned: p.promoterEarned, unpaidBalance: p.promoterUnpaidBalance, usersBrought: refUsers.length });
         }
         res.json({ success: true, promoters: data });
     } catch (e) { res.json({ success: false }); }
@@ -401,38 +348,35 @@ app.post('/api/admin/promoters-data', auth, async (req, res) => {
 
 app.post('/api/admin/set-promoter', auth, async (req, res) => {
     try {
-        const { phone, isPromoter, percent } = req.body;
-        let user = await User.findOne({ phone });
-        if (user) {
-            user.isPromoter = isPromoter;
-            if (percent !== undefined) user.promoterPercent = percent;
-            await user.save();
-            res.json({ success: true });
-        } else {
-            res.json({ success: false, message: "User not found" });
-        }
+        const { phone, isPromoter, percent } = req.body; let user = await User.findOne({ phone });
+        if (user) { user.isPromoter = isPromoter; if (percent !== undefined) user.promoterPercent = percent; await user.save(); res.json({ success: true }); } else { res.json({ success: false, message: "User not found" }); }
     } catch (e) { res.json({ success: false }); }
 });
 
 app.post('/api/admin/promoter-details', auth, async (req, res) => {
     try {
-        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
-        if(!p) return res.json({ success: false });
-
-        let refUsers = await User.find({ referredBy: p.phone });
-        let details = [];
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true }); if(!p) return res.json({ success: false });
+        let refUsers = await User.find({ referredBy: p.phone }); let details = [];
         for(let u of refUsers) {
             let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
-            details.push({
-                name: u.name, 
-                phone: u.phone, 
-                totalDeposit: totalDep, 
-                commission: u.promoterCommissionGenerated || 0
-            });
+            details.push({ name: u.name, phone: u.phone, totalDeposit: totalDep, commission: u.promoterCommissionGenerated || 0 });
         }
         res.json({ success: true, promoter: p, details });
     } catch (e) { res.json({ success: false }); }
+});
+
+// 🔥 PAY PROMOTER API (Deducts from Unpaid Balance) 🔥
+app.post('/api/admin/pay-promoter', auth, async (req, res) => {
+    try {
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        if(p) {
+            p.promoterUnpaidBalance -= Number(req.body.amount);
+            if(p.promoterUnpaidBalance < 0) p.promoterUnpaidBalance = 0;
+            await p.save();
+            res.json({ success: true, message: `✅ ለ ${p.name} በተሳካ ሁኔታ ${req.body.amount} ETB ተቀንሷል።` });
+        } else res.json({ success: false, message: "Promoter not found" });
+    } catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/admin/action-tx', auth, async (req, res) => {
@@ -440,53 +384,42 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     if (req.body.action === 'Approve') { 
         tx.status = 'Approved'; 
         if(tx.type === 'deposit') {
-            let actualAmount = tx.amount;
-            let bonus = 0;
-            let set = GLOBAL_SETTINGS;
+            let actualAmount = tx.amount; let bonus = 0; let set = GLOBAL_SETTINGS;
             if (actualAmount >= set.depBonusMinAmount) {
                 let giveBonus = true;
-                if (set.depBonusTimeRestricted) {
-                    let currentHour = new Date().getHours();
-                    if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
-                }
+                if (set.depBonusTimeRestricted) { let currentHour = new Date().getHours(); if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; } }
                 if (giveBonus) { bonus = actualAmount * (set.depBonusPercent / 100); }
             }
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
+            user.totalDeposited += actualAmount;
 
-            // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
-            if (!user.hasMadeFirstDeposit) {
-                if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
-                    let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
-                    if(promoter) {
-                        let commission = actualAmount * (promoter.promoterPercent / 100);
-                        promoter.mainBalance += commission; 
-                        promoter.promoterEarned += commission;
-                        await promoter.save();
-                        user.promoterCommissionGenerated = commission;
-                        io.emit('balance_updated', promoter.phone);
-                    }
+            // 🔥 PROMOTER COMMISSION (EVERY DEPOSIT) 🔥
+            if(user.referredBy && user.referredBy.trim() !== "") {
+                let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                if(promoter) {
+                    let commission = actualAmount * (promoter.promoterPercent / 100);
+                    promoter.promoterEarned += commission;
+                    promoter.promoterUnpaidBalance += commission; // Add to unpaid
+                    await promoter.save();
+                    user.promoterCommissionGenerated += commission;
                 }
-                user.hasMadeFirstDeposit = true;
             }
-
         } else if (tx.type === 'withdraw') {
             let set = GLOBAL_SETTINGS;
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
                 let giveBonus = true;
-                if (set.witBonusTimeRestricted) {
-                    let currentHour = new Date().getHours();
-                    if (currentHour < set.witHappyHourStart || currentHour > set.witHappyHourEnd) { giveBonus = false; }
-                }
-                if(giveBonus) {
-                    let wBonus = tx.amount * (set.witBonusPercent / 100);
-                    user.playBalance += wBonus; 
-                }
+                if (set.witBonusTimeRestricted) { let currentHour = new Date().getHours(); if (currentHour < set.witHappyHourStart || currentHour > set.witHappyHourEnd) { giveBonus = false; } }
+                if(giveBonus) { let wBonus = tx.amount * (set.witBonusPercent / 100); user.playBalance += wBonus; }
             }
         }
     } else { 
         tx.status = 'Rejected'; 
-        if(tx.type === 'withdraw') user.mainBalance += tx.amount; 
+        if(tx.type === 'withdraw' && tx.method !== 'Promoter Comm') user.mainBalance += tx.amount; 
+        if(tx.type === 'withdraw' && tx.method === 'Promoter Comm') {
+            // Refund promoter if Admin rejects the withdraw
+            user.promoterUnpaidBalance += tx.amount;
+        }
     }
     await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
 });
@@ -522,129 +455,39 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.inviteBonus !== undefined) s.inviteBonus = req.body.inviteBonus;
     if(req.body.adminProfitPercent !== undefined) s.adminProfitPercent = req.body.adminProfitPercent; 
     if(req.body.maxTicketsPerUser !== undefined) s.maxTicketsPerUser = req.body.maxTicketsPerUser; 
-    await s.save(); await loadSettings();
-    res.json({ success: true });
+    await s.save(); await loadSettings(); res.json({ success: true });
 });
 
-// 🔥 Trigger Cashback API (Manual Force Override allowed)
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
-        const minL = GLOBAL_SETTINGS.cashbackMinLoss;
-        const cAmt = GLOBAL_SETTINGS.cashbackAmount;
-        
-        let users = await User.find();
-        let count = 0;
-
+        const minL = GLOBAL_SETTINGS.cashbackMinLoss; const cAmt = GLOBAL_SETTINGS.cashbackAmount;
+        let users = await User.find(); let count = 0;
         for(let u of users) {
             let totalLoss = (u.played * GLOBAL_SETTINGS.ticketPrice) - u.won;
-            if(totalLoss >= minL) {
-                u.playBalance += cAmt;
-                u.played = 0; 
-                u.won = 0;    
-                await u.save();
-                io.emit('balance_updated', u.phone);
-                count++;
-            }
+            if(totalLoss >= minL) { u.playBalance += cAmt; u.played = 0; u.won = 0; await u.save(); io.emit('balance_updated', u.phone); count++; }
         }
-
         if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
         res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
-    } catch(e) {
-        res.status(500).json({ success: false });
-    }
-});
-
-app.post('/api/admin/get-messages', auth, async (req, res) => {
-    try {
-        let msgs = await SupportMessage.find().sort({ date: 1 });
-        res.json({ success: true, msgs });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/reply-message', auth, async (req, res) => {
-    try {
-        const { telegramId, text } = req.body;
-        await SupportMessage.create({ telegramId, text, sender: 'admin' });
-        try {
-            await bot.sendMessage(telegramId, `👨‍💻 <b>Admin:</b>\n${text}`, { parse_mode: "HTML" });
-        } catch(e) { console.log("Bot send failed", e); }
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/edit-user', auth, async (req, res) => {
-    try {
-        const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
-        let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) };
-        if (userPass && userPass.trim() !== "") { updateData.password = userPass; }
-        await User.findOneAndUpdate({ phone: oldPhone }, updateData);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
-app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
-
-app.post('/api/admin/factory-reset', auth, async (req, res) => {
-    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({}); await SupportMessage.deleteMany({});
-    res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
-});
-
-app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
-    let user = await User.findOne({ phone: req.body.phone });
-    if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); }
-    res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
-});
-
-app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
-    if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
-    else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
-    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
-});
-
-app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
-    try {
-        let activeBonus = await ActiveBonus.findOne({ isActive: true });
-        if(!activeBonus) return res.json({ success: false, message: "No active promo." });
-        res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+app.post('/api/admin/get-messages', auth, async (req, res) => { try { let msgs = await SupportMessage.find().sort({ date: 1 }); res.json({ success: true, msgs }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/reply-message', auth, async (req, res) => { try { const { telegramId, text } = req.body; await SupportMessage.create({ telegramId, text, sender: 'admin' }); try { await bot.sendMessage(telegramId, `👨‍💻 <b>Admin:</b>\n${text}`, { parse_mode: "HTML" }); } catch(e){} res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/edit-user', auth, async (req, res) => { try { const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body; let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) }; if (userPass && userPass.trim() !== "") { updateData.password = userPass; } await User.findOneAndUpdate({ phone: oldPhone }, updateData); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
+app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
+app.post('/api/admin/factory-reset', auth, async (req, res) => { await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({}); await SupportMessage.deleteMany({}); res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" }); });
+app.post('/api/admin/send-single-bonus', auth, async (req, res) => { let user = await User.findOne({ phone: req.body.phone }); if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); } res.json({ success: true, message: `✅ Bonus sent!` }); });
+app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => { if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); } res.json({ success: true, message: `✅ Bulk Bonus sent!` }); });
+app.post('/api/admin/claim-bonus-list', auth, async (req, res) => { try { let activeBonus = await ActiveBonus.findOne({ isActive: true }); if(!activeBonus) return res.json({ success: false, message: "No active promo." }); res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers }); } catch(e) { res.status(500).json({ success: false }); } });
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     try {
-        const { maxUsers, amount, minutes, message, photoUrl } = req.body;
-        let expires = new Date(Date.now() + (minutes * 60000));
-        await ActiveBonus.updateMany({}, { isActive: false });
-        await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
-        
-        // 🔥 BROADCAST TO WEB APP USERS 🔥
-        io.emit('new_promo_alert', { amount: amount, msg: message });
-
+        const { maxUsers, amount, minutes, message, photoUrl } = req.body; let expires = new Date(Date.now() + (minutes * 60000)); await ActiveBonus.updateMany({}, { isActive: false }); await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save(); io.emit('new_promo_alert', { amount: amount, msg: message });
         if (message) {
-            const users = await User.find({ telegramId: { $ne: "" } });
-            lastBroadcasts = []; 
-            const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
-
-            for (let u of users) {
-                try {
-                    let sentMsg;
-                    if (photoUrl && photoUrl.startsWith('data:image')) {
-                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
-                        let photoBuffer = Buffer.from(base64Data, 'base64');
-                        sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
-                    } else if (photoUrl && photoUrl.startsWith('http')) { 
-                        sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
-                    } else { 
-                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
-                    }
-                    lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
-                } catch(e) {} 
-            }
-        }
-        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram & Web App!` });
-    } catch (e) {
-        res.status(500).json({ success: false, message: "Error processing promo." });
-    }
+            const users = await User.find({ telegramId: { $ne: "" } }); lastBroadcasts = []; const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
+            for (let u of users) { try { let sentMsg; if (photoUrl && photoUrl.startsWith('data:image')) { let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64'); sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts }); } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts }); } else { sentMsg = await bot.sendMessage(u.telegramId, message, opts); } lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); } catch(e) {} }
+        } res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram & Web App!` });
+    } catch (e) { res.status(500).json({ success: false, message: "Error processing promo." }); }
 });
 
 // 🔥 TELEGRAM BOT INTEGRATION 🔥
@@ -655,57 +498,24 @@ let lastBroadcasts = [];
 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
-        const { message, photoUrl } = req.body;
-        if (!message) return res.json({ success: false, message: "No message entered." });
-        const users = await User.find({ telegramId: { $ne: "" } });
-        lastBroadcasts = []; let count = 0;
-        for (let u of users) {
-            try {
-                let sentMsg;
-                if (photoUrl && photoUrl.startsWith('data:image')) {
-                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
-                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
-                } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
-                lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
-            } catch(e) {} 
-        }
+        const { message, photoUrl } = req.body; if (!message) return res.json({ success: false, message: "No message entered." });
+        const users = await User.find({ telegramId: { $ne: "" } }); lastBroadcasts = []; let count = 0;
+        for (let u of users) { try { let sentMsg; if (photoUrl && photoUrl.startsWith('data:image')) { let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64'); sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" }); } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" }); } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); } lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++; } catch(e) {} }
         res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
     } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
 });
-
 app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
-    try {
-        if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." });
-        let count = 0;
-        for (let b of lastBroadcasts) { try { await bot.deleteMessage(b.chatId, b.messageId); count++; } catch(e) {} }
-        lastBroadcasts = []; res.json({ success: true, message: `🗑️ Deleted ${count} messages.` });
-    } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
+    try { if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." }); let count = 0; for (let b of lastBroadcasts) { try { await bot.deleteMessage(b.chatId, b.messageId); count++; } catch(e) {} } lastBroadcasts = []; res.json({ success: true, message: `🗑️ Deleted ${count} messages.` }); } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
 });
 
 // ==========================================
 // 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
-let gameState = "WAITING";
-let gameClock = 40; 
-let activePlayers = {}; 
-let totalPrizePool = 0; 
-let totalCollectedMoney = 0; 
-let totalTickets = 0;
-let calledNumbers = []; 
-let currentDrawSequence = []; 
-let gameId = Math.floor(Math.random() * 9000) + 1000;
-let globalTakenTickets = []; 
+let gameState = "WAITING"; let gameClock = 40; let activePlayers = {}; let totalPrizePool = 0; let totalCollectedMoney = 0; let totalTickets = 0; let calledNumbers = []; let currentDrawSequence = []; let gameId = Math.floor(Math.random() * 9000) + 1000; let globalTakenTickets = []; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
-    for(let c=0; c<5; c++) {
-        for(let r=0; r<5; r++) {
-            if((c===2 && r===2) || called.includes(grid[c][r])) {
-                m[c][r] = true;
-            }
-        }
-    }
+    for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if((c===2 && r===2) || called.includes(grid[c][r])) { m[c][r] = true; } } }
     for(let c=0; c<5; c++) if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; 
     for(let r=0; r<5; r++) if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; 
     if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
@@ -713,114 +523,46 @@ function serverCheckBingo(grid, called) {
     if(m[0][0] && m[0][4] && m[4][0] && m[4][4]) return true;
     return false;
 }
-
-function generateDrawSequence() {
-    let pool = Array.from({length: 75}, (_, i) => i + 1);
-    return pool.sort(() => Math.random() - 0.5); 
-}
+function generateDrawSequence() { let pool = Array.from({length: 75}, (_, i) => i + 1); return pool.sort(() => Math.random() - 0.5); }
 
 async function declareWinners(winners) {
     gameState = "FINISHED"; gameClock = 12; 
-    
-    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
-    let adminProfit = totalCollectedMoney - totalPrizePool; 
-    
-    let winnerNames = [];
-    let winnerPhones = [];
-    let ticketIds = [];
+    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2)); let adminProfit = totalCollectedMoney - totalPrizePool; 
+    let winnerNames = []; let winnerPhones = []; let ticketIds = [];
     
     for (let w of winners) {
         const user = await User.findOne({phone: w.player.phone});
-        if(user) { 
-            user.mainBalance += splitPrize; 
-            user.won += splitPrize; 
-            await user.save(); 
-            io.emit('balance_updated', w.player.phone); 
-        }
-        winnerNames.push(w.player.name);
-        winnerPhones.push(w.player.phone);
-        ticketIds.push(w.ticket.id);
+        if(user) { user.mainBalance += splitPrize; user.won += splitPrize; await user.save(); io.emit('balance_updated', w.player.phone); }
+        winnerNames.push(w.player.name); winnerPhones.push(w.player.phone); ticketIds.push(w.ticket.id);
     }
-
-    let uniqueNames = [...new Set(winnerNames)];
-    let displayNames = uniqueNames.join(' እና ');
-
-    await GameHistory.create({ 
-        gameId, 
-        ticketId: ticketIds.join(', '), 
-        winnerName: displayNames, 
-        winnerPhone: winnerPhones.join(', '), 
-        prize: totalPrizePool,
-        adminProfit, 
-        ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
-        winningGrid: winners[0].ticket.grid, 
-        calledNumbers: [...calledNumbers], 
-        playersData: Object.values(activePlayers) 
-    });
-
-    io.emit('game_winner', { 
-        winnerName: displayNames, 
-        ticketId: ticketIds.join(', '), 
-        prize: splitPrize, 
-        totalPrize: totalPrizePool, 
-        phone: winnerPhones.join(', '), 
-        ticketGrid: winners[0].ticket.grid, 
-        calledNumbers: [...calledNumbers],
-        isShared: winners.length > 1,
-        winnerCount: winners.length
-    });
+    let uniqueNames = [...new Set(winnerNames)]; let displayNames = uniqueNames.join(' እና ');
+    await GameHistory.create({ gameId, ticketId: ticketIds.join(', '), winnerName: displayNames, winnerPhone: winnerPhones.join(', '), prize: totalPrizePool, adminProfit, ticketPrice: GLOBAL_SETTINGS.ticketPrice, winningGrid: winners[0].ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) });
+    io.emit('game_winner', { winnerName: displayNames, ticketId: ticketIds.join(', '), prize: splitPrize, totalPrize: totalPrizePool, phone: winnerPhones.join(', '), ticketGrid: winners[0].ticket.grid, calledNumbers: [...calledNumbers], isShared: winners.length > 1, winnerCount: winners.length });
 }
 
-function resetToWaiting() {
-    gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
-    totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
-    calledNumbers = []; currentDrawSequence = [];
-    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
-}
+function resetToWaiting() { gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; calledNumbers = []; currentDrawSequence = []; gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); }
 
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn }); return; }
     if (gameState === "WAITING") {
-        gameClock--;
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
-        
+        gameClock--; io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
         if (gameClock <= 0) { 
-            if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); 
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
-            } else { 
-                gameClock = GLOBAL_SETTINGS.gameTimer; 
-            }
+            if(Object.keys(activePlayers).length > 1) { gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
+            } else { gameClock = GLOBAL_SETTINGS.gameTimer; }
         }
     } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
-            gameClock = 3; 
-            if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
-            
-            let num = currentDrawSequence.shift(); 
-            calledNumbers.push(num); 
-            io.emit('new_number', num);
-            
+            gameClock = 3; if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
+            let num = currentDrawSequence.shift(); calledNumbers.push(num); io.emit('new_number', num);
             let winnersThisRound = [];
-            for (let player of Object.values(activePlayers)) {
-                for (let ticket of player.ticketsData) { 
-                    if (serverCheckBingo(ticket.grid, calledNumbers)) { 
-                        winnersThisRound.push({ player, ticket });
-                    } 
-                }
-            }
-            if(winnersThisRound.length > 0) {
-                declareWinners(winnersThisRound);
-                return;
-            }
+            for (let player of Object.values(activePlayers)) { for (let ticket of player.ticketsData) { if (serverCheckBingo(ticket.grid, calledNumbers)) { winnersThisRound.push({ player, ticket }); } } }
+            if(winnersThisRound.length > 0) { declareWinners(winnersThisRound); return; }
         }
-    } else if (gameState === "FINISHED") {
-        gameClock--; if (gameClock <= 0) resetToWaiting();
-    }
+    } else if (gameState === "FINISHED") { gameClock--; if (gameClock <= 0) resetToWaiting(); }
 }, 1000);
 
-let buyingLocks = {}; // 🔥 Prevent Double Click / Race Condition 🔥
+let buyingLocks = {}; 
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
@@ -828,18 +570,10 @@ io.on('connection', (socket) => {
     
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-        
-        // 🔥 Prevent Double-Click / Race Condition 🔥
-        if (buyingLocks[data.phone]) return; 
-        buyingLocks[data.phone] = true;
-
+        if (buyingLocks[data.phone]) return; buyingLocks[data.phone] = true;
         try {
             let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
-            if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
-                socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
-                return;
-            }
-
+            if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) { socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`); return; }
             const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
             const user = await User.findOne({phone: data.phone});
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
@@ -848,18 +582,11 @@ io.on('connection', (socket) => {
                 user.played += 1; await user.save();
                 if (!activePlayers[data.phone]) activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
                 else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData.push(...data.ticketsData); }
-                
-                totalTickets += data.ticketCount; 
-                totalCollectedMoney += betAmount;
-                totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
-                
+                totalTickets += data.ticketCount; totalCollectedMoney += betAmount; totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
                 data.ticketIds.forEach(id => globalTakenTickets.push(id));
                 io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
             }
-        } finally {
-            // Free the lock
-            delete buyingLocks[data.phone];
-        }
+        } finally { delete buyingLocks[data.phone]; }
     });
 });
 
@@ -867,7 +594,6 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-// ... (Rest of language dictionary)
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -927,10 +653,7 @@ const t = {
 };
 
 function getLang(user) { return user && user.language && t[user.language] ? t[user.language] : t['am']; }
-function getMainMenu(user) {
-    let ln = getLang(user);
-    return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promo }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }], [{ text: ln.btn_lang }] ], resize_keyboard: true } };
-}
+function getMainMenu(user) { let ln = getLang(user); return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promo }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }], [{ text: ln.btn_lang }] ], resize_keyboard: true } }; }
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
 
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
@@ -958,15 +681,12 @@ bot.on('contact', async (msg) => {
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
             const cap = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
-            try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
-            catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
+            try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); } catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
         } else {
             user.telegramId = msg.from.id.toString(); await user.save();
             const cap = `✅ አካውንትዎ ተገናኝቷል!\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
-            try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
-            catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
-        }
-        botState[chatId] = { step: 'idle' };
+            try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); } catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
+        } botState[chatId] = { step: 'idle' };
     } catch (e) { bot.sendMessage(chatId, "❌ ይቅርታ፣ ችግር አጋጥሟል።"); }
 });
 
@@ -979,17 +699,13 @@ bot.on('message', async (msg) => {
     let state = botState[chatId] || { step: 'idle' };
 
     if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back || text.includes('ተመለስ') || text.includes('Back') || text.includes('Duubatti') || text.includes('ንድሕሪት') || text === '/back') { 
-        botState[chatId] = { step: 'idle' }; 
-        return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
+        botState[chatId] = { step: 'idle' }; return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
     if (state.step === 'support_chat') {
-        if(!user) return;
-        await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
+        if(!user) return; await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
         bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
-        state.step = 'idle';
-        botState[chatId] = state;
-        return;
+        botState[chatId] = { step: 'idle' }; return;
     }
 
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
@@ -998,29 +714,24 @@ bot.on('message', async (msg) => {
     else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
-        try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
-        catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
+        try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); } catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
     }
     else if (text === t.am.btn_balance || text === t.en.btn_balance || text === t.or.btn_balance || text === t.ti.btn_balance || text.includes('ሂሳብ') || text.includes('Balance') || text.includes('Herrega') || text.includes('ሕሳብ')) { 
-        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        bot.sendMessage(chatId, ln.balance_text(user), { parse_mode: "HTML", ...getMainMenu(user) }); 
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); bot.sendMessage(chatId, ln.balance_text(user), { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
     else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text === t.or.btn_deposit || text === t.ti.btn_deposit || text.includes('ገቢ') || text.includes('Deposit') || text.includes('Galchuu') || text.includes('ኣእቱ') || text === '/deposit') {
-        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        state.step = 'idle';
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); botState[chatId] = { step: 'idle' };
         bot.sendMessage(chatId, ln.dep_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"dep_CBEBirr"}]] } });
     } 
     else if (text === t.am.btn_withdraw || text === t.en.btn_withdraw || text === t.or.btn_withdraw || text === t.ti.btn_withdraw || text.includes('ወጪ') || text.includes('Withdraw') || text.includes('Baasuu') || text.includes('ኣውጽእ') || text === '/withdraw') {
-        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        state.step = 'idle';
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); botState[chatId] = { step: 'idle' };
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
-        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.refCode}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
-    // 🔥 PROMOTER BOT LOGIC 🔥
+    // 🔥 PROMOTER BOT LOGIC WITH WITHDRAW BUTTON 🔥
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(user.isPromoter) {
@@ -1034,44 +745,51 @@ bot.on('message', async (msg) => {
                 let msg = `📊 <b>የአስተዋዋቂ (Promoter) ዳሽቦርድ</b>\n\n` +
                           `👥 ያመጧቸው ሰዎች ብዛት: <b>${referredUsers.length}</b>\n` +
                           `💰 ያስገቡት ጠቅላላ የብር መጠን: <b>${totalDep.toLocaleString()} ETB</b>\n` +
-                          `🎁 የእርስዎ የኮሚሽን ትርፍ (${user.promoterPercent}%): <b>${(user.promoterEarned || 0).toLocaleString()} ETB</b>\n\n` +
-                          `💸 <i>ማሳሰቢያ፡ ኮሚሽን የሚታሰበው ሰዎች 'ለመጀመሪያ ጊዜ' በሚያስገቡት ዲፖዚት ላይ ብቻ ነው።</i>\n\n` +
+                          `🎁 የእርስዎ አጠቃላይ ትርፍ (${user.promoterPercent}%): <b>${(user.promoterEarned || 0).toLocaleString()} ETB</b>\n` +
+                          `⏳ <b>ያልተከፈለ ቀሪ ሂሳብ: ${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</b>\n\n` +
                           `🔗 መጋበዣ ሊንክዎ:\nhttps://t.me/bingo_habesha_bot?start=${myCode}`;
                 
-                bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
-            } catch(e) {
-                bot.sendMessage(chatId, "❌ ስህተት አጋጥሟል", { ...getMainMenu(user) });
-            }
+                bot.sendMessage(chatId, msg, { 
+                    parse_mode: "HTML", disable_web_page_preview: true, 
+                    reply_markup: { inline_keyboard: [[{text: "💸 ኮሚሽን ወጪ ማድረጊያ (Withdraw)", callback_data: "promo_wit"}]] } 
+                });
+            } catch(e) { bot.sendMessage(chatId, "❌ ስህተት አጋጥሟል", { ...getMainMenu(user) }); }
         } else {
-            bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና በኮሚሽን አብረውን ለመስራት እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
+            bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና ኮሚሽን በየቀኑ ለመሰብሰብ እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
         }
     } 
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
-        if(!user) return; 
-        bot.sendMessage(chatId, ln.guide_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
+        if(!user) return; bot.sendMessage(chatId, ln.guide_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     }
     else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
-        if(!user) return; 
-        bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት እዚሁ ይፃፉልን፣ በቅርቡ እንመልስሎታለን።</b>\n\n👉 (ወይም አድሚኑን ቀጥታ በ @bingohabesha ያናግሩ)", { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
-        state.step = 'support_chat';
+        if(!user) return; bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት እዚሁ ይፃፉልን፣ በቅርቡ እንመልስሎታለን።</b>\n\n👉 (ወይም አድሚኑን ቀጥታ በ @bingohabesha ያናግሩ)", { parse_mode: "HTML", ...cancelKeyboard(ln) }); botState[chatId] = { step: 'support_chat' };
     } 
     else if (text === t.am.btn_lang || text === t.en.btn_lang || text === t.or.btn_lang || text === t.ti.btn_lang || text.includes('ቋንቋ') || text.includes('Language') || text === '/lang') { 
-        if(!user) return; 
-        bot.sendMessage(chatId, "እባክዎ ቋንቋ ይምረጡ (Choose Language):", { 
-            reply_markup: { 
-                inline_keyboard: [
-                    [{text: "🇪🇹 አማርኛ", callback_data: "lang_am"}, {text: "🇺🇸 English", callback_data: "lang_en"}],
-                    [{text: "🌳 Afaan Oromoo", callback_data: "lang_or"}, {text: "🇪🇷 ትግርኛ", callback_data: "lang_ti"}]
-                ] 
-            } 
-        }); 
+        if(!user) return; bot.sendMessage(chatId, "እባክዎ ቋንቋ ይምረጡ (Choose Language):", { reply_markup: { inline_keyboard: [[{text: "🇪🇹 አማርኛ", callback_data: "lang_am"}, {text: "🇺🇸 English", callback_data: "lang_en"}], [{text: "🌳 Afaan Oromoo", callback_data: "lang_or"}, {text: "🇪🇷 ትግርኛ", callback_data: "lang_ti"}]] } }); 
     } 
     else if (text === t.am.btn_rules || text === t.en.btn_rules || text === t.or.btn_rules || text === t.ti.btn_rules || text.includes('ደንቦች') || text.includes('Rules') || text.includes('Seera') || text.includes('ሕግታት')) { 
-        if(!user) return; 
-        bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
+        if(!user) return; bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
     
-    // Deposit / Withdraw Process
+    // Deposit / Withdraw / Promoter Withdraw Process
+    else if (state.step === 'awaiting_promo_wit_amt') {
+        state.amount = parseFloat(text);
+        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard(ln));
+        if(user.promoterUnpaidBalance < state.amount) return bot.sendMessage(chatId, "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!", cancelKeyboard(ln));
+        
+        user.promoterUnpaidBalance -= state.amount; // Deduct immediately to prevent double spending
+        await user.save();
+        
+        botState[chatId].promoWitAmt = state.amount;
+        botState[chatId].step = 'awaiting_promo_wit_acc';
+        bot.sendMessage(chatId, `✅ መጠን: <b>${state.amount} ETB</b>\n\nገንዘቡ የሚላክበትን <b>ስልክ ቁጥር (ወይም አካውንት) እና ባንኩን</b> በትክክል ያስገቡ\n(ምሳሌ፡ 091122... Telebirr):`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
+    }
+    else if (state.step === 'awaiting_promo_wit_acc') {
+        let accInfo = text.trim();
+        await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.promoWitAmt, method: "Promoter Comm", smsText: `Transfer to: ${accInfo}` }).save();
+        bot.sendMessage(chatId, `✅ <b>የኮሚሽን ወጪ ጥያቄዎ ለአድሚን ተልኳል!</b>\n\nበቅርቡ ${state.promoWitAmt} ETB ወደ ${accInfo} ይላካል።`, { parse_mode: "HTML", ...getMainMenu(user) });
+        botState[chatId].step = 'idle';
+    }
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text); if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt, cancelKeyboard(ln));
         bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
@@ -1079,27 +797,12 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
             let txRef = getTxRef(text);
-            
-            if (!txRef) {
-                return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
-            }
-
+            if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) }); }
             let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) {
-                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
-            }
+            if (isUsed) { return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); }
 
-            await new Transaction({ 
-                phone: user.phone, 
-                type: 'deposit', 
-                amount: state.amount, 
-                method: state.method, 
-                smsText: text, 
-                txRef: txRef 
-            }).save(); 
-
+            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
-            
             await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
@@ -1122,6 +825,7 @@ bot.on('message', async (msg) => {
 bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id; const data = query.data;
     let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
+    
     if(data.startsWith('lang_')) { if(user) { user.language = data.split('_')[1]; await user.save(); ln = getLang(user); bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); } bot.answerCallbackQuery(query.id); return; }
     
     if (data === 'claim_promo') {
@@ -1135,183 +839,87 @@ bot.on('callback_query', async (query) => {
     }
 
     if(!botState[chatId]) botState[chatId] = { step: 'idle' }; let state = botState[chatId];
-    if (data.startsWith('dep_')) {
+    
+    // 🔥 PROMOTER WITHDRAW BUTTON CLICKED 🔥
+    if (data === 'promo_wit') {
+        if(!user || !user.isPromoter) return bot.answerCallbackQuery(query.id);
+        if(user.promoterUnpaidBalance < 50) return bot.answerCallbackQuery(query.id, { text: "❌ ቀሪ ሂሳብዎ ከ 50 ብር በታች ስለሆነ ወጪ ማድረግ አይችሉም።", show_alert: true });
+        
+        state.step = 'awaiting_promo_wit_amt';
+        bot.sendMessage(chatId, `ማውጣት የሚፈልጉትን የኮሚሽን መጠን ያስገቡ (ቢያንስ 50 ብር፣ ከፍተኛ ${(user.promoterUnpaidBalance).toFixed(2)}):`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
+    }
+    else if (data.startsWith('dep_')) {
         state.method = data.split('_')[1]; state.step = 'awaiting_dep_amt';
-        let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
-        let warn = state.method === 'TeleBirr' ? ln.warn_telebirr : (state.method === 'CBEBirr' ? ln.warn_cbebirr : "");
+        let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' }; let warn = state.method === 'TeleBirr' ? ln.warn_telebirr : (state.method === 'CBEBirr' ? ln.warn_cbebirr : "");
         bot.sendMessage(chatId, ln.bank_info(state.method, warn, accInfo.name, accInfo.num), { parse_mode: "HTML", ...cancelKeyboard(ln) });
     }
     else if (data.startsWith('wit_')) { 
         if(!user) return bot.answerCallbackQuery(query.id);
-        state.method = data.split('_')[1]; 
-        state.destinationPhone = user.phone; 
-        state.step = 'awaiting_wit_amt'; 
+        state.method = data.split('_')[1]; state.destinationPhone = user.phone; state.step = 'awaiting_wit_amt'; 
         bot.sendMessage(chatId, ln.enter_wit_amt(user.phone), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
     }
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
 });
 
 const basicAuth = (req, res, next) => {
-    const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
-    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-    
+    const b64auth = (req.headers.authorization || '').split(' ')[1] || ''; const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
-    res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
-    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
+    res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"'); res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
 };
 
-app.get('/admin', basicAuth, (req, res) => {
-    let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
-    if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>");
-});
-
-app.get('/finance', basicAuth, (req, res) => {
-    let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html');
-    if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>");
-});
+app.get('/admin', basicAuth, (req, res) => { let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html'); if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>"); });
+app.get('/finance', basicAuth, (req, res) => { let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html'); if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>"); });
 
 app.get('*', (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'index.html')) ? path.join(__dirname, 'index.html') : path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(target)) {
         let html = fs.readFileSync(target, 'utf8');
-        
         let maintenanceScript = `
         <style>
-            #dynamic-maintenance {
-                display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                background: rgba(0,0,0,0.5); z-index: 9999999; flex-direction: column; align-items: center;
-                justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;
-                backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            }
-            body.paused-mode > *:not(#dynamic-maintenance) {
-                filter: blur(12px) grayscale(50%);
-                pointer-events: none;
-                user-select: none;
-            }
-            
-            .shared-alert-box {
-                background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3));
-                border: 2px solid #4ade80;
-                color: #ffffff;
-                padding: 12px;
-                border-radius: 12px;
-                margin-top: 15px;
-                font-size: 15px;
-                font-weight: bold;
-                text-align: center;
-                box-shadow: 0 0 15px rgba(74,222,128,0.5);
-                animation: popBlink 1s infinite alternate;
-                width: 90%;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            @keyframes popBlink { 
-                from { transform: scale(1); box-shadow: 0 0 10px rgba(74,222,128,0.4); } 
-                to { transform: scale(1.05); box-shadow: 0 0 25px rgba(74,222,128,0.8); } 
-            }
-            /* 🔥 WEB PROMO POPUP CSS 🔥 */
+            #dynamic-maintenance { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+            body.paused-mode > *:not(#dynamic-maintenance) { filter: blur(12px) grayscale(50%); pointer-events: none; user-select: none; }
+            .shared-alert-box { background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); animation: popBlink 1s infinite alternate; width: 90%; margin-left: auto; margin-right: auto; }
+            @keyframes popBlink { from { transform: scale(1); box-shadow: 0 0 10px rgba(74,222,128,0.4); } to { transform: scale(1.05); box-shadow: 0 0 25px rgba(74,222,128,0.8); } }
             .web-promo-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%); background: linear-gradient(135deg, #ea580c, #d97706); border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100000; width: 90%; max-width: 350px; text-align: center; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1); backdrop-filter: blur(10px); visibility: hidden; }
             .web-promo-popup.show { transform: translateX(-50%) translateY(0); visibility: visible; }
         </style>
-
         <div id="dynamic-maintenance">
             <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
             <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
             <p style="font-size:18px;color:#f8fafc;max-width:500px;line-height:1.6;font-family:sans-serif;background:rgba(0,0,0,0.7);padding:20px;border-radius:12px;border:1px solid #ea580c;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
         </div>
-
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 if (typeof io !== 'undefined') {
                     const blurSocket = io();
-                    
-                    blurSocket.on('game_status', (data) => {
-                        if (data.state === 'MAINTENANCE') {
-                            document.body.classList.add('paused-mode');
-                            document.getElementById('dynamic-maintenance').style.display = 'flex';
-                        } else {
-                            document.body.classList.remove('paused-mode');
-                            document.getElementById('dynamic-maintenance').style.display = 'none';
-                        }
-                    });
-
+                    blurSocket.on('game_status', (data) => { if (data.state === 'MAINTENANCE') { document.body.classList.add('paused-mode'); document.getElementById('dynamic-maintenance').style.display = 'flex'; } else { document.body.classList.remove('paused-mode'); document.getElementById('dynamic-maintenance').style.display = 'none'; } });
                     blurSocket.on('game_winner', (data) => {
-                        let oldAlert = document.getElementById('shared-alert-msg');
-                        if(oldAlert) oldAlert.remove();
-
+                        let oldAlert = document.getElementById('shared-alert-msg'); if(oldAlert) oldAlert.remove();
                         setTimeout(() => {
-                            let amIWinner = false;
-                            if (window.currentUser && window.currentUser.phone && data.phone.includes(window.currentUser.phone)) {
-                                amIWinner = true;
-                            }
-
-                            let titleEl = document.querySelector('.winner-card h3');
-                            let nameEl = document.getElementById('win-name');
-                            let winnerCard = document.querySelector('.winner-card');
-
+                            let amIWinner = false; if (window.currentUser && window.currentUser.phone && data.phone.includes(window.currentUser.phone)) { amIWinner = true; }
+                            let titleEl = document.querySelector('.winner-card h3'); let nameEl = document.getElementById('win-name'); let winnerCard = document.querySelector('.winner-card');
                             if (amIWinner) {
-                                if (titleEl) {
-                                    titleEl.innerHTML = "🎉 እንኳን ደስ አሎት! 🎉";
-                                    titleEl.style.color = "#4ade80";
-                                    titleEl.style.fontSize = "16px";
-                                }
-                                if (nameEl) {
-                                    nameEl.innerHTML = "እርስዎ አሸንፈዋል! 👏";
-                                    nameEl.style.color = "#fbbf24";
-                                }
-
-                                let alertBox = document.createElement('div');
-                                alertBox.id = 'shared-alert-msg';
-                                alertBox.className = 'shared-alert-box';
-
-                                if (data.isShared) {
-                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
-                                } else {
-                                    alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
-                                    alertBox.style.borderColor = "#fbbf24";
-                                    alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
-                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
-                                }
+                                if (titleEl) { titleEl.innerHTML = "🎉 እንኳን ደስ አሎት! 🎉"; titleEl.style.color = "#4ade80"; titleEl.style.fontSize = "16px"; }
+                                if (nameEl) { nameEl.innerHTML = "እርስዎ አሸንፈዋል! 👏"; nameEl.style.color = "#fbbf24"; }
+                                let alertBox = document.createElement('div'); alertBox.id = 'shared-alert-msg'; alertBox.className = 'shared-alert-box';
+                                if (data.isShared) { alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>"; } else { alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))"; alertBox.style.borderColor = "#fbbf24"; alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)"; alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>"; }
                                 if(winnerCard) winnerCard.appendChild(alertBox);
-
                             } else {
-                                if (titleEl) {
-                                    titleEl.innerHTML = "አሸናፊ (WINNER)";
-                                    titleEl.style.color = "white";
-                                }
-                                if (data.isShared) {
-                                    let alertBox = document.createElement('div');
-                                    alertBox.id = 'shared-alert-msg';
-                                    alertBox.className = 'shared-alert-box';
-                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB</span>";
-                                    if(winnerCard) winnerCard.appendChild(alertBox);
-                                }
+                                if (titleEl) { titleEl.innerHTML = "አሸናፊ (WINNER)"; titleEl.style.color = "white"; }
+                                if (data.isShared) { let alertBox = document.createElement('div'); alertBox.id = 'shared-alert-msg'; alertBox.className = 'shared-alert-box'; alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB</span>"; if(winnerCard) winnerCard.appendChild(alertBox); }
                             }
                         }, 150); 
                     });
                 }
             });
-        </script>
-        `;
-        
+        </script>`;
         html = html.replace('<body>', '<body>\n' + maintenanceScript);
-        
-        if (GLOBAL_SETTINGS.isGamePaused) {
-            html = html.replace('<body>', '<body class="paused-mode">');
-        }
-        
+        if (GLOBAL_SETTINGS.isGamePaused) { html = html.replace('<body>', '<body class="paused-mode">'); }
         res.send(html);
-    } else {
-        res.send("<h1>Bingo Habesha System is Running.</h1>");
-    }
+    } else { res.send("<h1>Bingo Habesha System is Running.</h1>"); }
 });
 
-setInterval(async () => {
-    try {
-        await autoApprovePendingDeposits();
-    } catch (error) {}
-}, 30000); 
-
+setInterval(async () => { try { await autoApprovePendingDeposits(); } catch (error) {} }, 30000); 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
