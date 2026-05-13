@@ -168,16 +168,18 @@ async function autoApprovePendingDeposits() {
                     await matchedSMS.save();
                     user.playBalance += totalCredit;
 
-                    // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY & TELEGRAM USERS ONLY) 🔥
-                    if(user.referredBy && !user.hasMadeFirstDeposit && user.telegramId && user.telegramId.trim() !== "") {
-                        let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
-                        if(promoter) {
-                            let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
-                            promoter.mainBalance += commission; 
-                            promoter.promoterEarned += commission;
-                            await promoter.save();
-                            user.promoterCommissionGenerated = commission; 
-                            io.emit('balance_updated', promoter.phone);
+                    // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
+                    if (!user.hasMadeFirstDeposit) {
+                        if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
+                            let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                            if(promoter) {
+                                let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
+                                promoter.mainBalance += commission; 
+                                promoter.promoterEarned += commission;
+                                await promoter.save();
+                                user.promoterCommissionGenerated = commission; 
+                                io.emit('balance_updated', promoter.phone);
+                            }
                         }
                         user.hasMadeFirstDeposit = true; 
                     }
@@ -365,6 +367,19 @@ app.post('/api/admin/delete-transactions', auth, async (req, res) => {
     try { await Transaction.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
 });
+
+// 🔥 NEW: DELETE PLAYER BET FROM GAME HISTORY 🔥
+app.post('/api/admin/delete-game-player', auth, async (req, res) => {
+    try {
+        let h = await GameHistory.findById(req.body.id);
+        if(h) {
+            h.playersData = h.playersData.filter(p => p.phone !== req.body.phone);
+            await h.save();
+            res.json({ success: true });
+        } else { res.json({ success: false }); }
+    } catch(e) { res.json({ success: false }); }
+});
+
 // 🔥 PROMOTER APIs 🔥
 app.post('/api/admin/promoters-data', auth, async (req, res) => {
     try {
@@ -439,16 +454,18 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
 
-            // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY & TELEGRAM USERS ONLY) 🔥
-            if(user.referredBy && !user.hasMadeFirstDeposit && user.telegramId && user.telegramId.trim() !== "") {
-                let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
-                if(promoter) {
-                    let commission = actualAmount * (promoter.promoterPercent / 100);
-                    promoter.mainBalance += commission; 
-                    promoter.promoterEarned += commission;
-                    await promoter.save();
-                    user.promoterCommissionGenerated = commission;
-                    io.emit('balance_updated', promoter.phone);
+            // 🔥 PROMOTER COMMISSION LOGIC (FIRST DEPOSIT ONLY) 🔥
+            if (!user.hasMadeFirstDeposit) {
+                if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
+                    let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                    if(promoter) {
+                        let commission = actualAmount * (promoter.promoterPercent / 100);
+                        promoter.mainBalance += commission; 
+                        promoter.promoterEarned += commission;
+                        await promoter.save();
+                        user.promoterCommissionGenerated = commission;
+                        io.emit('balance_updated', promoter.phone);
+                    }
                 }
                 user.hasMadeFirstDeposit = true;
             }
@@ -803,6 +820,7 @@ setInterval(() => {
     }
 }, 1000);
 
+let buyingLocks = {}; // 🔥 Prevent Double Click / Race Condition 🔥
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
@@ -811,27 +829,36 @@ io.on('connection', (socket) => {
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         
-        let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
-        if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
-            socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
-            return;
-        }
+        // 🔥 Prevent Double-Click / Race Condition 🔥
+        if (buyingLocks[data.phone]) return; 
+        buyingLocks[data.phone] = true;
 
-        const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
-        const user = await User.findOne({phone: data.phone});
-        if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-            if (user.playBalance >= betAmount) user.playBalance -= betAmount;
-            else { user.mainBalance -= (betAmount - user.playBalance); user.playBalance = 0; }
-            user.played += 1; await user.save();
-            if (!activePlayers[data.phone]) activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
-            else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData.push(...data.ticketsData); }
-            
-            totalTickets += data.ticketCount; 
-            totalCollectedMoney += betAmount;
-            totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
-            
-            data.ticketIds.forEach(id => globalTakenTickets.push(id));
-            io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
+        try {
+            let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
+            if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
+                socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
+                return;
+            }
+
+            const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
+            const user = await User.findOne({phone: data.phone});
+            if(user && (user.playBalance + user.mainBalance) >= betAmount) {
+                if (user.playBalance >= betAmount) user.playBalance -= betAmount;
+                else { user.mainBalance -= (betAmount - user.playBalance); user.playBalance = 0; }
+                user.played += 1; await user.save();
+                if (!activePlayers[data.phone]) activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
+                else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData.push(...data.ticketsData); }
+                
+                totalTickets += data.ticketCount; 
+                totalCollectedMoney += betAmount;
+                totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
+                
+                data.ticketIds.forEach(id => globalTakenTickets.push(id));
+                io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
+            }
+        } finally {
+            // Free the lock
+            delete buyingLocks[data.phone];
         }
     });
 });
