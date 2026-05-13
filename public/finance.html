@@ -88,10 +88,10 @@
 
         <div class="summary-box">
             <p style="color: var(--text-gray); font-weight: bold; margin-bottom:5px; text-transform:uppercase; font-size:11px;">
-                Net Profit (Gross Profit - Bonus - Promoter Commissions)
+                Net Profit (Gross Profit - Bonus - Promoter Paid)
             </p>
             <h1 id="net-profit" style="margin:0; font-size:45px; color:var(--faded-green);">0.00 ETB</h1>
-            <p style="font-size:11px; color:var(--text-gray); margin-top:10px;">የተጣራ የድርጅት ትርፍ (ኮሚሽን እና ቦነስ ከተቀነሰ በኋላ)</p>
+            <p style="font-size:11px; color:var(--text-gray); margin-top:10px;">የተጣራ የድርጅት ትርፍ (ፕሮሞተር የወጣው እና ቦነስ ከተቀነሰ በኋላ)</p>
         </div>
 
         <h3 style="color:var(--text-gray); font-size:14px; border-bottom:1px solid var(--border); padding-bottom:5px;">🏦 Bank Flow (የባንክ ዝውውር)</h3>
@@ -103,6 +103,7 @@
             <div class="kpi-card card-wit">
                 <span class="kpi-title">⬆️ Total Withdrawals</span>
                 <h2 class="kpi-value" id="val-withdraw" style="color: var(--red);">0.00</h2>
+                <span class="hint-text">*Includes Promoters</span>
             </div>
             <div class="kpi-card card-cash">
                 <span class="kpi-title">💵 Net Cash Flow</span>
@@ -134,9 +135,9 @@
                 <span class="hint-text">Claimed Promos</span>
             </div>
             <div class="kpi-card card-promo">
-                <span class="kpi-title">🗣️ Promoter Commission</span>
-                <h2 class="kpi-value" id="val-promoter" style="color: var(--orange);">0.00</h2>
-                <span class="hint-text">*All-Time Total</span>
+                <span class="kpi-title">🗣️ Promoter Comm. Paid</span>
+                <h2 class="kpi-value" id="val-promoter-paid" style="color: var(--orange);">0.00</h2>
+                <span class="hint-text">Withdrawn Commissions</span>
             </div>
         </div>
 
@@ -179,7 +180,6 @@
         try {
             document.getElementById('page-title').innerText = "Loading Data...";
             
-            // Fetch normal finance data
             let res = await fetch('/api/admin/finance-raw-data', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
@@ -187,10 +187,8 @@
             });
             
             if(res.status === 401) { alert("❌ Wrong Password!"); document.getElementById('page-title').innerText = "Finance Report"; return; }
-            
             let data = await res.json();
             
-            // Fetch promoter data separately for commissions
             let resPromo = await fetch('/api/admin/promoters-data', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
@@ -248,21 +246,21 @@
         });
 
         // Calculations
-        let tDep = filteredTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + (t.amount || 0), 0);
-        let tWit = filteredTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + (t.amount || 0), 0);
+        let tDep = filteredTxs.filter(t => t.type === 'deposit' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
+        let tWit = filteredTxs.filter(t => t.type === 'withdraw' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
         let netCash = tDep - tWit;
 
         let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
         let tWinnings = filteredGames.reduce((sum, g) => sum + (g.prize || 0), 0);
-        let tTurnover = tProf + tWinnings; // Total bets placed
+        let tTurnover = tProf + tWinnings;
 
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-        // Promoter Commission (All-Time total as DB doesn't store exact date of commission earning)
-        let tPromoter = rawData.promoters.reduce((sum, p) => sum + (p.earned || 0), 0);
+        // 🔥 CALCULATE EXACT PROMOTER PAYOUTS FOR THE SELECTED PERIOD 🔥
+        let tPromoterPaid = filteredTxs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        // Final Net Profit Calculation
-        let net = tProf - tBon - tPromoter;
+        // Final Net Profit Calculation (የተጣራ ትርፍ)
+        let net = tProf - tBon - tPromoterPaid;
 
         let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
         
@@ -276,7 +274,7 @@
         document.getElementById('val-game-profit').innerText = tProf.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         
         document.getElementById('val-bonus').innerText = tBon.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
-        document.getElementById('val-promoter').innerText = tPromoter.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        document.getElementById('val-promoter-paid').innerText = tPromoterPaid.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         
         document.getElementById('val-liability').innerText = totalLiability.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
 
