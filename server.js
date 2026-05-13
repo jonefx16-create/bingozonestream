@@ -1,3 +1,4 @@
+// --- START OF FILE server.js ---
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -28,7 +29,7 @@ mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).cat
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true }, 
-    refCode: { type: String, default: "" }, // 🔥 አጭር መጋበዣ ኮድ መያዣ
+    refCode: { type: String, default: "" }, 
     telegramId: { type: String, default: "" }, 
     name: String, 
     password: { type: String, required: true },
@@ -37,14 +38,15 @@ const User = mongoose.model('User', new mongoose.Schema({
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
     won: { type: Number, default: 0 }, 
-    totalDeposited: { type: Number, default: 0 }, // 🔥 አዲስ: ተጠቃሚው ያስገባው አጠቃላይ ብር
+    totalDeposited: { type: Number, default: 0 }, 
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
+    
     // 🔥 PROMOTER FIELDS 🔥
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
     promoterEarned: { type: Number, default: 0 },
-    promoterUnpaidBalance: { type: Number, default: 0 }, // 🔥 አዲስ: ለአስተዋዋቂው ያልተከፈለ ቀሪ ሒሳብ
+    promoterUnpaidBalance: { type: Number, default: 0 }, 
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
     promoterCommissionGenerated: { type: Number, default: 0 } 
 }));
@@ -100,7 +102,6 @@ async function loadSettings() {
 }
 loadSettings();
 
-// 🔥 አጭር ኮድ መፍጠሪያ 🔥
 function generateRefCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -137,9 +138,6 @@ async function isSmsAlreadyUsed(userInputSms) {
     return !!inTxRef;
 }
 
-// ==========================================
-// 🟢 AUTOMATIC DEPOSIT ENGINE (Promoter Included)
-// ==========================================
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
@@ -167,25 +165,21 @@ async function autoApprovePendingDeposits() {
                     await tx.save();
                     matchedSMS.isUsed = true;
                     await matchedSMS.save();
-                    
                     user.playBalance += totalCredit;
-                    user.totalDeposited += actualReceivedAmount; // 🔥 አዲስ: ሪፖርት ለመያዝ
+                    user.totalDeposited += actualReceivedAmount;
 
-                    // 🔥 PROMOTER COMMISSION LOGIC (ሁልጊዜ ዲፖዚት ሲያደርጉ) 🔥
                     if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
                             let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
-                            promoter.promoterUnpaidBalance += commission; // ወደ ያልተከፈለው ይደመራል
+                            promoter.promoterUnpaidBalance += commission; 
                             promoter.promoterEarned += commission;
                             await promoter.save();
                             user.promoterCommissionGenerated += commission; 
                             io.emit('balance_updated', promoter.phone);
                         }
                     }
-                    
-                    if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true;
-                    
+                    if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true; 
                     await user.save();
                     io.emit('balance_updated', tx.phone);
                 }
@@ -194,9 +188,6 @@ async function autoApprovePendingDeposits() {
     } catch (err) { console.log("Auto-Approve Error:", err); }
 }
 
-// ==========================================
-// 🔵 IPHONE SMS WEBHOOK
-// ==========================================
 app.post('/api/webhook/iphone-sms', async (req, res) => {
     try {
         const { secret, message } = req.body;
@@ -217,9 +208,6 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// ==========================================
-// 🔵 USER APIs
-// ==========================================
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
@@ -241,14 +229,14 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone, password: req.body.password });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
-    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } // Backward compatibility
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
 });
 
 app.post('/api/telegram-login', async (req, res) => {
     let user = await User.findOne({ telegramId: req.body.telegramId.toString() });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ የታገደ አካውንት!" });
-    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } // Backward compatibility
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
     if(user) res.json({ success: true, user });
     else res.json({ success: false, message: "Share contact in bot first." });
 });
@@ -301,7 +289,6 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 CLAIM WEB PROMO BONUS API 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
@@ -324,9 +311,6 @@ app.post('/api/claim-promo-web', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
-// ==========================================
-// 🔵 ADMIN CONTROL APIs
-// ==========================================
 const auth = (req, res, next) => { 
     const pass = req.body.adminPass; 
     if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
@@ -335,7 +319,7 @@ const auth = (req, res, next) => {
 
 app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
-app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(200)));
+app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(300)));
 
 app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
     try {
@@ -351,10 +335,32 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
-    res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS });
+    
+    // 🔥 DAILY METRICS CALCULATION 🔥
+    let startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' });
+    let dailyDeposit = todayTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
+    let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
+
+    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
+    let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+
+    res.json({ 
+        totalUsers, 
+        livePlayers: Object.keys(activePlayers).length, 
+        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+        gameId, 
+        totalProfit, 
+        currentJackpot: totalPrizePool, 
+        settings: GLOBAL_SETTINGS,
+        dailyDeposit,
+        dailyWithdraw,
+        dailyBonus
+    });
 });
 
-// 🔥 BULK & SINGLE DELETE APIs 🔥
 app.post('/api/admin/delete-users', auth, async (req, res) => {
     try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
@@ -370,7 +376,6 @@ app.post('/api/admin/delete-transactions', auth, async (req, res) => {
     catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 NEW: DELETE PLAYER BET FROM GAME HISTORY 🔥
 app.post('/api/admin/delete-game-player', auth, async (req, res) => {
     try {
         let h = await GameHistory.findById(req.body.id);
@@ -382,7 +387,6 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 PROMOTER APIs 🔥
 app.post('/api/admin/promoters-data', auth, async (req, res) => {
     try {
         let promoters = await User.find({ isPromoter: true });
@@ -438,7 +442,6 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
-// 🔥 PAY PROMOTER API (አድሚን ሲከፍል ሒሳብ ሚቀንስበት) 🔥
 app.post('/api/admin/pay-promoter', auth, async (req, res) => {
     try {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
@@ -451,7 +454,6 @@ app.post('/api/admin/pay-promoter', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 DELETE GAMES OLDER THAN 2 DAYS 🔥
 app.post('/api/admin/delete-old-history', auth, async (req, res) => {
     try {
         let twoDaysAgo = new Date(Date.now() - (48 * 60 * 60 * 1000));
@@ -478,20 +480,18 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             }
             let totalCredit = actualAmount + bonus;
             user.playBalance += totalCredit;
-            user.totalDeposited += actualAmount; // 🔥 አዲስ
+            user.totalDeposited += actualAmount;
 
-            // 🔥 PROMOTER COMMISSION LOGIC (ሁልጊዜ ዲፖዚት ሲያደርጉ) 🔥
             if(user.referredBy && user.referredBy.trim() !== "") {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
                     let commission = actualAmount * (promoter.promoterPercent / 100);
-                    promoter.promoterUnpaidBalance += commission; // አዲስ: ወደ ያልተከፈለው ይደመራል
+                    promoter.promoterUnpaidBalance += commission; 
                     promoter.promoterEarned += commission;
                     await promoter.save();
                     user.promoterCommissionGenerated += commission;
                 }
             }
-
         } else if (tx.type === 'withdraw') {
             let set = GLOBAL_SETTINGS;
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
@@ -508,7 +508,6 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         }
     } else { 
         tx.status = 'Rejected'; 
-        // ፕሮሞተር ወጪ ያዘዘውን አድሚን ሪጀክት ካደረገው፣ ብሩ ወደ ሒሳቡ ይመለሳል
         if(tx.type === 'withdraw' && tx.method === 'Promoter Comm') {
             user.promoterUnpaidBalance += tx.amount;
         } else if(tx.type === 'withdraw') {
@@ -553,7 +552,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
-// 🔥 Trigger Cashback API (Manual Force Override allowed)
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
         const minL = GLOBAL_SETTINGS.cashbackMinLoss;
@@ -644,7 +642,6 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         await ActiveBonus.updateMany({}, { isActive: false });
         await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
         
-        // 🔥 BROADCAST TO WEB APP USERS 🔥
         io.emit('new_promo_alert', { amount: amount, msg: message });
 
         if (message) {
@@ -1047,7 +1044,6 @@ bot.on('message', async (msg) => {
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.refCode}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
-    // 🔥 PROMOTER BOT LOGIC WITH WITHDRAW BUTTON 🔥
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(user.isPromoter) {
@@ -1099,13 +1095,13 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
     
-    // Deposit / Withdraw Process
+    // Deposit / Withdraw / Promoter Withdraw Process
     else if (state.step === 'awaiting_promo_wit_amt') {
         state.amount = parseFloat(text);
         if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard(ln));
         if(user.promoterUnpaidBalance < state.amount) return bot.sendMessage(chatId, "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!", cancelKeyboard(ln));
         
-        user.promoterUnpaidBalance -= state.amount; // Deduct immediately to prevent double spending
+        user.promoterUnpaidBalance -= state.amount; 
         await user.save();
         
         botState[chatId].promoWitAmt = state.amount;
@@ -1115,7 +1111,7 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_promo_wit_acc') {
         let accInfo = text.trim();
         await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.promoWitAmt, method: "Promoter Comm", smsText: `Transfer to: ${accInfo}` }).save();
-        bot.sendMessage(chatId, `✅ <b>የኮሚሽን ወጪ ጥያቄዎ ለአድሚን ተልኳል!</b>\n\nበቅርቡ ${state.promoWitAmt} ETB ወደ ${accInfo} ይላካል።\n(ይህ በአድሚን Pending Withdraws ውስጥ ይገባል)`, { parse_mode: "HTML", ...getMainMenu(user) });
+        bot.sendMessage(chatId, `✅ <b>የኮሚሽን ወጪ ጥያቄዎ ለአድሚን ተልኳል!</b>\n\nበቅርቡ ${state.promoWitAmt} ETB ወደ ${accInfo} ይላካል።`, { parse_mode: "HTML", ...getMainMenu(user) });
         botState[chatId].step = 'idle';
     }
     else if (state.step === 'awaiting_dep_amt') {
@@ -1125,27 +1121,12 @@ bot.on('message', async (msg) => {
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
             let txRef = getTxRef(text);
-            
-            if (!txRef) {
-                return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) });
-            }
-
+            if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) }); }
             let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) {
-                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) });
-            }
+            if (isUsed) { return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); }
 
-            await new Transaction({ 
-                phone: user.phone, 
-                type: 'deposit', 
-                amount: state.amount, 
-                method: state.method, 
-                smsText: text, 
-                txRef: txRef 
-            }).save(); 
-
+            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
-            
             await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
