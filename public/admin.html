@@ -42,7 +42,7 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--panel); padding: 20px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
         .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase;}
-        .stat-card h2 { margin: 10px 0 0 0; font-size: 24px; font-weight: 900;}
+        .stat-card h2 { margin: 10px 0 0 0; font-size: 20px; font-weight: 900;}
         
         input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
         
@@ -180,6 +180,11 @@
                 <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3><h2 style="color: var(--blue);" id="stat-total-profit">0.00 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
+                
+                <!-- 🔥 አዳዲሶቹ የዛሬ መረጃዎች (DAILY) 🔥 -->
+                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--red);"><h3>📤 Daily Withdraw</h3><h2 style="color: var(--red);" id="stat-daily-wit">0.00 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid #fca5a5;"><h3>🎁 Daily Bonus</h3><h2 style="color: #fca5a5;" id="stat-daily-bon">0.00 ETB</h2></div>
             </div>
         </div>
 
@@ -223,7 +228,7 @@
             </div>
         </div>
 
-        <!-- USERS (NO CHECKBOX, NO DELETE) -->
+        <!-- USERS -->
         <div id="tab-users" class="tab-content">
             <div class="stats-grid" style="margin-bottom: 20px;">
                 <div class="stat-card" style="border-color: var(--faded-green);"><h3>Daily Active</h3><h2 id="u-daily" style="color:var(--faded-green);">0</h2></div>
@@ -720,6 +725,11 @@
                 document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
                 document.getElementById('stat-current-jackpot').innerText = Number(data.currentJackpot || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US'); document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US'); document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
+                
+                // 🔥 NEW DAILY BOXES UPDATE 🔥
+                document.getElementById('stat-daily-dep').innerText = Number(data.dailyDeposit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+                document.getElementById('stat-daily-wit').innerText = Number(data.dailyWithdraw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+                document.getElementById('stat-daily-bon').innerText = Number(data.dailyBonus || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
             }
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
