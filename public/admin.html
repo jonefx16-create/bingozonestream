@@ -232,11 +232,6 @@
                 <div class="stat-card" style="border-color: var(--orange);"><h3>Total Users</h3><h2 id="box-total-reg" style="color:var(--orange);">0</h2></div>
             </div>
             
-            <div class="bulk-action-bar" id="bulk-users">
-                <div><span style="font-weight:bold; color:white;">👥 Users Bulk Action: </span><span id="sel-count-users" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
-                <button class="action-btn btn-red btn-sm" onclick="bulkDelete('users')">🗑️ Delete Selected Users</button>
-            </div>
-
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-user" onkeyup="filterArray('users')" placeholder="🔍 Search Name or Phone...">
                 <button class="action-btn" onclick="exportTableToCSV('table-users', 'Registered_Users.csv')" style="padding: 10px;">📥 Export Excel</button>
@@ -245,15 +240,13 @@
                 <div class="table-responsive">
                     <table id="table-users">
                         <thead><tr>
-                            <th><input type="checkbox" id="chk-all-users" onchange="toggleSelectAll('users')"></th>
-                            <th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Action</th>
+                            <th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Total Deposited</th><th>Action</th>
                         </tr></thead>
                         <tbody id="users-body"></tbody>
                     </table>
                 </div>
                 <!-- Pagination Controls -->
                 <div class="pagination" id="pag-users"></div>
-                <p style="text-align:center; color:gray; font-size:11px; margin-top:5px;">💡 Hint: Hold <b>Ctrl</b> and Click a row to quickly select multiple items.</p>
             </div>
         </div>
 
@@ -266,7 +259,7 @@
 
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-history" onkeyup="filterArray('history')" placeholder="🔍 Search Winner by Phone or Game ID...">
-                <button class="action-btn" onclick="exportTableToCSV('table-winners', 'Winners_History.csv')" style="padding: 10px;">📥 Export Excel</button>
+                <button class="action-btn btn-red" onclick="deleteOldGames()" style="padding: 10px; margin-left: 10px;">🗑️ Delete Games Older Than 2 Days</button>
             </div>
             <div class="card">
                 <div class="table-responsive">
@@ -280,6 +273,7 @@
                 </div>
                 <!-- Pagination Controls -->
                 <div class="pagination" id="pag-history"></div>
+                <p style="text-align:center; color:gray; font-size:11px; margin-top:5px;">💡 Hint: Hold <b>Ctrl</b> and Click a row to quickly select multiple items.</p>
             </div>
         </div>
 
@@ -311,12 +305,14 @@
                 </div>
                 <!-- Pagination Controls -->
                 <div class="pagination" id="pag-tx"></div>
+                <p style="text-align:center; color:gray; font-size:11px; margin-top:5px;">💡 Hint: Hold <b>Ctrl</b> and Click a row to quickly select multiple items.</p>
             </div>
         </div>
 
         <!-- PLAYERS/GAME INFO -->
         <div id="tab-players" class="tab-content">
             <div class="card">
+                <p style="font-size: 12px; color: var(--gold); margin-top:0;">⚠️ ጌም መምረጫው የሚያሳየው የዛሬ እና የትናንት (የ 2 ቀን) ጌሞችን ብቻ ነው።</p>
                 <select id="game-details-select" onchange="renderGamePlayers(this.value)" style="border-color: var(--purple); font-weight: bold;">
                     <option value="">-- Select a Game to View Details --</option>
                 </select>
@@ -345,7 +341,7 @@
             </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-promoters">
-                    <thead><tr><th>Name</th><th>Phone</th><th>Commission %</th><th>People Brought</th><th>Total Earned</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Phone</th><th>Comm %</th><th>People</th><th>Total Earned (አጠቃላይ)</th><th>Unpaid Balance (ቀሪ)</th><th>Action</th></tr></thead>
                     <tbody id="promoters-body"></tbody>
                 </table>
             </div></div>
@@ -601,17 +597,17 @@
                     <span class="p-stat-title">Users</span><span class="p-stat-val" id="pp-users">0</span>
                 </div>
                 <div class="p-stat-box" style="border-right: 1px solid var(--border);">
-                    <span class="p-stat-title">Total Deposits</span><span class="p-stat-val" style="color:var(--gold);" id="pp-deposits">0.00</span>
+                    <span class="p-stat-title">Total Earned</span><span class="p-stat-val" style="color:var(--faded-green);" id="pp-earned">0.00</span>
                 </div>
                 <div class="p-stat-box">
-                    <span class="p-stat-title">Total Earned</span><span class="p-stat-val" style="color:var(--faded-green);" id="pp-earned">0.00</span>
+                    <span class="p-stat-title">Unpaid Balance</span><span class="p-stat-val" style="color:var(--orange);" id="pp-unpaid">0.00</span>
                 </div>
             </div>
         </div>
         <div style="padding: 0 20px 20px 20px;">
-            <h4 style="margin-top:0; color:var(--text-gray); border-bottom:1px solid var(--border); padding-bottom:5px;">👥 Users Brought</h4>
+            <h4 style="margin-top:0; color:var(--text-gray); border-bottom:1px solid var(--border); padding-bottom:5px;">👥 Users Brought & Profit Generated</h4>
             <div style="max-height: 35vh; overflow-y: auto;">
-                <table class="ref-users-table"><thead><tr><th>Name</th><th>Phone</th><th>Total Deposits</th><th>Commission Cut</th></tr></thead><tbody id="pp-users-body"></tbody></table>
+                <table class="ref-users-table"><thead><tr><th>Name</th><th>Phone</th><th>Total Deposits</th><th>Profit Generated</th></tr></thead><tbody id="pp-users-body"></tbody></table>
             </div>
             <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('promoter-profile-modal').style.display='none'">Close Profile</button>
         </div>
@@ -683,36 +679,27 @@
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
     let chatData = {}; let activeChatTgId = null;
 
-    // 🔥 Data & Pagination States 🔥
     let limitPerPage = 50;
     
-    // Arrays
     let allUsers = []; let filteredUsers = []; let p_users = 1;
     let allHistory = []; let filteredHistory = []; let p_hist = 1;
     let allTx = []; let filteredTx = []; let p_tx = 1; let currentHistType = 'deposit';
     let allRefs = []; let filteredRefs = []; let p_ref = 1; let globalInvBonusAmt = 10;
     
-    // Selected IDs
-    let selUsers = new Set();
     let selHistory = new Set();
     let selTx = new Set();
 
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); loadPromoters(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
-    
     function simpleSearch(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
 
-    // 🔥 CTRL + CLICK Row Selection Logic 🔥
     function handleRowClick(e, type, val) {
         if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
         if(e.ctrlKey) {
             e.preventDefault(); 
             let cb = document.querySelector(`.chk-${type}[value="${val}"]`);
-            if(cb) {
-                cb.checked = !cb.checked;
-                toggleIndiv(cb, type);
-            }
+            if(cb) { cb.checked = !cb.checked; toggleIndiv(cb, type); }
         }
     }
 
@@ -740,22 +727,17 @@
     }
     setInterval(loadLiveStats, 3000);
 
-    // =====================================
-    // 🔥 DATA LOADING & PAGINATION LOGIC 🔥
-    // =====================================
     async function loadData() {
         try {
-            // 1. Users
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
             
             allUsers = await uRes.json();
             filteredUsers = allUsers;
-            selUsers.clear(); p_users = 1;
+            p_users = 1;
             renderUsersPage();
             
-            // Extract Banned & Referrals
             let bannedHtml = "", refList = {};
             allUsers.forEach(u => {
                 if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; }
@@ -763,7 +745,6 @@
             });
             document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
 
-            // Settings
             let tRes2 = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let statsData = await tRes2.json(); 
             globalInvBonusAmt = statsData.settings.inviteBonus || 10;
@@ -795,36 +776,40 @@
                 document.getElementById('set-cb-amt').value = statsData.settings.cashbackAmount || '';
             }
 
-            // Referrals List parsing for Pagination
             allRefs = Object.keys(refList).map(k => ({ phone: k, list: refList[k] }));
             filteredRefs = allRefs;
             p_ref = 1;
             renderRefPage();
 
-            // 2. Transactions
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allTx = await tRes.json(); 
             populatePendingDeposits(); populatePendingWithdraws(); 
             filterHistoryTxType(currentHistType);
 
-            // 3. History
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allHistory = await hRes.json();
             filteredHistory = allHistory;
             selHistory.clear(); p_hist = 1;
             renderHistoryPage();
 
-            // Game details dropdown
-            let dropHtml = '<option value="">-- Select a Game --</option>'; allHistory.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
+            let dropHtml = '<option value="">-- Select a Game --</option>'; 
+            let now = new Date().getTime();
+            let fortyEightHours = 2 * 24 * 60 * 60 * 1000;
             
-            // if a game is already selected, re-render it
+            allHistory.forEach((h, idx) => { 
+                let gameTime = new Date(h.date).getTime();
+                if ((now - gameTime) <= fortyEightHours) {
+                    dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName} (${new Date(h.date).toLocaleDateString()})</option>`; 
+                }
+            }); 
+            document.getElementById('game-details-select').innerHTML = dropHtml;
+            
             let selectedGameIdx = document.getElementById('game-details-select').value;
             if(selectedGameIdx !== "") renderGamePlayers(selectedGameIdx);
 
         } catch (e) { console.log(e); }
     }
 
-    // --- Search & Filter ---
     function filterArray(type) {
         if(type === 'users') {
             let term = document.getElementById('search-user').value.toLowerCase();
@@ -858,12 +843,10 @@
         renderTxPage();
     }
 
-    // --- Pagination Renderers ---
     function renderPagination(containerId, totalItems, currentPage, funcName) {
         let totalPages = Math.ceil(totalItems / limitPerPage);
         let cont = document.getElementById(containerId);
         if(totalPages <= 1) { cont.innerHTML = ""; return; }
-        
         cont.innerHTML = `
             <button class="page-btn" onclick="${funcName}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>⬅️ Prev</button>
             <span class="page-info">Page ${currentPage} of ${totalPages}</span>
@@ -871,32 +854,25 @@
         `;
     }
 
-    // 1. Users Render
     window.changePageUsers = function(p) { p_users = p; renderUsersPage(); }
     function renderUsersPage() {
         let start = (p_users - 1) * limitPerPage;
         let html = "";
         filteredUsers.slice(start, start + limitPerPage).forEach(u => {
-            let isChecked = selUsers.has(u.phone) ? 'checked' : '';
-            let rowClass = isChecked ? 'selectable-row selected' : 'selectable-row';
-            html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'users', '${u.phone}')">
-                <td><input type="checkbox" class="chk-users" value="${u.phone}" ${isChecked} onchange="toggleIndiv(this, 'users')"></td>
+            html += `<tr>
                 <td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td>
                 <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td style="color:var(--gold); font-weight:bold;">${Number(u.totalDeposited || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                 <td>
                     <button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
                     <button class="btn-sm btn-orange" onclick="banUser('${u.phone}')">Ban</button>
-                    <button class="btn-sm btn-red" onclick="singleDelete('users', '${u.phone}')">Delete</button>
                 </td>
             </tr>`;
         });
         document.getElementById('users-body').innerHTML = html || `<tr><td colspan="7" style="text-align:center;">No users found.</td></tr>`;
-        document.getElementById('chk-all-users').checked = false;
         renderPagination('pag-users', filteredUsers.length, p_users, 'changePageUsers');
-        updateBulkUI('users');
     }
 
-    // 2. History Render
     window.changePageHistory = function(p) { p_hist = p; renderHistoryPage(); }
     function renderHistoryPage() {
         let start = (p_hist - 1) * limitPerPage;
@@ -923,7 +899,6 @@
         updateBulkUI('history');
     }
 
-    // 3. Transactions Render
     window.changePageTx = function(p) { p_tx = p; renderTxPage(); }
     function renderTxPage() {
         let start = (p_tx - 1) * limitPerPage;
@@ -946,7 +921,6 @@
         updateBulkUI('tx');
     }
 
-    // 4. Referrals Render (Invite & Earn)
     window.changePageRef = function(p) { p_ref = p; renderRefPage(); }
     function renderRefPage() {
         let start = (p_ref - 1) * limitPerPage;
@@ -964,17 +938,14 @@
         renderPagination('pag-ref', filteredRefs.length, p_ref, 'changePageRef');
     }
 
-    // --- Select & Delete Logic ---
     function toggleSelectAll(type) {
         let isChecked = document.getElementById(`chk-all-${type}`).checked;
         let checkboxes = document.querySelectorAll(`.chk-${type}`);
-        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        let set = type === 'history' ? selHistory : selTx;
         
         checkboxes.forEach(cb => {
             cb.checked = isChecked;
             if(isChecked) set.add(cb.value); else set.delete(cb.value);
-            
-            // Highlight row logic
             let row = cb.closest('tr');
             if(isChecked) row.classList.add('selected'); else row.classList.remove('selected');
         });
@@ -982,7 +953,7 @@
     }
 
     function toggleIndiv(cb, type) {
-        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        let set = type === 'history' ? selHistory : selTx;
         let row = cb.closest('tr');
         if(cb.checked) { set.add(cb.value); row.classList.add('selected'); } 
         else { set.delete(cb.value); row.classList.remove('selected'); }
@@ -990,7 +961,7 @@
     }
 
     function updateBulkUI(type) {
-        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        let set = type === 'history' ? selHistory : selTx;
         let bar = document.getElementById(`bulk-${type}`);
         let cnt = document.getElementById(`sel-count-${type}`);
         if(set.size > 0) { bar.style.display = "flex"; cnt.innerText = `${set.size} Selected`; } 
@@ -1000,25 +971,32 @@
     async function singleDelete(type, id) {
         if(!confirm("Are you sure you want to delete this record?")) return;
         let endpoint = `/api/admin/delete-${type}`;
-        let payload = type === 'users' ? { adminPass: pass, phones: [id] } : { adminPass: pass, ids: [id] };
+        let payload = { adminPass: pass, ids: [id] };
         await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         loadData();
     }
 
     async function bulkDelete(type) {
-        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        let set = type === 'history' ? selHistory : selTx;
         if(set.size === 0) return;
         if(!confirm(`⚠️ Are you sure you want to delete ${set.size} records? This cannot be undone.`)) return;
         
         let endpoint = `/api/admin/delete-${type}`;
-        let payload = type === 'users' ? { adminPass: pass, phones: Array.from(set) } : { adminPass: pass, ids: Array.from(set) };
+        let payload = { adminPass: pass, ids: Array.from(set) };
         
         document.querySelector(`#bulk-${type} button`).innerText = "Deleting...";
         await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         loadData();
     }
 
-    // 🔥 GAME PLAYER DELETE (PLAYERS & BETS INFO TAB) 🔥
+    async function deleteOldGames() {
+        if(!confirm("⚠️ እርግጠኛ ነዎት ከ 2 ቀን በፊት የተጫወቱትን ጌሞች ከዳታቤዝ ላይ ሙሉ በሙሉ ማጥፋት ይፈልጋሉ?")) return;
+        try {
+            await fetch('/api/admin/delete-old-history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
+            alert("✅ የቆዩ ጌሞች በተሳካ ሁኔታ ጠፍተዋል።"); loadData();
+        } catch(e) { alert("❌ ማጥፋት አልተቻለም።"); }
+    }
+
     function renderGamePlayers(index) { 
         if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } 
         let game = allHistory[index]; 
@@ -1039,15 +1017,10 @@
         if(!confirm(`Are you sure you want to delete ${phone}'s bet from this game history?`)) return;
         try {
             await fetch('/api/admin/delete-game-player', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, id: gameId, phone: phone}) });
-            loadData(); // Re-fetch all data to refresh UI smoothly
+            loadData();
         } catch(e) { alert("Failed to delete bet."); }
     }
 
-    // =====================================
-    // 🔥 REST OF THE ADMIN FUNCTIONS 🔥
-    // =====================================
-
-    // Promoters
     async function loadPromoters() {
         if(!pass) return;
         try {
@@ -1055,15 +1028,38 @@
             let data = await res.json();
             if(data.success) {
                 let pBody = document.getElementById('promoters-body');
-                pBody.innerHTML = data.promoters.map(p => `
+                pBody.innerHTML = data.promoters.map(p => {
+                    let unpaid = p.unpaidBalance !== undefined ? p.unpaidBalance : 0; 
+                    return `
                     <tr>
                         <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;">${p.phone}</td><td>${p.percent}%</td>
-                        <td>${p.usersBrought} Users</td><td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                        <td><button class="btn-sm" style="background:var(--cyan); color:black;" onclick="openPromoterProfile('${p.phone}')">👁️ View</button> <button class="btn-sm btn-blue" onclick="setPromoterAction(true, '${p.phone}')">Edit %</button> <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button></td>
+                        <td>${p.usersBrought} Users</td>
+                        <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                        <td style="color:var(--orange); font-weight:bold;">${Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                        <td>
+                            <button class="btn-sm" style="background:var(--cyan); color:black;" onclick="openPromoterProfile('${p.phone}')">👁️ View</button> 
+                            <button class="btn-sm btn-blue" onclick="setPromoterAction(true, '${p.phone}')">Edit %</button> 
+                            <button class="btn-sm btn-orange" onclick="payPromoter('${p.phone}')">💸 Pay</button>
+                            <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button>
+                        </td>
                     </tr>
-                `).join('') || `<tr><td colspan="6" style="text-align:center;">No promoters found.</td></tr>`;
+                `}).join('') || `<tr><td colspan="7" style="text-align:center;">No promoters found.</td></tr>`;
             }
         } catch(e) {}
+    }
+
+    async function payPromoter(phone) {
+        let amount = prompt("ስንት ብር ከፈሉት? ያስገቡት ብር ከቀሪ ሂሳቡ (Unpaid Balance) ላይ ይቀነሳል።\nAmount to deduct:");
+        if(amount === null || amount === "") return;
+        amount = Number(amount);
+        if(isNaN(amount) || amount <= 0) return alert("❌ ትክክለኛ የብር መጠን ያስገቡ!");
+        
+        try {
+            let res = await fetch('/api/admin/pay-promoter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount})});
+            let data = await res.json();
+            alert(data.message || "ክፍያው በተሳካ ሁኔታ ተቀንሷል።");
+            loadPromoters();
+        } catch(e) { alert("Error paying promoter."); }
     }
 
     async function setPromoterAction(isAdding, existingPhone = null) {
@@ -1082,17 +1078,21 @@
             let res = await fetch('/api/admin/promoter-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})});
             let data = await res.json();
             if(data.success) {
-                let p = data.promoter; document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`; document.getElementById('pp-phone').innerText = p.phone; document.getElementById('pp-users').innerText = data.details.length;
-                let totalDeps = data.details.reduce((sum, d) => sum + (d.totalDeposit || 0), 0); 
-                document.getElementById('pp-deposits').innerText = Number(totalDeps).toLocaleString('en-US', {minimumFractionDigits: 2});
+                let p = data.promoter; 
+                let unpaid = p.promoterUnpaidBalance !== undefined ? p.promoterUnpaidBalance : 0;
+                
+                document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`; 
+                document.getElementById('pp-phone').innerText = p.phone; 
+                document.getElementById('pp-users').innerText = data.details.length;
                 document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
+                document.getElementById('pp-unpaid').innerText = Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2});
+                
                 let tableHtml = data.details.map(d => `<tr><td>${d.name}</td><td style="color:var(--cyan);">${d.phone}</td><td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
                 document.getElementById('pp-users-body').innerHTML = tableHtml; document.getElementById('promoter-profile-modal').style.display = 'flex';
             }
         } catch(e) { alert("Error loading profile"); }
     }
 
-    // Support Chat
     async function loadMessages() {
         try {
             let res = await fetch('/api/admin/get-messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -1121,7 +1121,6 @@
     async function sendReply() { let input = document.getElementById('chat-input'); let text = input.value.trim(); if(!activeChatTgId || !text) return; input.disabled = true; try { await fetch('/api/admin/reply-message', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, telegramId: activeChatTgId, text})}); input.value = ''; await loadMessages(); } catch(e) {} input.disabled = false; input.focus(); }
     setInterval(() => { if(document.getElementById('tab-messages').classList.contains('active')) loadMessages(); }, 5000);
 
-    // Helpers
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
