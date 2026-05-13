@@ -45,7 +45,16 @@
         .stat-card h2 { margin: 10px 0 0 0; font-size: 24px; font-weight: 900;}
         
         input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
-        input[type="checkbox"] { width: auto; transform: scale(1.5); margin-right: 10px; cursor: pointer; }
+        
+        /* Checkbox & Pagination Styles */
+        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--faded-green); margin:0; }
+        .bulk-action-bar { display: none; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.1); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--red); margin-bottom: 15px; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; }
+        .page-btn { background: var(--border); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .page-btn:hover:not(:disabled) { background: var(--blue); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-info { color: var(--gold); font-weight: bold; font-size: 14px; }
+
         .search-bar { background-color: #050810; border: 1px solid var(--blue); flex: 1; min-width: 200px;}
         .search-container { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;}
         
@@ -224,45 +233,86 @@
                 <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--orange);"><h3>Total Users</h3><h2 id="box-total-reg" style="color:var(--orange);">0</h2></div>
             </div>
+            
+            <div class="bulk-action-bar" id="bulk-users">
+                <div><span style="font-weight:bold; color:white;">👥 Users Bulk Action: </span><span id="sel-count-users" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
+                <button class="action-btn btn-red btn-sm" onclick="bulkDelete('users')">🗑️ Delete Selected Users</button>
+            </div>
+
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-user" onkeyup="searchTable('search-user', 'table-users')" placeholder="🔍 Search Name or Phone...">
+                <input type="text" class="search-bar" id="search-user" onkeyup="filterArray('users')" placeholder="🔍 Search Name or Phone...">
                 <button class="action-btn" onclick="exportTableToCSV('table-users', 'Registered_Users.csv')" style="padding: 10px;">📥 Export Excel</button>
             </div>
-            <div class="card"><div class="table-responsive">
-                <table id="table-users">
-                    <thead><tr><th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Action</th></tr></thead>
-                    <tbody id="users-body"></tbody>
-                </table>
-            </div></div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table id="table-users">
+                        <thead><tr>
+                            <th><input type="checkbox" id="chk-all-users" onchange="toggleSelectAll('users')"></th>
+                            <th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Action</th>
+                        </tr></thead>
+                        <tbody id="users-body"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="pagination" id="pag-users"></div>
+            </div>
         </div>
 
         <!-- HISTORY -->
         <div id="tab-history" class="tab-content">
+            <div class="bulk-action-bar" id="bulk-history">
+                <div><span style="font-weight:bold; color:white;">🏆 Winners History Action: </span><span id="sel-count-history" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
+                <button class="action-btn btn-red btn-sm" onclick="bulkDelete('history')">🗑️ Delete Selected History</button>
+            </div>
+
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-history" onkeyup="searchTable('search-history', 'table-winners')" placeholder="🔍 Search Winner by Phone...">
+                <input type="text" class="search-bar" id="search-history" onkeyup="filterArray('history')" placeholder="🔍 Search Winner by Phone or Game ID...">
                 <button class="action-btn" onclick="exportTableToCSV('table-winners', 'Winners_History.csv')" style="padding: 10px;">📥 Export Excel</button>
             </div>
-            <div class="card"><div class="table-responsive">
-                <table id="table-winners">
-                    <thead><tr><th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Admin Profit</th><th>Action</th></tr></thead>
-                    <tbody id="game-history-body"></tbody>
-                </table>
-            </div></div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table id="table-winners">
+                        <thead><tr>
+                            <th><input type="checkbox" id="chk-all-history" onchange="toggleSelectAll('history')"></th>
+                            <th>Date</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Profit</th><th>Action</th>
+                        </tr></thead>
+                        <tbody id="game-history-body"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="pagination" id="pag-history"></div>
+            </div>
         </div>
 
         <!-- FINANCE HISTORY -->
         <div id="tab-history-tx" class="tab-content">
             <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
-                <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTx('deposit')">⬇️ Deposits</button>
-                <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTx('withdraw')">⬆️ Withdrawals</button>
-                <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTx('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
+                <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTxType('deposit')">⬇️ Deposits</button>
+                <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTxType('withdraw')">⬆️ Withdrawals</button>
+                <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTxType('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
             </div>
+            
+            <div class="bulk-action-bar" id="bulk-tx">
+                <div><span style="font-weight:bold; color:white;">💸 Transactions Action: </span><span id="sel-count-tx" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
+                <button class="action-btn btn-red btn-sm" onclick="bulkDelete('transactions')">🗑️ Delete Selected Tx</button>
+            </div>
+
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-tx" onkeyup="searchTable('search-tx', 'table-history-tx')" placeholder="🔍 Search by Phone Number...">
+                <input type="text" class="search-bar" id="search-tx" onkeyup="filterArray('tx')" placeholder="🔍 Search by Phone Number...">
             </div>
-            <div class="card"><div class="table-responsive">
-                <table id="table-history-tx"><thead><tr><th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th></tr></thead><tbody id="history-tx-body"></tbody></table>
-            </div></div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table id="table-history-tx">
+                        <thead><tr>
+                            <th><input type="checkbox" id="chk-all-tx" onchange="toggleSelectAll('tx')"></th>
+                            <th>Date</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th><th>Action</th>
+                        </tr></thead>
+                        <tbody id="history-tx-body"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="pagination" id="pag-tx"></div>
+            </div>
         </div>
 
         <!-- PLAYERS/GAME INFO -->
@@ -289,7 +339,7 @@
             </div>
 
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-promoter" onkeyup="searchTable('search-promoter', 'table-promoters')" placeholder="🔍 Search Promoter...">
+                <input type="text" class="search-bar" id="search-promoter" onkeyup="simpleSearch('search-promoter', 'table-promoters')" placeholder="🔍 Search Promoter...">
             </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-promoters">
@@ -529,8 +579,6 @@
 </div>
 
 <!-- ================= MODALS ================= -->
-
-<!-- 🔥 NEW: PROMOTER PROFILE MODAL 🔥 -->
 <div class="modal" id="promoter-profile-modal">
     <div class="modal-content" style="max-width: 600px; padding:0;">
         <div class="promoter-header">
@@ -538,27 +586,20 @@
             <p id="pp-phone" style="margin:0; color:var(--cyan); font-family:monospace; font-size:16px;">09...</p>
             <div class="promoter-stats">
                 <div class="p-stat-box" style="border-right: 1px solid var(--border);">
-                    <span class="p-stat-title">Users</span>
-                    <span class="p-stat-val" id="pp-users">0</span>
+                    <span class="p-stat-title">Users</span><span class="p-stat-val" id="pp-users">0</span>
                 </div>
                 <div class="p-stat-box" style="border-right: 1px solid var(--border);">
-                    <span class="p-stat-title">Total 1st Deposits</span>
-                    <span class="p-stat-val" style="color:var(--gold);" id="pp-deposits">0.00</span>
+                    <span class="p-stat-title">Total Deposits</span><span class="p-stat-val" style="color:var(--gold);" id="pp-deposits">0.00</span>
                 </div>
                 <div class="p-stat-box">
-                    <span class="p-stat-title">Total Earned</span>
-                    <span class="p-stat-val" style="color:var(--faded-green);" id="pp-earned">0.00</span>
+                    <span class="p-stat-title">Total Earned</span><span class="p-stat-val" style="color:var(--faded-green);" id="pp-earned">0.00</span>
                 </div>
             </div>
         </div>
-        
         <div style="padding: 0 20px 20px 20px;">
-            <h4 style="margin-top:0; color:var(--text-gray); border-bottom:1px solid var(--border); padding-bottom:5px;">👥 Users Brought (ያመጣቸው ሰዎች ዝርዝር)</h4>
+            <h4 style="margin-top:0; color:var(--text-gray); border-bottom:1px solid var(--border); padding-bottom:5px;">👥 Users Brought</h4>
             <div style="max-height: 35vh; overflow-y: auto;">
-                <table class="ref-users-table">
-                    <thead><tr><th>Name</th><th>Phone</th><th>First Deposit</th><th>Commission Cut</th></tr></thead>
-                    <tbody id="pp-users-body"></tbody>
-                </table>
+                <table class="ref-users-table"><thead><tr><th>Name</th><th>Phone</th><th>Total Deposits</th><th>Commission Cut</th></tr></thead><tbody id="pp-users-body"></tbody></table>
             </div>
             <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('promoter-profile-modal').style.display='none'">Close Profile</button>
         </div>
@@ -569,16 +610,16 @@
     <div class="modal-content">
         <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
         <input type="hidden" id="eu-oldPhone">
-        <label>Phone Number (ስልክ)</label><input type="text" id="eu-phone">
-        <label>Password (ፓስወርድ)</label><input type="text" id="eu-password">
+        <label>Phone Number</label><input type="text" id="eu-phone">
+        <label>Password</label><input type="text" id="eu-password">
         <div style="display:flex; gap:10px;">
-            <div style="flex:1;"><label>Main Balance (ETB)</label><input type="number" id="eu-main"></div>
-            <div style="flex:1;"><label>Play Balance (ETB)</label><input type="number" id="eu-play"></div>
+            <div style="flex:1;"><label>Main Balance</label><input type="number" id="eu-main"></div>
+            <div style="flex:1;"><label>Play Balance</label><input type="number" id="eu-play"></div>
         </div>
-        <label style="color:var(--gold); font-weight:bold;">🏆 Rank Edit (አጠቃላይ ያሸነፈው)</label>
+        <label style="color:var(--gold); font-weight:bold;">🏆 Rank Edit (Won)</label>
         <input type="number" id="eu-won" style="border-color:var(--gold); background:rgba(251, 191, 36, 0.1);">
         <div style="display:flex; gap:10px; margin-top: 10px;">
-            <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save All (አስተካክል)</button>
+            <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save</button>
             <button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
         </div>
     </div>
@@ -586,16 +627,16 @@
 
 <div class="modal" id="claimed-users-modal">
     <div class="modal-content" style="max-width: 350px;">
-        <h3 style="color: var(--orange); margin-top:0;">🎁 የወሰዱ ሰዎች ዝርዝር</h3>
-        <p style="font-size: 13px;"><b>የወሰዱት ብዛት:</b> <span id="claimed-count" style="color:var(--faded-green); font-weight:bold;">0</span> / <span id="claimed-max">0</span></p>
+        <h3 style="color: var(--orange); margin-top:0;">🎁 Claimed Users</h3>
+        <p style="font-size: 13px;"><b>Count:</b> <span id="claimed-count" style="color:var(--faded-green); font-weight:bold;">0</span> / <span id="claimed-max">0</span></p>
         <div id="claimed-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('claimed-users-modal').style.display='none'">ዝጋ (Close)</button>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('claimed-users-modal').style.display='none'">Close</button>
     </div>
 </div>
 
 <div class="modal" id="history-modal">
     <div class="modal-content" style="text-align: center; max-width: 600px;">
-        <h3 style="color: var(--faded-green); margin-top:0;">🎟️ Winner Cards (አሸናፊ ካርቴላዎች)</h3>
+        <h3 style="color: var(--faded-green); margin-top:0;">🎟️ Winner Cards</h3>
         <p id="m-called" style="font-size: 13px; color: var(--text-gray); word-wrap: break-word;"></p>
         <div id="m-grid" style="text-align: left; max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
         <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button>
@@ -604,47 +645,54 @@
 
 <div class="modal" id="sms-modal">
     <div class="modal-content" style="max-width: 600px; text-align: left;">
-        <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 የክፍያ ዝርዝር መረጃ (Deposit)</h3>
+        <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 SMS Details</h3>
         <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:15px;">
-            <p style="margin:0;"><b>📱 ስልክ:</b> <span id="sms-phone" style="color:white;"></span></p>
-            <p style="margin:0;"><b>🏦 ባንክ:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase; font-weight:bold;"></span></p>
-            <p style="margin:0;"><b>💰 መጠን:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span> ETB</p>
+            <p style="margin:0;"><b>📱 Phone:</b> <span id="sms-phone" style="color:white;"></span></p>
+            <p style="margin:0;"><b>🏦 Bank:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase;"></span></p>
+            <p style="margin:0;"><b>💰 Amount:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span></p>
         </div>
-        <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ ሙሉ የባንክ ማረጋገጫ (SMS Text):</span>
-        <div id="sms-text" style="font-size: 16px; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">ዝጋ (Close)</button>
+        <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ Raw SMS:</span>
+        <div id="sms-text"></div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">Close</button>
     </div>
 </div>
 
 <div class="modal" id="invited-modal">
     <div class="modal-content" style="max-width: 350px;">
-        <h3 style="color: var(--purple); margin-top:0;">👥 የተጋበዙ ሰዎች</h3>
-        <p style="font-size: 13px;"><b>የጋባዥ ስልክ:</b> <span id="inviter-phone" style="color:var(--cyan); font-weight:bold;"></span></p>
+        <h3 style="color: var(--purple); margin-top:0;">👥 Invited People</h3>
+        <p style="font-size: 13px;"><b>Inviter:</b> <span id="inviter-phone" style="color:var(--cyan); font-weight:bold;"></span></p>
         <div id="invited-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">ዝጋ (Close)</button>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">Close</button>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io(); let pass = ""; let allTransactions = []; let allGameHistories = []; let currentHistType = 'deposit'; let isGameCurrentlyPaused = false;
-    let chatData = {}; let activeChatTgId = null; let settingsLoaded = false;
+    const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
+    let chatData = {}; let activeChatTgId = null;
+
+    // 🔥 Data & Pagination States 🔥
+    let limitPerPage = 50;
+    
+    // Arrays
+    let allUsers = []; let filteredUsers = []; let p_users = 1;
+    let allHistory = []; let filteredHistory = []; let p_hist = 1;
+    let allTx = []; let filteredTx = []; let p_tx = 1; let currentHistType = 'deposit';
+    
+    // Selected IDs
+    let selUsers = new Set();
+    let selHistory = new Set();
+    let selTx = new Set();
 
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { pass = document.getElementById('adminPass').value; if(!pass) return; loadData(); loadLiveStats(); loadPromoters(); }
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
-    function searchTable(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
+    
+    function simpleSearch(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
 
     function toggleTimeInputs(type) {
-        if(type === 'dep') {
-            let isChecked = document.getElementById('set-dep-time-restrict').checked;
-            let container = document.getElementById('time-inputs-container-dep');
-            if(isChecked) { container.classList.remove('disabled-input'); } else { container.classList.add('disabled-input'); }
-        } else if (type === 'wit') {
-            let isChecked = document.getElementById('set-wit-time-restrict').checked;
-            let container = document.getElementById('time-inputs-container-wit');
-            if(isChecked) { container.classList.remove('disabled-input'); } else { container.classList.add('disabled-input'); }
-        }
+        if(type === 'dep') { document.getElementById('set-dep-time-restrict').checked ? document.getElementById('time-inputs-container-dep').classList.remove('disabled-input') : document.getElementById('time-inputs-container-dep').classList.add('disabled-input'); } 
+        else if (type === 'wit') { document.getElementById('set-wit-time-restrict').checked ? document.getElementById('time-inputs-container-wit').classList.remove('disabled-input') : document.getElementById('time-inputs-container-wit').classList.add('disabled-input'); }
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
@@ -660,33 +708,39 @@
                 document.getElementById('stat-current-jackpot').innerText = Number(data.currentJackpot || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US'); document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US'); document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
             }
-            
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
         } catch(e) {}
     }
     setInterval(loadLiveStats, 3000);
 
+    // =====================================
+    // 🔥 DATA LOADING & PAGINATION LOGIC 🔥
+    // =====================================
     async function loadData() {
         try {
+            // 1. Users
             let uRes = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             if(uRes.status === 401) { alert("Wrong Password!"); return; }
             document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
-            let users = await uRes.json(); 
-            let activeHtml = "", bannedHtml = "", refList = {};
-            users.forEach(u => {
-                let row = `<tr><td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td><td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>`;
-                if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; } 
-                else { activeHtml += row + `<td><button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit Rank & User</button> <button class="btn-sm btn-red" onclick="banUser('${u.phone}')">Ban</button></td></tr>`; }
+            
+            allUsers = await uRes.json();
+            filteredUsers = allUsers;
+            selUsers.clear(); p_users = 1;
+            renderUsersPage();
+            
+            // Extract Banned & Referrals (No pagination needed for these small ones usually, keeping original logic)
+            let bannedHtml = "", refList = {};
+            allUsers.forEach(u => {
+                if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; }
                 if(u.referredBy && u.referredBy !== "") { if(!refList[u.referredBy]) refList[u.referredBy] = []; refList[u.referredBy].push(u.phone); }
             });
-            document.getElementById('users-body').innerHTML = activeHtml; document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
+            document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
 
+            // Settings
             let tRes2 = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let statsData = await tRes2.json(); 
             let invBonusAmt = statsData.settings.inviteBonus || 10;
-
-            // 🔥 ማስታወቂያውን ሲፅፉበት እንዳይጠፋ ማስተካከያ (Settings are populated ONLY on load/refresh) 🔥
             if(statsData.settings) {
                 document.getElementById('set-price').value = statsData.settings.ticketPrice || 10;
                 document.getElementById('set-timer').value = statsData.settings.gameTimer || 40;
@@ -694,7 +748,6 @@
                 document.getElementById('set-admin-profit').value = statsData.settings.adminProfitPercent !== undefined ? statsData.settings.adminProfitPercent : 15;
                 document.getElementById('set-reg-bonus').value = statsData.settings.registerBonus !== undefined ? statsData.settings.registerBonus : 10;
                 document.getElementById('set-inv-bonus').value = statsData.settings.inviteBonus !== undefined ? statsData.settings.inviteBonus : 10;
-                
                 document.getElementById('set-dep-time-restrict').checked = statsData.settings.depBonusTimeRestricted || false;
                 document.getElementById('set-dep-min').value = statsData.settings.depBonusMinAmount || '';
                 document.getElementById('set-dep-perc').value = statsData.settings.depBonusPercent || '';
@@ -703,7 +756,6 @@
                 document.getElementById('set-dep-text-am').value = statsData.settings.depBannerTextAm || '';
                 document.getElementById('set-dep-text-en').value = statsData.settings.depBannerTextEn || '';
                 toggleTimeInputs('dep'); 
-
                 document.getElementById('set-wit-active').checked = statsData.settings.isWitBonusActive || false;
                 document.getElementById('set-wit-time-restrict').checked = statsData.settings.witBonusTimeRestricted || false;
                 document.getElementById('set-wit-min').value = statsData.settings.witBonusMinAmount || '';
@@ -711,7 +763,6 @@
                 document.getElementById('set-wit-start').value = statsData.settings.witHappyHourStart || '';
                 document.getElementById('set-wit-end').value = statsData.settings.witHappyHourEnd || '';
                 toggleTimeInputs('wit'); 
-
                 document.getElementById('set-cb-active').checked = statsData.settings.isCashbackActive || false;
                 document.getElementById('set-cb-min').value = statsData.settings.cashbackMinLoss || '';
                 document.getElementById('set-cb-amt').value = statsData.settings.cashbackAmount || '';
@@ -724,22 +775,192 @@
             }
             document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="4" style="text-align:center;">No referrals yet.</td></tr>`;
 
+            // 2. Transactions
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            allTransactions = await tRes.json(); 
-            populatePendingDeposits(); 
-            populatePendingWithdraws(); 
-            filterHistoryTx(currentHistType);
+            allTx = await tRes.json(); 
+            populatePendingDeposits(); populatePendingWithdraws(); 
+            filterHistoryTxType(currentHistType);
 
+            // 3. History
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            allGameHistories = await hRes.json();
-            
-            document.getElementById('game-history-body').innerHTML = allGameHistories.map((h, idx) => `<tr><td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td><td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td><button class="btn-sm btn-blue" onclick="viewHistory(${idx})">Winner Cards (ካርቴላዎች)</button></td></tr>`).join('');
-            
-            let dropHtml = '<option value="">-- Select a Game --</option>'; allGameHistories.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
+            allHistory = await hRes.json();
+            filteredHistory = allHistory;
+            selHistory.clear(); p_hist = 1;
+            renderHistoryPage();
+
+            // Game details dropdown
+            let dropHtml = '<option value="">-- Select a Game --</option>'; allHistory.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
         } catch (e) { console.log(e); }
     }
 
-    // 🔥 PROMOTER LOGIC 🔥
+    // --- Search & Filter ---
+    function filterArray(type) {
+        if(type === 'users') {
+            let term = document.getElementById('search-user').value.toLowerCase();
+            filteredUsers = allUsers.filter(u => u.status !== 'banned' && (u.name.toLowerCase().includes(term) || u.phone.includes(term)));
+            p_users = 1; renderUsersPage();
+        } else if (type === 'history') {
+            let term = document.getElementById('search-history').value.toLowerCase();
+            filteredHistory = allHistory.filter(h => (h.winnerPhone||'').includes(term) || (h.gameId||'').toString().includes(term));
+            p_hist = 1; renderHistoryPage();
+        } else if (type === 'tx') {
+            let term = document.getElementById('search-tx').value.toLowerCase();
+            let baseArray = currentHistType === 'rejected' ? allTx.filter(t => t.status === 'Rejected') : allTx.filter(t => t.type === currentHistType && t.status === 'Approved');
+            filteredTx = baseArray.filter(t => t.phone.includes(term));
+            p_tx = 1; renderTxPage();
+        }
+    }
+
+    function filterHistoryTxType(type) {
+        currentHistType = type; 
+        document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
+        document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
+        document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
+        
+        filteredTx = type === 'rejected' ? allTx.filter(t => t.status === 'Rejected') : allTx.filter(t => t.type === type && t.status === 'Approved');
+        selTx.clear(); p_tx = 1;
+        document.getElementById('search-tx').value = '';
+        renderTxPage();
+    }
+
+    // --- Pagination Renderers ---
+    function renderPagination(containerId, totalItems, currentPage, funcName) {
+        let totalPages = Math.ceil(totalItems / limitPerPage);
+        let cont = document.getElementById(containerId);
+        if(totalPages <= 1) { cont.innerHTML = ""; return; }
+        
+        cont.innerHTML = `
+            <button class="page-btn" onclick="${funcName}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>⬅️ Prev</button>
+            <span class="page-info">Page ${currentPage} of ${totalPages}</span>
+            <button class="page-btn" onclick="${funcName}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next ➡️</button>
+        `;
+    }
+
+    // 1. Users Render
+    window.changePageUsers = function(p) { p_users = p; renderUsersPage(); }
+    function renderUsersPage() {
+        let start = (p_users - 1) * limitPerPage;
+        let html = "";
+        filteredUsers.slice(start, start + limitPerPage).forEach(u => {
+            let isChecked = selUsers.has(u.phone) ? 'checked' : '';
+            html += `<tr>
+                <td><input type="checkbox" class="chk-users" value="${u.phone}" ${isChecked} onchange="toggleIndiv(this, 'users')"></td>
+                <td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td>
+                <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td>
+                    <button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
+                    <button class="btn-sm btn-orange" onclick="banUser('${u.phone}')">Ban</button>
+                    <button class="btn-sm btn-red" onclick="singleDelete('users', '${u.phone}')">Delete</button>
+                </td>
+            </tr>`;
+        });
+        document.getElementById('users-body').innerHTML = html || `<tr><td colspan="7" style="text-align:center;">No users found.</td></tr>`;
+        document.getElementById('chk-all-users').checked = false;
+        renderPagination('pag-users', filteredUsers.length, p_users, 'changePageUsers');
+        updateBulkUI('users');
+    }
+
+    // 2. History Render
+    window.changePageHistory = function(p) { p_hist = p; renderHistoryPage(); }
+    function renderHistoryPage() {
+        let start = (p_hist - 1) * limitPerPage;
+        let html = "";
+        filteredHistory.slice(start, start + limitPerPage).forEach((h, idx) => {
+            let isChecked = selHistory.has(h._id) ? 'checked' : '';
+            let realIdx = allHistory.indexOf(h); // for view cards
+            html += `<tr>
+                <td><input type="checkbox" class="chk-history" value="${h._id}" ${isChecked} onchange="toggleIndiv(this, 'history')"></td>
+                <td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
+                <td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
+                <td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td>
+                    <button class="btn-sm btn-blue" onclick="viewHistory(${realIdx})">Cards</button>
+                    <button class="btn-sm btn-red" onclick="singleDelete('history', '${h._id}')">Delete</button>
+                </td>
+            </tr>`;
+        });
+        document.getElementById('game-history-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No history found.</td></tr>`;
+        document.getElementById('chk-all-history').checked = false;
+        renderPagination('pag-history', filteredHistory.length, p_hist, 'changePageHistory');
+        updateBulkUI('history');
+    }
+
+    // 3. Transactions Render
+    window.changePageTx = function(p) { p_tx = p; renderTxPage(); }
+    function renderTxPage() {
+        let start = (p_tx - 1) * limitPerPage;
+        let html = "";
+        filteredTx.slice(start, start + limitPerPage).forEach(t => {
+            let isChecked = selTx.has(t._id) ? 'checked' : '';
+            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS</button>`; }
+            html += `<tr>
+                <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
+                <td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td>
+                <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                <td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td>
+                <td><button class="btn-sm btn-red" onclick="singleDelete('transactions', '${t._id}')">Delete</button></td>
+            </tr>`;
+        });
+        document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="8" style="text-align:center;">No transactions found.</td></tr>`;
+        document.getElementById('chk-all-tx').checked = false;
+        renderPagination('pag-tx', filteredTx.length, p_tx, 'changePageTx');
+        updateBulkUI('tx');
+    }
+
+    // --- Select & Delete Logic ---
+    function toggleSelectAll(type) {
+        let isChecked = document.getElementById(`chk-all-${type}`).checked;
+        let checkboxes = document.querySelectorAll(`.chk-${type}`);
+        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = isChecked;
+            if(isChecked) set.add(cb.value); else set.delete(cb.value);
+        });
+        updateBulkUI(type);
+    }
+
+    function toggleIndiv(cb, type) {
+        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        if(cb.checked) set.add(cb.value); else set.delete(cb.value);
+        updateBulkUI(type);
+    }
+
+    function updateBulkUI(type) {
+        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        let bar = document.getElementById(`bulk-${type}`);
+        let cnt = document.getElementById(`sel-count-${type}`);
+        if(set.size > 0) { bar.style.display = "flex"; cnt.innerText = `${set.size} Selected`; } 
+        else { bar.style.display = "none"; }
+    }
+
+    async function singleDelete(type, id) {
+        if(!confirm("Are you sure you want to delete this record?")) return;
+        let endpoint = `/api/admin/delete-${type}`;
+        let payload = type === 'users' ? { adminPass: pass, phones: [id] } : { adminPass: pass, ids: [id] };
+        await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        loadData();
+    }
+
+    async function bulkDelete(type) {
+        let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
+        if(set.size === 0) return;
+        if(!confirm(`⚠️ Are you sure you want to delete ${set.size} records? This cannot be undone.`)) return;
+        
+        let endpoint = `/api/admin/delete-${type}`;
+        let payload = type === 'users' ? { adminPass: pass, phones: Array.from(set) } : { adminPass: pass, ids: Array.from(set) };
+        
+        document.querySelector(`#bulk-${type} button`).innerText = "Deleting...";
+        await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        loadData();
+    }
+
+    // =====================================
+    // 🔥 REST OF THE ADMIN FUNCTIONS 🔥
+    // =====================================
+
+    // Promoters
     async function loadPromoters() {
         if(!pass) return;
         try {
@@ -749,16 +970,9 @@
                 let pBody = document.getElementById('promoters-body');
                 pBody.innerHTML = data.promoters.map(p => `
                     <tr>
-                        <td>${p.name}</td>
-                        <td style="color:var(--cyan); font-weight:bold;">${p.phone}</td>
-                        <td>${p.percent}%</td>
-                        <td>${p.usersBrought} Users</td>
-                        <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                        <td>
-                            <button class="btn-sm" style="background:var(--cyan); color:black;" onclick="openPromoterProfile('${p.phone}')">👁️ View Profile</button>
-                            <button class="btn-sm btn-blue" onclick="setPromoterAction(true, '${p.phone}')">Edit %</button>
-                            <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button>
-                        </td>
+                        <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;">${p.phone}</td><td>${p.percent}%</td>
+                        <td>${p.usersBrought} Users</td><td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                        <td><button class="btn-sm" style="background:var(--cyan); color:black;" onclick="openPromoterProfile('${p.phone}')">👁️ View</button> <button class="btn-sm btn-blue" onclick="setPromoterAction(true, '${p.phone}')">Edit %</button> <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button></td>
                     </tr>
                 `).join('') || `<tr><td colspan="6" style="text-align:center;">No promoters found.</td></tr>`;
             }
@@ -768,444 +982,121 @@
     async function setPromoterAction(isAdding, existingPhone = null) {
         let phone = existingPhone || document.getElementById('add-promoter-phone').value.trim();
         if(!phone) return alert("ስልክ ቁጥር ያስገቡ");
-        
         let percent = undefined;
-        if(isAdding) {
-            let pctInput = existingPhone ? prompt("አዲሱን ፐርሰንት ያስገቡ (e.g. 10):") : document.getElementById('add-promoter-percent').value.trim();
-            if(pctInput === null) return;
-            percent = Number(pctInput);
-            if(isNaN(percent) || percent < 0 || percent > 100) return alert("ትክክለኛ ፐርሰንት ያስገቡ");
-        }
-
+        if(isAdding) { let pctInput = existingPhone ? prompt("አዲሱን ፐርሰንት ያስገቡ (e.g. 10):") : document.getElementById('add-promoter-percent').value.trim(); if(pctInput === null) return; percent = Number(pctInput); if(isNaN(percent) || percent < 0 || percent > 100) return alert("ትክክለኛ ፐርሰንት ያስገቡ"); }
         try {
             let res = await fetch('/api/admin/set-promoter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, isPromoter: isAdding, percent})});
-            let data = await res.json();
-            if(data.success) {
-                alert(isAdding ? "Promoter Updated!" : "Promoter Removed!");
-                document.getElementById('add-promoter-phone').value = '';
-                document.getElementById('add-promoter-percent').value = '';
-                loadPromoters();
-            } else {
-                alert(data.message || "User not found!");
-            }
+            let data = await res.json(); if(data.success) { alert(isAdding ? "Promoter Updated!" : "Promoter Removed!"); document.getElementById('add-promoter-phone').value = ''; document.getElementById('add-promoter-percent').value = ''; loadPromoters(); } else { alert(data.message || "User not found!"); }
         } catch(e) {}
     }
 
-    // 🔥 NEW: OPEN PROMOTER PROFILE 🔥
     async function openPromoterProfile(phone) {
         try {
             let res = await fetch('/api/admin/promoter-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})});
             let data = await res.json();
-            
             if(data.success) {
-                let p = data.promoter;
-                document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`;
-                document.getElementById('pp-phone').innerText = p.phone;
-                document.getElementById('pp-users').innerText = data.details.length;
-                
-                let totalFirstDeps = data.details.reduce((sum, d) => sum + (d.totalDeposit || 0), 0); 
-                document.getElementById('pp-deposits').innerText = Number(totalFirstDeps).toLocaleString('en-US', {minimumFractionDigits: 2});
+                let p = data.promoter; document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`; document.getElementById('pp-phone').innerText = p.phone; document.getElementById('pp-users').innerText = data.details.length;
+                let totalDeps = data.details.reduce((sum, d) => sum + (d.totalDeposit || 0), 0); 
+                document.getElementById('pp-deposits').innerText = Number(totalDeps).toLocaleString('en-US', {minimumFractionDigits: 2});
                 document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
-
-                let tableHtml = data.details.map(d => `
-                    <tr>
-                        <td>${d.name}</td>
-                        <td style="color:var(--cyan);">${d.phone}</td>
-                        <td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                    </tr>
-                `).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
-
-                document.getElementById('pp-users-body').innerHTML = tableHtml;
-                document.getElementById('promoter-profile-modal').style.display = 'flex';
+                let tableHtml = data.details.map(d => `<tr><td>${d.name}</td><td style="color:var(--cyan);">${d.phone}</td><td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
+                document.getElementById('pp-users-body').innerHTML = tableHtml; document.getElementById('promoter-profile-modal').style.display = 'flex';
             }
         } catch(e) { alert("Error loading profile"); }
     }
 
-    // 🔥 SUPPORT CHAT LOGIC 🔥
+    // Support Chat
     async function loadMessages() {
         try {
             let res = await fetch('/api/admin/get-messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let data = await res.json();
             if(data.success) {
-                chatData = {};
-                let unreadCount = 0;
-                data.msgs.forEach(m => {
-                    if(!chatData[m.telegramId]) { chatData[m.telegramId] = { name: m.name, phone: m.phone, msgs: [] }; }
-                    chatData[m.telegramId].msgs.push(m);
-                    if(m.sender === 'user' && !m.isRead) unreadCount++;
-                });
-
-                document.getElementById('badge-msg').innerText = unreadCount;
-                document.getElementById('badge-msg').style.display = unreadCount > 0 ? 'inline-block' : 'none';
-
+                chatData = {}; let unreadCount = 0;
+                data.msgs.forEach(m => { if(!chatData[m.telegramId]) { chatData[m.telegramId] = { name: m.name, phone: m.phone, msgs: [] }; } chatData[m.telegramId].msgs.push(m); if(m.sender === 'user' && !m.isRead) unreadCount++; });
+                document.getElementById('badge-msg').innerText = unreadCount; document.getElementById('badge-msg').style.display = unreadCount > 0 ? 'inline-block' : 'none';
                 let sbHtml = "";
                 for (const [tgId, uData] of Object.entries(chatData)) {
-                    let lastMsg = uData.msgs[uData.msgs.length - 1].text;
-                    let shortMsg = lastMsg.length > 20 ? lastMsg.substring(0, 20) + "..." : lastMsg;
-                    sbHtml += `<div class="chat-user ${activeChatTgId === tgId ? 'active' : ''}" onclick="openChat('${tgId}')">
-                        <div style="font-weight:bold; color:white; font-size:13px;">${uData.name} <span style="font-size:10px; color:var(--cyan);">(${uData.phone})</span></div>
-                        <div style="color:var(--text-gray); font-size:11px; margin-top:3px;">${shortMsg}</div>
-                    </div>`;
+                    let lastMsg = uData.msgs[uData.msgs.length - 1].text; let shortMsg = lastMsg.length > 20 ? lastMsg.substring(0, 20) + "..." : lastMsg;
+                    sbHtml += `<div class="chat-user ${activeChatTgId === tgId ? 'active' : ''}" onclick="openChat('${tgId}')"><div style="font-weight:bold; color:white; font-size:13px;">${uData.name} <span style="font-size:10px; color:var(--cyan);">(${uData.phone})</span></div><div style="color:var(--text-gray); font-size:11px; margin-top:3px;">${shortMsg}</div></div>`;
                 }
                 document.getElementById('chat-sidebar-list').innerHTML = sbHtml || `<div style="padding: 15px; text-align: center; color: var(--text-gray);">No messages yet</div>`;
-                
                 if(activeChatTgId) openChat(activeChatTgId);
             }
         } catch(e) {}
     }
-
     function openChat(tgId) {
-        activeChatTgId = tgId;
-        document.querySelectorAll('.chat-user').forEach(el => el.classList.remove('active'));
-        loadMessages(); 
-        
-        let uData = chatData[tgId];
-        let chatBox = document.getElementById('chat-history-box');
-        
+        activeChatTgId = tgId; document.querySelectorAll('.chat-user').forEach(el => el.classList.remove('active')); loadMessages(); 
+        let uData = chatData[tgId]; let chatBox = document.getElementById('chat-history-box');
         let html = `<div style="text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:15px; color:var(--gold); font-weight:bold; font-size:14px;">Chatting with ${uData.name} (${uData.phone})</div>`;
-        
-        uData.msgs.forEach(m => {
-            if(m.sender === 'user') {
-                html += `<div class="chat-bubble chat-user-msg">${m.text}<br><span style="font-size:9px; color:gray; float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`;
-            } else {
-                html += `<div class="chat-bubble chat-admin-msg">${m.text}<br><span style="font-size:9px; color:rgba(0,0,0,0.5); float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`;
-            }
-        });
-        
-        chatBox.innerHTML = html;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        uData.msgs.forEach(m => { if(m.sender === 'user') { html += `<div class="chat-bubble chat-user-msg">${m.text}<br><span style="font-size:9px; color:gray; float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`; } else { html += `<div class="chat-bubble chat-admin-msg">${m.text}<br><span style="font-size:9px; color:rgba(0,0,0,0.5); float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`; } });
+        chatBox.innerHTML = html; chatBox.scrollTop = chatBox.scrollHeight;
     }
-
-    async function sendReply() {
-        let input = document.getElementById('chat-input');
-        let text = input.value.trim();
-        if(!activeChatTgId || !text) return;
-        
-        input.disabled = true;
-        try {
-            await fetch('/api/admin/reply-message', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, telegramId: activeChatTgId, text})});
-            input.value = '';
-            await loadMessages();
-        } catch(e) {}
-        input.disabled = false;
-        input.focus();
-    }
+    async function sendReply() { let input = document.getElementById('chat-input'); let text = input.value.trim(); if(!activeChatTgId || !text) return; input.disabled = true; try { await fetch('/api/admin/reply-message', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, telegramId: activeChatTgId, text})}); input.value = ''; await loadMessages(); } catch(e) {} input.disabled = false; input.focus(); }
     setInterval(() => { if(document.getElementById('tab-messages').classList.contains('active')) loadMessages(); }, 5000);
 
+    // Helpers
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
     function populatePendingDeposits() {
-        let deps = allTransactions.filter(t => t.type === 'deposit' && t.status === 'Pending');
-        let bDep = document.getElementById('badge-dep');
-        if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
-
-        document.getElementById('pend-dep-body').innerHTML = deps.map(t => {
-            let safeSMS = encodeURIComponent(t.smsText || "No SMS Provided");
-            let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS";
-            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-            <td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ ትልቅ አድርግ</button></div></td>
-            <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
-        }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
+        let deps = allTx.filter(t => t.type === 'deposit' && t.status === 'Pending'); let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
+        document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
     }
-
     function populatePendingWithdraws() {
-        let wits = allTransactions.filter(t => t.type === 'withdraw' && t.status === 'Pending');
-        let bWit = document.getElementById('badge-wit');
-        if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
-
-        document.getElementById('pend-wit-body').innerHTML = wits.map(t => {
-            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-            <td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td>
-            <td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`;
-        }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
+        let wits = allTx.filter(t => t.type === 'withdraw' && t.status === 'Pending'); let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
+        document.getElementById('pend-wit-body').innerHTML = wits.map(t => { return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
     }
 
-    function filterHistoryTx(type) {
-        currentHistType = type; document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        let filtered = type === 'rejected' ? allTransactions.filter(t => t.status === 'Rejected') : allTransactions.filter(t => t.type === type && t.status === 'Approved');
-        document.getElementById('history-tx-body').innerHTML = filtered.map(t => {
-            let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS እይ</button>`; }
-            return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td><td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td></tr>`;
-        }).join('') || `<tr><td colspan="6" style="text-align:center;">No transactions found.</td></tr>`;
-    }
-
-    function renderGamePlayers(index) { if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } let game = allGameHistories[index]; document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; }
+    function renderGamePlayers(index) { if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } let game = allHistory[index]; document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; }
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
+    function viewHistory(index) { let h = allHistory[index]; let called = h.calledNumbers || []; let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim()); let grids = []; if (h.playersData && h.playersData.length > 0) { h.playersData.forEach(p => { if(p.ticketsData) { p.ticketsData.forEach(t => { if (ticketIds.includes(t.id.toString())) { grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone }); } }); } }); } if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) { grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone }); } document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; grids.forEach((gObj, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`; for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { let num = gObj.grid[c][r]; let isMarked = called.includes(num) || (c===2&&r===2); fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`; } } fullHtml += `</div>`; if(i !== grids.length - 1) { fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; } }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
+
+    async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amt = document.getElementById('sb-amt').value; if(!phone || !amt) return alert("Fill both!"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; } }
+    async function sendBulkBonus() { let phones = document.getElementById('b-phones').value; let amt = document.getElementById('mb-amt-bulk').value; if(!phones || !amt) return alert("Fill both!"); let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim()); let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; } }
     
-    function viewHistory(index) {
-        let h = allGameHistories[index];
-        let called = h.calledNumbers || [];
-        let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim());
-        let grids = [];
+    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let photoUrl = document.getElementById('cb-photo-url').value.trim(); let fileInput = document.getElementById('cb-photo-file'); if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; let btn = document.getElementById('btn-send-promo'); btn.innerText = "Sending..."; let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl}; if (fileInput.files.length > 0) { let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]); reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); }; } else { sendPromoData(payload, btn); } }
+    async function sendPromoData(payload, btn) { try { let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';} } catch(e) { alert("Error"); } btn.innerText = "Create Promo & Broadcast to Telegram"; }
+    async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ"; } }
+    async function sendTelegramPromo(type) { let msg = document.getElementById('tg-msg').value; let photoUrl = document.getElementById('tg-photo-url').value.trim(); let fileInput = document.getElementById('tg-photo-file'); if(!msg) return alert("Enter a message"); let btn = document.querySelector('#tab-telegram .btn-blue'); btn.innerText = "Sending..."; if (fileInput.files.length > 0) { let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]); reader.onload = async function () { sendPayloadToTelegram(msg, reader.result, btn); }; } else { sendPayloadToTelegram(msg, photoUrl, btn); } }
+    async function sendPayloadToTelegram(message, photoUrl, btn) { try { let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); let data = await res.json(); alert(data.message || "Sent successfully!"); if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo-file').value = ''; document.getElementById('tg-photo-url').value = ''; } } catch(e) { alert("Error sending."); } btn.innerText = "Broadcast Normal"; }
 
-        if (h.playersData && h.playersData.length > 0) {
-            h.playersData.forEach(p => {
-                if(p.ticketsData) {
-                    p.ticketsData.forEach(t => {
-                        if (ticketIds.includes(t.id.toString())) {
-                            grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone });
-                        }
-                    });
-                }
-            });
-        }
-
-        if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) {
-            grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone });
-        }
-
-        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", ");
-        
-        let fullHtml = "";
-        grids.forEach((gObj, i) => {
-            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`;
-            for(let r=0; r<5; r++) {
-                for(let c=0; c<5; c++) {
-                    let num = gObj.grid[c][r];
-                    let isMarked = called.includes(num) || (c===2&&r===2);
-                    fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`;
-                }
-            }
-            fullHtml += `</div>`;
-            if(i !== grids.length - 1) { fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; }
-        });
-        
-        document.getElementById('m-grid').innerHTML = fullHtml;
-        document.getElementById('history-modal').style.display = 'flex';
-    }
-    
-    async function viewClaimedUsers() {
-        try {
-            document.querySelector('#btn-send-promo').nextElementSibling.innerText = "እየጫነ ነው...";
-            let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ (View Claimed Users)";
-            
-            if(data.success) {
-                document.getElementById('claimed-count').innerText = data.claimedBy.length;
-                document.getElementById('claimed-max').innerText = data.max;
-                let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join('');
-                document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">ገና ማንም አልወሰደም።</div>`;
-                document.getElementById('claimed-users-modal').style.display = 'flex';
-            } else {
-                alert(data.message || "ምንም አይነት የተለቀቀ ቦነስ የለም።");
-            }
-        } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ የወሰዱትን ሰዎች እይ"; }
-    }
-
-    async function sendSingleBonus() {
-        let phone = document.getElementById('sb-phone').value;
-        let amt = document.getElementById('sb-amt').value;
-        if(!phone || !amt) return alert("Please fill both phone and amount!");
-        let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})});
-        let data = await res.json();
-        alert(data.message);
-        if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; }
-    }
-
-    async function sendBulkBonus() {
-        let phones = document.getElementById('b-phones').value;
-        let amt = document.getElementById('mb-amt-bulk').value;
-        if(!phones || !amt) return alert("Please fill phones and amount!");
-        let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim());
-        let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})});
-        let data = await res.json();
-        alert(data.message);
-        if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; }
-    }
-
-    async function createClaimBonus() { 
-        let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; 
-        let photoUrl = document.getElementById('cb-photo-url').value.trim();
-        let fileInput = document.getElementById('cb-photo-file');
-        
-        if(!maxUsers || !amount || !minutes || !msg) return alert("እባክዎ ሁሉንም መረጃ እና የቴሌግራም መልዕክቱን ያስገቡ!"); 
-        if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; 
-        
-        let btn = document.getElementById('btn-send-promo');
-        btn.innerText = "እየላከ ነው (Sending)...";
-        
-        let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl};
-        
-        if (fileInput.files.length > 0) {
-            let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]);
-            reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); };
-        } else { 
-            sendPromoData(payload, btn); 
-        }
-    }
-
-    async function sendPromoData(payload, btn) {
-        try {
-            let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); 
-            let data = await res.json(); alert(data.message || "Promo Created successfully!"); 
-            if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';}
-        } catch(e) { alert("Error"); }
-        btn.innerText = "Create Promo & Broadcast to Telegram";
-    }
-
-    async function sendTelegramPromo(type) { 
-        let msg = document.getElementById('tg-msg').value; 
-        let photoUrl = document.getElementById('tg-photo-url').value.trim();
-        let fileInput = document.getElementById('tg-photo-file');
-        if(!msg) return alert("Enter a message"); 
-
-        let btn = document.querySelector('#tab-telegram .btn-blue');
-        btn.innerText = "እየላከ ነው (Sending)..."; 
-
-        if (fileInput.files.length > 0) {
-            let reader = new FileReader();
-            reader.readAsDataURL(fileInput.files[0]);
-            reader.onload = async function () { sendPayloadToTelegram(msg, reader.result, btn); };
-        } else { 
-            sendPayloadToTelegram(msg, photoUrl, btn); 
-        }
-    }
-
-    async function sendPayloadToTelegram(message, photoUrl, btn) {
-        try {
-            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
-            let data = await res.json(); alert(data.message || "Sent successfully to bot users!"); 
-            if(data.success) { document.getElementById('tg-msg').value = ''; document.getElementById('tg-photo-file').value = ''; document.getElementById('tg-photo-url').value = ''; }
-        } catch(e) { alert("Error sending message."); }
-        btn.innerText = "Broadcast Normal";
-    }
-
-    // 🔥 FIXED: CASHBACK BUTTON ALWAYS WORKS MANUALLY 🔥
-    async function triggerCashbackNow() {
-        if(!confirm("⚠️ እርግጠኛ ነዎት አሁን የተጫወቱትን (Loss amount) አይቶ ካሽባክ ለሁሉም ተጠቃሚዎች ይላክ?")) return;
-        try {
-            let res = await fetch('/api/admin/trigger-cashback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            alert(data.message);
-            loadData();
-        } catch(e) { alert("Error triggering cashback."); }
-    }
-
+    async function triggerCashbackNow() { if(!confirm("⚠️ Send Cashback NOW?")) return; try { let res = await fetch('/api/admin/trigger-cashback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message); loadData(); } catch(e) { alert("Error triggering cashback."); } }
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadData(); } }
-    
     function openEditModal(phone, passw, main, play, won) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('eu-won').value = won; document.getElementById('edit-user-modal').style.display = 'flex'; }
-    
-    async function saveUserEdit() { 
-        let payload = { 
-            adminPass: pass, 
-            oldPhone: document.getElementById('eu-oldPhone').value, 
-            newPhone: document.getElementById('eu-phone').value, 
-            userPass: document.getElementById('eu-password').value, 
-            mainBalance: document.getElementById('eu-main').value, 
-            playBalance: document.getElementById('eu-play').value, 
-            won: document.getElementById('eu-won').value 
-        }; 
-        
-        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        let data = await res.json();
-        if(data.success) {
-            document.getElementById('edit-user-modal').style.display='none'; 
-            loadData(); 
-            alert("✅ በስኬት ተስተካክሏል (User Updated)!");
-        } else {
-            alert("❌ ማስተካከል አልተቻለም (Failed).");
-        }
-    }
-    
+    async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, userPass: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value, won: document.getElementById('eu-won').value }; let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); let data = await res.json(); if(data.success) { document.getElementById('edit-user-modal').style.display='none'; loadData(); alert("✅ Saved!"); } else { alert("❌ Failed."); } }
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadData(); } }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
     
     async function updateSettings(type) { 
         let payload = { adminPass: pass }; 
-        if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("እባክዎ አዲሱን ፓስወርድ ያስገቡ!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
-        
-        if(type === 'profit') { 
-            let prof = document.getElementById('set-admin-profit').value; 
-            if(!prof || prof < 0 || prof > 100) return alert("እባክዎ ትክክለኛ ፐርሰንት ያስገቡ (0-100)!"); 
-            payload.adminProfitPercent = Number(prof); 
-        }
-
-        if(type === 'price') { 
-            let pr = document.getElementById('set-price').value; 
-            if(!pr) return alert("እባክዎ ዋጋ ያስገቡ!"); 
-            payload.ticketPrice = Number(pr); 
-        } 
-        
-        if(type === 'timer') { 
-            let tm = document.getElementById('set-timer').value; 
-            if(!tm) return alert("እባክዎ የጌም ሰከንድ ያስገቡ!"); 
-            payload.gameTimer = Number(tm); 
-        } 
-        
-        if(type === 'maxtickets') { 
-            let mt = document.getElementById('set-max-tickets').value; 
-            if(!mt || mt < 1) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ!"); 
-            payload.maxTicketsPerUser = Number(mt); 
-        }
-
-        if(type === 'reg_bonus') {
-            let rBon = document.getElementById('set-reg-bonus').value;
-            let iBon = document.getElementById('set-inv-bonus').value;
-            if(!rBon || !iBon) return alert("እባክዎ የቦነስ መጠኖችን ያስገቡ!");
-            payload.registerBonus = Number(rBon);
-            payload.inviteBonus = Number(iBon);
-        }
-        
+        if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("Enter pass!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
+        if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
+        if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
+        if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
+        if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
+        if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
         if(type === 'dep_bonus') {
-            let isRestricted = document.getElementById('set-dep-time-restrict').checked;
-            let mAmt = document.getElementById('set-dep-min').value;
-            let mPer = document.getElementById('set-dep-perc').value;
-            let start = document.getElementById('set-dep-start').value;
-            let end = document.getElementById('set-dep-end').value;
-            
-            if(!mAmt || !mPer) return alert("እባክዎ የብር መጠን እና ፐርሰንት ያስገቡ!");
-            if(isRestricted && (start==='' || end==='')) return alert("እባክዎ የቦነስ ሰዓት ያስገቡ!");
-
-            payload.depBonusTimeRestricted = isRestricted; 
-            payload.depBonusMinAmount = Number(mAmt); 
-            payload.depBonusPercent = Number(mPer); 
-            payload.happyHourStart = start !== '' ? Number(start) : 0; 
-            payload.happyHourEnd = end !== '' ? Number(end) : 23;
-
-            payload.depBannerTextAm = document.getElementById('set-dep-text-am').value;
-            payload.depBannerTextEn = document.getElementById('set-dep-text-en').value;
+            let isRestricted = document.getElementById('set-dep-time-restrict').checked; let mAmt = document.getElementById('set-dep-min').value; let mPer = document.getElementById('set-dep-perc').value; let start = document.getElementById('set-dep-start').value; let end = document.getElementById('set-dep-end').value;
+            if(!mAmt || !mPer) return alert("Fill fields!"); if(isRestricted && (start==='' || end==='')) return alert("Enter time!");
+            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = Number(mAmt); payload.depBonusPercent = Number(mPer); payload.happyHourStart = start !== '' ? Number(start) : 0; payload.happyHourEnd = end !== '' ? Number(end) : 23;
+            payload.depBannerTextAm = document.getElementById('set-dep-text-am').value; payload.depBannerTextEn = document.getElementById('set-dep-text-en').value;
         }
-
         if(type === 'wit_bonus') {
-            let isActive = document.getElementById('set-wit-active').checked;
-            let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked;
-            let wMin = document.getElementById('set-wit-min').value;
-            let wPerc = document.getElementById('set-wit-perc').value;
-            let start = document.getElementById('set-wit-start').value;
-            let end = document.getElementById('set-wit-end').value;
-
-            if(!wMin || !wPerc) return alert("እባክዎ ትክክለኛ የቦነስ መጠን ያስገቡ!");
-            if(isTimeRestricted && (start==='' || end==='')) return alert("እባክዎ የቦነስ ሰዓት ያስገቡ!");
-
-            payload.isWitBonusActive = isActive;
-            payload.witBonusMinAmount = Number(wMin);
-            payload.witBonusPercent = Number(wPerc);
-            payload.witBonusTimeRestricted = isTimeRestricted;
-            payload.witHappyHourStart = start !== '' ? Number(start) : 0;
-            payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
+            let isActive = document.getElementById('set-wit-active').checked; let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; let wMin = document.getElementById('set-wit-min').value; let wPerc = document.getElementById('set-wit-perc').value; let start = document.getElementById('set-wit-start').value; let end = document.getElementById('set-wit-end').value;
+            if(!wMin || !wPerc) return alert("Fill fields!"); if(isTimeRestricted && (start==='' || end==='')) return alert("Enter time!");
+            payload.isWitBonusActive = isActive; payload.witBonusMinAmount = Number(wMin); payload.witBonusPercent = Number(wPerc); payload.witBonusTimeRestricted = isTimeRestricted; payload.witHappyHourStart = start !== '' ? Number(start) : 0; payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
         }
-
         if(type === 'cashback') {
-            let isActive = document.getElementById('set-cb-active').checked;
-            let cMin = document.getElementById('set-cb-min').value;
-            let cAmt = document.getElementById('set-cb-amt').value;
-
-            if(!cMin || !cAmt) return alert("እባክዎ ትክክለኛ ካሽባክ መረጃ ያስገቡ!");
-            payload.isCashbackActive = isActive;
-            payload.cashbackMinLoss = Number(cMin);
-            payload.cashbackAmount = Number(cAmt);
+            let isActive = document.getElementById('set-cb-active').checked; let cMin = document.getElementById('set-cb-min').value; let cAmt = document.getElementById('set-cb-amt').value;
+            if(!cMin || !cAmt) return alert("Fill fields!"); payload.isCashbackActive = isActive; payload.cashbackMinLoss = Number(cMin); payload.cashbackAmount = Number(cAmt);
         }
-
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        alert("✅ በስኬት ተስተካክሏል (Saved)!"); 
+        alert("✅ Saved!"); 
     }
 
     async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); loadData(); loadLiveStats(); }
-    async function deleteLastTelegramPromo() { if(!confirm("Are you sure you want to delete the last sent broadcast?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
+    async function deleteLastTelegramPromo() { if(!confirm("Are you sure?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
 </script>
 </body>
 </html>
