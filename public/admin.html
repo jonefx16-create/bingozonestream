@@ -46,8 +46,12 @@
         
         input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
         
-        /* Checkbox & Pagination Styles */
+        /* Checkbox, Row Select & Pagination Styles */
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--faded-green); margin:0; }
+        tbody tr.selectable-row { transition: 0.2s; cursor: pointer; }
+        tbody tr.selectable-row:hover { background: rgba(74, 222, 128, 0.05); }
+        tbody tr.selectable-row.selected { background: rgba(74, 222, 128, 0.15) !important; border-left: 3px solid var(--faded-green); }
+
         .bulk-action-bar { display: none; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.1); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--red); margin-bottom: 15px; }
         .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; }
         .page-btn { background: var(--border); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -98,21 +102,15 @@
         .chat-admin-msg { background: var(--faded-green); color: black; align-self: flex-end; border-bottom-right-radius: 0; font-weight: bold;}
         .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--panel); }
 
-        /* 🔥 PROMOTER PROFILE MODAL SPECIFIC STYLES 🔥 */
         .promoter-header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; border: 1px solid var(--cyan); margin-bottom: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .promoter-stats { display: flex; justify-content: space-between; background: #000; padding: 15px; border-radius: 8px; margin-top: 15px; }
         .p-stat-box { text-align: center; flex: 1; }
         .p-stat-title { font-size: 10px; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px; display: block; }
         .p-stat-val { font-size: 18px; font-weight: 900; color: white; }
-        .ref-users-table th { background: #1e293b; font-size: 10px; }
-        .ref-users-table td { font-size: 12px; }
 
         @media (max-width: 768px) {
             .menu-toggle-btn { display: inline-block; }
-            .sidebar { 
-                position: fixed; top: 0; left: -260px; bottom: 0; width: 250px; height: 100vh; height: 100dvh; 
-                box-shadow: 2px 0 15px rgba(0,0,0,0.9); overflow-y: auto !important; -webkit-overflow-scrolling: touch; z-index: 10000; 
-            }
+            .sidebar { position: fixed; top: 0; left: -260px; bottom: 0; width: 250px; height: 100vh; height: 100dvh; box-shadow: 2px 0 15px rgba(0,0,0,0.9); overflow-y: auto !important; -webkit-overflow-scrolling: touch; z-index: 10000; }
             .sidebar.open { left: 0; }
             .close-sidebar { display: block; }
             .main-content { padding: 15px; width: 100vw; overflow-x: hidden; }
@@ -255,6 +253,7 @@
                 </div>
                 <!-- Pagination Controls -->
                 <div class="pagination" id="pag-users"></div>
+                <p style="text-align:center; color:gray; font-size:11px; margin-top:5px;">💡 Hint: Hold <b>Ctrl</b> and Click a row to quickly select multiple items.</p>
             </div>
         </div>
 
@@ -322,7 +321,10 @@
                     <option value="">-- Select a Game to View Details --</option>
                 </select>
                 <div class="table-responsive">
-                    <table><thead><tr><th>Name</th><th>Phone</th><th>Tickets</th><th>Bet Amount</th><th>Action</th></tr></thead><tbody id="game-players-body"><tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr></tbody></table>
+                    <table>
+                        <thead><tr><th>Name</th><th>Phone</th><th>Tickets</th><th>Bet Amount</th><th>Action</th></tr></thead>
+                        <tbody id="game-players-body"><tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -349,11 +351,21 @@
             </div></div>
         </div>
 
-        <!-- REFERRALS -->
+        <!-- REFERRALS (INVITE & EARN) -->
         <div id="tab-referral" class="tab-content">
-            <div class="card"><div class="table-responsive">
-                <table id="table-referrals"><thead><tr><th>Referrer Phone</th><th>Total Invited</th><th>Bonus Earned</th><th>Action</th></tr></thead><tbody id="ref-body"></tbody></table>
-            </div></div>
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-ref" onkeyup="filterArray('ref')" placeholder="🔍 Search Referrer Phone...">
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table id="table-referrals">
+                        <thead><tr><th>Referrer Phone</th><th>Total Invited</th><th>Bonus Earned</th><th>Action</th></tr></thead>
+                        <tbody id="ref-body"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="pagination" id="pag-ref"></div>
+            </div>
         </div>
 
         <!-- BANNED USERS -->
@@ -678,6 +690,7 @@
     let allUsers = []; let filteredUsers = []; let p_users = 1;
     let allHistory = []; let filteredHistory = []; let p_hist = 1;
     let allTx = []; let filteredTx = []; let p_tx = 1; let currentHistType = 'deposit';
+    let allRefs = []; let filteredRefs = []; let p_ref = 1; let globalInvBonusAmt = 10;
     
     // Selected IDs
     let selUsers = new Set();
@@ -689,6 +702,19 @@
     function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); if(window.innerWidth <= 768) toggleSidebar(); }
     
     function simpleSearch(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
+
+    // 🔥 CTRL + CLICK Row Selection Logic 🔥
+    function handleRowClick(e, type, val) {
+        if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+        if(e.ctrlKey) {
+            e.preventDefault(); 
+            let cb = document.querySelector(`.chk-${type}[value="${val}"]`);
+            if(cb) {
+                cb.checked = !cb.checked;
+                toggleIndiv(cb, type);
+            }
+        }
+    }
 
     function toggleTimeInputs(type) {
         if(type === 'dep') { document.getElementById('set-dep-time-restrict').checked ? document.getElementById('time-inputs-container-dep').classList.remove('disabled-input') : document.getElementById('time-inputs-container-dep').classList.add('disabled-input'); } 
@@ -729,7 +755,7 @@
             selUsers.clear(); p_users = 1;
             renderUsersPage();
             
-            // Extract Banned & Referrals (No pagination needed for these small ones usually, keeping original logic)
+            // Extract Banned & Referrals
             let bannedHtml = "", refList = {};
             allUsers.forEach(u => {
                 if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; }
@@ -740,7 +766,8 @@
             // Settings
             let tRes2 = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let statsData = await tRes2.json(); 
-            let invBonusAmt = statsData.settings.inviteBonus || 10;
+            globalInvBonusAmt = statsData.settings.inviteBonus || 10;
+
             if(statsData.settings) {
                 document.getElementById('set-price').value = statsData.settings.ticketPrice || 10;
                 document.getElementById('set-timer').value = statsData.settings.gameTimer || 40;
@@ -768,12 +795,11 @@
                 document.getElementById('set-cb-amt').value = statsData.settings.cashbackAmount || '';
             }
 
-            let refHtml = ""; 
-            for (const [refPhone, invitedList] of Object.entries(refList)) { 
-                let count = invitedList.length; let safeArr = JSON.stringify(invitedList).replace(/"/g, '&quot;');
-                refHtml += `<tr><td style="color:var(--cyan); font-weight:bold;">${refPhone}</td><td>${count} People</td><td style="color:var(--faded-green); font-weight:bold;">${Number(count * invBonusAmt).toLocaleString('en-US')} ETB</td><td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${refPhone}', '${safeArr}')">👁️ የጋበዛቸው ሰዎች</button></td></tr>`; 
-            }
-            document.getElementById('ref-body').innerHTML = refHtml || `<tr><td colspan="4" style="text-align:center;">No referrals yet.</td></tr>`;
+            // Referrals List parsing for Pagination
+            allRefs = Object.keys(refList).map(k => ({ phone: k, list: refList[k] }));
+            filteredRefs = allRefs;
+            p_ref = 1;
+            renderRefPage();
 
             // 2. Transactions
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -790,6 +816,11 @@
 
             // Game details dropdown
             let dropHtml = '<option value="">-- Select a Game --</option>'; allHistory.forEach((h, idx) => { dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName}</option>`; }); document.getElementById('game-details-select').innerHTML = dropHtml;
+            
+            // if a game is already selected, re-render it
+            let selectedGameIdx = document.getElementById('game-details-select').value;
+            if(selectedGameIdx !== "") renderGamePlayers(selectedGameIdx);
+
         } catch (e) { console.log(e); }
     }
 
@@ -808,6 +839,10 @@
             let baseArray = currentHistType === 'rejected' ? allTx.filter(t => t.status === 'Rejected') : allTx.filter(t => t.type === currentHistType && t.status === 'Approved');
             filteredTx = baseArray.filter(t => t.phone.includes(term));
             p_tx = 1; renderTxPage();
+        } else if (type === 'ref') {
+            let term = document.getElementById('search-ref').value.toLowerCase();
+            filteredRefs = allRefs.filter(r => r.phone.includes(term));
+            p_ref = 1; renderRefPage();
         }
     }
 
@@ -843,7 +878,8 @@
         let html = "";
         filteredUsers.slice(start, start + limitPerPage).forEach(u => {
             let isChecked = selUsers.has(u.phone) ? 'checked' : '';
-            html += `<tr>
+            let rowClass = isChecked ? 'selectable-row selected' : 'selectable-row';
+            html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'users', '${u.phone}')">
                 <td><input type="checkbox" class="chk-users" value="${u.phone}" ${isChecked} onchange="toggleIndiv(this, 'users')"></td>
                 <td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td>
                 <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
@@ -867,8 +903,9 @@
         let html = "";
         filteredHistory.slice(start, start + limitPerPage).forEach((h, idx) => {
             let isChecked = selHistory.has(h._id) ? 'checked' : '';
-            let realIdx = allHistory.indexOf(h); // for view cards
-            html += `<tr>
+            let rowClass = isChecked ? 'selectable-row selected' : 'selectable-row';
+            let realIdx = allHistory.indexOf(h);
+            html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'history', '${h._id}')">
                 <td><input type="checkbox" class="chk-history" value="${h._id}" ${isChecked} onchange="toggleIndiv(this, 'history')"></td>
                 <td>${new Date(h.date).toLocaleString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
                 <td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
@@ -893,8 +930,9 @@
         let html = "";
         filteredTx.slice(start, start + limitPerPage).forEach(t => {
             let isChecked = selTx.has(t._id) ? 'checked' : '';
+            let rowClass = isChecked ? 'selectable-row selected' : 'selectable-row';
             let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS</button>`; }
-            html += `<tr>
+            html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'tx', '${t._id}')">
                 <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
                 <td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td>
                 <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
@@ -908,6 +946,24 @@
         updateBulkUI('tx');
     }
 
+    // 4. Referrals Render (Invite & Earn)
+    window.changePageRef = function(p) { p_ref = p; renderRefPage(); }
+    function renderRefPage() {
+        let start = (p_ref - 1) * limitPerPage;
+        let html = "";
+        filteredRefs.slice(start, start + limitPerPage).forEach(r => {
+            let count = r.list.length; let safeArr = JSON.stringify(r.list).replace(/"/g, '&quot;');
+            html += `<tr>
+                <td style="color:var(--cyan); font-weight:bold;">${r.phone}</td>
+                <td>${count} People</td>
+                <td style="color:var(--faded-green); font-weight:bold;">${Number(count * globalInvBonusAmt).toLocaleString('en-US')} ETB</td>
+                <td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${r.phone}', '${safeArr}')">👁️ የጋበዛቸው ሰዎች</button></td>
+            </tr>`; 
+        });
+        document.getElementById('ref-body').innerHTML = html || `<tr><td colspan="4" style="text-align:center;">No referrals yet.</td></tr>`;
+        renderPagination('pag-ref', filteredRefs.length, p_ref, 'changePageRef');
+    }
+
     // --- Select & Delete Logic ---
     function toggleSelectAll(type) {
         let isChecked = document.getElementById(`chk-all-${type}`).checked;
@@ -917,13 +973,19 @@
         checkboxes.forEach(cb => {
             cb.checked = isChecked;
             if(isChecked) set.add(cb.value); else set.delete(cb.value);
+            
+            // Highlight row logic
+            let row = cb.closest('tr');
+            if(isChecked) row.classList.add('selected'); else row.classList.remove('selected');
         });
         updateBulkUI(type);
     }
 
     function toggleIndiv(cb, type) {
         let set = type === 'users' ? selUsers : (type === 'history' ? selHistory : selTx);
-        if(cb.checked) set.add(cb.value); else set.delete(cb.value);
+        let row = cb.closest('tr');
+        if(cb.checked) { set.add(cb.value); row.classList.add('selected'); } 
+        else { set.delete(cb.value); row.classList.remove('selected'); }
         updateBulkUI(type);
     }
 
@@ -954,6 +1016,31 @@
         document.querySelector(`#bulk-${type} button`).innerText = "Deleting...";
         await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         loadData();
+    }
+
+    // 🔥 GAME PLAYER DELETE (PLAYERS & BETS INFO TAB) 🔥
+    function renderGamePlayers(index) { 
+        if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } 
+        let game = allHistory[index]; 
+        document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `
+            <tr>
+                <td>${p.name}</td>
+                <td>${p.phone}</td>
+                <td>${p.tickets}</td>
+                <td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                <td>
+                    <button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button>
+                    <button class="btn-sm btn-red" onclick="deletePlayerFromGame('${game._id}', '${p.phone}')">Delete Bet</button>
+                </td>
+            </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; 
+    }
+
+    async function deletePlayerFromGame(gameId, phone) {
+        if(!confirm(`Are you sure you want to delete ${phone}'s bet from this game history?`)) return;
+        try {
+            await fetch('/api/admin/delete-game-player', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, id: gameId, phone: phone}) });
+            loadData(); // Re-fetch all data to refresh UI smoothly
+        } catch(e) { alert("Failed to delete bet."); }
     }
 
     // =====================================
@@ -1047,7 +1134,6 @@
         document.getElementById('pend-wit-body').innerHTML = wits.map(t => { return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
     }
 
-    function renderGamePlayers(index) { if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } let game = allHistory[index]; document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.tickets}</td><td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button></td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; }
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
     function viewHistory(index) { let h = allHistory[index]; let called = h.calledNumbers || []; let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim()); let grids = []; if (h.playersData && h.playersData.length > 0) { h.playersData.forEach(p => { if(p.ticketsData) { p.ticketsData.forEach(t => { if (ticketIds.includes(t.id.toString())) { grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone }); } }); } }); } if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) { grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone }); } document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; grids.forEach((gObj, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`; for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { let num = gObj.grid[c][r]; let isMarked = called.includes(num) || (c===2&&r===2); fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`; } } fullHtml += `</div>`; if(i !== grids.length - 1) { fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; } }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
 
