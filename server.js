@@ -350,6 +350,21 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     res.json({ totalUsers, livePlayers: Object.keys(activePlayers).length, gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS });
 });
 
+// 🔥 BULK & SINGLE DELETE APIs 🔥
+app.post('/api/admin/delete-users', auth, async (req, res) => {
+    try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/delete-history', auth, async (req, res) => {
+    try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/delete-transactions', auth, async (req, res) => {
+    try { await Transaction.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
 // 🔥 PROMOTER APIs 🔥
 app.post('/api/admin/promoters-data', auth, async (req, res) => {
     try {
