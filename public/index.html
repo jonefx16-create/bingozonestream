@@ -1247,30 +1247,19 @@
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
                 if(d.classList.contains('taken') || d.classList.contains('bought-by-me')) return; 
 
-d.onclick = () => { 
-                if(document.getElementById('timer').innerText.includes("LIVE")) return; 
-                if(d.classList.contains('taken') || d.classList.contains('bought-by-me')) return; 
-
-                // የካርቴላ ገደብ ማረጋገጫ (Limit Check)
-                if ((selected.length + userTicketsData.length) < maxTicketsLimit) {
-                    d.classList.add('selected'); 
-                    selected.push(i); 
+                if(d.classList.contains('selected')) { 
+                    d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); 
+                } 
+                else if((selected.length + userTicketsData.length) < maxTicketsLimit) { 
+                    d.classList.add('selected'); selected.push(i); 
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
-                    
-                    updateBetPreview(); 
-                    
-                    setTimeout(() => {
-                        placeBet();
-                    }, 300);
-                } else {
-                    alert("ከ " + maxTicketsLimit + " ካርቴላ በላይ መግዛት አይችሉም!");
-                }
-            }; 
-            box.appendChild(d); 
+                } else { alert("በአጠቃላይ ከ " + maxTicketsLimit + " ካርቴላ በላይ መግዛት አይቻልም!"); } 
+                updateBetPreview(); 
+            }; box.appendChild(d); 
         } 
-    } 
+    }
 
     function updateBetPreview() {
         document.getElementById('jp').innerText = (selected.length * currentTicketPrice).toLocaleString('en-US', {minimumFractionDigits: 2}); 
