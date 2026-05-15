@@ -213,11 +213,21 @@ app.post('/api/register', async (req, res) => {
         const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         let actualRef = "";
-        if (refCode) { 
-            let ref = await User.findOne({ $or: [{ phone: refCode.trim() }, { refCode: refCode.trim() }] }); 
+        
+        // 🔥 PROMOTER PREFIX STRIPPER 🔥
+        let cleanRefCode = refCode || "";
+        if (cleanRefCode.startsWith('promo_')) {
+            cleanRefCode = cleanRefCode.replace('promo_', '');
+        }
+
+        if (cleanRefCode) { 
+            let ref = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
             if (ref) { 
-                ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
-                await ref.save(); io.emit('balance_updated', ref.phone); actualRef = ref.phone; 
+                if(!ref.isPromoter) {
+                    ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                    await ref.save(); io.emit('balance_updated', ref.phone); 
+                }
+                actualRef = ref.phone; 
             } 
         }
         let myRefCode = generateRefCode();
@@ -979,7 +989,20 @@ bot.on('contact', async (msg) => {
     try {
         if (!user) {
             let actualRef = "";
-            if (state.refCode) { let refUser = await User.findOne({ $or: [{ phone: state.refCode }, { refCode: state.refCode }] }); if (refUser) { refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; await refUser.save(); io.emit('balance_updated', refUser.phone); actualRef = refUser.phone; } }
+            let cleanRefCode = state.refCode || "";
+            if (cleanRefCode.startsWith('promo_')) { cleanRefCode = cleanRefCode.replace('promo_', ''); }
+
+            if (cleanRefCode) { 
+                let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
+                if (refUser) { 
+                    if(!refUser.isPromoter) {
+                        refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                        await refUser.save(); 
+                        io.emit('balance_updated', refUser.phone); 
+                    }
+                    actualRef = refUser.phone; 
+                } 
+            }
             let myRefCode = generateRefCode();
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
@@ -1167,11 +1190,10 @@ app.get('/promoter', async (req, res) => {
     if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ የተፈቀደ አስተዋዋቂ አይደሉም! (Unauthorized)</h1>");
 
     let referredUsers = await User.find({ referredBy: user.phone });
-    let refPhones = referredUsers.map(u => u.phone);
-    let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
-    let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
+    
+    // 🔥 PROMOTER CUSTOM LINK 🔥
     let myCode = user.refCode ? user.refCode : user.phone;
-    let link = `https://t.me/bingo_habesha_bot?start=${myCode}`;
+    let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
 
     let html = `
     <!DOCTYPE html>
@@ -1206,19 +1228,14 @@ app.get('/promoter', async (req, res) => {
                 <div style="font-size:30px;">🧑‍🤝‍🧑</div>
             </div>
 
-            <div class="stat-box">
-                <div><div class="stat-title">💰 የገቢ መጠን (Deposits)</div><div class="stat-value">${totalDep.toLocaleString()} ETB</div></div>
-                <div style="font-size:30px;">📥</div>
+            <div class="stat-box orange">
+                <div><div class="stat-title">💰 ሂሳብ (Balance)</div><div class="stat-value" id="unpaidBal">${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</div></div>
+                <div style="font-size:30px;">💳</div>
             </div>
 
             <div class="stat-box green">
-                <div><div class="stat-title">🎁 አጠቃላይ ትርፍዎ (${user.promoterPercent}%)</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
+                <div><div class="stat-title">🎁 እስካሁን የሰበሰቡት የኮሚሽን መጠን</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
                 <div style="font-size:30px;">💸</div>
-            </div>
-
-            <div class="stat-box orange">
-                <div><div class="stat-title">⏳ ያልተከፈለ ቀሪ ሂሳብ</div><div class="stat-value" id="unpaidBal">${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</div></div>
-                <div style="font-size:30px;">💳</div>
             </div>
 
             <h3 style="font-size:14px; color:#94a3b8; margin-top:20px;">🔗 መጋበዣ ሊንክ (Share Link):</h3>
