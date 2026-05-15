@@ -74,7 +74,7 @@
         <button class="nav-btn" onclick="switchTab('all', this)">🏆 All Time Profit</button>
         
         <!-- 🔥 CUSTOM DATE BUTTON 🔥 -->
-        <button class="nav-btn" style="color:var(--orange);" onclick="switchTab('custom', this)">🔍 Custom Date Filter</button>
+        <button class="nav-btn" id="btn-custom-date" style="color:var(--orange);" onclick="switchTab('custom', this)">🔍 Custom Date Filter</button>
         
         <div style="flex:1"></div>
         <button class="nav-btn" style="color: var(--cyan);" onclick="location.href='/admin'">🛡️ Go to Admin Panel</button>
@@ -93,11 +93,11 @@
         <div id="custom-date-container" style="display: none; align-items: center; gap: 15px; margin-bottom: 20px; background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
             <div>
                 <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጀመሪያ ቀን (Start Date)</label>
-                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="if(document.getElementById('endDate').value) applyCustomFilter()">
+                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="applyCustomFilter()">
             </div>
             <div>
                 <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጨረሻ ቀን (End Date)</label>
-                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="if(document.getElementById('startDate').value) applyCustomFilter()">
+                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="applyCustomFilter()">
             </div>
             <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
                 <button class="action-btn" style="width: auto; padding: 11px 20px; margin:0;" onclick="applyCustomFilter()">ፈልግ (Apply)</button>
@@ -204,7 +204,23 @@
     }
 
     function applyCustomFilter() {
+        let sDate = document.getElementById('startDate').value;
+        let eDate = document.getElementById('endDate').value;
+        if(!sDate && !eDate) return;
+        
+        // Auto fill missing date
+        if(sDate && !eDate) {
+            document.getElementById('endDate').value = sDate;
+            eDate = sDate;
+        } else if (!sDate && eDate) {
+            document.getElementById('startDate').value = eDate;
+            sDate = eDate;
+        }
+
         currentFilter = 'custom';
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-custom-date').classList.add('active');
+        
         filterData('custom');
     }
 
@@ -269,9 +285,8 @@
         else if (period === 'custom') {
             let sDate = document.getElementById('startDate').value;
             let eDate = document.getElementById('endDate').value;
-            if(!sDate || !eDate) {
-                return;
-            }
+            if(!sDate || !eDate) return;
+            
             startTime = new Date(sDate);
             startTime.setHours(0,0,0,0);
             
