@@ -198,7 +198,7 @@
             </div></div>
         </div>
 
-        <!-- PENDING WITHDRAWS -->
+        <!-- PENDING WITHDRAWS (NORMAL USERS ONLY) -->
         <div id="tab-pend-wit" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table id="table-pend-wit">
@@ -332,6 +332,18 @@
 
         <!-- 🔥 PROMOTERS TAB 🔥 -->
         <div id="tab-promoters" class="tab-content">
+            
+            <!-- NEW PENDING PROMOTER WITHDRAWALS SECTION -->
+            <div class="card" style="border-left: 4px solid var(--red); margin-bottom: 20px;">
+                <h3 style="margin-top:0; color:var(--red);">📤 Pending Promoter Withdrawals (የአስተዋዋቂዎች ወጪ ጥያቄ)</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Date</th><th>Promoter Phone</th><th>Amount</th><th>Sent To</th><th>Action</th></tr></thead>
+                        <tbody id="promoter-pend-wit-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--cyan);">➕ Add Promoter (አዲስ አስተዋዋቂ)</h3>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
@@ -793,7 +805,9 @@
 
             let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             allTx = await tRes.json(); 
-            populatePendingDeposits(); populatePendingWithdraws(); 
+            populatePendingDeposits(); 
+            populatePendingWithdraws(); 
+            populatePromoterWithdraws(); // 🔥 CALL THE PROMOTER WITHDRAWAL FILTER 🔥
             filterHistoryTxType(currentHistType);
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -1098,7 +1112,6 @@
         } catch(e) { alert("Error paying promoter."); }
     }
 
-    // 🔥 PROMOTER REMOVE CONFIRM ADDED 🔥
     async function setPromoterAction(isAdding, existingPhone = null) {
         let phone = existingPhone || document.getElementById('add-promoter-phone').value.trim();
         if(!phone) return alert("ስልክ ቁጥር ያስገቡ");
@@ -1177,8 +1190,25 @@
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
     }
     function populatePendingWithdraws() {
-        let wits = allTx.filter(t => t.type === 'withdraw' && t.status === 'Pending'); let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
-        document.getElementById('pend-wit-body').innerHTML = wits.map(t => { return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending withdraws.</td></tr>`;
+        let wits = allTx.filter(t => t.type === 'withdraw' && t.method !== 'Promoter Comm' && t.status === 'Pending'); let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
+        document.getElementById('pend-wit-body').innerHTML = wits.map(t => { return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
+    }
+
+    // 🔥 PROMOTER WITHDRAWAL FUNCTION 🔥
+    function populatePromoterWithdraws() {
+        let wits = allTx.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Pending');
+        document.getElementById('promoter-pend-wit-body').innerHTML = wits.map(t => {
+            return `<tr>
+                <td>${new Date(t.date).toLocaleString()}</td>
+                <td style="color:var(--cyan); font-weight:bold;">${t.phone}</td>
+                <td style="color:var(--orange); font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                <td style="font-family:monospace;">${(t.smsText||'').replace('Transfer to: ', '')}</td>
+                <td>
+                    <button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> 
+                    <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button>
+                </td>
+            </tr>`;
+        }).join('') || `<tr><td colspan="5" style="text-align:center;">No pending promoter withdrawals.</td></tr>`;
     }
 
     function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
