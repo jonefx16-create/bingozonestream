@@ -17,7 +17,6 @@
         
         #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; position: relative; }
         
-        /* 🔥 MOBILE FRIENDLY SIDEBAR 🔥 */
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; transition: 0.3s ease; height: 100%; box-sizing: border-box; z-index: 1000; overflow-y: auto; }
         .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap; transition: 0.2s;}
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
@@ -27,7 +26,7 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 999; }
 
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box; -webkit-overflow-scrolling: touch;}
-        .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px;}
+        .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px; margin-top: 5px;}
         
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;}
         .kpi-card { background: var(--panel); border-radius: 12px; padding: 20px; border: 1px solid var(--border); border-left: 4px solid var(--blue); position: relative;}
@@ -51,16 +50,35 @@
         .card-promo { border-left-color: var(--orange); }
         .hint-text { font-size: 9px; color: var(--text-gray); position: absolute; bottom: 10px; right: 15px; }
 
+        /* 🔥 የተስተካከለው ርዕስ (Clickable Header) 🔥 */
+        .clickable-header {
+            position: relative; 
+            display: inline-block; 
+            background: rgba(255,255,255,0.03); 
+            padding: 10px 20px; 
+            border-radius: 10px; 
+            border: 1px dashed var(--cyan); 
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .clickable-header:hover {
+            background: rgba(6, 182, 212, 0.1);
+        }
+
         @media (max-width: 768px) {
-            .menu-toggle-btn { display: inline-block; }
-            .sidebar { position: fixed; top: 0; left: -260px; bottom: 0; width: 250px; height: 100vh; box-shadow: 2px 0 15px rgba(0,0,0,0.9); z-index: 10000; }
+            .sidebar { 
+                width: 100%; height: auto; flex-direction: row; padding: 10px; 
+                border-right: none; border-bottom: 1px solid var(--border); 
+                overflow-x: auto; white-space: nowrap;
+                position: fixed; top: 0; left: -260px; bottom: 0; width: 250px; height: 100vh; box-shadow: 2px 0 15px rgba(0,0,0,0.9); z-index: 10000;
+            }
             .sidebar.open { left: 0; }
             .close-sidebar { display: block; }
             .main-content { padding: 15px; width: 100vw; }
             .summary-box h1 { font-size: 32px !important; }
             .kpi-value { font-size: 20px; }
-            .header-title-box { display: flex; align-items: center; }
-            .header-title-box h2 { font-size: 18px; }
+            .header-title-box { display: flex; align-items: flex-start; gap: 10px; }
+            .clickable-header h2 { font-size: 18px !important; }
         }
     </style>
 </head>
@@ -85,13 +103,6 @@
         
         <button class="nav-btn active" id="btn-daily" onclick="switchTab('daily', this)">📅 Daily Profit (የዛሬ)</button>
         <button class="nav-btn" id="btn-weekly" onclick="switchTab('weekly', this)">📆 Weekly Profit (ሳምንታዊ)</button>
-        
-        <!-- 🔥 SINGLE DATE PICKER 🔥 -->
-        <div style="padding: 10px 20px; background: rgba(255,255,255,0.02); margin: 5px 0;">
-            <label style="color:var(--orange); font-size:12px; font-weight:bold; display:block; margin-bottom:5px;">🗓️ አንድ ቀን ምረጥ (Specific Day)</label>
-            <input type="date" id="singleDatePick" onchange="applySingleDate()" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--orange); color:white; width:100%; font-size:13px; cursor:pointer;">
-        </div>
-
         <button class="nav-btn" id="btn-monthly" onclick="switchTab('monthly', this)">🗓️ Monthly Profit (ወርሃዊ)</button>
         <button class="nav-btn" id="btn-all" onclick="switchTab('all', this)">🏆 All Time Profit (አጠቃላይ)</button>
         
@@ -100,15 +111,23 @@
     </div>
 
     <div class="main-content">
-        <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px; border-bottom: 1px solid var(--border); padding-bottom:10px;">
+        <div style="display: flex; justify-content: space-between; align-items:flex-start; margin-bottom: 15px; flex-wrap:wrap; gap:10px; border-bottom: 1px solid var(--border); padding-bottom:15px;">
+            
             <div class="header-title-box">
                 <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
-                <div>
-                    <h2 id="page-title" style="margin: 0; color:white;">📅 Daily Profit Report</h2>
-                    <span id="date-display" style="color: var(--cyan); font-size: 12px; font-weight: bold;">Loading Date...</span>
+                
+                <!-- 🔥 አዲሱ የሚነካው ርዕስ (Clickable Header Date Picker) 🔥 -->
+                <div class="clickable-header">
+                    <h2 id="page-title" style="margin: 0; color:white; font-size: 22px;">📅 Daily Profit Report</h2>
+                    <span id="date-display" style="color: var(--cyan); font-size: 13px; font-weight: bold; display:block; margin-top:3px;">Loading Date...</span>
+                    <p style="font-size:10px; color:var(--faded-green); margin:5px 0 0 0; font-weight:bold;">👆 ቀኑን ለመቀየር እዚህ ይጫኑ</p>
+                    
+                    <!-- ይህ የማይታየው ካላንደር ነው፣ ከላይ ያለውን ፅሁፍ ሲነኩ ይህ ይሰራል -->
+                    <input type="date" id="headerDatePick" onchange="applyHeaderDate(this.value)" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
                 </div>
             </div>
-            <button class="action-btn" style="width: auto; padding: 8px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh Data</button>
+            
+            <button class="action-btn" style="width: auto; padding: 10px 20px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh Data</button>
         </div>
 
         <!-- 🔥 30% / 70% SPLIT BOX 🔥 -->
@@ -214,14 +233,9 @@
             'weekly': '📆 Weekly Profit Report',
             'monthly': '🗓️ Monthly Profit Report',
             'all': '🏆 All Time Profit Report',
-            'custom': '🔍 Custom Date Report'
+            'custom': '🔍 Custom Day Report'
         };
         document.getElementById('page-title').innerText = titles[period];
-        
-        // Reset single date picker if clicking other tabs
-        if(period !== 'custom') {
-            document.getElementById('singleDatePick').value = "";
-        }
         
         currentFilter = period;
         filterData(period);
@@ -229,18 +243,21 @@
         if(window.innerWidth <= 768) toggleSidebar();
     }
 
-    function applySingleDate() {
-        let selectedDate = document.getElementById('singleDatePick').value;
+    // 🔥 ርዕሱን (Header Date) ሲነኩ የሚሰራው ፈንክሽን 🔥
+    function applyHeaderDate(selectedDate) {
         if(!selectedDate) return;
         
+        // Remove active class from all sidebar buttons
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
+        
+        // Update Title
         document.getElementById('page-title').innerText = "🔍 Specific Day Report";
         
         currentFilter = 'custom';
         currentCustomDate = selectedDate;
-        filterData('custom');
         
-        if(window.innerWidth <= 768) toggleSidebar();
+        // Trigger filter
+        filterData('custom');
     }
 
     async function loadFinancialData() {
@@ -281,7 +298,7 @@
         let endTime = new Date(); 
         
         let dateDisplayStr = "All Time History";
-        let options = { year: 'numeric', month: 'short', day: 'numeric' };
+        let options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
         let todayStr = now.toLocaleDateString('en-US', options);
 
         if(period === 'daily') { 
@@ -377,6 +394,7 @@
 </script>
 </body>
 </html>
+
 
 
 
