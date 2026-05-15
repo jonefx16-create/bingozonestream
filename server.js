@@ -72,7 +72,7 @@ const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
-    financePass: { type: String, default: "finance1234" }, // 🔥 NEW: SEPARATE FINANCE PASSWORD 🔥
+    financePass: { type: String, default: "finance1234" }, 
     ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
     depBonusMinAmount: { type: Number, default: 100 }, depBonusPercent: { type: Number, default: 20 }, depBonusTimeRestricted: { type: Boolean, default: false }, happyHourStart: { type: Number, default: 0 }, happyHourEnd: { type: Number, default: 23 },
     depBannerTextAm: { type: String, default: "" }, depBannerTextEn: { type: String, default: "" },
@@ -363,7 +363,6 @@ app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find(
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(300)));
 
-// 🔥 Updated to use financeAuth 🔥
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
@@ -418,7 +417,6 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 Updated to use financeAuth 🔥
 app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
     try {
         let promoters = await User.find({ isPromoter: true });
@@ -563,7 +561,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
     if(req.body.newPass) s.adminPass = req.body.newPass;
-    if(req.body.newFinancePass) s.financePass = req.body.newFinancePass; // 🔥 NEW FINANCE PASS UPDATE
+    if(req.body.newFinancePass) s.financePass = req.body.newFinancePass;
     
     if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
@@ -934,9 +932,10 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
+// 🔥 TELEGRAM BOT MESSAGES WITH AMHARIC BINGO HABESHA LOGO 🔥
 const t = {
     am: {
-        welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
         btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 ድርጅቱን አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።", err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
         profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
@@ -955,7 +954,7 @@ const t = {
         play_msg: "በቢንጎ ሐበሻ ቤት ይጫወቱ ይዝናኑ በሺዎች ያሸንፉ\nመልካም እድል ይሁንሎት"
     },
     en: {
-        welcome: "🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
         btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back",
         share_contact: "📱 Share Contact", err_reg_first: "Register first by sending /start.", err_cancel: "❌ Action cancelled.",
         profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
@@ -973,7 +972,7 @@ const t = {
         play_msg: "Play and have fun at Bingo Habesha and win thousands!\nGood luck!"
     },
     or: {
-        welcome: "🎉 <b>Baga nagaan dhuftan!</b> 🎉", btn_play: "🎮 Tapadhu", btn_profile: "👤 Pirofaayilii", btn_balance: "💰 Herrega", btn_deposit: "📥 Galchuu", btn_withdraw: "📤 Baasuu", btn_invite: "🔗 Afeeri", btn_promo: "🗣 Promote", btn_guide: "📖 Qajeelfama", btn_help: "🆘 Gargaarsa", btn_rules: "📜 Seera", btn_lang: "🌐 Afaan", btn_bonus: "🎁 Boonasii", btn_back: "🔙 Duubatti", share_contact: "📱 Lakkoofsa ergi", err_reg_first: "Dura /start tuqi.", err_cancel: "❌ Haqameera.",
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Baga nagaan dhuftan!</b> 🎉", btn_play: "🎮 Tapadhu", btn_profile: "👤 Pirofaayilii", btn_balance: "💰 Herrega", btn_deposit: "📥 Galchuu", btn_withdraw: "📤 Baasuu", btn_invite: "🔗 Afeeri", btn_promo: "🗣 Promote", btn_guide: "📖 Qajeelfama", btn_help: "🆘 Gargaarsa", btn_rules: "📜 Seera", btn_lang: "🌐 Afaan", btn_bonus: "🎁 Boonasii", btn_back: "🔙 Duubatti", share_contact: "📱 Lakkoofsa ergi", err_reg_first: "Dura /start tuqi.", err_cancel: "❌ Haqameera.",
         profile_text: (u) => `👤 <b>Pirofaayilii</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Tapha: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Baankii filadhu:</b>", wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>", invite_msg: (l) => `🔗 <b>Afeeri</b>\n\nLachuun keessan Boonasii argattu!\n\n👇 Liinkii Kee:\n${l}`, guide_msg: `📖 <b>Akkaataa Tapha:</b> Sarara guutu BINGO!`, rules_msg: `📜 <b>Seera:</b> Telebirr gara Telebirr QOFA. CBEBirr gara CBEBirr QOFA.`, choose_lang: "Afaan filadhu:", lang_set: "✅ Jijjiirameera!", warn_telebirr: "⚠️ Telebirr gara Telebirr QOFA!\n\n", warn_cbebirr: "⚠️ CBEBirr gara CBEBirr QOFA!\n\n",
@@ -982,7 +981,7 @@ const t = {
         play_msg: "BINGO HABESHA irratti taphadhaa, bashannanaa, kumaatama mo'adhaa!\nCarraa Gaarii!"
     },
     ti: {
-        welcome: "🎉 <b>እንቋዕ ብደሓን መጻእኩም!</b> 🎉", btn_play: "🎮 ጻወት", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሕሳብ", btn_deposit: "📥 ኣእቱ", btn_withdraw: "📤 ኣውጽእ", btn_invite: "🔗 ዕደም", btn_promo: "🗣 Promote", btn_guide: "📖 መምርሒ", btn_help: "🆘 ሓገዝ", btn_rules: "📜 ሕግታት", btn_lang: "🌐 ቋንቋ", btn_bonus: "🎁 ቦነስ", btn_back: "🔙 ንድሕሪት", share_contact: "📱 ቁጽሪ ኣካፍል", err_reg_first: "ቅድም /start በሉ።", err_cancel: "❌ ተቋሪጹ።",
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንቋዕ ብደሓን መጻእኩም!</b> 🎉", btn_play: "🎮 ጻወት", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሕሳብ", btn_deposit: "📥 ኣእቱ", btn_withdraw: "📤 ኣውጽእ", btn_invite: "🔗 ዕደም", btn_promo: "🗣 Promote", btn_guide: "📖 መምርሒ", btn_help: "🆘 ሓገዝ", btn_rules: "📜 ሕግታት", btn_lang: "🌐 ቋንቋ", btn_bonus: "🎁 ቦነስ", btn_back: "🔙 ንድሕሪት", share_contact: "📱 ቁጽሪ ኣካፍል", err_reg_first: "ቅድም /start በሉ።", err_cancel: "❌ ተቋሪጹ።",
         profile_text: (u) => `👤 <b>ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልኪ:</b> ${u.phone}\n\n💰 <b>መጻወቲ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ቀንዲ:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>ባንኪ ምረጽ?</b>", wit_msg: "🏦 <b>ባንኪ ምረጽ?</b>", invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nንስኹም ሆነ ንሱ ፍሉይ ቦነስ ክትረኽቡ ኢኹም!\n\n👇 ሊንክ:\n${l}`, guide_msg: `📖 <b>መምርሒ:</b> ምሉእ መስመር እንተሰሪሖም BINGO!`, rules_msg: `📜 <b>ሕግታት:</b> ካብ ቴሌብር ናብ ቴሌብር ጥራይ። ካብ CBEBirr ናብ CBEBirr ጥራይ።`, choose_lang: "ቋንቋ ምረጹ:", lang_set: "✅ ተቐይሩ ኣሎ!", warn_telebirr: "⚠️ ካብ ቴሌብር ናብ ቴሌብር ጥራይ!\n\n", warn_cbebirr: "⚠️ ካብ CBEBirr ናብ CBEBirr ጥራይ!\n\n",
@@ -1006,7 +1005,7 @@ bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
         catch(e) { bot.sendMessage(chatId, ln.welcome, { parse_mode: "HTML", ...getMainMenu(user) }); }
     } else {
         botState[chatId] = { step: 'idle', refCode: match[1] };
-        const cap = `👋 <b>እንኳን ወደ BINGO HABESHA መጡ!</b>\n\nጌሙን ለመጀመር ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> ይጫኑ።`;
+        const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n👋 <b>እንኳን ወደ BINGO HABESHA መጡ!</b>\n\nጌሙን ለመጀመር ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> ይጫኑ።`;
         try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", reply_markup: { keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], resize_keyboard: true, one_time_keyboard: true } }); }
         catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", reply_markup: { keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], resize_keyboard: true, one_time_keyboard: true } }); }
     }
@@ -1036,12 +1035,12 @@ bot.on('contact', async (msg) => {
             let myRefCode = generateRefCode();
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
-            const cap = `🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
+            const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
         } else {
             user.telegramId = msg.from.id.toString(); await user.save();
-            const cap = `✅ አካውንትዎ ተገናኝቷል!\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
+            const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n✅ አካውንትዎ ተገናኝቷል!\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
         }
@@ -1112,7 +1111,6 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና ኮሚሽን በየቀኑ ለመሰብሰብ እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
         }
     } 
-    // 🔥 GUIDE WITH DYNAMIC LANGUAGE SYNC 🔥
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
         if(!user) return; 
         let langParam = user.language || 'am';
@@ -1213,12 +1211,9 @@ const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    // 1. ለ Admin ፔጅ (Username 'admin' መሆን አለበት)
     if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
         return next(); 
     }
-    
-    // 2. ለ Finance ፔጅ (Username 'finance' ወይም 'admin' መሆን ይችላል፤ ፓስወርዱ ደግሞ የ Finance ወይም የ Admin መሆን ይችላል)
     if (req.path === '/finance' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
         return next(); 
     }
@@ -1227,7 +1222,7 @@ const basicAuth = (req, res, next) => {
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin" ወይም "finance") እና Password ያስገቡ።</p>');
 };
 
-// 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT 🔥
+// 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT WITH LOGO 🔥
 app.get('/guide', (req, res) => {
     let lang = req.query.lang || 'am';
     
@@ -1326,6 +1321,13 @@ app.get('/guide', (req, res) => {
         </style>
     </head>
     <body>
+        <!-- 🟢 ቢንጎ ሀበሻ LOGO START -->
+        <div style="text-align: left; margin-bottom: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; background: rgba(0,0,0,0.3); display: inline-block; padding: 5px 10px; border-radius: 6px; float: left;">
+            <span style="color: #4ade80;">ቢንጎ</span> <span style="color: #ffffff;">ሀበሻ</span>
+        </div>
+        <div style="clear: both;"></div>
+        <!-- 🟢 ቢንጎ ሀበሻ LOGO END -->
+
         <h2>${tr.title}</h2>
         
         <div style="text-align: left; background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 30px; font-size: 14px; line-height: 1.6; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
@@ -1387,7 +1389,7 @@ app.get('/guide', (req, res) => {
     res.send(html);
 });
 
-// 🔥 MULTI-LANGUAGE PROMOTER WEB APP ROUTE 🔥
+// 🔥 MULTI-LANGUAGE PROMOTER WEB APP ROUTE WITH LOGO 🔥
 app.get('/promoter', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
@@ -1470,6 +1472,12 @@ app.get('/promoter', async (req, res) => {
         </style>
     </head>
     <body>
+        <!-- 🟢 ቢንጎ ሀበሻ LOGO START -->
+        <div style="text-align: left; margin-bottom: 15px; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; background: rgba(0,0,0,0.3); display: inline-block; padding: 5px 10px; border-radius: 6px;">
+            <span style="color: #4ade80;">ቢንጎ</span> <span style="color: #ffffff;">ሀበሻ</span>
+        </div>
+        <!-- 🟢 ቢንጎ ሀበሻ LOGO END -->
+
         <div class="card">
             <div class="title">${pr.dash}</div>
             
@@ -1723,8 +1731,6 @@ setInterval(async () => {
 }, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
-
-
 
 
 
