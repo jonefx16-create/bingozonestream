@@ -19,8 +19,6 @@ app.use(express.static(__dirname));
 // 🔵 DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-const ADMIN_PASS = process.env.ADMIN_PASS || "bingo1234";
-
 mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
@@ -73,7 +71,9 @@ const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" }, ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
+    adminPass: { type: String, default: "bingo1234" }, 
+    financePass: { type: String, default: "finance1234" }, // 🔥 NEW: SEPARATE FINANCE PASSWORD 🔥
+    ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
     depBonusMinAmount: { type: Number, default: 100 }, depBonusPercent: { type: Number, default: 20 }, depBonusTimeRestricted: { type: Boolean, default: false }, happyHourStart: { type: Number, default: 0 }, happyHourEnd: { type: Number, default: 23 },
     depBannerTextAm: { type: String, default: "" }, depBannerTextEn: { type: String, default: "" },
     witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false }, witBonusTimeRestricted: { type: Boolean, default: false }, witHappyHourStart: { type: Number, default: 0 }, witHappyHourEnd: { type: Number, default: 23 },
@@ -87,7 +87,7 @@ async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
     GLOBAL_SETTINGS = { 
-        adminPass: s.adminPass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
+        adminPass: s.adminPass, financePass: s.financePass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
         depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
         happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
@@ -280,7 +280,6 @@ app.post('/api/request-tx', async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// 🔥 PROMOTER WEB APP WITHDRAWAL API 🔥
 app.post('/api/promoter/withdraw', async (req, res) => {
     try {
         const { phone, pass, amount, account } = req.body;
@@ -300,7 +299,6 @@ app.post('/api/promoter/withdraw', async (req, res) => {
     } catch (e) { res.json({ success: false, message: "ስህተት አጋጥሟል" }); }
 });
 
-// 🔥 FIXED: Promoter withdrawals hidden from normal wallet history 🔥
 app.get('/api/user/transactions/:phone', async (req, res) => { 
     const txs = await Transaction.find({ 
         phone: req.params.phone, 
@@ -346,9 +344,18 @@ app.post('/api/claim-promo-web', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
+// 🔥 MIDDLEWARES FOR ADMIN & FINANCE 🔥
 const auth = (req, res, next) => { 
     const pass = req.body.adminPass; 
     if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
+    next(); 
+};
+
+const financeAuth = (req, res, next) => { 
+    const pass = req.body.adminPass || req.body.financePass; 
+    if(pass !== GLOBAL_SETTINGS.financePass && pass !== GLOBAL_SETTINGS.adminPass) {
+        return res.status(401).json({error:"Unauthorized"}); 
+    }
     next(); 
 };
 
@@ -356,7 +363,8 @@ app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find(
 app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
 app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(300)));
 
-app.post('/api/admin/finance-raw-data', auth, async (req, res) => {
+// 🔥 Updated to use financeAuth 🔥
+app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
         let games = await GameHistory.find();
@@ -410,15 +418,14 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-app.post('/api/admin/promoters-data', auth, async (req, res) => {
+// 🔥 Updated to use financeAuth 🔥
+app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
     try {
         let promoters = await User.find({ isPromoter: true });
         let data = [];
         for (let p of promoters) {
             let refUsers = await User.find({ referredBy: p.phone });
             let refPhones = refUsers.map(u => u.phone);
-            
-            // 🔥 NEW: Check active deposited users 🔥
             let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
 
             let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
@@ -467,7 +474,6 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
-// 🔥 PROMOTER MANUAL PAYMENT API UPDATE 🔥
 app.post('/api/admin/pay-promoter', auth, async (req, res) => {
     try {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
@@ -477,7 +483,6 @@ app.post('/api/admin/pay-promoter', auth, async (req, res) => {
             if(p.promoterUnpaidBalance < 0) p.promoterUnpaidBalance = 0;
             await p.save();
             
-            // Create transaction log so it shows on promoter dashboard & admin tx list
             await new Transaction({ 
                 phone: p.phone, 
                 type: 'withdraw', 
@@ -558,6 +563,8 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
     if(req.body.newPass) s.adminPass = req.body.newPass;
+    if(req.body.newFinancePass) s.financePass = req.body.newFinancePass; // 🔥 NEW FINANCE PASS UPDATE
+    
     if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
@@ -1067,7 +1074,6 @@ bot.on('message', async (msg) => {
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
-    // 🔥 PROFILE BUTTON UPDATE (REMOVED PASSWORD) 🔥
     else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
@@ -1093,7 +1099,6 @@ bot.on('message', async (msg) => {
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.refCode}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
-    // 🔥 PROMOTER BOT BUTTON UPDATE 🔥
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(user.isPromoter) {
@@ -1107,12 +1112,14 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና ኮሚሽን በየቀኑ ለመሰብሰብ እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
         }
     } 
-    // 🔥 GUIDE (HOW TO PLAY) WEB APP UPDATE 🔥
+    // 🔥 GUIDE WITH DYNAMIC LANGUAGE SYNC 🔥
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
         if(!user) return; 
-        bot.sendMessage(chatId, "📖 <b>እንዴት መጫወት እና ማሸነፍ ይቻላል?</b>\n\nከታች ያለውን ቁልፍ በመጫን በምስል የተደገፈ መመሪያ ይመልከቱ።", { 
+        let langParam = user.language || 'am';
+        let guideTxt = langParam === 'en' ? "Open Guide" : (langParam === 'or' ? "Qajeelfama Bani" : (langParam === 'ti' ? "መምርሒ ክፈት" : "መመሪያ ክፈት"));
+        bot.sendMessage(chatId, "📖 <b>እንዴት መጫወት እና ማሸነፍ ይቻላል? (How to Play)</b>\n\nከታች ያለውን ቁልፍ በመጫን በምስል የተደገፈ መመሪያ ይመልከቱ።", { 
             parse_mode: "HTML", 
-            reply_markup: { inline_keyboard: [[{ text: "📖 መመሪያ ክፈት (Open Guide)", web_app: { url: `${WEB_URL}/guide` } }]] }
+            reply_markup: { inline_keyboard: [[{ text: `📖 ${guideTxt}`, web_app: { url: `${WEB_URL}/guide?lang=${langParam}` } }]] }
         }); 
     }
     else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
@@ -1201,23 +1208,108 @@ bot.on('callback_query', async (query) => {
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
 });
 
+// 🔥 UPDATE BASIC AUTH FOR FINANCE ENDPOINT 🔥
 const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
-    res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
-    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
+    // Check if it's the Admin route
+    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
+    
+    // Check if it's the Finance route
+    if (req.path === '/finance' && login === 'finance' && password === GLOBAL_SETTINGS.financePass) { return next(); }
+    
+    res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
+    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username እና Password ያስገቡ።</p>');
 };
 
-// 🔥 GUIDE / HOW TO PLAY WEB APP ENDPOINT 🔥
+// 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT 🔥
 app.get('/guide', (req, res) => {
+    let lang = req.query.lang || 'am';
+    
+    const guideTrans = {
+        am: {
+            title: "📖 የጨዋታው መመሪያ እና ደንቦች",
+            rule1_title: "1️⃣ የሂሳብ ደንቦች:",
+            rule1_a: "🟢 <b>መጫወቻ ሂሳብ (Play Balance):</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን ወጪ (Withdraw) ማድረግ አይቻልም።",
+            rule1_b: "🟡 <b>ዋና ሂሳብ (Main Balance):</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።",
+            rule2_title: "2️⃣ የገቢ ደንብ:",
+            rule2_a: "👉 ከ ቴሌብር ወደ ቴሌብር አካውንት ብቻ!",
+            rule2_b: "👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር አካውንት ብቻ ያስገቡ።",
+            rule3_title: "3️⃣ የጨዋታው ሂደት:",
+            rule3_a: "ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል። ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል። ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።",
+            win_title: "🏆 ማሸነፊያ መንገዶች (Winning Patterns)",
+            win_desc: "ከታች ባሉት አራት ቅርፆች መሰረት ከተጠሩት ቁጥሮች አምስቱን ካገኙ <b>BINGO</b> ብለው ያሸንፋሉ!",
+            horiz: "1. በአግድም (Horizontal)",
+            vert: "2. ወደ ታች (Vertical)",
+            diag: "3. በማዕዘን (Diagonal / X)",
+            corner: "4. አራቱ ጥግ (Four Corners)",
+            hint: "💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!"
+        },
+        en: {
+            title: "📖 Game Guide & Rules",
+            rule1_title: "1️⃣ Account Rules:",
+            rule1_a: "🟢 <b>Play Balance:</b> Used only for buying tickets. Cannot be withdrawn.",
+            rule1_b: "🟡 <b>Main Balance:</b> Your winnings go here. Can be withdrawn at any time.",
+            rule2_title: "2️⃣ Deposit Rules:",
+            rule2_a: "👉 TeleBirr to TeleBirr account ONLY!",
+            rule2_b: "👉 CBEBirr to CBEBirr account ONLY.",
+            rule3_title: "3️⃣ Gameplay:",
+            rule3_a: "When you buy a ticket, you get a 5x5 grid with numbers 1-75. The system calls a number every 3 seconds and automatically marks it for you.",
+            win_title: "🏆 Winning Patterns",
+            win_desc: "Match 5 numbers based on the four patterns below to win <b>BINGO</b>!",
+            horiz: "1. Horizontal",
+            vert: "2. Vertical",
+            diag: "3. Diagonal (X)",
+            corner: "4. Four Corners",
+            hint: "💡 The system detects winners automatically. You don't need to touch anything!"
+        },
+        or: {
+            title: "📖 Qajeelfama Taphaa fi Seera",
+            rule1_title: "1️⃣ Seera Herregaa:",
+            rule1_a: "🟢 <b>Herrega Taphaa (Play Balance):</b> Tikkeetii bituuf qofa tajaajila. Baasuu hin danda'amu.",
+            rule1_b: "🟡 <b>Herrega Muummee (Main Balance):</b> Mo'achuu keetiin kan galu. Yeroo barbaaddanitti baasuu dandeessu.",
+            rule2_title: "2️⃣ Seera Galchuu:",
+            rule2_a: "👉 Telebirr gara Telebirr QOFA!",
+            rule2_b: "👉 CBEBirr gara CBEBirr QOFA.",
+            rule3_title: "3️⃣ Haala Taphaa:",
+            rule3_a: "Tikkeetii yommuu bitattan, kaardii 5x5 lakkoofsa 1-75 qabu isiniif kennama. Sirnichumtuu lakkoofsa waamaa ofiisaatiin isiniif mara.",
+            win_title: "🏆 Akkaataa Mo'achuu (Winning Patterns)",
+            win_desc: "Bocoota arfan armaan gadii keessaa tokko yoo guuttan <b>BINGO</b> jettu!",
+            horiz: "1. Dalgee (Horizontal)",
+            vert: "2. Gadee (Vertical)",
+            diag: "3. Qaxxaamura (Diagonal / X)",
+            corner: "4. Kurna Arfan (Four Corners)",
+            hint: "💡 Sirnichumtuu mo'ataa waan adda baasuuf homaa tuquun isinirra hin eegamu!"
+        },
+        ti: {
+            title: "📖 መምርሒ ጸወታን ሕግታትን",
+            rule1_title: "1️⃣ ሕግታት ሕሳብ:",
+            rule1_a: "🟢 <b>መጻወቲ ሕሳብ (Play Balance):</b> ካርድ ንምግዛእ ጥራይ የገልግል። መውጽኢ (Withdraw) ክግበር ኣይክእልን።",
+            rule1_b: "🟡 <b>ቀንዲ ሕሳብ (Main Balance):</b> ክትዕወቱ ከለኹም ዝኣትወሉ ኮይኑ፣ ኣብ ዝደለኹሞ ግዜ ከተውጽእዎ ትኽእሉ ኢኹም።",
+            rule2_title: "2️⃣ ሕግታት ኣእታው (Deposit):",
+            rule2_a: "👉 ካብ ቴሌብር ናብ ቴሌብር ኣካውንት ጥራይ!",
+            rule2_b: "👉 ካብ CBEBirr ናብ CBEBirr ኣካውንት ጥራይ።",
+            rule3_title: "3️⃣ መስርሕ ጸወታ:",
+            rule3_a: "ካርድ ክትገዝኡ ከለኹም ካብ 1 ክሳብ 75 ቁጽርታት ዝሓዘ 5x5 ካርቴላ ይወሃበኩም። ጸወታ ክጅምር ከሎ ሲስተም ባዕሉ ቁጽርታት ይጽውዕን የጸልምልኩምን።",
+            win_title: "🏆 መገድታት ዓወት (Winning Patterns)",
+            win_desc: "በዞም ታሕቲ ዘለዉ ኣርባዕተ ቅርጽታት መሰረት ሓሙሽተ ቁጽርታት እንተረኺብኩም <b>BINGO</b> ኢልኩም ትዕወቱ!",
+            horiz: "1. ብኣግድም (Horizontal)",
+            vert: "2. ንታሕቲ (Vertical)",
+            diag: "3. ብማዕዘን (Diagonal / X)",
+            corner: "4. ኣርባዕቲኡ ኩርናዕ (Four Corners)",
+            hint: "💡 ሲስተም ባዕሉ ተዓዋቲ ስለዘለሊ ዝኾነ ነገር ምትንኻፍ ኣየድልየኩምን!"
+        }
+    };
+
+    let tr = guideTrans[lang] || guideTrans['am'];
+
     let html = `
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="${lang}">
     <head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>እንዴት መጫወት ይቻላል? (How to Play)</title>
+        <title>${tr.title}</title>
         <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 20px; text-align: center; margin: 0; }
             h2 { color: #4ade80; margin-top: 10px; }
@@ -1230,25 +1322,25 @@ app.get('/guide', (req, res) => {
         </style>
     </head>
     <body>
-        <h2>📖 የጨዋታው መመሪያ እና ደንቦች</h2>
+        <h2>${tr.title}</h2>
         
         <div style="text-align: left; background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 30px; font-size: 14px; line-height: 1.6; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-            <b style="color:#fbbf24;">1️⃣ የሂሳብ ደንቦች:</b><br>
-            🟢 <b>መጫወቻ ሂሳብ (Play Balance):</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን ወጪ (Withdraw) ማድረግ አይቻልም።<br>
-            🟡 <b>ዋና ሂሳብ (Main Balance):</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።<br><br>
+            <b style="color:#fbbf24;">${tr.rule1_title}</b><br>
+            ${tr.rule1_a}<br>
+            ${tr.rule1_b}<br><br>
             
-            <b style="color:#fbbf24;">2️⃣ የገቢ ደንብ:</b><br>
-            👉 ከ ቴሌብር ወደ ቴሌብር አካውንት ብቻ!<br>
-            👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር አካውንት ብቻ ያስገቡ።<br><br>
+            <b style="color:#fbbf24;">${tr.rule2_title}</b><br>
+            ${tr.rule2_a}<br>
+            ${tr.rule2_b}<br><br>
             
-            <b style="color:#fbbf24;">3️⃣ የጨዋታው ሂደት:</b><br>
-            ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል። ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል። ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።
+            <b style="color:#fbbf24;">${tr.rule3_title}</b><br>
+            ${tr.rule3_a}
         </div>
 
-        <h2 style="color: #38bdf8;">🏆 ማሸነፊያ መንገዶች (Winning Patterns)</h2>
-        <p style="color:#94a3b8; font-size:14px; margin-bottom: 30px;">ከታች ባሉት አራት ቅርፆች መሰረት ከተጠሩት ቁጥሮች አምስቱን ካገኙ <b>BINGO</b> ብለው ያሸንፋሉ!</p>
+        <h2 style="color: #38bdf8;">${tr.win_title}</h2>
+        <p style="color:#94a3b8; font-size:14px; margin-bottom: 30px;">${tr.win_desc}</p>
 
-        <div class="title">1. በአግድም (Horizontal)</div>
+        <div class="title">${tr.horiz}</div>
         <div class="grid">
             <div class="cell hl">1</div><div class="cell hl">16</div><div class="cell hl">31</div><div class="cell hl">46</div><div class="cell hl">61</div>
             <div class="cell">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
@@ -1257,7 +1349,7 @@ app.get('/guide', (req, res) => {
             <div class="cell">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell">65</div>
         </div>
 
-        <div class="title">2. ወደ ታች (Vertical)</div>
+        <div class="title">${tr.vert}</div>
         <div class="grid">
             <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell">61</div>
             <div class="cell hl">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
@@ -1266,7 +1358,7 @@ app.get('/guide', (req, res) => {
             <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell">65</div>
         </div>
 
-        <div class="title">3. በማዕዘን (Diagonal / X)</div>
+        <div class="title">${tr.diag}</div>
         <div class="grid">
             <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell">61</div>
             <div class="cell">2</div><div class="cell hl">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
@@ -1275,7 +1367,7 @@ app.get('/guide', (req, res) => {
             <div class="cell">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
         </div>
 
-        <div class="title">4. አራቱ ጥግ (Four Corners)</div>
+        <div class="title">${tr.corner}</div>
         <div class="grid">
             <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell hl">61</div>
             <div class="cell">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
@@ -1284,33 +1376,74 @@ app.get('/guide', (req, res) => {
             <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
         </div>
         
-        <p style="color:#4ade80; font-size:12px; margin-top:20px; border:1px dashed #4ade80; padding:10px; border-radius:8px;">💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!</p>
+        <p style="color:#4ade80; font-size:12px; margin-top:20px; border:1px dashed #4ade80; padding:10px; border-radius:8px;">${tr.hint}</p>
     </body>
     </html>
     `;
     res.send(html);
 });
 
-// 🔥 PROMOTER WEB APP ROUTE 🔥
+// 🔥 MULTI-LANGUAGE PROMOTER WEB APP ROUTE 🔥
 app.get('/promoter', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
     let user = await User.findOne({ phone, password: pass });
-    if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ የተፈቀደ አስተዋዋቂ አይደሉም! (Unauthorized)</h1>");
+    if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ Unauthorized / የተፈቀደ አስተዋዋቂ አይደሉም!</h1>");
 
     let referredUsers = await User.find({ referredBy: user.phone });
-    // 🔥 NEW: Filter to find active deposited users
     let activeDepositedUsers = referredUsers.filter(u => u.totalDeposited > 0).length;
 
     let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
-    // 🔥 PROMOTER CUSTOM LINK (No promo_ prefix) 🔥
     let myCode = user.refCode ? user.refCode : user.phone;
     let link = `https://t.me/bingo_habesha_bot?start=${myCode}`;
 
+    let lang = user.language || 'am';
+    
+    const proTrans = {
+        am: {
+            dash: "📊 ዳሽቦርድ (Dashboard)",
+            brought: "👥 ያመጧቸው (Total)", active: "✅ ገቢ ያደረጉ (Active)", bal: "💰 ሂሳብ (Balance)", earned: "🎁 የተሰበሰበ ኮሚሽን",
+            perc: "📈 የኮሚሽን መጠንዎ", link_title: "🔗 መጋበዣ ሊንክ (Share Link):", copy_hint: "📋 ይጫኑ ኮፒ ለማድረግ", copied: "✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!",
+            wit_title: "💸 ኮሚሽን ወጪ ማድረጊያ", wit_desc: "ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ",
+            amt_ph: "የብር መጠን (ቢያንስ 1000 ብር)", acc_ph: "የባንክ አካውንት (ወይም ስልክ)", btn_wit: "ወጪ አድርግ (Withdraw)",
+            wait: "እባክዎ ይጠብቁ...", alert_fill: "እባክዎ መረጃውን በትክክል ይሙሉ!", err_conn: "ግንኙነት ተቋርጧል",
+            hist_title: "📜 የወጪ ታሪክ (Withdraw History)", date: "ቀን", amt: "መጠን", status: "ሁኔታ", no_hist: "ምንም ታሪክ የለም (No History)"
+        },
+        en: {
+            dash: "📊 Promoter Dashboard",
+            brought: "👥 Total Invited", active: "✅ Active Depositors", bal: "💰 Unpaid Balance", earned: "🎁 Total Earned",
+            perc: "📈 Your Commission %", link_title: "🔗 Your Share Link:", copy_hint: "📋 Click to Copy", copied: "✅ Link Copied!",
+            wit_title: "💸 Withdraw Commission", wit_desc: "Withdraw your earned commissions directly",
+            amt_ph: "Amount (Min 1000 ETB)", acc_ph: "Bank Account (or Phone)", btn_wit: "Withdraw Now",
+            wait: "Please wait...", alert_fill: "Please fill in all details!", err_conn: "Connection Error",
+            hist_title: "📜 Withdrawal History", date: "Date", amt: "Amount", status: "Status", no_hist: "No History Found"
+        },
+        or: {
+            dash: "📊 Daashboordii (Dashboard)",
+            brought: "👥 Waligala Afeeran", active: "✅ Kanneen Galchan", bal: "💰 Herrega (Balance)", earned: "🎁 Komishinii Waliigalaa",
+            perc: "📈 Dhibbantaa Kee (%)", link_title: "🔗 Liinkii Afeerrii Kee:", copy_hint: "📋 Tuqi Koppii Godhuuf", copied: "✅ Koppii Ta'eera!",
+            wit_title: "💸 Komishinii Baasuu", wit_desc: "Komishinii kee kallattiin baasi",
+            amt_ph: "Hamma (Min 1000 ETB)", acc_ph: "Lakkoofsa Herregaa (Ykn Bilbila)", btn_wit: "Amma Baasi",
+            wait: "Maaloo eegaa...", alert_fill: "Guutuun guututti barreessi!", err_conn: "Rakkoo Interneetaa",
+            hist_title: "📜 Seenaa Baasii (History)", date: "Guyyaa", amt: "Hamma", status: "Haala", no_hist: "Seenaan Hin Jiru"
+        },
+        ti: {
+            dash: "📊 ዳሽቦርድ (Dashboard)",
+            brought: "👥 ዝዓደምኩሞም", active: "✅ ዘእተዉ (Active)", bal: "💰 ሕሳብ (Balance)", earned: "🎁 ጠቕላላ ኮሚሽን",
+            perc: "📈 መጠን ኮሚሽንኩም", link_title: "🔗 ሊንክ ዕድመ:", copy_hint: "📋 ጠውቑ ኮፒ ንምግባር", copied: "✅ ሊንክ ኮፒ ተገይሩ!",
+            wit_title: "💸 ኮሚሽን መውጽኢ", wit_desc: "ዝረኸብኩሞ ኮሚሽን ናብ ኣካውንትኩም ኣውጽኡ",
+            amt_ph: "መጠን ብር (Min 1000 ETB)", acc_ph: "ኣካውንት ባንኪ (ወይ ስልኪ)", btn_wit: "ኣውጽእ (Withdraw)",
+            wait: "በጃኹም ተጸበዩ...", alert_fill: "በጃኹም ሓበሬታ ብትኽክል ምልኡ!", err_conn: "ጸገም ኮኔክሽን",
+            hist_title: "📜 ታሪኽ ወጻኢ (Withdraw History)", date: "ዕለት", amt: "መጠን", status: "ኩነታት", no_hist: "ምንም ታሪኽ የለን"
+        }
+    };
+    
+    let pr = proTrans[lang] || proTrans['am'];
+
     let html = `
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="${lang}">
     <head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>Promoter Dashboard</title>
@@ -1334,61 +1467,60 @@ app.get('/promoter', async (req, res) => {
     </head>
     <body>
         <div class="card">
-            <div class="title">📊 Dashboard</div>
+            <div class="title">${pr.dash}</div>
             
-            <!-- 🔥 SPLIT BOX FOR TOTAL vs ACTIVE USERS 🔥 -->
             <div class="stat-box">
                 <div style="flex:1;">
-                    <div class="stat-title">👥 ያመጧቸው (Total)</div>
+                    <div class="stat-title">${pr.brought}</div>
                     <div class="stat-value">${referredUsers.length}</div>
                 </div>
                 <div style="flex:1; border-left: 1px solid #334155; padding-left: 15px;">
-                    <div class="stat-title">✅ ገቢ ያደረጉ (Active)</div>
+                    <div class="stat-title">${pr.active}</div>
                     <div class="stat-value" style="color:#4ade80;">${activeDepositedUsers}</div>
                 </div>
                 <div style="font-size:30px; margin-left: 10px;">🧑‍🤝‍🧑</div>
             </div>
 
             <div class="stat-box orange">
-                <div><div class="stat-title">💰 ሂሳብ (Balance)</div><div class="stat-value" id="unpaidBal">${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</div></div>
+                <div><div class="stat-title">${pr.bal}</div><div class="stat-value" id="unpaidBal">${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</div></div>
                 <div style="font-size:30px;">💳</div>
             </div>
 
             <div class="stat-box green">
-                <div><div class="stat-title">🎁 የተሰበሰበ ኮሚሽን</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
+                <div><div class="stat-title">${pr.earned}</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
                 <div style="font-size:30px;">💸</div>
             </div>
 
             <div class="stat-box" style="border-left-color: #a855f7;">
-                <div><div class="stat-title">📈 የኮሚሽን መጠንዎ (Your Commission)</div><div class="stat-value" style="color:#a855f7;">${user.promoterPercent}%</div></div>
+                <div><div class="stat-title">${pr.perc}</div><div class="stat-value" style="color:#a855f7;">${user.promoterPercent}%</div></div>
                 <div style="font-size:30px;">🔥</div>
             </div>
 
-            <h3 style="font-size:14px; color:#94a3b8; margin-top:20px;">🔗 መጋበዣ ሊንክ (Share Link):</h3>
-            <div class="link-box" onclick="navigator.clipboard.writeText('${link}'); alert('✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!');">${link} <br><br><span style="color:white; font-size:11px; background:#1e293b; padding:5px 10px; border-radius:5px;">📋 ይጫኑ ኮፒ ለማድረግ</span></div>
+            <h3 style="font-size:14px; color:#94a3b8; margin-top:20px;">${pr.link_title}</h3>
+            <div class="link-box" onclick="navigator.clipboard.writeText('${link}'); alert('${pr.copied}');">${link} <br><br><span style="color:white; font-size:11px; background:#1e293b; padding:5px 10px; border-radius:5px;">${pr.copy_hint}</span></div>
         </div>
 
         <div class="card" style="border-top: 4px solid #fb923c;">
-            <h3 style="margin-top:0; color:#fb923c; text-align:center;">💸 ኮሚሽን ወጪ ማድረጊያ</h3>
-            <p style="color:#94a3b8; font-size:12px; text-align:center; margin-bottom:20px;">ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ</p>
+            <h3 style="margin-top:0; color:#fb923c; text-align:center;">${pr.wit_title}</h3>
+            <p style="color:#94a3b8; font-size:12px; text-align:center; margin-bottom:20px;">${pr.wit_desc}</p>
             <div class="input-group">
-                <input type="number" id="wAmt" placeholder="የብር መጠን (ቢያንስ 1000 ብር)">
+                <input type="number" id="wAmt" placeholder="${pr.amt_ph}">
             </div>
             <div class="input-group">
-                <input type="text" id="wAcc" placeholder="የባንክ አካውንት (ወይም ስልክ)">
+                <input type="text" id="wAcc" placeholder="${pr.acc_ph}">
             </div>
-            <button class="btn" id="wBtn" onclick="requestWithdraw()">ወጪ አድርግ (Withdraw)</button>
-            <div class="loader" id="loader">እባክዎ ይጠብቁ...</div>
+            <button class="btn" id="wBtn" onclick="requestWithdraw()">${pr.btn_wit}</button>
+            <div class="loader" id="loader">${pr.wait}</div>
         </div>
 
         <div class="card" style="margin-top:20px; padding: 15px;">
-            <h3 style="color:#38bdf8; text-align:center; margin-top:0;">📜 የወጪ ታሪክ (Withdraw History)</h3>
+            <h3 style="color:#38bdf8; text-align:center; margin-top:0;">${pr.hist_title}</h3>
             <table style="width:100%; border-collapse: collapse; font-size: 13px; text-align: left;">
                 <thead>
                     <tr style="border-bottom: 1px solid #475569; color:#94a3b8;">
-                        <th style="padding: 10px 5px;">ቀን</th>
-                        <th style="padding: 10px 5px;">መጠን</th>
-                        <th style="padding: 10px 5px;">ሁኔታ</th>
+                        <th style="padding: 10px 5px;">${pr.date}</th>
+                        <th style="padding: 10px 5px;">${pr.amt}</th>
+                        <th style="padding: 10px 5px;">${pr.status}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1400,7 +1532,7 @@ app.get('/promoter', async (req, res) => {
                                 <span style="background:${tx.status==='Approved'?'#064e3b':(tx.status==='Pending'?'#78350f':'#7f1d1d')}; color:${tx.status==='Approved'?'#34d399':(tx.status==='Pending'?'#fbbf24':'#f87171')}; padding: 3px 8px; border-radius: 4px; font-size:11px;">${tx.status}</span>
                             </td>
                         </tr>
-                    `).join('') : `<tr><td colspan="3" style="text-align:center; padding: 15px; color:#94a3b8;">ምንም ታሪክ የለም (No History)</td></tr>`}
+                    `).join('') : `<tr><td colspan="3" style="text-align:center; padding: 15px; color:#94a3b8;">${pr.no_hist}</td></tr>`}
                 </tbody>
             </table>
         </div>
@@ -1409,7 +1541,7 @@ app.get('/promoter', async (req, res) => {
             async function requestWithdraw() {
                 let amt = document.getElementById('wAmt').value;
                 let acc = document.getElementById('wAcc').value;
-                if(!amt || !acc) return alert('እባክዎ መረጃውን በትክክል ይሙሉ!');
+                if(!amt || !acc) return alert('${pr.alert_fill}');
                 
                 document.getElementById('wBtn').style.display = 'none';
                 document.getElementById('loader').style.display = 'block';
@@ -1424,7 +1556,7 @@ app.get('/promoter', async (req, res) => {
                     alert(data.message);
                     if(data.success) { window.location.reload(); }
                 } catch(e) {
-                    alert('ግንኙነት ተቋርጧል');
+                    alert('${pr.err_conn}');
                 }
                 
                 document.getElementById('wBtn').style.display = 'block';
