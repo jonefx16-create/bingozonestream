@@ -31,7 +31,6 @@
         
         .summary-box { background: rgba(16, 185, 129, 0.05); border: 1px solid var(--faded-green); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.1);}
 
-        /* Custom Colors for Cards */
         .card-dep { border-left-color: var(--faded-green); }
         .card-wit { border-left-color: var(--red); }
         .card-cash { border-left-color: var(--cyan); }
@@ -73,17 +72,36 @@
         <button class="nav-btn" onclick="switchTab('weekly', this)">📆 Weekly Profit</button>
         <button class="nav-btn" onclick="switchTab('monthly', this)">🗓️ Monthly Profit</button>
         <button class="nav-btn" onclick="switchTab('all', this)">🏆 All Time Profit</button>
+        
+        <!-- 🔥 CUSTOM DATE BUTTON 🔥 -->
+        <button class="nav-btn" style="color:var(--orange);" onclick="switchTab('custom', this)">🔍 Custom Date Filter</button>
+        
         <div style="flex:1"></div>
         <button class="nav-btn" style="color: var(--cyan);" onclick="location.href='/admin'">🛡️ Go to Admin Panel</button>
     </div>
 
     <div class="main-content">
-        <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+        <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 10px; flex-wrap:wrap; gap:10px;">
             <div>
                 <h2 id="page-title" style="margin: 0; color:white;">📅 Daily Profit Report</h2>
                 <span id="date-display" style="color: var(--cyan); font-size: 12px; font-weight: bold;">Loading Date...</span>
             </div>
             <button class="action-btn" style="width: auto; padding: 8px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh Data</button>
+        </div>
+
+        <!-- 🔥 CUSTOM DATE PICKER 🔥 -->
+        <div id="custom-date-container" style="display: none; align-items: center; gap: 15px; margin-bottom: 20px; background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div>
+                <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጀመሪያ ቀን (Start Date)</label>
+                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;">
+            </div>
+            <div>
+                <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጨረሻ ቀን (End Date)</label>
+                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;">
+            </div>
+            <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
+                <button class="action-btn" style="width: auto; padding: 11px 20px; margin:0;" onclick="applyCustomFilter()">ፈልግ (Apply)</button>
+            </div>
         </div>
 
         <div class="summary-box">
@@ -168,12 +186,26 @@
             'daily': '📅 Daily Profit Report',
             'weekly': '📆 Weekly Profit Report',
             'monthly': '🗓️ Monthly Profit Report',
-            'all': '🏆 All Time Profit Report'
+            'all': '🏆 All Time Profit Report',
+            'custom': '🔍 Custom Date Range Report'
         };
         document.getElementById('page-title').innerText = titles[period];
         
+        // Show or Hide Custom Date Picker
+        document.getElementById('custom-date-container').style.display = (period === 'custom') ? 'flex' : 'none';
+        
         currentFilter = period;
-        filterData(period);
+        
+        if (period !== 'custom') {
+            filterData(period);
+        } else {
+            document.getElementById('date-display').innerText = "Please select dates below and click Apply.";
+        }
+    }
+
+    function applyCustomFilter() {
+        currentFilter = 'custom';
+        filterData('custom');
     }
 
     async function loadFinancialData() {
@@ -213,8 +245,9 @@
     function filterData(period) {
         let now = new Date();
         let startTime = new Date(0); 
+        let endTime = new Date(); // Default is 'now'
+        
         let dateDisplayStr = "All Time History";
-
         let options = { year: 'numeric', month: 'short', day: 'numeric' };
         let todayStr = now.toLocaleDateString('en-US', options);
 
@@ -233,14 +266,38 @@
             let monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
             dateDisplayStr = `Month: ${monthName}`;
         }
+        else if (period === 'custom') {
+            let sDate = document.getElementById('startDate').value;
+            let eDate = document.getElementById('endDate').value;
+            if(!sDate || !eDate) {
+                alert("እባክዎ መጀመሪያ (Start) እና መጨረሻ (End) ቀን በትክክል ይምረጡ!");
+                return;
+            }
+            startTime = new Date(sDate);
+            startTime.setHours(0,0,0,0);
+            
+            endTime = new Date(eDate);
+            endTime.setHours(23,59,59,999);
+            
+            dateDisplayStr = `Filtered From: ${startTime.toLocaleDateString('en-US', options)} — To: ${endTime.toLocaleDateString('en-US', options)}`;
+        }
 
         document.getElementById('date-display').innerText = dateDisplayStr;
 
-        let filteredTxs = rawData.txs.filter(t => new Date(t.date) >= startTime);
-        let filteredGames = rawData.games.filter(g => new Date(g.date) >= startTime);
+        // 🔥 APPLY PRECISE FILTERS WITH START & END TIMES 🔥
+        let filteredTxs = rawData.txs.filter(t => {
+            let d = new Date(t.date);
+            return period === 'custom' ? (d >= startTime && d <= endTime) : (d >= startTime);
+        });
+        
+        let filteredGames = rawData.games.filter(g => {
+            let d = new Date(g.date);
+            return period === 'custom' ? (d >= startTime && d <= endTime) : (d >= startTime);
+        });
+        
         let filteredBonus = rawData.bonuses.filter(b => {
             let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt);
-            return bDate >= startTime;
+            return period === 'custom' ? (bDate >= startTime && bDate <= endTime) : (bDate >= startTime);
         });
 
         let tDep = filteredTxs.filter(t => t.type === 'deposit' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -283,7 +340,7 @@
     }
 </script>
 </body>
-</html
+</html>
 
 
 
