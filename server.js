@@ -303,7 +303,8 @@ app.get('/api/user/transactions/:phone', async (req, res) => {
     const txs = await Transaction.find({ 
         phone: req.params.phone, 
         $or: [ 
-            { type: 'withdraw', method: { $ne: 'Promoter Comm' } }, 
+            // 🔥 እዚህ ጋር 'withdraw' ሲሆን status: 'Approved' የሚለው ተጨምሯል 🔥
+            { type: 'withdraw', method: { $ne: 'Promoter Comm' }, status: 'Approved' }, 
             { type: 'deposit', status: 'Approved' } 
         ] 
     }).sort({ date: -1 }).limit(30);
