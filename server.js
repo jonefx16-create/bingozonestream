@@ -1213,14 +1213,18 @@ const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    // Check if it's the Admin route
-    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { return next(); }
+    // 1. ለ Admin ፔጅ (Username 'admin' መሆን አለበት)
+    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
+        return next(); 
+    }
     
-    // Check if it's the Finance route
-    if (req.path === '/finance' && login === 'finance' && password === GLOBAL_SETTINGS.financePass) { return next(); }
+    // 2. ለ Finance ፔጅ (Username 'finance' ወይም 'admin' መሆን ይችላል፤ ፓስወርዱ ደግሞ የ Finance ወይም የ Admin መሆን ይችላል)
+    if (req.path === '/finance' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
+        return next(); 
+    }
     
     res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
-    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username እና Password ያስገቡ።</p>');
+    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin" ወይም "finance") እና Password ያስገቡ።</p>');
 };
 
 // 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT 🔥
