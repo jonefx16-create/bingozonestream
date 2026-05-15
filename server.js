@@ -417,12 +417,17 @@ app.post('/api/admin/promoters-data', auth, async (req, res) => {
         for (let p of promoters) {
             let refUsers = await User.find({ referredBy: p.phone });
             let refPhones = refUsers.map(u => u.phone);
+            
+            // 🔥 NEW: Check active deposited users 🔥
+            let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
+
             let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
+            
             data.push({
                 name: p.name, phone: p.phone, percent: p.promoterPercent,
                 earned: p.promoterEarned, unpaidBalance: p.promoterUnpaidBalance, 
-                usersBrought: refUsers.length, totalDeposits: totalDep
+                usersBrought: refUsers.length, activeDepositors: activeDepositors, totalDeposits: totalDep
             });
         }
         res.json({ success: true, promoters: data });
@@ -1294,6 +1299,9 @@ app.get('/promoter', async (req, res) => {
     if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ የተፈቀደ አስተዋዋቂ አይደሉም! (Unauthorized)</h1>");
 
     let referredUsers = await User.find({ referredBy: user.phone });
+    // 🔥 NEW: Filter to find active deposited users
+    let activeDepositedUsers = referredUsers.filter(u => u.totalDeposited > 0).length;
+
     let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
     // 🔥 PROMOTER CUSTOM LINK (No promo_ prefix) 🔥
@@ -1328,9 +1336,17 @@ app.get('/promoter', async (req, res) => {
         <div class="card">
             <div class="title">📊 Dashboard</div>
             
+            <!-- 🔥 SPLIT BOX FOR TOTAL vs ACTIVE USERS 🔥 -->
             <div class="stat-box">
-                <div><div class="stat-title">👥 ያመጧቸው ሰዎች</div><div class="stat-value">${referredUsers.length}</div></div>
-                <div style="font-size:30px;">🧑‍🤝‍🧑</div>
+                <div style="flex:1;">
+                    <div class="stat-title">👥 ያመጧቸው (Total)</div>
+                    <div class="stat-value">${referredUsers.length}</div>
+                </div>
+                <div style="flex:1; border-left: 1px solid #334155; padding-left: 15px;">
+                    <div class="stat-title">✅ ገቢ ያደረጉ (Active)</div>
+                    <div class="stat-value" style="color:#4ade80;">${activeDepositedUsers}</div>
+                </div>
+                <div style="font-size:30px; margin-left: 10px;">🧑‍🤝‍🧑</div>
             </div>
 
             <div class="stat-box orange">
@@ -1339,7 +1355,7 @@ app.get('/promoter', async (req, res) => {
             </div>
 
             <div class="stat-box green">
-                <div><div class="stat-title">🎁 እስካሁን የሰበሰቡት የኮሚሽን መጠን</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
+                <div><div class="stat-title">🎁 የተሰበሰበ ኮሚሽን</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
                 <div style="font-size:30px;">💸</div>
             </div>
 
