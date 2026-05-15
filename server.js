@@ -455,14 +455,27 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
+// 🔥 PROMOTER MANUAL PAYMENT API UPDATE 🔥
 app.post('/api/admin/pay-promoter', auth, async (req, res) => {
     try {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
         if(p) {
-            p.promoterUnpaidBalance -= Number(req.body.amount);
+            let deductAmt = Number(req.body.amount);
+            p.promoterUnpaidBalance -= deductAmt;
             if(p.promoterUnpaidBalance < 0) p.promoterUnpaidBalance = 0;
             await p.save();
-            res.json({ success: true, message: `✅ ለ ${p.name} በተሳካ ሁኔታ ${req.body.amount} ETB ተቀንሷል።` });
+            
+            // Create transaction log so it shows on promoter dashboard & admin tx list
+            await new Transaction({ 
+                phone: p.phone, 
+                type: 'withdraw', 
+                amount: deductAmt, 
+                method: "Promoter Comm", 
+                smsText: "Manual Admin Payment",
+                status: "Approved"
+            }).save();
+
+            res.json({ success: true, message: `✅ ለ ${p.name} በተሳካ ሁኔታ ${deductAmt} ETB ተቀንሷል።` });
         } else res.json({ success: false, message: "Promoter not found" });
     } catch(e) { res.json({ success: false }); }
 });
