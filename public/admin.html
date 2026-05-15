@@ -365,8 +365,7 @@
             </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-promoters">
-                    <!-- 🔥 NEW: Header Updated for Total/Active -->
-                    <thead><tr><th>Name</th><th>Phone</th><th>Comm %</th><th>People (Total / Active)</th><th>Total Earned (አጠቃላይ)</th><th>Unpaid Balance (ቀሪ)</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Phone</th><th>Comm %</th><th>People</th><th>Total Earned (አጠቃላይ)</th><th>Unpaid Balance (ቀሪ)</th><th>Action</th></tr></thead>
                     <tbody id="promoters-body"></tbody>
                 </table>
             </div></div>
@@ -593,9 +592,17 @@
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
                     <div class="card" style="border-left: 4px solid var(--blue);">
                         <h3 style="margin-top:0; color:var(--blue);">🔐 Security & Session</h3>
+                        
                         <label>New Admin Password</label>
-                        <input type="text" id="set-pass" placeholder="Enter new password">
-                        <button class="action-btn btn-blue" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('password')">Change Password</button>
+                        <input type="text" id="set-pass" placeholder="Enter new admin password">
+                        <button class="action-btn btn-blue" style="width:100%; margin-bottom: 15px;" onclick="updateSettings('password')">Change Admin Password</button>
+                        
+                        <!-- 🔥 NEW: FINANCE PASSWORD CHANGER 🔥 -->
+                        <hr style="border-color: var(--border); margin: 15px 0;">
+                        <label>New Finance Password (የሒሳብ ክፍል ብቻ)</label>
+                        <input type="text" id="set-finance-pass" placeholder="Enter new finance password">
+                        <button class="action-btn btn-purple" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('finance_password')">Change Finance Password</button>
+                        
                         <hr style="border-color: var(--border);">
                         <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
                     </div>
@@ -1091,8 +1098,7 @@
                     return `
                     <tr>
                         <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;">${p.phone}</td><td>${p.percent}%</td>
-                        <!-- 🔥 NEW: Split Display in Admin Table 🔥 -->
-                        <td><b>${p.usersBrought}</b> Total<br><span style="color:var(--faded-green); font-size:11px;">✅ ${p.activeDepositors} Active</span></td>
+                        <td>${p.usersBrought} Users</td>
                         <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td style="color:var(--orange); font-weight:bold;">${Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td>
@@ -1152,13 +1158,9 @@
                 let p = data.promoter; 
                 let unpaid = p.promoterUnpaidBalance !== undefined ? p.promoterUnpaidBalance : 0;
                 
-                // 🔥 NEW: Profile modal split total/active
-                let totalUsers = data.details.length;
-                let activeUsers = data.details.filter(d => d.totalDeposit > 0).length;
-                
                 document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`; 
                 document.getElementById('pp-phone').innerText = p.phone; 
-                document.getElementById('pp-users').innerHTML = `${totalUsers} <br><span style="font-size:11px; color:var(--faded-green);">✅ ${activeUsers} Active</span>`;
+                document.getElementById('pp-users').innerText = data.details.length;
                 document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
                 document.getElementById('pp-unpaid').innerText = Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2});
                 
@@ -1246,34 +1248,6 @@
     
     async function updateSettings(type) { 
         let payload = { adminPass: pass }; 
-        if(type === 'password') { let np = document.getElementById('set-pass').value; if(!np) return alert("Enter pass!"); payload.newPass = np; pass = np; document.getElementById('adminPass').value = np; } 
-        if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
-        if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
-        if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
-        if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
-        if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
-        if(type === 'dep_bonus') {
-            let isRestricted = document.getElementById('set-dep-time-restrict').checked; let mAmt = document.getElementById('set-dep-min').value; let mPer = document.getElementById('set-dep-perc').value; let start = document.getElementById('set-dep-start').value; let end = document.getElementById('set-dep-end').value;
-            if(!mAmt || !mPer) return alert("Fill fields!"); if(isRestricted && (start==='' || end==='')) return alert("Enter time!");
-            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = Number(mAmt); payload.depBonusPercent = Number(mPer); payload.happyHourStart = start !== '' ? Number(start) : 0; payload.happyHourEnd = end !== '' ? Number(end) : 23;
-            payload.depBannerTextAm = document.getElementById('set-dep-text-am').value; payload.depBannerTextEn = document.getElementById('set-dep-text-en').value;
-        }
-        if(type === 'wit_bonus') {
-            let isActive = document.getElementById('set-wit-active').checked; let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; let wMin = document.getElementById('set-wit-min').value; let wPerc = document.getElementById('set-wit-perc').value; let start = document.getElementById('set-wit-start').value; let end = document.getElementById('set-wit-end').value;
-            if(!wMin || !wPerc) return alert("Fill fields!"); if(isTimeRestricted && (start==='' || end==='')) return alert("Enter time!");
-            payload.isWitBonusActive = isActive; payload.witBonusMinAmount = Number(wMin); payload.witBonusPercent = Number(wPerc); payload.witBonusTimeRestricted = isTimeRestricted; payload.witHappyHourStart = start !== '' ? Number(start) : 0; payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
-        }
-        if(type === 'cashback') {
-            let isActive = document.getElementById('set-cb-active').checked; let cMin = document.getElementById('set-cb-min').value; let cAmt = document.getElementById('set-cb-amt').value;
-            if(!cMin || !cAmt) return alert("Fill fields!"); payload.isCashbackActive = isActive; payload.cashbackMinLoss = Number(cMin); payload.cashbackAmount = Number(cAmt);
-        }
-        await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        alert("✅ Saved!"); 
-    }
-async function updateSettings(type) { 
-        let payload = { adminPass: pass }; 
-        
-        // 1. የ Admin Password መቀየሪያ
         if(type === 'password') { 
             let np = document.getElementById('set-pass').value; 
             if(!np) return alert("Enter admin pass!"); 
@@ -1282,42 +1256,36 @@ async function updateSettings(type) {
             document.getElementById('adminPass').value = np; 
             document.getElementById('set-pass').value = '';
         } 
-        
-        // 2. የ Finance Password መቀየሪያ (🔥 አሁን የተጨመረው)
         if(type === 'finance_password') { 
             let nfp = document.getElementById('set-finance-pass').value; 
             if(!nfp) return alert("Enter new finance password!"); 
             payload.newFinancePass = nfp; 
             document.getElementById('set-finance-pass').value = '';
         }
-
         if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
         if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
         if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
         if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
-        
         if(type === 'dep_bonus') {
             let isRestricted = document.getElementById('set-dep-time-restrict').checked; let mAmt = document.getElementById('set-dep-min').value; let mPer = document.getElementById('set-dep-perc').value; let start = document.getElementById('set-dep-start').value; let end = document.getElementById('set-dep-end').value;
             if(!mAmt || !mPer) return alert("Fill fields!"); if(isRestricted && (start==='' || end==='')) return alert("Enter time!");
             payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = Number(mAmt); payload.depBonusPercent = Number(mPer); payload.happyHourStart = start !== '' ? Number(start) : 0; payload.happyHourEnd = end !== '' ? Number(end) : 23;
             payload.depBannerTextAm = document.getElementById('set-dep-text-am').value; payload.depBannerTextEn = document.getElementById('set-dep-text-en').value;
         }
-        
         if(type === 'wit_bonus') {
             let isActive = document.getElementById('set-wit-active').checked; let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; let wMin = document.getElementById('set-wit-min').value; let wPerc = document.getElementById('set-wit-perc').value; let start = document.getElementById('set-wit-start').value; let end = document.getElementById('set-wit-end').value;
             if(!wMin || !wPerc) return alert("Fill fields!"); if(isTimeRestricted && (start==='' || end==='')) return alert("Enter time!");
             payload.isWitBonusActive = isActive; payload.witBonusMinAmount = Number(wMin); payload.witBonusPercent = Number(wPerc); payload.witBonusTimeRestricted = isTimeRestricted; payload.witHappyHourStart = start !== '' ? Number(start) : 0; payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
         }
-        
         if(type === 'cashback') {
             let isActive = document.getElementById('set-cb-active').checked; let cMin = document.getElementById('set-cb-min').value; let cAmt = document.getElementById('set-cb-amt').value;
             if(!cMin || !cAmt) return alert("Fill fields!"); payload.isCashbackActive = isActive; payload.cashbackMinLoss = Number(cMin); payload.cashbackAmount = Number(cAmt);
         }
-        
         await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
         alert("✅ Saved successfully!"); 
     }
+
     async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); loadData(); loadLiveStats(); }
     async function deleteLastTelegramPromo() { if(!confirm("Are you sure?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
 </script>
