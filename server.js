@@ -272,6 +272,26 @@ app.post('/api/request-tx', async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// 🔥 PROMOTER WEB APP WITHDRAWAL API 🔥
+app.post('/api/promoter/withdraw', async (req, res) => {
+    try {
+        const { phone, pass, amount, account } = req.body;
+        let user = await User.findOne({ phone, password: pass });
+        if (!user || !user.isPromoter) return res.json({ success: false, message: "Unauthorized" });
+
+        let reqAmt = Number(amount);
+        if (isNaN(reqAmt) || reqAmt < 50) return res.json({ success: false, message: "❌ ቢያንስ 50 ብር መሆን አለበት!" });
+        if (user.promoterUnpaidBalance < reqAmt) return res.json({ success: false, message: "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!" });
+
+        user.promoterUnpaidBalance -= reqAmt;
+        await user.save();
+
+        await new Transaction({ phone: user.phone, type: 'withdraw', amount: reqAmt, method: "Promoter Comm", smsText: `Transfer to: ${account}` }).save();
+
+        res.json({ success: true, message: `✅ የወጪ ጥያቄዎ ለአድሚን ተልኳል!\nበቅርቡ ${reqAmt} ETB ወደ ${account} ይላካል።` });
+    } catch (e) { res.json({ success: false, message: "ስህተት አጋጥሟል" }); }
+});
+
 app.get('/api/user/transactions/:phone', async (req, res) => { 
     const txs = await Transaction.find({ phone: req.params.phone, $or: [ { type: 'withdraw' }, { type: 'deposit', status: 'Approved' } ] }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
@@ -336,7 +356,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     const history = await GameHistory.find();
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
     
-    // 🔥 DAILY METRICS CALCULATION 🔥
     let startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -348,16 +367,8 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
     res.json({ 
-        totalUsers, 
-        livePlayers: Object.keys(activePlayers).length, 
-        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
-        gameId, 
-        totalProfit, 
-        currentJackpot: totalPrizePool, 
-        settings: GLOBAL_SETTINGS,
-        dailyDeposit,
-        dailyWithdraw,
-        dailyBonus
+        totalUsers, livePlayers: Object.keys(activePlayers).length, 
+        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
     });
 });
 
@@ -365,17 +376,14 @@ app.post('/api/admin/delete-users', auth, async (req, res) => {
     try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
 });
-
 app.post('/api/admin/delete-history', auth, async (req, res) => {
     try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
 });
-
 app.post('/api/admin/delete-transactions', auth, async (req, res) => {
     try { await Transaction.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
 });
-
 app.post('/api/admin/delete-game-player', auth, async (req, res) => {
     try {
         let h = await GameHistory.findById(req.body.id);
@@ -432,10 +440,7 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
             let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
             details.push({
-                name: u.name, 
-                phone: u.phone, 
-                totalDeposit: totalDep, 
-                commission: u.promoterCommissionGenerated || 0
+                name: u.name, phone: u.phone, totalDeposit: totalDep, commission: u.promoterCommissionGenerated || 0
             });
         }
         res.json({ success: true, promoter: p, details });
@@ -844,7 +849,7 @@ setInterval(() => {
     }
 }, 1000);
 
-let buyingLocks = {}; // 🔥 Prevent Double Click / Race Condition 🔥
+let buyingLocks = {}; 
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
@@ -853,7 +858,6 @@ io.on('connection', (socket) => {
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         
-        // 🔥 Prevent Double-Click / Race Condition 🔥
         if (buyingLocks[data.phone]) return; 
         buyingLocks[data.phone] = true;
 
@@ -881,7 +885,6 @@ io.on('connection', (socket) => {
                 io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
             }
         } finally {
-            // Free the lock
             delete buyingLocks[data.phone];
         }
     });
@@ -891,7 +894,6 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-// ... (Rest of language dictionary)
 const t = {
     am: {
         welcome: "🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -1044,28 +1046,16 @@ bot.on('message', async (msg) => {
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.refCode}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
+    // 🔥 PROMOTER BOT BUTTON UPDATE 🔥
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(user.isPromoter) {
-            try {
-                let referredUsers = await User.find({ referredBy: user.phone });
-                let refPhones = referredUsers.map(u => u.phone);
-                let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
-                let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
-                
-                let myCode = user.refCode ? user.refCode : user.phone;
-                let msg = `📊 <b>የአስተዋዋቂ (Promoter) ዳሽቦርድ</b>\n\n` +
-                          `👥 ያመጧቸው ሰዎች ብዛት: <b>${referredUsers.length}</b>\n` +
-                          `💰 ያስገቡት ጠቅላላ የብር መጠን: <b>${totalDep.toLocaleString()} ETB</b>\n` +
-                          `🎁 የእርስዎ አጠቃላይ ትርፍ (${user.promoterPercent}%): <b>${(user.promoterEarned || 0).toLocaleString()} ETB</b>\n` +
-                          `⏳ <b>ያልተከፈለ ቀሪ ሂሳብ: ${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</b>\n\n` +
-                          `🔗 መጋበዣ ሊንክዎ:\nhttps://t.me/bingo_habesha_bot?start=${myCode}`;
-                
-                bot.sendMessage(chatId, msg, { 
-                    parse_mode: "HTML", disable_web_page_preview: true, 
-                    reply_markup: { inline_keyboard: [[{text: "💸 ኮሚሽን ወጪ ማድረጊያ (Withdraw)", callback_data: "promo_wit"}]] } 
-                });
-            } catch(e) { bot.sendMessage(chatId, "❌ ስህተት አጋጥሟል", { ...getMainMenu(user) }); }
+            bot.sendMessage(chatId, "📊 <b>የአስተዋዋቂ ዳሽቦርድ (Promoter Dashboard)</b>\n\nከታች ያለውን ቁልፍ ተጭነው መረጃዎን ይመልከቱ፣ እንዲሁም ያገኙትን ኮሚሽን ወጪ (Withdraw) ያድርጉ።", {
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [[{ text: "🚀 ዳሽቦርድ ክፈት (Open Dashboard)", web_app: { url: `${WEB_URL}/promoter?phone=${user.phone}&pass=${user.password}` } }]]
+                }
+            });
         } else {
             bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና ኮሚሽን በየቀኑ ለመሰብሰብ እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
         }
@@ -1095,25 +1085,6 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
     } 
     
-    // Deposit / Withdraw / Promoter Withdraw Process
-    else if (state.step === 'awaiting_promo_wit_amt') {
-        state.amount = parseFloat(text);
-        if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, "❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ 50 ብር):", cancelKeyboard(ln));
-        if(user.promoterUnpaidBalance < state.amount) return bot.sendMessage(chatId, "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!", cancelKeyboard(ln));
-        
-        user.promoterUnpaidBalance -= state.amount; 
-        await user.save();
-        
-        botState[chatId].promoWitAmt = state.amount;
-        botState[chatId].step = 'awaiting_promo_wit_acc';
-        bot.sendMessage(chatId, `✅ መጠን: <b>${state.amount} ETB</b>\n\nገንዘቡ የሚላክበትን <b>ስልክ ቁጥር (ወይም አካውንት) እና ባንኩን</b> በትክክል ያስገቡ\n(ምሳሌ፡ 091122... Telebirr):`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
-    }
-    else if (state.step === 'awaiting_promo_wit_acc') {
-        let accInfo = text.trim();
-        await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.promoWitAmt, method: "Promoter Comm", smsText: `Transfer to: ${accInfo}` }).save();
-        bot.sendMessage(chatId, `✅ <b>የኮሚሽን ወጪ ጥያቄዎ ለአድሚን ተልኳል!</b>\n\nበቅርቡ ${state.promoWitAmt} ETB ወደ ${accInfo} ይላካል።`, { parse_mode: "HTML", ...getMainMenu(user) });
-        botState[chatId].step = 'idle';
-    }
     else if (state.step === 'awaiting_dep_amt') {
         state.amount = parseFloat(text); if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt, cancelKeyboard(ln));
         bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
@@ -1163,14 +1134,7 @@ bot.on('callback_query', async (query) => {
 
     if(!botState[chatId]) botState[chatId] = { step: 'idle' }; let state = botState[chatId];
     
-    if (data === 'promo_wit') {
-        if(!user || !user.isPromoter) return bot.answerCallbackQuery(query.id);
-        if(user.promoterUnpaidBalance < 50) return bot.answerCallbackQuery(query.id, { text: "❌ ቀሪ ሂሳብዎ ከ 50 ብር በታች ስለሆነ ወጪ ማድረግ አይችሉም።", show_alert: true });
-        
-        state.step = 'awaiting_promo_wit_amt';
-        bot.sendMessage(chatId, `ማውጣት የሚፈልጉትን የኮሚሽን መጠን ያስገቡ (ቢያንስ 50 ብር፣ ከፍተኛ ${(user.promoterUnpaidBalance).toFixed(2)}):`, { parse_mode: "HTML", ...cancelKeyboard(ln) });
-    }
-    else if (data.startsWith('dep_')) {
+    if (data.startsWith('dep_')) {
         state.method = data.split('_')[1]; state.step = 'awaiting_dep_amt';
         let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
         let warn = state.method === 'TeleBirr' ? ln.warn_telebirr : (state.method === 'CBEBirr' ? ln.warn_cbebirr : "");
@@ -1194,6 +1158,117 @@ const basicAuth = (req, res, next) => {
     res.set('WWW-Authenticate', 'Basic realm="Secure Bingo Area"');
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
 };
+
+// 🔥 PROMOTER WEB APP ROUTE 🔥
+app.get('/promoter', async (req, res) => {
+    let phone = req.query.phone;
+    let pass = req.query.pass;
+    let user = await User.findOne({ phone, password: pass });
+    if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ የተፈቀደ አስተዋዋቂ አይደሉም! (Unauthorized)</h1>");
+
+    let referredUsers = await User.find({ referredBy: user.phone });
+    let refPhones = referredUsers.map(u => u.phone);
+    let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
+    let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
+    let myCode = user.refCode ? user.refCode : user.phone;
+    let link = `https://t.me/bingo_habesha_bot?start=${myCode}`;
+
+    let html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Promoter Dashboard</title>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
+            .card { background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+            .title { font-size: 22px; font-weight: bold; color: #38bdf8; text-align: center; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+            .stat-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #38bdf8; display:flex; justify-content: space-between; align-items:center;}
+            .stat-box.green { border-left-color: #34d399; }
+            .stat-box.orange { border-left-color: #fb923c; }
+            .stat-title { font-size: 13px; color: #94a3b8; margin-bottom:5px;}
+            .stat-value { font-size: 22px; font-weight: bold; color: #fff; }
+            .input-group { margin-bottom: 15px; }
+            input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box; font-size:16px; outline:none; text-align:center;}
+            input:focus { border-color: #fb923c; }
+            .btn { background: #fb923c; color: #fff; border: none; padding: 16px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+            .btn:active { transform: scale(0.98); }
+            .link-box { background: #020617; padding: 15px; border-radius: 8px; font-size: 13px; color: #34d399; word-break: break-all; text-align:center; border: 1px dashed #34d399; cursor:pointer;}
+            .loader { display: none; margin-top: 10px; text-align: center; color: #fb923c; font-size:14px;}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="title">📊 Dashboard</div>
+            
+            <div class="stat-box">
+                <div><div class="stat-title">👥 ያመጧቸው ሰዎች</div><div class="stat-value">${referredUsers.length}</div></div>
+                <div style="font-size:30px;">🧑‍🤝‍🧑</div>
+            </div>
+
+            <div class="stat-box">
+                <div><div class="stat-title">💰 የገቢ መጠን (Deposits)</div><div class="stat-value">${totalDep.toLocaleString()} ETB</div></div>
+                <div style="font-size:30px;">📥</div>
+            </div>
+
+            <div class="stat-box green">
+                <div><div class="stat-title">🎁 አጠቃላይ ትርፍዎ (${user.promoterPercent}%)</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
+                <div style="font-size:30px;">💸</div>
+            </div>
+
+            <div class="stat-box orange">
+                <div><div class="stat-title">⏳ ያልተከፈለ ቀሪ ሂሳብ</div><div class="stat-value" id="unpaidBal">${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</div></div>
+                <div style="font-size:30px;">💳</div>
+            </div>
+
+            <h3 style="font-size:14px; color:#94a3b8; margin-top:20px;">🔗 መጋበዣ ሊንክ (Share Link):</h3>
+            <div class="link-box" onclick="navigator.clipboard.writeText('${link}'); alert('✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!');">${link} <br><br><span style="color:white; font-size:11px; background:#1e293b; padding:5px 10px; border-radius:5px;">📋 ይጫኑ ኮፒ ለማድረግ</span></div>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #fb923c;">
+            <h3 style="margin-top:0; color:#fb923c; text-align:center;">💸 ኮሚሽን ወጪ ማድረጊያ</h3>
+            <p style="color:#94a3b8; font-size:12px; text-align:center; margin-bottom:20px;">ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ</p>
+            <div class="input-group">
+                <input type="number" id="wAmt" placeholder="የብር መጠን (ቢያንስ 50 ብር)">
+            </div>
+            <div class="input-group">
+                <input type="text" id="wAcc" placeholder="የባንክ አካውንት (ወይም ስልክ)">
+            </div>
+            <button class="btn" id="wBtn" onclick="requestWithdraw()">ወጪ አድርግ (Withdraw)</button>
+            <div class="loader" id="loader">እባክዎ ይጠብቁ...</div>
+        </div>
+
+        <script>
+            async function requestWithdraw() {
+                let amt = document.getElementById('wAmt').value;
+                let acc = document.getElementById('wAcc').value;
+                if(!amt || !acc) return alert('እባክዎ መረጃውን በትክክል ይሙሉ!');
+                
+                document.getElementById('wBtn').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+
+                try {
+                    let res = await fetch('/api/promoter/withdraw', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ phone: '${phone}', pass: '${pass}', amount: amt, account: acc })
+                    });
+                    let data = await res.json();
+                    alert(data.message);
+                    if(data.success) { window.location.reload(); }
+                } catch(e) {
+                    alert('ግንኙነት ተቋርጧል');
+                }
+                
+                document.getElementById('wBtn').style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
 
 app.get('/admin', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
@@ -1244,9 +1319,6 @@ app.get('*', (req, res) => {
                 from { transform: scale(1); box-shadow: 0 0 10px rgba(74,222,128,0.4); } 
                 to { transform: scale(1.05); box-shadow: 0 0 25px rgba(74,222,128,0.8); } 
             }
-            /* 🔥 WEB PROMO POPUP CSS 🔥 */
-            .web-promo-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%); background: linear-gradient(135deg, #ea580c, #d97706); border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100000; width: 90%; max-width: 350px; text-align: center; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1); backdrop-filter: blur(10px); visibility: hidden; }
-            .web-promo-popup.show { transform: translateX(-50%) translateY(0); visibility: visible; }
         </style>
 
         <div id="dynamic-maintenance">
