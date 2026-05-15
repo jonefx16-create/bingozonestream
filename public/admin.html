@@ -365,7 +365,8 @@
             </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-promoters">
-                    <thead><tr><th>Name</th><th>Phone</th><th>Comm %</th><th>People</th><th>Total Earned (አጠቃላይ)</th><th>Unpaid Balance (ቀሪ)</th><th>Action</th></tr></thead>
+                    <!-- 🔥 NEW: Header Updated for Total/Active -->
+                    <thead><tr><th>Name</th><th>Phone</th><th>Comm %</th><th>People (Total / Active)</th><th>Total Earned (አጠቃላይ)</th><th>Unpaid Balance (ቀሪ)</th><th>Action</th></tr></thead>
                     <tbody id="promoters-body"></tbody>
                 </table>
             </div></div>
@@ -1090,7 +1091,8 @@
                     return `
                     <tr>
                         <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;">${p.phone}</td><td>${p.percent}%</td>
-                        <td>${p.usersBrought} Users</td>
+                        <!-- 🔥 NEW: Split Display in Admin Table 🔥 -->
+                        <td><b>${p.usersBrought}</b> Total<br><span style="color:var(--faded-green); font-size:11px;">✅ ${p.activeDepositors} Active</span></td>
                         <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td style="color:var(--orange); font-weight:bold;">${Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td>
@@ -1150,9 +1152,13 @@
                 let p = data.promoter; 
                 let unpaid = p.promoterUnpaidBalance !== undefined ? p.promoterUnpaidBalance : 0;
                 
+                // 🔥 NEW: Profile modal split total/active
+                let totalUsers = data.details.length;
+                let activeUsers = data.details.filter(d => d.totalDeposit > 0).length;
+                
                 document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`; 
                 document.getElementById('pp-phone').innerText = p.phone; 
-                document.getElementById('pp-users').innerText = data.details.length;
+                document.getElementById('pp-users').innerHTML = `${totalUsers} <br><span style="font-size:11px; color:var(--faded-green);">✅ ${activeUsers} Active</span>`;
                 document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
                 document.getElementById('pp-unpaid').innerText = Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2});
                 
