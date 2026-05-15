@@ -1222,7 +1222,7 @@ const basicAuth = (req, res, next) => {
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin" ወይም "finance") እና Password ያስገቡ።</p>');
 };
 
-// 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT WITH LOGO 🔥
+// 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT WITH LOGO AND BACK BUTTON 🔥
 app.get('/guide', (req, res) => {
     let lang = req.query.lang || 'am';
     
@@ -1243,7 +1243,8 @@ app.get('/guide', (req, res) => {
             vert: "2. ወደ ታች (Vertical)",
             diag: "3. በማዕዘን (Diagonal / X)",
             corner: "4. አራቱ ጥግ (Four Corners)",
-            hint: "💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!"
+            hint: "💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!",
+            back: "🔙 ወደ ኋላ ተመለስ"
         },
         en: {
             title: "📖 Game Guide & Rules",
@@ -1261,7 +1262,8 @@ app.get('/guide', (req, res) => {
             vert: "2. Vertical",
             diag: "3. Diagonal (X)",
             corner: "4. Four Corners",
-            hint: "💡 The system detects winners automatically. You don't need to touch anything!"
+            hint: "💡 The system detects winners automatically. You don't need to touch anything!",
+            back: "🔙 Go Back"
         },
         or: {
             title: "📖 Qajeelfama Taphaa fi Seera",
@@ -1279,7 +1281,8 @@ app.get('/guide', (req, res) => {
             vert: "2. Gadee (Vertical)",
             diag: "3. Qaxxaamura (Diagonal / X)",
             corner: "4. Kurna Arfan (Four Corners)",
-            hint: "💡 Sirnichumtuu mo'ataa waan adda baasuuf homaa tuquun isinirra hin eegamu!"
+            hint: "💡 Sirnichumtuu mo'ataa waan adda baasuuf homaa tuquun isinirra hin eegamu!",
+            back: "🔙 Duubatti Deebi'i"
         },
         ti: {
             title: "📖 መምርሒ ጸወታን ሕግታትን",
@@ -1297,7 +1300,8 @@ app.get('/guide', (req, res) => {
             vert: "2. ንታሕቲ (Vertical)",
             diag: "3. ብማዕዘን (Diagonal / X)",
             corner: "4. ኣርባዕቲኡ ኩርናዕ (Four Corners)",
-            hint: "💡 ሲስተም ባዕሉ ተዓዋቲ ስለዘለሊ ዝኾነ ነገር ምትንኻፍ ኣየድልየኩምን!"
+            hint: "💡 ሲስተም ባዕሉ ተዓዋቲ ስለዘለሊ ዝኾነ ነገር ምትንኻፍ ኣየድልየኩምን!",
+            back: "🔙 ንድሕሪት ተመለስ"
         }
     };
 
@@ -1310,7 +1314,7 @@ app.get('/guide', (req, res) => {
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${tr.title}</title>
         <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 20px; text-align: center; margin: 0; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 20px; text-align: center; margin: 0; padding-bottom: 90px !important; }
             h2 { color: #4ade80; margin-top: 10px; }
             .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 280px; margin: 15px auto 30px auto; background: #1e293b; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
             .cell { background: #334155; padding: 12px 0; border-radius: 6px; font-weight: bold; font-size: 15px; color: #cbd5e1; display:flex; align-items:center; justify-content:center; }
@@ -1318,6 +1322,22 @@ app.get('/guide', (req, res) => {
             .title { color: #38bdf8; font-size: 18px; font-weight: bold; border-bottom: 2px dashed #334155; display: inline-block; padding-bottom: 5px; margin-bottom: 5px; }
             .free { background: #0f172a; color: white; border: 1px solid #4ade80; font-size: 12px; }
             .free.hl { background: #4ade80; color: black; border: none; }
+            
+            /* 🔥 አዲሱ የመመለሻ ቁልፍ ዲዛይን 🔥 */
+            .back-btn-wrapper {
+                position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
+                width: 90%; max-width: 400px; z-index: 9999;
+            }
+            .back-btn-wrapper button {
+                width: 100%; padding: 16px; border-radius: 14px;
+                background: linear-gradient(135deg, #1e293b, #0f172a);
+                border: 2px solid #4ade80; color: #4ade80;
+                font-size: 16px; font-weight: 900;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.8); cursor: pointer;
+                text-transform: uppercase; letter-spacing: 1px;
+                transition: 0.3s;
+            }
+            .back-btn-wrapper button:active { transform: scale(0.95); }
         </style>
     </head>
     <body>
@@ -1383,6 +1403,12 @@ app.get('/guide', (req, res) => {
         </div>
         
         <p style="color:#4ade80; font-size:12px; margin-top:20px; border:1px dashed #4ade80; padding:10px; border-radius:8px;">${tr.hint}</p>
+
+        <!-- 🔥 ወደ ኋላ መመለሻ (Close) BUTTON 🔥 -->
+        <div class="back-btn-wrapper">
+            <button onclick="window.location.href='/'">${tr.back}</button>
+        </div>
+
     </body>
     </html>
     `;
@@ -1731,6 +1757,7 @@ setInterval(async () => {
 }, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
+
 
 
 
