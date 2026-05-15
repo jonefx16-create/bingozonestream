@@ -89,15 +89,15 @@
             <button class="action-btn" style="width: auto; padding: 8px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh Data</button>
         </div>
 
-        <!-- 🔥 CUSTOM DATE PICKER 🔥 -->
+        <!-- 🔥 CUSTOM DATE PICKER (AUTO APPLIES ON CHANGE) 🔥 -->
         <div id="custom-date-container" style="display: none; align-items: center; gap: 15px; margin-bottom: 20px; background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
             <div>
                 <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጀመሪያ ቀን (Start Date)</label>
-                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;">
+                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="if(document.getElementById('endDate').value) applyCustomFilter()">
             </div>
             <div>
                 <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጨረሻ ቀን (End Date)</label>
-                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;">
+                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="if(document.getElementById('startDate').value) applyCustomFilter()">
             </div>
             <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
                 <button class="action-btn" style="width: auto; padding: 11px 20px; margin:0;" onclick="applyCustomFilter()">ፈልግ (Apply)</button>
@@ -270,7 +270,6 @@
             let sDate = document.getElementById('startDate').value;
             let eDate = document.getElementById('endDate').value;
             if(!sDate || !eDate) {
-                alert("እባክዎ መጀመሪያ (Start) እና መጨረሻ (End) ቀን በትክክል ይምረጡ!");
                 return;
             }
             startTime = new Date(sDate);
