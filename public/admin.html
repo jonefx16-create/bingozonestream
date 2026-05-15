@@ -307,10 +307,11 @@
             </div>
             <div class="card">
                 <div class="table-responsive">
+                    <!-- 🔥 BONUS COLUMN ADDED HERE 🔥 -->
                     <table id="table-history-tx">
                         <thead><tr>
                             <th style="width: 30px;"><input type="checkbox" id="chk-all-tx" onchange="toggleSelectAll('tx')"></th>
-                            <th>Time</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th><th>Action</th>
+                            <th>Time</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Bonus</th><th>Status & Details</th><th>Action</th>
                         </tr></thead>
                         <tbody id="history-tx-body"></tbody>
                     </table>
@@ -718,6 +719,7 @@
     let allTx = []; let filteredTx = []; let p_tx = 1; let currentHistType = 'deposit';
     let allRefs = []; let filteredRefs = []; let p_ref = 1; let globalInvBonusAmt = 10;
     
+    let sysSettings = null; // 🔥 ADDED: To hold settings globally for frontend bonus calculation 🔥
     let selHistory = new Set();
     let selTx = new Set();
 
@@ -789,6 +791,7 @@
             let tRes2 = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
             let statsData = await tRes2.json(); 
             globalInvBonusAmt = statsData.settings.inviteBonus || 10;
+            sysSettings = statsData.settings; // 🔥 ADDED: Saving settings globally for bonus calc
 
             if(statsData.settings) {
                 document.getElementById('set-price').value = statsData.settings.ticketPrice || 10;
@@ -967,8 +970,20 @@
             let d = new Date(t.date);
             let dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             
+            // 🔥 BONUS CALCULATION ADDED HERE 🔥
+            let bonusAmt = 0;
+            if (sysSettings && t.status === 'Approved') {
+                if (t.type === 'deposit' && t.amount >= (sysSettings.depBonusMinAmount || 100)) {
+                    bonusAmt = t.amount * ((sysSettings.depBonusPercent || 0) / 100);
+                } else if (t.type === 'withdraw' && sysSettings.isWitBonusActive && t.amount >= (sysSettings.witBonusMinAmount || 100)) {
+                    bonusAmt = t.amount * ((sysSettings.witBonusPercent || 0) / 100);
+                }
+            }
+            let bonusDisplay = bonusAmt > 0 ? `<span style="color:var(--gold); font-weight:bold;">+${Number(bonusAmt).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</span>` : `<span style="color:var(--text-gray);">-</span>`;
+
             if (dateStr !== lastDateStr) {
-                html += `<tr style="pointer-events:none;"><td colspan="8" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
+                // Changed colspan to 9 because of the new Bonus column
+                html += `<tr style="pointer-events:none;"><td colspan="9" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
                 lastDateStr = dateStr;
             }
 
@@ -976,11 +991,12 @@
                 <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
                 <td>${d.toLocaleTimeString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td>
                 <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                <td>${bonusDisplay}</td> <!-- 🔥 BONUS COLUMN DISPLAY 🔥 -->
                 <td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td>
                 <td><button class="btn-sm btn-red" onclick="singleDelete('transactions', '${t._id}')">Delete</button></td>
             </tr>`;
         });
-        document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="8" style="text-align:center;">No transactions found.</td></tr>`;
+        document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found.</td></tr>`;
         document.getElementById('chk-all-tx').checked = false;
         renderPagination('pag-tx', filteredTx.length, p_tx, 'changePageTx');
         updateBulkUI('tx');
