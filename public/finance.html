@@ -18,9 +18,30 @@
         #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; }
         
         .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; transition: 0.3s;}
-        .nav-btn { background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap;}
+        
+        /* 🔥 የተስተካከለው የመስመር ማሰመሪያ (Highlight) ኮድ 🔥 */
+        .nav-btn { 
+            background: transparent; 
+            color: var(--text-gray); 
+            border: none; 
+            border-left: 4px solid transparent; 
+            padding: 15px 20px; 
+            text-align: left; 
+            font-size: 14px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-weight: bold; 
+            white-space: nowrap;
+            transition: 0.2s;
+        }
         .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
-        .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
+        .nav-btn.active { 
+            background: rgba(74, 222, 128, 0.1) !important; 
+            color: var(--faded-green) !important; 
+            border-left: 4px solid var(--faded-green) !important; 
+        }
         
         .main-content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
         
@@ -44,9 +65,23 @@
 
         @media (max-width: 768px) {
             #dash-sec { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; flex-direction: row; padding: 10px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; }
-            .nav-btn { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; font-size: 13px; flex-shrink: 0;}
-            .nav-btn.active { background: transparent; border-bottom-color: var(--faded-green); }
+            .sidebar { 
+                width: 100%; height: auto; flex-direction: row; padding: 10px; 
+                border-right: none; border-bottom: 1px solid var(--border); 
+                overflow-x: auto; white-space: nowrap;
+            }
+            .nav-btn { 
+                border-left: none !important; 
+                border-bottom: 4px solid transparent !important; 
+                padding: 12px 15px; 
+                font-size: 13px; 
+                flex-shrink: 0;
+            }
+            .nav-btn.active { 
+                background: transparent !important; 
+                border-bottom: 4px solid var(--faded-green) !important; 
+                color: var(--faded-green) !important;
+            }
             .main-content { padding: 15px; }
             .summary-box h1 { font-size: 32px !important; }
             .kpi-value { font-size: 22px; }
@@ -93,11 +128,13 @@
         <div id="custom-date-container" style="display: none; align-items: center; gap: 15px; margin-bottom: 20px; background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
             <div>
                 <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጀመሪያ ቀን (Start Date)</label>
-                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="applyCustomFilter()">
+                <!-- added onfocus to immediately highlight custom tab -->
+                <input type="date" id="startDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onfocus="switchTab('custom', document.getElementById('btn-custom-date'))" onchange="applyCustomFilter()">
             </div>
             <div>
                 <label style="font-size:11px; color:var(--text-gray); display:block; margin-bottom:5px;">መጨረሻ ቀን (End Date)</label>
-                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onchange="applyCustomFilter()">
+                <!-- added onfocus to immediately highlight custom tab -->
+                <input type="date" id="endDate" style="margin:0; padding:10px; border-radius:5px; background:#000; border:1px solid var(--border); color:white; width: auto; font-size: 14px; font-family:sans-serif;" onfocus="switchTab('custom', document.getElementById('btn-custom-date'))" onchange="applyCustomFilter()">
             </div>
             <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
                 <button class="action-btn" style="width: auto; padding: 11px 20px; margin:0;" onclick="applyCustomFilter()">ፈልግ (Apply)</button>
@@ -191,7 +228,6 @@
         };
         document.getElementById('page-title').innerText = titles[period];
         
-        // Show or Hide Custom Date Picker
         document.getElementById('custom-date-container').style.display = (period === 'custom') ? 'flex' : 'none';
         
         currentFilter = period;
@@ -261,7 +297,7 @@
     function filterData(period) {
         let now = new Date();
         let startTime = new Date(0); 
-        let endTime = new Date(); // Default is 'now'
+        let endTime = new Date(); 
         
         let dateDisplayStr = "All Time History";
         let options = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -298,7 +334,6 @@
 
         document.getElementById('date-display').innerText = dateDisplayStr;
 
-        // 🔥 APPLY PRECISE FILTERS WITH START & END TIMES 🔥
         let filteredTxs = rawData.txs.filter(t => {
             let d = new Date(t.date);
             return period === 'custom' ? (d >= startTime && d <= endTime) : (d >= startTime);
@@ -324,10 +359,8 @@
 
         let tBon = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-        // 🔥 PROMOTER PAID CALCULATION 🔥
         let tPromoterPaid = filteredTxs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        // Final Net Profit Calculation (የተጣራ ትርፍ)
         let net = tProf - tBon - tPromoterPaid;
 
         let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
@@ -355,6 +388,7 @@
 </script>
 </body>
 </html>
+
 
 
 
