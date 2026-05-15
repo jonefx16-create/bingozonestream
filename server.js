@@ -1204,7 +1204,22 @@ app.get('/guide', (req, res) => {
         </style>
     </head>
     <body>
-        <h2>🏆 ማሸነፊያ መንገዶች</h2>
+        <h2>📖 የጨዋታው መመሪያ እና ደንቦች</h2>
+        
+        <div style="text-align: left; background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 30px; font-size: 14px; line-height: 1.6; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            <b style="color:#fbbf24;">1️⃣ የሂሳብ ደንቦች:</b><br>
+            🟢 <b>መጫወቻ ሂሳብ (Play Balance):</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን ወጪ (Withdraw) ማድረግ አይቻልም።<br>
+            🟡 <b>ዋና ሂሳብ (Main Balance):</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።<br><br>
+            
+            <b style="color:#fbbf24;">2️⃣ የገቢ ደንብ:</b><br>
+            👉 ከ ቴሌብር ወደ ቴሌብር አካውንት ብቻ!<br>
+            👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር አካውንት ብቻ ያስገቡ።<br><br>
+            
+            <b style="color:#fbbf24;">3️⃣ የጨዋታው ሂደት:</b><br>
+            ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል። ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል። ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።
+        </div>
+
+        <h2 style="color: #38bdf8;">🏆 ማሸነፊያ መንገዶች (Winning Patterns)</h2>
         <p style="color:#94a3b8; font-size:14px; margin-bottom: 30px;">ከታች ባሉት አራት ቅርፆች መሰረት ከተጠሩት ቁጥሮች አምስቱን ካገኙ <b>BINGO</b> ብለው ያሸንፋሉ!</p>
 
         <div class="title">1. በአግድም (Horizontal)</div>
@@ -1243,7 +1258,7 @@ app.get('/guide', (req, res) => {
             <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
         </div>
         
-        <p style="color:#fbbf24; font-size:12px; margin-top:20px;">💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!</p>
+        <p style="color:#4ade80; font-size:12px; margin-top:20px; border:1px dashed #4ade80; padding:10px; border-radius:8px;">💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!</p>
     </body>
     </html>
     `;
@@ -1305,6 +1320,11 @@ app.get('/promoter', async (req, res) => {
             <div class="stat-box green">
                 <div><div class="stat-title">🎁 እስካሁን የሰበሰቡት የኮሚሽን መጠን</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
                 <div style="font-size:30px;">💸</div>
+            </div>
+
+            <div class="stat-box" style="border-left-color: #a855f7;">
+                <div><div class="stat-title">📈 የኮሚሽን መጠንዎ (Your Commission)</div><div class="stat-value" style="color:#a855f7;">${user.promoterPercent}%</div></div>
+                <div style="font-size:30px;">🔥</div>
             </div>
 
             <h3 style="font-size:14px; color:#94a3b8; margin-top:20px;">🔗 መጋበዣ ሊንክ (Share Link):</h3>
