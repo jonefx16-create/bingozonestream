@@ -177,7 +177,14 @@
             <div class="stats-grid">
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold);"><h3>💰 Current Jackpot</h3><h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3><h2 style="color: var(--blue);" id="stat-total-profit">0.00 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3>
+                    <h2 style="color: var(--blue); margin-bottom:5px;" id="stat-total-profit">0.00 ETB</h2>
+                    <!-- 🔥 30/70 SPLIT DISPLAY 🔥 -->
+                    <div style="font-size:10px; color:var(--text-gray); display:flex; justify-content:space-around; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                        <span>Admin (70%): <b style="color:#4ade80;" id="split-admin">0.00</b></span>
+                        <span>Partner (30%): <b style="color:#fbbf24;" id="split-partner">0.00</b></span>
+                    </div>
+                </div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
                 
@@ -733,12 +740,16 @@
             let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
             if(document.getElementById('tab-live').classList.contains('active')) {
                 document.getElementById('stat-total-users').innerText = data.totalUsers.toLocaleString('en-US'); document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
-                document.getElementById('stat-total-profit').innerText = Number(data.totalProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB"; 
+                
+                let tProf = data.totalProfit || 0;
+                document.getElementById('stat-total-profit').innerText = Number(tProf).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB"; 
+                document.getElementById('split-admin').innerText = Number(tProf * 0.70).toLocaleString('en-US', {minimumFractionDigits: 2}); 
+                document.getElementById('split-partner').innerText = Number(tProf * 0.30).toLocaleString('en-US', {minimumFractionDigits: 2}); 
+
                 document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
                 document.getElementById('stat-current-jackpot').innerText = Number(data.currentJackpot || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US'); document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US'); document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
                 
-                // 🔥 NEW DAILY BOXES UPDATE 🔥
                 document.getElementById('stat-daily-dep').innerText = Number(data.dailyDeposit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('stat-daily-wit').innerText = Number(data.dailyWithdraw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('stat-daily-bon').innerText = Number(data.dailyBonus || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
@@ -807,7 +818,7 @@
             allTx = await tRes.json(); 
             populatePendingDeposits(); 
             populatePendingWithdraws(); 
-            populatePromoterWithdraws(); // 🔥 CALL THE PROMOTER WITHDRAWAL FILTER 🔥
+            populatePromoterWithdraws(); 
             filterHistoryTxType(currentHistType);
 
             let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -818,7 +829,7 @@
 
             let dropHtml = '<option value="">-- Select a Game --</option>'; 
             let now = new Date().getTime();
-            let threeDays = 3 * 24 * 60 * 60 * 1000; // 🔥 3 Days Filter 🔥
+            let threeDays = 3 * 24 * 60 * 60 * 1000; 
             
             allHistory.forEach((h, idx) => { 
                 let gameTime = new Date(h.date).getTime();
@@ -878,7 +889,6 @@
         `;
     }
 
-    // 1. Users Render (No Checkbox, No Delete)
     window.changePageUsers = function(p) { p_users = p; renderUsersPage(); }
     function renderUsersPage() {
         let start = (p_users - 1) * limitPerPage;
@@ -898,7 +908,6 @@
         renderPagination('pag-users', filteredUsers.length, p_users, 'changePageUsers');
     }
 
-    // 2. History Render (Grouped by Day)
     window.changePageHistory = function(p) { p_hist = p; renderHistoryPage(); }
     function renderHistoryPage() {
         let start = (p_hist - 1) * limitPerPage;
@@ -936,7 +945,6 @@
         updateBulkUI('history');
     }
 
-    // 3. Transactions Render (Grouped by Day)
     window.changePageTx = function(p) { p_tx = p; renderTxPage(); }
     function renderTxPage() {
         let start = (p_tx - 1) * limitPerPage;
@@ -970,7 +978,6 @@
         updateBulkUI('tx');
     }
 
-    // 4. Referrals Render (Invite & Earn)
     window.changePageRef = function(p) { p_ref = p; renderRefPage(); }
     function renderRefPage() {
         let start = (p_ref - 1) * limitPerPage;
@@ -1109,6 +1116,7 @@
             let data = await res.json();
             alert(data.message || "ክፍያው በተሳካ ሁኔታ ተቀንሷል።");
             loadPromoters();
+            loadData(); 
         } catch(e) { alert("Error paying promoter."); }
     }
 
@@ -1194,7 +1202,6 @@
         document.getElementById('pend-wit-body').innerHTML = wits.map(t => { return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
     }
 
-    // 🔥 PROMOTER WITHDRAWAL FUNCTION 🔥
     function populatePromoterWithdraws() {
         let wits = allTx.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Pending');
         document.getElementById('promoter-pend-wit-body').innerHTML = wits.map(t => {
