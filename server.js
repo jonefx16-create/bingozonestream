@@ -370,7 +370,7 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
         let games = await GameHistory.find();
         let bonuses = await ActiveBonus.find();
         let users = await User.find({}, 'mainBalance playBalance'); 
-        res.json({ success: true, txs, games, bonuses, users });
+        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); // 🔥 እዚህ ጋር 'settings' ተጨምሯል
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
