@@ -1,4 +1,3 @@
-// --- START OF FILE server.js ---
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -214,7 +213,6 @@ app.post('/api/register', async (req, res) => {
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         let actualRef = "";
         
-        // 🔥 PROMOTER PREFIX STRIPPER 🔥
         let cleanRefCode = refCode || "";
         if (cleanRefCode.startsWith('promo_')) {
             cleanRefCode = cleanRefCode.replace('promo_', '');
@@ -290,7 +288,7 @@ app.post('/api/promoter/withdraw', async (req, res) => {
         if (!user || !user.isPromoter) return res.json({ success: false, message: "Unauthorized" });
 
         let reqAmt = Number(amount);
-        if (isNaN(reqAmt) || reqAmt < 50) return res.json({ success: false, message: "❌ ቢያንስ 50 ብር መሆን አለበት!" });
+        if (isNaN(reqAmt) || reqAmt < 1000) return res.json({ success: false, message: "❌ ቢያንስ 1000 ብር መሆን አለበት!" });
         if (user.promoterUnpaidBalance < reqAmt) return res.json({ success: false, message: "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!" });
 
         user.promoterUnpaidBalance -= reqAmt;
@@ -1083,9 +1081,13 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና ኮሚሽን በየቀኑ ለመሰብሰብ እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
         }
     } 
+    // 🔥 GUIDE (HOW TO PLAY) WEB APP UPDATE 🔥
     else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
         if(!user) return; 
-        bot.sendMessage(chatId, ln.guide_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
+        bot.sendMessage(chatId, "📖 <b>እንዴት መጫወት እና ማሸነፍ ይቻላል?</b>\n\nከታች ያለውን ቁልፍ በመጫን በምስል የተደገፈ መመሪያ ይመልከቱ።", { 
+            parse_mode: "HTML", 
+            reply_markup: { inline_keyboard: [[{ text: "📖 መመሪያ ክፈት (Open Guide)", web_app: { url: `${WEB_URL}/guide` } }]] }
+        }); 
     }
     else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
         if(!user) return; 
@@ -1182,6 +1184,72 @@ const basicAuth = (req, res, next) => {
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin") እና Password ያስገቡ።</p>');
 };
 
+// 🔥 GUIDE / HOW TO PLAY WEB APP ENDPOINT 🔥
+app.get('/guide', (req, res) => {
+    let html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>እንዴት መጫወት ይቻላል? (How to Play)</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 20px; text-align: center; margin: 0; }
+            h2 { color: #4ade80; margin-top: 10px; }
+            .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 280px; margin: 15px auto 30px auto; background: #1e293b; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+            .cell { background: #334155; padding: 12px 0; border-radius: 6px; font-weight: bold; font-size: 15px; color: #cbd5e1; display:flex; align-items:center; justify-content:center; }
+            .hl { background: #fbbf24; color: black; box-shadow: 0 0 10px rgba(251,191,36,0.6); transform: scale(1.05); }
+            .title { color: #38bdf8; font-size: 18px; font-weight: bold; border-bottom: 2px dashed #334155; display: inline-block; padding-bottom: 5px; margin-bottom: 5px; }
+            .free { background: #0f172a; color: white; border: 1px solid #4ade80; font-size: 12px; }
+            .free.hl { background: #4ade80; color: black; border: none; }
+        </style>
+    </head>
+    <body>
+        <h2>🏆 ማሸነፊያ መንገዶች</h2>
+        <p style="color:#94a3b8; font-size:14px; margin-bottom: 30px;">ከታች ባሉት አራት ቅርፆች መሰረት ከተጠሩት ቁጥሮች አምስቱን ካገኙ <b>BINGO</b> ብለው ያሸንፋሉ!</p>
+
+        <div class="title">1. በአግድም (Horizontal)</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell hl">16</div><div class="cell hl">31</div><div class="cell hl">46</div><div class="cell hl">61</div>
+            <div class="cell">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell">3</div><div class="cell">18</div><div class="cell free">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell">49</div><div class="cell">64</div>
+            <div class="cell">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell">65</div>
+        </div>
+
+        <div class="title">2. ወደ ታች (Vertical)</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell">61</div>
+            <div class="cell hl">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell hl">3</div><div class="cell">18</div><div class="cell free hl">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell hl">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell">49</div><div class="cell">64</div>
+            <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell">65</div>
+        </div>
+
+        <div class="title">3. በማዕዘን (Diagonal / X)</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell">61</div>
+            <div class="cell">2</div><div class="cell hl">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell">3</div><div class="cell">18</div><div class="cell free hl">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell hl">49</div><div class="cell">64</div>
+            <div class="cell">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
+        </div>
+
+        <div class="title">4. አራቱ ጥግ (Four Corners)</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell hl">61</div>
+            <div class="cell">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell">3</div><div class="cell">18</div><div class="cell free">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell">49</div><div class="cell">64</div>
+            <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
+        </div>
+        
+        <p style="color:#fbbf24; font-size:12px; margin-top:20px;">💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!</p>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
+
 // 🔥 PROMOTER WEB APP ROUTE 🔥
 app.get('/promoter', async (req, res) => {
     let phone = req.query.phone;
@@ -1190,10 +1258,11 @@ app.get('/promoter', async (req, res) => {
     if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ የተፈቀደ አስተዋዋቂ አይደሉም! (Unauthorized)</h1>");
 
     let referredUsers = await User.find({ referredBy: user.phone });
+    let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
-    // 🔥 PROMOTER CUSTOM LINK 🔥
+    // 🔥 PROMOTER CUSTOM LINK (No promo_ prefix) 🔥
     let myCode = user.refCode ? user.refCode : user.phone;
-    let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
+    let link = `https://t.me/bingo_habesha_bot?start=${myCode}`;
 
     let html = `
     <!DOCTYPE html>
@@ -1246,13 +1315,37 @@ app.get('/promoter', async (req, res) => {
             <h3 style="margin-top:0; color:#fb923c; text-align:center;">💸 ኮሚሽን ወጪ ማድረጊያ</h3>
             <p style="color:#94a3b8; font-size:12px; text-align:center; margin-bottom:20px;">ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ</p>
             <div class="input-group">
-                <input type="number" id="wAmt" placeholder="የብር መጠን (ቢያንስ 50 ብር)">
+                <input type="number" id="wAmt" placeholder="የብር መጠን (ቢያንስ 1000 ብር)">
             </div>
             <div class="input-group">
                 <input type="text" id="wAcc" placeholder="የባንክ አካውንት (ወይም ስልክ)">
             </div>
             <button class="btn" id="wBtn" onclick="requestWithdraw()">ወጪ አድርግ (Withdraw)</button>
             <div class="loader" id="loader">እባክዎ ይጠብቁ...</div>
+        </div>
+
+        <div class="card" style="margin-top:20px; padding: 15px;">
+            <h3 style="color:#38bdf8; text-align:center; margin-top:0;">📜 የወጪ ታሪክ (Withdraw History)</h3>
+            <table style="width:100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #475569; color:#94a3b8;">
+                        <th style="padding: 10px 5px;">ቀን</th>
+                        <th style="padding: 10px 5px;">መጠን</th>
+                        <th style="padding: 10px 5px;">ሁኔታ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${txHistory.length > 0 ? txHistory.map(tx => `
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="padding: 10px 5px;">${new Date(tx.date).toLocaleDateString()}</td>
+                            <td style="padding: 10px 5px; font-weight:bold; color:#fb923c;">${tx.amount} ETB</td>
+                            <td style="padding: 10px 5px;">
+                                <span style="background:${tx.status==='Approved'?'#064e3b':(tx.status==='Pending'?'#78350f':'#7f1d1d')}; color:${tx.status==='Approved'?'#34d399':(tx.status==='Pending'?'#fbbf24':'#f87171')}; padding: 3px 8px; border-radius: 4px; font-size:11px;">${tx.status}</span>
+                            </td>
+                        </tr>
+                    `).join('') : `<tr><td colspan="3" style="text-align:center; padding: 15px; color:#94a3b8;">ምንም ታሪክ የለም (No History)</td></tr>`}
+                </tbody>
+            </table>
         </div>
 
         <script>
