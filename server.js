@@ -1143,6 +1143,10 @@ bot.on('message', async (msg) => {
     if (state.step === 'support_chat') {
         if(!user) return;
         await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
+        
+        // 🔥 ይህ ኮድ ሜሴጁ እንደተላከ በቅፅበት ለአድሚኑ ያሳውቃል 🔥
+        io.emit('new_support_message'); 
+
         bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
         state.step = 'idle';
         botState[chatId] = state;
