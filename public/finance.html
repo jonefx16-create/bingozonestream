@@ -103,7 +103,7 @@
                 position: fixed; top: 0; left: -260px; bottom: 0; 
                 width: 250px; height: 100vh; box-shadow: 2px 0 15px rgba(0,0,0,0.9); 
                 z-index: 10000;
-                display: block; /* Make it stack vertically from top to bottom */
+                display: block; 
                 padding-top: 50px;
             }
             .sidebar.open { left: 0; }
@@ -139,6 +139,7 @@
         <button class="nav-btn active" id="btn-daily" onclick="switchTab('daily', this)">📅 Daily Profit (የዛሬ)</button>
         <button class="nav-btn" id="btn-weekly" onclick="switchTab('weekly', this)">📆 Weekly Profit (ሳምንታዊ)</button>
         <button class="nav-btn" id="btn-monthly" onclick="switchTab('monthly', this)">🗓️ Monthly Profit (ወርሃዊ)</button>
+        <button class="nav-btn" id="btn-range" onclick="switchTab('range', this)">⏳ Date Range (ከ - እስከ)</button> <!-- አዲሱ በተን -->
         <button class="nav-btn" id="btn-all" onclick="switchTab('all', this)">🏆 All Time Profit (አጠቃላይ)</button>
         
         <div style="flex:1"></div>
@@ -162,13 +163,23 @@
                 </div>
             </div>
             
-            <!-- ግልፅ የሆነ የካላንደር መምረጫ -->
-            <div style="display:flex; align-items:center; gap:10px; background: rgba(234, 88, 12, 0.1); border: 1px solid var(--orange); padding: 8px 12px; border-radius: 8px; flex-wrap:wrap;">
-                <span style="font-size:12px; color:var(--orange); font-weight:bold;">🔍 የተወሰነ ቀን ፈልግ:</span>
-                <input type="date" id="visibleDatePick" onchange="applyHeaderDate(this.value)" style="background: transparent; border: none; color: white; font-size: 14px; font-weight: bold; outline: none; cursor: pointer; padding: 0; margin: 0; min-width:120px;">
+            <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+                <!-- ግልፅ የሆነ የካላንደር መምረጫ (አንድ ቀን ብቻ) -->
+                <div style="display:flex; align-items:center; gap:10px; background: rgba(234, 88, 12, 0.1); border: 1px solid var(--orange); padding: 8px 12px; border-radius: 8px; flex-wrap:wrap;">
+                    <span style="font-size:12px; color:var(--orange); font-weight:bold;">🔍 የተወሰነ ቀን ፈልግ:</span>
+                    <input type="date" id="visibleDatePick" onchange="applyHeaderDate(this.value)" style="background: transparent; border: none; color: white; font-size: 14px; font-weight: bold; outline: none; cursor: pointer; padding: 0; margin: 0; min-width:120px;">
+                </div>
+
+                <!-- 🔥 አዲሱ የ Date Range (ከ - እስከ) መምረጫ 🔥 -->
+                <div id="range-picker-container" style="display:none; align-items:center; gap:10px; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); padding: 8px 12px; border-radius: 8px; flex-wrap:wrap;">
+                    <span style="font-size:12px; color:var(--purple); font-weight:bold;">⏳ ከዚህ - እስከዚህ:</span>
+                    <input type="date" id="rangeStart" onchange="applyDateRange()" style="background: transparent; border: 1px solid var(--border); color: white; font-size: 12px; font-weight: bold; outline: none; cursor: pointer; padding: 4px; margin: 0; border-radius: 4px;">
+                    <span style="color:var(--text-gray); font-size:12px;">እስከ</span>
+                    <input type="date" id="rangeEnd" onchange="applyDateRange()" style="background: transparent; border: 1px solid var(--border); color: white; font-size: 12px; font-weight: bold; outline: none; cursor: pointer; padding: 4px; margin: 0; border-radius: 4px;">
+                </div>
             </div>
 
-            <button class="action-btn" style="width: auto; padding: 10px 15px; background: var(--blue); color: white;" onclick="loadFinancialData()">🔄 Refresh Data</button>
+            <button class="action-btn" style="width: auto; padding: 10px 15px; background: var(--blue); color: white; height: fit-content;" onclick="loadFinancialData()">🔄 Refresh Data</button>
         </div>
 
         <!-- 🔥 30% / 70% SPLIT BOX 🔥 -->
@@ -253,6 +264,8 @@
     let rawData = { txs: [], games: [], bonuses: [], users: [], promoters: [], settings: {} };
     let currentFilter = 'daily';
     let currentCustomDate = null;
+    let currentStartDate = null; // አዲስ: ለመነሻ ቀን
+    let currentEndDate = null;   // አዲስ: ለመድረሻ ቀን
 
     function toggleSidebar() { 
         let sidebar = document.getElementById('sidebar');
@@ -275,11 +288,19 @@
             'weekly': '📆 Weekly Profit Report',
             'monthly': '🗓️ Monthly Profit Report',
             'all': '🏆 All Time Profit Report',
-            'custom': '🔍 Specific Day Report'
+            'custom': '🔍 Specific Day Report',
+            'range': '⏳ Date Range Report (ከ - እስከ)'
         };
-        document.getElementById('page-title').innerText = titles[period];
+        document.getElementById('page-title').innerText = titles[period] || titles['daily'];
         
-        if(period !== 'custom') {
+        // Range picker የማሳያ/መደበቂያ (Show/Hide logic)
+        if (period === 'range') {
+            document.getElementById('range-picker-container').style.display = 'flex';
+        } else {
+            document.getElementById('range-picker-container').style.display = 'none';
+        }
+
+        if(period !== 'custom' && period !== 'range') {
             document.getElementById('headerDatePick').value = "";
             document.getElementById('visibleDatePick').value = "";
             currentCustomDate = null;
@@ -299,11 +320,33 @@
 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
         document.getElementById('page-title').innerText = "🔍 Specific Day Report";
+        document.getElementById('range-picker-container').style.display = 'none';
         
         currentFilter = 'custom';
         currentCustomDate = selectedDate;
         
         filterData('custom');
+    }
+
+    // አዲስ የተጨመረ: Date Range ተግባር
+    function applyDateRange() {
+        let start = document.getElementById('rangeStart').value;
+        let end = document.getElementById('rangeEnd').value;
+
+        // ሁለቱም ቀናት ካልተመረጡ ምንም አያደርግም (እስኪመረጥ ይጠብቃል)
+        if(!start || !end) return;
+
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
+        let rangeBtn = document.getElementById('btn-range');
+        if(rangeBtn) rangeBtn.classList.add('active');
+
+        document.getElementById('page-title').innerText = "⏳ Date Range Report";
+        
+        currentFilter = 'range';
+        currentStartDate = start;
+        currentEndDate = end;
+        
+        filterData('range');
     }
 
     async function loadFinancialData() {
@@ -374,22 +417,34 @@
             
             dateDisplayStr = `Selected Date: ${startTime.toLocaleDateString('en-US', options)}`;
         }
+        // 🔥 አዲሱ የ Date Range (ከ - እስከ) ማጣሪያ Logic 🔥
+        else if (period === 'range') {
+            if(!currentStartDate || !currentEndDate) return;
+            
+            let sParts = currentStartDate.split('-');
+            let eParts = currentEndDate.split('-');
+            
+            startTime = new Date(parseInt(sParts[0]), parseInt(sParts[1]) - 1, parseInt(sParts[2]), 0, 0, 0, 0);
+            endTime = new Date(parseInt(eParts[0]), parseInt(eParts[1]) - 1, parseInt(eParts[2]), 23, 59, 59, 999);
+            
+            dateDisplayStr = `From: ${startTime.toLocaleDateString('en-US', options)} — To: ${endTime.toLocaleDateString('en-US', options)}`;
+        }
 
         document.getElementById('date-display').innerText = dateDisplayStr;
 
         let filteredTxs = rawData.txs.filter(t => {
             let d = new Date(t.date);
-            return period === 'custom' ? (d >= startTime && d <= endTime) : (d >= startTime);
+            return (period === 'custom' || period === 'range') ? (d >= startTime && d <= endTime) : (d >= startTime);
         });
         
         let filteredGames = rawData.games.filter(g => {
             let d = new Date(g.date);
-            return period === 'custom' ? (d >= startTime && d <= endTime) : (d >= startTime);
+            return (period === 'custom' || period === 'range') ? (d >= startTime && d <= endTime) : (d >= startTime);
         });
         
         let filteredBonus = rawData.bonuses.filter(b => {
             let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt);
-            return period === 'custom' ? (bDate >= startTime && bDate <= endTime) : (bDate >= startTime);
+            return (period === 'custom' || period === 'range') ? (bDate >= startTime && bDate <= endTime) : (bDate >= startTime);
         });
 
         let tDep = filteredTxs.filter(t => t.type === 'deposit' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -402,7 +457,7 @@
 
         let tPromoterPaid = filteredTxs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        // 🔥 CALCULATING ALL BONUSES (Claim Promo + Reg + Ref + Dep/Wit Auto Bonus) 🔥
+        // 🔥 CALCULATING ALL BONUSES 🔥
         let claimPromoBonusAmt = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
         
         let sysSet = rawData.settings || {};
@@ -420,21 +475,7 @@
             }
         });
 
-        // To calculate Reg/Ref bonuses by date, we estimate it based on users created in that date.
-        // For accurate financial math without user creation dates, we use current liability logic:
         let totalBonusPaid = claimPromoBonusAmt + autoDepWitBonusAmt; 
-        
-        // Add Reg and Ref bonuses given to Users (we check users' playBalance to approximate or assume all users get reg bonus)
-        // Note: For absolute precision, actual historical logs for reg/ref are best, but we will aggregate based on total users if 'All Time'
-        if (period === 'all') {
-            totalBonusPaid += (rawData.users.length * regBonusAmt);
-            // Rough estimation of ref bonus: if a user has 'referredBy', the referrer got bonus
-            // Since we don't have exact historical refs in rawData here, we rely on totalPlayBalance as the ultimate source of truth for bonuses.
-        }
-
-        // 🔥 MORE ACCURATE BONUS CALCULATION 🔥
-        // Play Balance represents ALL unused bonuses. If we subtract total deposits from Total Liability, the difference is mostly Bonus + Winnings kept in play balance.
-        // But to keep it simple and accurate based on your request, we will show what is explicitly calculated.
         
         let finalBonusDisplay = claimPromoBonusAmt + autoDepWitBonusAmt; 
         if (period === 'all') { finalBonusDisplay += (rawData.users.length * regBonusAmt); }
@@ -475,6 +516,7 @@
 </script>
 </body>
 </html>
+
 
 
 
