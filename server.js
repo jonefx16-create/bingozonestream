@@ -927,6 +927,44 @@ io.on('connection', (socket) => {
             delete buyingLocks[data.phone];
         }
     });
+
+    // 🔥 አዲሱ ብር መመለሻ (Refund) ኮድ 🔥
+    socket.on('cancel_ticket', async (data) => {
+        if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
+        if (buyingLocks[data.phone]) return; 
+        buyingLocks[data.phone] = true;
+
+        try {
+            const user = await User.findOne({phone: data.phone});
+            if(user) {
+                let p = activePlayers[data.phone];
+                if(p && p.ticketsData.some(t => t.id === data.ticketId)) {
+                    // ገንዘብ መመለስ (Refund)
+                    user.playBalance += GLOBAL_SETTINGS.ticketPrice;
+                    user.played = Math.max(0, user.played - 1);
+                    await user.save();
+
+                    // ካርቴላውን ከተጫዋቹ ላይ ማጥፋት
+                    p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
+                    p.tickets -= 1;
+                    if(p.tickets === 0) delete activePlayers[data.phone];
+
+                    // ካርቴላውን ከሲስተሙ ላይ ነፃ ማድረግ
+                    totalTickets -= 1;
+                    totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                    totalPrizePool -= (GLOBAL_SETTINGS.ticketPrice * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100));
+                    globalTakenTickets = globalTakenTickets.filter(id => id !== data.ticketId);
+
+                    io.emit('update_taken_tickets', globalTakenTickets); 
+                    socket.emit('balance_updated', data.phone);
+                    socket.emit('ticket_cancelled_success', data.ticketId);
+                }
+            }
+        } finally {
+            delete buyingLocks[data.phone];
+        }
+    });
+
 });
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
