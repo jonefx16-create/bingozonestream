@@ -209,7 +209,7 @@
         <div id="tab-pend-wit" class="tab-content">
             <div class="card"><div class="table-responsive">
                 <table id="table-pend-wit">
-                    <thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>Sent To</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Phone</th><th>Bank Option</th><th>Amount</th><th>Sent To (Account)</th><th>Action</th></tr></thead>
                     <tbody id="pend-wit-body"></tbody>
                 </table>
             </div></div>
@@ -1223,9 +1223,32 @@
         let deps = allTx.filter(t => t.type === 'deposit' && t.status === 'Pending'); let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
         document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
     }
+    
     function populatePendingWithdraws() {
-        let wits = allTx.filter(t => t.type === 'withdraw' && t.method !== 'Promoter Comm' && t.status === 'Pending'); let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
-        document.getElementById('pend-wit-body').innerHTML = wits.map(t => { return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; color:var(--cyan);">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
+        let wits = allTx.filter(t => t.type === 'withdraw' && t.method !== 'Promoter Comm' && t.status === 'Pending'); 
+        let bWit = document.getElementById('badge-wit'); 
+        if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
+        
+        document.getElementById('pend-wit-body').innerHTML = wits.map(t => { 
+            let methodStr = (t.method || "").toUpperCase();
+            let methodBadge = "";
+            if (methodStr.includes("CBE")) {
+                methodBadge = `<span style="background: #a855f7; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #d8b4fe;">🏦 CBE</span>`;
+            } else if (methodStr.includes("TELEBIRR")) {
+                methodBadge = `<span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #93c5fd;">📱 TELEBIRR</span>`;
+            } else {
+                methodBadge = `<span style="background: #475569; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; text-transform: uppercase;">${t.method}</span>`;
+            }
+
+            return `<tr>
+                <td>${new Date(t.date).toLocaleString()}</td>
+                <td style="font-weight: 900; font-size: 15px; color: #ffffff; letter-spacing: 1px;">${t.phone}</td>
+                <td>${methodBadge}</td>
+                <td style="font-weight: 900; font-size: 16px; color: var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                <td style="font-family: monospace; font-weight: 900; font-size: 15px; color: var(--cyan); letter-spacing: 1px;">${(t.smsText||'').replace('Transfer to: ', '')}</td>
+                <td><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td>
+            </tr>`; 
+        }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
     }
 
     function populatePromoterWithdraws() {
@@ -1233,12 +1256,12 @@
         document.getElementById('promoter-pend-wit-body').innerHTML = wits.map(t => {
             return `<tr>
                 <td>${new Date(t.date).toLocaleString()}</td>
-                <td style="color:var(--cyan); font-weight:bold;">${t.phone}</td>
-                <td style="color:var(--orange); font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                <td style="font-family:monospace;">${(t.smsText||'').replace('Transfer to: ', '')}</td>
+                <td style="color:var(--cyan); font-weight:900; font-size:15px; letter-spacing:1px;">${t.phone}</td>
+                <td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
+                <td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td>
                 <td>
-                    <button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> 
-                    <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button>
+                    <button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> 
+                    <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button>
                 </td>
             </tr>`;
         }).join('') || `<tr><td colspan="5" style="text-align:center;">No pending promoter withdrawals.</td></tr>`;
