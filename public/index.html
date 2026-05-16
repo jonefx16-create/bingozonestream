@@ -471,14 +471,21 @@
     <div id="grid-box" class="num-grid"></div>
 </div>
 
-<!-- COMPACT FIXED BET SLIP POPUP -->
+<!-- 🔥 COMPACT FIXED BET SLIP POPUP (NO BET NOW BUTTON) 🔥 -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
         <span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
-    <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="width: 100%;">BET NOW (ወራረድ)</button>
+    
+    <!-- 🔥 Bet Now Button Hidden / Removed visually 🔥 -->
+    <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="display: none !important; width: 100%;">BET NOW (ወራረድ)</button>
+    
+    <!-- 🔥 Auto Bet Info 🔥 -->
+    <div id="auto-bet-info" style="width: 100%; text-align: center; color: #fbbf24; font-size: 11.5px; font-weight: bold; background: rgba(251, 191, 36, 0.1); padding: 6px; border-radius: 6px; border: 1px dashed #fbbf24; animation: pulseWin 1s infinite alternate; margin-bottom: 5px;">
+        ⏳ ተመርጧል! ጨዋታው ሲጀምር በራሱ ይቆረጣል...
+    </div>
 </div>
 
 <!-- 3. GAME PAGE -->
@@ -1002,7 +1009,6 @@
 
     socket.on('bet_error', (msg) => {
         alert(msg);
-        document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; document.getElementById('bet-btn').disabled = false;
         selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
         document.getElementById('bet-slip-popup').classList.remove('show'); document.getElementById('grid-sel-count').innerText = "0"; 
         renderGridTakenStates();
@@ -1059,7 +1065,6 @@
     }
 
     socket.on('game_status', (data) => {
-        // 🔥 አዲስ: የካርቴላ ዋጋን አውቶማቲክ መቀበያ 🔥
         currentTicketPrice = data.ticketPrice || 10;
         let betValEl = document.getElementById('g-val-bet');
         if(betValEl) betValEl.innerText = currentTicketPrice.toFixed(2);
@@ -1127,9 +1132,12 @@
                 }
             }
             
+            // 🔥 AUTO-BET LOGIC: ጨዋታው ሊጀምር 2 ሰከንድ ሲቀረው የተመረጠ ካርቴላ ካለ በራሱ ይቆርጠዋል 🔥
+            if (data.timer <= 2 && selected.length > 0) {
+                placeBet();
+            }
+
             if (selected.length > 0) { 
-                document.getElementById('bet-btn').disabled = false; 
-                document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; 
                 if (document.getElementById('home-page').classList.contains('active-page')) {
                     document.getElementById('bet-slip-popup').classList.add('show');
                 } else {
@@ -1285,16 +1293,30 @@
         } else { popup.classList.remove('show'); }
     }
 
+    // 🔥 ይህ ፋንክሽን በራሱ ጊዜ (አውቶማቲክ) ጨዋታው ሊጀምር 2 ሴኮንድ ሲቀረው ይጠራል 🔥
     function placeBet() { 
-        if(selected.length === 0) return alert("ቢያንስ 1 ካርቴላ ይምረጡ!"); 
+        if(selected.length === 0) return; 
+        
         let stolenTickets = selected.filter(x => globalTakenTickets.includes(x));
-        if (stolenTickets.length > 0) { alert("የመረጧቸው አንዳንድ ካርቴላዎች በሌላ ሰው ተገዝተዋል!"); renderGridTakenStates(); return; }
+        if (stolenTickets.length > 0) { 
+            alert("የመረጧቸው አንዳንድ ካርቴላዎች በሌላ ሰው ተገዝተዋል! እባክዎ ቀሪዎቹን ይምረጡ።"); 
+            renderGridTakenStates(); 
+            return; 
+        }
 
         let betAmount = selected.length * currentTicketPrice; 
         let currentPlayBal = parseFloat(currentUser.playBalance) || 0; let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
-        if((currentPlayBal + currentMainBal) < betAmount) { alert("በሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); return; }
+        if((currentPlayBal + currentMainBal) < betAmount) { 
+            alert("በሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መቁረጥ አልተቻለም።"); 
+            selected = []; pendingTicketsData = []; 
+            document.querySelectorAll('.num-btn.selected').forEach(btn => btn.classList.remove('selected'));
+            updateBetPreview();
+            return; 
+        }
         
-        document.getElementById('bet-btn').innerText = "REGISTERED ✅"; document.getElementById('bet-btn').disabled = true; 
+        let infoBox = document.getElementById('auto-bet-info');
+        if(infoBox) infoBox.innerHTML = "✅ ተቆርጧል! (BET PLACED)"; 
+        
         pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
         
         socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length, ticketIds: selected, ticketsData: pendingTicketsData });
@@ -1302,7 +1324,7 @@
         setTimeout(() => {
             selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('bet-slip-popup').classList.remove('show'); document.getElementById('grid-sel-count').innerText = "0"; 
-            document.getElementById('bet-btn').innerText = "BET NOW (ወራረድ)"; document.getElementById('bet-btn').disabled = false;
+            if(infoBox) infoBox.innerHTML = "⏳ ተመርጧል! ጨዋታው ሲጀምር በራሱ ይቆረጣል...";
             renderGridTakenStates();
         }, 800);
     }
