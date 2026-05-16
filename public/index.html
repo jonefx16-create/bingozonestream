@@ -25,11 +25,9 @@
         .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; background: #334155; color: #94a3b8;}
         .eye-icon { position: absolute; right: 15px; top: 14px; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.2s; }
         .eye-icon:hover { opacity: 1; }
-        .auth-help-btn { width: 100%; padding: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--cyan); border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
-        .auth-help-btn:hover { background: rgba(56, 189, 248, 0.2); }
         
         /* HIDE NAV & HEADER ON AUTH PAGE */
-        body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar, body:has(#auth-page.active-page) #bet-slip-popup { display: none !important; }
+        body:has(#auth-page.active-page) #global-header, body:has(#auth-page.active-page) #navbar { display: none !important; }
 
         /* Header */
         .top-balance { position: relative; background: transparent; padding: 10px 10px 5px 10px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
@@ -46,9 +44,6 @@
 
         /* Timer Box */
         .new-timer-box { background: #111521; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.05); }
-        .nt-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-        .nt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .nt-badge { background: rgba(74, 222, 128, 0.15); color: var(--faded-green); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
         .nt-status { color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         #timer { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); font-size: 26px; }
@@ -69,9 +64,12 @@
         
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
-        .num-btn.selected { background: var(--faded-green); color: black; font-weight: bold; border-color: var(--faded-green); transform: scale(1.1); z-index: 2;}
-        .num-btn.bought-by-me { background: #059669; color: white; border-color: #047857; font-weight: bold; pointer-events: none !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
-        .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; }
+        
+        /* 🔥 የገዙት (አረንጓዴ) 🔥 */
+        .num-btn.bought-by-me { background: #059669; color: white; border-color: #4ade80; font-weight: bold; box-shadow: 0 0 10px rgba(16,185,129,0.8); }
+        
+        /* 🔥 ሌሎች የገዙት (የደበዘዘ) 🔥 */
+        .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; border-color: transparent;}
 
         /* 🔥 STRICT HIDE FOR BET SLIP POPUP 🔥 */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 150%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; opacity: 0; visibility: hidden; pointer-events: none; }
@@ -278,12 +276,9 @@
 
 <div id="bingo-overlay" class="bingo-overlay">
     <div class="bling-text">✨ ሽልማት ገቢ እየተደረገ ነው... ✨</div>
-    <div class="winner-card" id="winner-card-container">
-        <!-- 🔴 BINGO CONTENT WILL BE INJECTED HERE DYNAMICALLY 🔴 -->
-    </div>
+    <div class="winner-card" id="winner-card-container"></div>
 </div>
 
-<!-- 🔥 MINI PROMO POPUP (RIGHT EDGE) 🔥 -->
 <div id="web-promo-popup" class="mini-promo-alert" onclick="claimWebPromo()">
     <div class="promo-icon-circle">🎁</div>
     <div class="promo-text-cont">
@@ -471,21 +466,13 @@
     <div id="grid-box" class="num-grid"></div>
 </div>
 
-<!-- 🔥 COMPACT FIXED BET SLIP POPUP (NO BET NOW BUTTON) 🔥 -->
+<!-- COMPACT FIXED BET SLIP POPUP -->
 <div id="bet-slip-popup" class="bet-slip-popup">
     <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
         <span style="color:white; font-size:10px; font-weight:bold;"><span id="lbl-sel-tickets">የመረጧቸው ካርቴላዎች: </span> <span id="slip-count" style="color:var(--faded-green);">0</span></span>
         <span style="color:var(--faded-green); font-size:13px; font-weight:900;"><span id="slip-price">0</span> ETB</span>
     </div>
     <div id="ticket-preview-box" class="preview-tickets-wrapper"></div>
-    
-    <!-- 🔥 Bet Now Button Hidden / Removed visually 🔥 -->
-    <button onclick="placeBet()" id="bet-btn" class="auth-btn bet-btn-small" style="display: none !important; width: 100%;">BET NOW (ወራረድ)</button>
-    
-    <!-- 🔥 Auto Bet Info 🔥 -->
-    <div id="auto-bet-info" style="width: 100%; text-align: center; color: #fbbf24; font-size: 11.5px; font-weight: bold; background: rgba(251, 191, 36, 0.1); padding: 6px; border-radius: 6px; border: 1px dashed #fbbf24; animation: pulseWin 1s infinite alternate; margin-bottom: 5px;">
-        ⏳ ተመርጧል! ጨዋታው ሲጀምር በራሱ ይቆረጣል...
-    </div>
 </div>
 
 <!-- 3. GAME PAGE -->
@@ -645,9 +632,8 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
-    let selected = [], called = []; 
+    let called = []; 
     let currentUser = null;
-    let pendingTicketsData = []; 
     let userTicketsData = [];
     let isLoginMode = false;
     let isGameRunningLocally = false;
@@ -656,11 +642,11 @@
     let isSoundOn = true;
     let maxTicketsLimit = 4; 
     let currentTicketPrice = 10; 
+    let isProcessingTicket = false;
 
     let audioQueue = [];
     let isPlayingAudio = false;
     let currentAudioObj = null;
-    let redirectTimer = null; 
 
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -1007,11 +993,19 @@
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) { await fetchUpdatedBalance(); if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory(); } });
 
+    // ቤቱ ካልተሳካ (ብሩ ካነሰ)
     socket.on('bet_error', (msg) => {
         alert(msg);
-        selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
-        document.getElementById('bet-slip-popup').classList.remove('show'); document.getElementById('grid-sel-count').innerText = "0"; 
+        socket.emit('get_initial_data', currentUser.phone); // መረጃ እንደገና ማደስ
+    });
+
+    // ገንዘብ ሲመለስ (Refund ሲሳካ)
+    socket.on('ticket_cancelled_success', (tid) => {
+        userTicketsData = userTicketsData.filter(t => t.id !== tid);
         renderGridTakenStates();
+        renderConfirmedTickets();
+        updateBetPreview();
+        fetchUpdatedBalance();
     });
 
     // 🔥 WEB APP MINI PROMO POPUP HANDLER 🔥
@@ -1038,10 +1032,10 @@
 
     socket.on('sync_data', (data) => {
         globalTakenTickets = data.globalTakenTickets || []; called = data.calledNumbers || []; userTicketsData = data.myTickets || [];
-        selected = userTicketsData.map(t => t.id); pendingTicketsData = []; 
         document.getElementById('g-balls').innerText = called.length + "/20"; document.getElementById('t-page-balls').innerText = called.length + "/20"; 
         
         renderGridTakenStates();
+        updateBetPreview();
         
         if(userTicketsData.length > 0) { renderConfirmedTickets(); document.getElementById('t-info').innerText = "የገዙት ካርቴላ ብዛት: " + userTicketsData.length;
         } else { document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም"; }
@@ -1055,12 +1049,20 @@
 
     function renderGridTakenStates() {
         document.querySelectorAll('.num-btn').forEach(btn => {
-            let num = parseInt(btn.innerText); let isMine = userTicketsData && userTicketsData.some(t => t.id === num); let isTakenGlobally = globalTakenTickets.includes(num);
-            if (isMine) { btn.classList.add('bought-by-me'); btn.classList.remove('taken'); btn.classList.remove('selected'); } 
+            let num = parseInt(btn.getAttribute('data-num')); 
+            btn.innerText = num; 
+
+            let isMine = userTicketsData && userTicketsData.some(t => t.id === num); 
+            let isTakenGlobally = globalTakenTickets.includes(num);
+
+            btn.className = 'num-btn'; 
+
+            if (isMine) { 
+                btn.classList.add('bought-by-me'); 
+            } 
             else if (isTakenGlobally) {
-                btn.classList.add('taken'); btn.classList.remove('selected'); btn.classList.remove('bought-by-me');
-                if(selected.includes(num)) { selected = selected.filter(x => x !== num); pendingTicketsData = pendingTicketsData.filter(t => t.id !== num); updateBetPreview(); }
-            } else { btn.classList.remove('taken'); btn.classList.remove('bought-by-me'); }
+                btn.classList.add('taken'); 
+            }
         });
     }
 
@@ -1121,7 +1123,7 @@
                 called = []; 
                 
                 if (currentUser) {
-                    userTicketsData = []; pendingTicketsData = []; selected = []; globalTakenTickets = []; 
+                    userTicketsData = []; globalTakenTickets = []; 
                     initGrid(); updateBetPreview(); 
                     document.getElementById('ticket-list').innerHTML = ''; document.getElementById('game-mini-tickets').innerHTML = '';
                     document.getElementById('t-info').innerText = "እስካሁን ካርቴላ አልገዙም";
@@ -1132,21 +1134,6 @@
                 }
             }
             
-            // 🔥 AUTO-BET LOGIC: ጨዋታው ሊጀምር 2 ሰከንድ ሲቀረው የተመረጠ ካርቴላ ካለ በራሱ ይቆርጠዋል 🔥
-            if (data.timer <= 2 && selected.length > 0) {
-                placeBet();
-            }
-
-            if (selected.length > 0) { 
-                if (document.getElementById('home-page').classList.contains('active-page')) {
-                    document.getElementById('bet-slip-popup').classList.add('show');
-                } else {
-                    document.getElementById('bet-slip-popup').classList.remove('show');
-                }
-            } else {
-                document.getElementById('bet-slip-popup').classList.remove('show');
-            }
-            
         } else if (data.state === "PLAYING") {
             isGameRunningLocally = true; document.getElementById('timer').innerText = "LIVE 🔴"; 
             document.querySelector('.nt-status').innerText = document.getElementById('btn-en').style.background === 'white' ? "Game is LIVE" : "ጨዋታው በመካሄድ ላይ ነው";
@@ -1155,7 +1142,6 @@
 
             if (currentGameState !== "PLAYING") {
                 currentGameState = "PLAYING"; 
-                document.getElementById('bet-slip-popup').classList.remove('show');
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
             called = data.calledNumbers || []; 
@@ -1246,41 +1232,81 @@
     function initGrid() { 
         const box = document.getElementById('grid-box'); box.innerHTML = ''; 
         for(let i=1; i<=550; i++) { 
-            let d = document.createElement('div'); d.className='num-btn'; d.innerText=i; 
+            let d = document.createElement('div'); 
+            d.className='num-btn'; 
+            d.innerText=i; 
+            d.id = 'gbtn-' + i;
+            d.setAttribute('data-num', i);
             
-            let isMine = userTicketsData && userTicketsData.some(t=>t.id===i);
-            if(isMine) { d.classList.add('bought-by-me'); } else if(globalTakenTickets.includes(i)) { d.classList.add('taken'); }
-
             d.onclick = () => { 
-                if(document.getElementById('timer').innerText.includes("LIVE")) return; 
-                if(d.classList.contains('taken') || d.classList.contains('bought-by-me')) return; 
+                if(isProcessingTicket) return; // ሁለት ጊዜ እንዳይነካ (Double click)
 
-                if(d.classList.contains('selected')) { 
-                    d.classList.remove('selected'); selected = selected.filter(x=>x!=i); pendingTicketsData = pendingTicketsData.filter(t=>t.id!=i); 
+                if(document.getElementById('timer').innerText.includes("LIVE")) return; 
+                if(d.classList.contains('taken') && !d.classList.contains('bought-by-me')) return; 
+
+                // 1. መመለስ (Refund) ከፈለገ
+                if(d.classList.contains('bought-by-me')) {
+                    isProcessingTicket = true;
+                    d.innerText = "...";
+                    socket.emit('cancel_ticket', { phone: currentUser.phone, ticketId: i });
+                    setTimeout(() => isProcessingTicket = false, 800);
                 } 
-                else if((selected.length + userTicketsData.length) < maxTicketsLimit) { 
-                    d.classList.add('selected'); selected.push(i); 
+                // 2. መግዛት (Buy) ከፈለገ
+                else { 
+                    if(userTicketsData.length >= maxTicketsLimit) { 
+                        alert("በአጠቃላይ ከ " + maxTicketsLimit + " ካርቴላ በላይ መግዛት አይቻልም!"); 
+                        return;
+                    } 
+                    
+                    let currentPlayBal = parseFloat(currentUser.playBalance) || 0; 
+                    let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
+                    if((currentPlayBal + currentMainBal) < currentTicketPrice) { 
+                        alert("በሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); 
+                        return; 
+                    }
+
+                    isProcessingTicket = true;
+                    d.innerText = "...";
+                    
                     let cols = [rn(1,15), rn(16,30), rn(31,45), rn(46,60), rn(61,75)]; 
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
-                    pendingTicketsData.push({ id: i, grid: cols, marks: marksObj });
-                } else { alert("በአጠቃላይ ከ " + maxTicketsLimit + " ካርቴላ በላይ መግዛት አይቻልም!"); } 
-                updateBetPreview(); 
-            }; box.appendChild(d); 
+                    let singleTicket = [{ id: i, grid: cols, marks: marksObj }];
+                    
+                    // ወዲያውኑ በስክሪኑ ላይ እንዲያየው
+                    userTicketsData.push(singleTicket[0]);
+                    renderGridTakenStates();
+                    renderConfirmedTickets();
+                    updateBetPreview();
+
+                    socket.emit('buy_tickets', { 
+                        name: currentUser.name, 
+                        phone: currentUser.phone, 
+                        ticketCount: 1, 
+                        ticketIds: [i], 
+                        ticketsData: singleTicket 
+                    });
+
+                    setTimeout(() => isProcessingTicket = false, 800);
+                } 
+            }; 
+            box.appendChild(d); 
         } 
+        renderGridTakenStates();
     }
 
     function updateBetPreview() {
-        document.getElementById('jp').innerText = (selected.length * currentTicketPrice).toLocaleString('en-US', {minimumFractionDigits: 2}); 
-        document.getElementById('grid-sel-count').innerText = selected.length;
-        const popup = document.getElementById('bet-slip-popup'); const previewBox = document.getElementById('ticket-preview-box');
+        document.getElementById('grid-sel-count').innerText = userTicketsData.length;
+        const popup = document.getElementById('bet-slip-popup'); 
+        const previewBox = document.getElementById('ticket-preview-box');
         previewBox.innerHTML = '';
-        if(selected.length > 0) {
+
+        if(userTicketsData.length > 0) {
             if (document.getElementById('home-page').classList.contains('active-page')) {
                 popup.classList.add('show'); 
             }
-            document.getElementById('slip-count').innerText = selected.length; 
-            document.getElementById('slip-price').innerText = selected.length * currentTicketPrice;
-            pendingTicketsData.forEach(t => {
+            document.getElementById('slip-count').innerText = userTicketsData.length; 
+            document.getElementById('slip-price').innerText = userTicketsData.length * currentTicketPrice;
+            userTicketsData.forEach(t => {
                 let card = document.createElement('div'); card.className = 'preview-t-card'; 
                 let html = `<div style="text-align:center; font-size:10px; font-weight:bold; color:#1e293b; padding:1px;">#${t.id}</div><div class="preview-t-grid">`;
                 for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color: #ffffff; text-shadow: 0 0 5px #ffffff;">${bHeads[i]}</div>`; }
@@ -1290,43 +1316,9 @@
                 } }
                 card.innerHTML = html + "</div>"; previewBox.appendChild(card);
             });
-        } else { popup.classList.remove('show'); }
-    }
-
-    // 🔥 ይህ ፋንክሽን በራሱ ጊዜ (አውቶማቲክ) ጨዋታው ሊጀምር 2 ሴኮንድ ሲቀረው ይጠራል 🔥
-    function placeBet() { 
-        if(selected.length === 0) return; 
-        
-        let stolenTickets = selected.filter(x => globalTakenTickets.includes(x));
-        if (stolenTickets.length > 0) { 
-            alert("የመረጧቸው አንዳንድ ካርቴላዎች በሌላ ሰው ተገዝተዋል! እባክዎ ቀሪዎቹን ይምረጡ።"); 
-            renderGridTakenStates(); 
-            return; 
+        } else { 
+            popup.classList.remove('show'); 
         }
-
-        let betAmount = selected.length * currentTicketPrice; 
-        let currentPlayBal = parseFloat(currentUser.playBalance) || 0; let currentMainBal = parseFloat(currentUser.mainBalance) || 0;
-        if((currentPlayBal + currentMainBal) < betAmount) { 
-            alert("በሂሳብዎ ላይ በቂ ገንዘብ የሎትም! መቁረጥ አልተቻለም።"); 
-            selected = []; pendingTicketsData = []; 
-            document.querySelectorAll('.num-btn.selected').forEach(btn => btn.classList.remove('selected'));
-            updateBetPreview();
-            return; 
-        }
-        
-        let infoBox = document.getElementById('auto-bet-info');
-        if(infoBox) infoBox.innerHTML = "✅ ተቆርጧል! (BET PLACED)"; 
-        
-        pendingTicketsData.forEach(t => userTicketsData.push(t)); renderConfirmedTickets(); 
-        
-        socket.emit('buy_tickets', { name: currentUser.name, phone: currentUser.phone, ticketCount: selected.length, ticketIds: selected, ticketsData: pendingTicketsData });
-
-        setTimeout(() => {
-            selected = []; pendingTicketsData = []; document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
-            document.getElementById('bet-slip-popup').classList.remove('show'); document.getElementById('grid-sel-count').innerText = "0"; 
-            if(infoBox) infoBox.innerHTML = "⏳ ተመርጧል! ጨዋታው ሲጀምር በራሱ ይቆረጣል...";
-            renderGridTakenStates();
-        }, 800);
     }
     
     function renderConfirmedTickets() { 
@@ -1415,14 +1407,14 @@
     function handleHomeNav() { if(isGameRunningLocally) showPage('game'); else showPage('home'); }
     function showPage(id) { 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id + '-page').classList.add('active-page'); document.getElementById('global-header').style.display = (id === 'auth' || id === 'game') ? 'none' : 'flex'; 
-        
-        if(id !== 'home') {
-            document.getElementById('bet-slip-popup').classList.remove('show'); 
-        } else if(selected.length > 0) {
-            document.getElementById('bet-slip-popup').classList.add('show');
-        }
 
         if(id === 'wallet') loadTransactionHistory();
+        
+        if(id === 'home' && userTicketsData.length > 0) {
+            document.getElementById('bet-slip-popup').classList.add('show');
+        } else {
+            document.getElementById('bet-slip-popup').classList.remove('show');
+        }
         
         if(id === 'ticket') { let tla = document.getElementById('ticket-live-arrow'); if(tla) tla.style.display = 'none'; }
 
