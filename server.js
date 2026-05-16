@@ -303,7 +303,6 @@ app.get('/api/user/transactions/:phone', async (req, res) => {
     const txs = await Transaction.find({ 
         phone: req.params.phone, 
         $or: [ 
-            // 🔥 እዚህ ጋር 'withdraw' ሲሆን status: 'Approved' የሚለው ተጨምሯል 🔥
             { type: 'withdraw', method: { $ne: 'Promoter Comm' }, status: 'Approved' }, 
             { type: 'deposit', status: 'Approved' } 
         ] 
@@ -370,7 +369,7 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
         let games = await GameHistory.find();
         let bonuses = await ActiveBonus.find();
         let users = await User.find({}, 'mainBalance playBalance'); 
-        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); // 🔥 እዚህ ጋር 'settings' ተጨምሯል
+        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
@@ -1179,7 +1178,9 @@ bot.on('message', async (msg) => {
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
-        bot.sendMessage(chatId, ln.invite_msg(`https://t.me/bingo_habesha_bot?start=${user.refCode}`), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
+        // 🔥 የተስተካከለው የመጋበዣ ሊንክ (አስተዋዋቂ ከሆነ promo_ ይጨመርበታል) 🔥
+        let inviteLink = `https://t.me/bingo_habesha_bot?start=${user.isPromoter ? 'promo_' : ''}${user.refCode}`;
+        bot.sendMessage(chatId, ln.invite_msg(inviteLink), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
@@ -1511,7 +1512,8 @@ app.get('/promoter', async (req, res) => {
     let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
     let myCode = user.refCode ? user.refCode : user.phone;
-    let link = `https://t.me/bingo_habesha_bot?start=${myCode}`;
+    // 🔥 የተስተካከለው የመጋበዣ ሊንክ (አስተዋዋቂ ስለሆነ promo_ ይጨመርበታል) 🔥
+    let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
 
     let lang = user.language || 'am';
     
