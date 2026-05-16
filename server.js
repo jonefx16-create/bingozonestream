@@ -211,19 +211,22 @@ app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
-        let actualRef = "";
         
+        let actualRef = "";
         let cleanRefCode = refCode || "";
+        let isPromo = false;
         if (cleanRefCode.startsWith('promo_')) {
             cleanRefCode = cleanRefCode.replace('promo_', '');
+            isPromo = true;
         }
 
         if (cleanRefCode) { 
             let ref = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
             if (ref) { 
-                if(!ref.isPromoter) {
+                if (!isPromo || !ref.isPromoter) {
                     ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
-                    await ref.save(); io.emit('balance_updated', ref.phone); 
+                    await ref.save(); 
+                    io.emit('balance_updated', ref.phone); 
                 }
                 actualRef = ref.phone; 
             } 
@@ -1097,12 +1100,16 @@ bot.on('contact', async (msg) => {
         if (!user) {
             let actualRef = "";
             let cleanRefCode = state.refCode || "";
-            if (cleanRefCode.startsWith('promo_')) { cleanRefCode = cleanRefCode.replace('promo_', ''); }
+            let isPromo = false;
+            if (cleanRefCode.startsWith('promo_')) { 
+                cleanRefCode = cleanRefCode.replace('promo_', ''); 
+                isPromo = true;
+            }
 
             if (cleanRefCode) { 
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
                 if (refUser) { 
-                    if(!refUser.isPromoter) {
+                    if (!isPromo || !refUser.isPromoter) {
                         refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                         await refUser.save(); 
                         io.emit('balance_updated', refUser.phone); 
@@ -1178,8 +1185,8 @@ bot.on('message', async (msg) => {
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
-        // 🔥 የተስተካከለው የመጋበዣ ሊንክ (አስተዋዋቂ ከሆነ promo_ ይጨመርበታል) 🔥
-        let inviteLink = `https://t.me/bingo_habesha_bot?start=${user.isPromoter ? 'promo_' : ''}${user.refCode}`;
+        // 🔥 የኖርማል መጋበዣ ሊንክ (promo_ የለውም) 🔥
+        let inviteLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
         bot.sendMessage(chatId, ln.invite_msg(inviteLink), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
