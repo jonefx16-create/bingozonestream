@@ -743,7 +743,10 @@
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
-
+    // 🔥 አዲስ ሜሴጅ ሲላክ ወዲያውኑ ቻቱን ሪፍሬሽ ያደርገዋል 🔥
+    socket.on('new_support_message', () => {
+        loadMessages();
+    });
     async function loadLiveStats() {
         if(!pass) return;
         try {
@@ -1212,8 +1215,7 @@
         chatBox.innerHTML = html; chatBox.scrollTop = chatBox.scrollHeight;
     }
     async function sendReply() { let input = document.getElementById('chat-input'); let text = input.value.trim(); if(!activeChatTgId || !text) return; input.disabled = true; try { await fetch('/api/admin/reply-message', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, telegramId: activeChatTgId, text})}); input.value = ''; await loadMessages(); } catch(e) {} input.disabled = false; input.focus(); }
-    setInterval(() => { if(document.getElementById('tab-messages').classList.contains('active')) loadMessages(); }, 5000);
-
+    setInterval(() => { if(pass) loadMessages(); }, 5000);
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
