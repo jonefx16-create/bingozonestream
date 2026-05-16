@@ -909,26 +909,56 @@ io.on('connection', (socket) => {
 
             const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
             const user = await User.findOne({phone: data.phone});
+            
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-                if (user.playBalance >= betAmount) user.playBalance -= betAmount;
-                else { user.mainBalance -= (betAmount - user.playBalance); user.playBalance = 0; }
-                user.played += 1; await user.save();
-                if (!activePlayers[data.phone]) activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
-                else { activePlayers[data.phone].tickets += data.ticketCount; activePlayers[data.phone].ticketsData.push(...data.ticketsData); }
+                
+                // 🔥 ከየትኛው ሂሳብ ስንት እንደተቆረጠ ማስላት 🔥
+                let playDeducted = 0;
+                let mainDeducted = 0;
+                
+                if (user.playBalance >= betAmount) { 
+                    user.playBalance -= betAmount;
+                    playDeducted = betAmount;
+                } else { 
+                    playDeducted = user.playBalance;
+                    mainDeducted = betAmount - user.playBalance;
+                    user.mainBalance -= mainDeducted; 
+                    user.playBalance = 0; 
+                }
+                
+                user.played += 1; 
+                await user.save();
+
+                // 🔥 እያንዳንዱ ካርቴላ ከየትኛው ሂሳብ እንደተገዛ መመዝገብ (ለመመለስ እንዲያመች) 🔥
+                let playPerTicket = playDeducted / data.ticketCount;
+                let mainPerTicket = mainDeducted / data.ticketCount;
+                
+                data.ticketsData.forEach(t => {
+                    t.paidFromPlay = playPerTicket;
+                    t.paidFromMain = mainPerTicket;
+                });
+
+                if (!activePlayers[data.phone]) {
+                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
+                } else { 
+                    activePlayers[data.phone].tickets += data.ticketCount; 
+                    activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
+                }
                 
                 totalTickets += data.ticketCount; 
                 totalCollectedMoney += betAmount;
                 totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
                 
                 data.ticketIds.forEach(id => globalTakenTickets.push(id));
-                io.emit('update_taken_tickets', globalTakenTickets); socket.emit('balance_updated', data.phone);
+                io.emit('update_taken_tickets', globalTakenTickets); 
+                socket.emit('balance_updated', data.phone);
             }
         } finally {
             delete buyingLocks[data.phone];
         }
     });
 
-    // 🔥 አዲሱ ብር መመለሻ (Refund) ኮድ 🔥
+    // 🔥 የተስተካከለው ብር መመለሻ (Refund) ኮድ 🔥
     socket.on('cancel_ticket', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         if (buyingLocks[data.phone]) return; 
@@ -938,9 +968,19 @@ io.on('connection', (socket) => {
             const user = await User.findOne({phone: data.phone});
             if(user) {
                 let p = activePlayers[data.phone];
-                if(p && p.ticketsData.some(t => t.id === data.ticketId)) {
-                    // ገንዘብ መመለስ (Refund)
-                    user.playBalance += GLOBAL_SETTINGS.ticketPrice;
+                let canceledTicket = p ? p.ticketsData.find(t => t.id === data.ticketId) : null;
+                
+                if(p && canceledTicket) {
+                    
+                    // 🔥 የተቆረጠበትን ሂሳብ ለይቶ በትክክል መመለስ 🔥
+                    let refundPlay = canceledTicket.paidFromPlay || 0;
+                    let refundMain = canceledTicket.paidFromMain || 0;
+                    
+                    // ኤረር እንዳይፈጠር መከላከያ (Backup)
+                    if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
+
+                    user.playBalance += refundPlay;
+                    user.mainBalance += refundMain;
                     user.played = Math.max(0, user.played - 1);
                     await user.save();
 
