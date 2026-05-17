@@ -130,12 +130,13 @@
         
         <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Users & Passwords</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this); loadHistoryPage(1);"><div>🏆 Winners History (12h)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (3d)</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (All Time)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info (12h)</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-promoters', this); loadPromoters();" style="color:var(--cyan);"><div>📈 Promoters (አስተዋዋቂዎች)</div></button>
         
-        <button class="nav-btn" onclick="switchTab('tab-referral', this)"><div>🤝 Invite & Earn</div></button>
+        <!-- 🔥 Invite & Earn Menu 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-referral', this); loadRefPage(1);"><div>🤝 Invite & Earn (ጋባዦች)</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
@@ -161,7 +162,7 @@
             <div class="stats-grid">
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold);"><h3>💰 Current Jackpot</h3><h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Total Profit</h3>
+                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Daily Admin Profit (Today)</h3>
                     <h2 style="color: var(--blue); margin-bottom:5px;" id="stat-total-profit">0.00 ETB</h2>
                     <div style="font-size:10px; color:var(--text-gray); display:flex; justify-content:space-around; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
                         <span>Admin (70%): <b style="color:#4ade80;" id="split-admin">0.00</b></span>
@@ -171,9 +172,9 @@
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
                 
-                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--red);"><h3>📤 Daily Withdraw</h3><h2 style="color: var(--red);" id="stat-daily-wit">0.00 ETB</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid #fca5a5;"><h3>🎁 Daily Bonus</h3><h2 style="color: #fca5a5;" id="stat-daily-bon">0.00 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit (Today)</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--red);"><h3>📤 Daily Withdraw (Today)</h3><h2 style="color: var(--red);" id="stat-daily-wit">0.00 ETB</h2></div>
+                <div class="stat-card" style="border-bottom: 4px solid #fca5a5;"><h3>🎁 Daily Bonus (Today)</h3><h2 style="color: #fca5a5;" id="stat-daily-bon">0.00 ETB</h2></div>
             </div>
         </div>
 
@@ -204,8 +205,7 @@
             </div>
 
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-user" onkeyup="if(event.key === 'Enter') loadUsersPage(1)" placeholder="🔍 Search Name or Phone (Press Enter)...">
-                <button class="action-btn" onclick="loadUsersPage(1)" style="padding: 10px;">🔍 Search</button>
+                <input type="text" class="search-bar" id="search-user" onkeyup="debounceSearch(() => loadUsersPage(1))" placeholder="🔍 Search Name or Phone...">
             </div>
             <div class="card">
                 <div class="table-responsive">
@@ -228,8 +228,7 @@
             </div>
 
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-history" onkeyup="if(event.key === 'Enter') loadHistoryPage(1)" placeholder="🔍 Search Winner Phone or Game ID (Press Enter)...">
-                <button class="action-btn" onclick="loadHistoryPage(1)" style="padding: 10px;">🔍 Search</button>
+                <input type="text" class="search-bar" id="search-history" onkeyup="debounceSearch(() => loadHistoryPage(1))" placeholder="🔍 Search Winner Phone or Game ID...">
                 <button class="action-btn btn-red" onclick="deleteOldGames()" style="padding: 10px; margin-left: 10px;">🗑️ Delete Older Than 12 Hours</button>
             </div>
             <div class="card">
@@ -246,7 +245,7 @@
             </div>
         </div>
 
-        <!-- FINANCE HISTORY (3 Days) -->
+        <!-- FINANCE HISTORY (All Time Paginated) -->
         <div id="tab-history-tx" class="tab-content">
             <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
                 <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTxType('deposit')">⬇️ Deposits</button>
@@ -260,8 +259,7 @@
             </div>
 
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-tx" onkeyup="if(event.key === 'Enter') loadTxPage(1)" placeholder="🔍 Search by Phone Number (Press Enter)...">
-                <button class="action-btn" onclick="loadTxPage(1)" style="padding: 10px;">🔍 Search</button>
+                <input type="text" class="search-bar" id="search-tx" onkeyup="debounceSearch(() => loadTxPage(1))" placeholder="🔍 Search by Phone Number...">
             </div>
             <div class="card">
                 <div class="table-responsive">
@@ -325,10 +323,26 @@
             </div></div>
         </div>
 
-        <!-- REFERRALS -->
+        <!-- 🔥 REFERRALS (Invite & Earn) 🔥 -->
         <div id="tab-referral" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
+                <h3 style="color:var(--gold); margin-top:0;">🔧 Fix Missing Invite Bonuses</h3>
+                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የሚያገለግለው ቀደም ብሎ ሰው ጋብዘው <b>(Play Balance)</b> ላልተሰጣቸው ሰዎች ለማስተካከል እና ለመክፈል ነው። (ያልተከፈላቸውን ብቻ አጣርቶ ይከፍላል፣ ሁለት ጊዜ አይከፍልም)።</p>
+                <button class="action-btn btn-orange" onclick="fixMissingReferralBonuses()">🔍 ላልተከፈላቸው ጋባዦች ቦነስ ክፈል (Fix Missing)</button>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-ref" onkeyup="debounceSearch(() => loadRefPage(1))" placeholder="🔍 Search Referrer Phone...">
+            </div>
+            
             <div class="card">
-                <p style="text-align:center; color:var(--gold);">⚠️ Note: Invite & Earn logic handles bonuses directly. Complex referral trees are disabled to optimize speed.</p>
+                <div class="table-responsive">
+                    <table id="table-referrals">
+                        <thead><tr><th>Referrer Phone (ጋባዥ)</th><th>Total Invited (ያመጣቸው)</th><th>Total Expected Bonus</th></tr></thead>
+                        <tbody id="ref-body"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pag-ref"></div>
             </div>
         </div>
 
@@ -619,13 +633,13 @@
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
     let limitPerPage = 50;
     
-    // Pagination Variables
-    let p_users = 1, p_hist = 1, p_tx = 1;
+    let p_users = 1, p_hist = 1, p_tx = 1, p_ref = 1;
     let currentHistType = 'deposit';
     let sysSettings = null; 
     let selHistory = new Set(), selTx = new Set();
     
-    // Selected Arrays
+    let searchTimeout;
+    
     let loadedGames = [];
 
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
@@ -641,6 +655,11 @@
     }
     
     function simpleSearch(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
+
+    function debounceSearch(func, delay = 600) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(func, delay);
+    }
 
     function handleRowClick(e, type, val) {
         if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
@@ -713,6 +732,7 @@
         loadTxPage(p_tx);
         loadPendingTxs();
         loadPromoters();
+        loadRefPage(p_ref);
         document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
     }
 
@@ -727,8 +747,6 @@
         `;
     }
 
-    // 🟢 SERVER-SIDE PAGINATION FUNCTIONS 🟢
-    
     async function loadUsersPage(page) {
         p_users = page;
         let search = document.getElementById('search-user').value.trim();
@@ -860,7 +878,7 @@
                     </td>
                 </tr>`;
             });
-            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found (Last 3 Days).</td></tr>`;
+            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found (All Time).</td></tr>`;
             document.getElementById('chk-all-tx').checked = false;
             
             renderPagination('pag-tx', data.total, p_tx, 'loadTxPage');
@@ -897,6 +915,40 @@
             document.getElementById('promoter-pend-wit-body').innerHTML = proWits.map(t => {
                 return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="color:var(--cyan); font-weight:900; font-size:15px; letter-spacing:1px;">${t.phone}</td><td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`;
             }).join('') || `<tr><td colspan="5" style="text-align:center;">No pending promoter withdrawals.</td></tr>`;
+        }
+    }
+    
+    async function loadRefPage(page) {
+        p_ref = page;
+        let search = document.getElementById('search-ref').value.trim();
+        let payload = { adminPass: pass, page: p_ref, limit: limitPerPage, search: search };
+        
+        let res = await fetch('/api/admin/referrals', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        let data = await res.json();
+        
+        if(data.success) {
+            let html = "";
+            let invBonus = sysSettings ? sysSettings.inviteBonus : 10;
+            data.referrals.forEach(r => {
+                html += `<tr>
+                    <td style="color:var(--cyan); font-weight:bold;">${r._id}</td>
+                    <td>${r.count} People</td>
+                    <td style="color:var(--faded-green); font-weight:bold;">${Number(r.count * invBonus).toLocaleString('en-US')} ETB</td>
+                </tr>`;
+            });
+            document.getElementById('ref-body').innerHTML = html || `<tr><td colspan="3" style="text-align:center;">No referrals found.</td></tr>`;
+            renderPagination('pag-ref', data.total, p_ref, 'loadRefPage');
+        }
+    }
+
+    async function fixMissingReferralBonuses() {
+        if(!confirm("⚠️ ላልተከፈላቸው ሰዎች (Play Balance) ክፍያ መፈፀም ይፈልጋሉ? (ይህ እርምጃ ሲስተሙን አይረብሽም፣ ያልተከፈላቸውን አጣርቶ ይከፍላል)")) return;
+        try {
+            let res = await fetch('/api/admin/fix-missing-invites', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
+            let data = await res.json();
+            alert(data.message);
+        } catch(e) {
+            alert("❌ Error processing request.");
         }
     }
 
@@ -1072,7 +1124,6 @@
 
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     
-    // 🔥 የተስተካከለ User Info Fetcher (OOM Crash እንዳያመጣ) 🔥
     async function fetchAndShowUserInfo(phone) {
         try {
             let uRes = await fetch(`/api/getUser/${phone}`);
@@ -1106,8 +1157,60 @@
         } catch(e) { alert("Error fetching user data."); }
     }
 
-    function viewPlayerMultipleCards(ticketsData, called) { document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; ticketsData.forEach((ticket, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; for(let r=0; r<5; r++) for(let c=0; c<5; c++) fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; fullHtml += `</div><hr style="border-color: var(--border);">`; }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
-    function viewHistory(index) { let h = loadedGames[index]; let called = h.calledNumbers || []; let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim()); let grids = []; if (h.playersData && h.playersData.length > 0) { h.playersData.forEach(p => { if(p.ticketsData) { p.ticketsData.forEach(t => { if (ticketIds.includes(t.id.toString())) { grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone }); } }); } }); } if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) { grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone }); } document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); let fullHtml = ""; grids.forEach((gObj, i) => { fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`; for(let r=0; r<5; r++) { for(let c=0; c<5; c++) { let num = gObj.grid[c][r]; let isMarked = called.includes(num) || (c===2&&r===2); fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`; } } fullHtml += `</div>`; if(i !== grids.length - 1) { fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; } }); document.getElementById('m-grid').innerHTML = fullHtml; document.getElementById('history-modal').style.display = 'flex'; }
+    function viewPlayerMultipleCards(ticketsData, called) { 
+        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
+        let fullHtml = ""; 
+        ticketsData.forEach((ticket, i) => { 
+            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; 
+            for(let r=0; r<5; r++) {
+                for(let c=0; c<5; c++) {
+                    fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; 
+                }
+            }
+            fullHtml += `</div><hr style="border-color: var(--border);">`; 
+        }); 
+        document.getElementById('m-grid').innerHTML = fullHtml; 
+        document.getElementById('history-modal').style.display = 'flex'; 
+    }
+
+    function viewHistory(index) { 
+        let h = loadedGames[index]; 
+        let called = h.calledNumbers || []; 
+        let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim()); 
+        let grids = []; 
+        if (h.playersData && h.playersData.length > 0) { 
+            h.playersData.forEach(p => { 
+                if(p.ticketsData) { 
+                    p.ticketsData.forEach(t => { 
+                        if (ticketIds.includes(t.id.toString())) { 
+                            grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone }); 
+                        } 
+                    }); 
+                } 
+            }); 
+        } 
+        if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) { 
+            grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone }); 
+        } 
+        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
+        let fullHtml = ""; 
+        grids.forEach((gObj, i) => { 
+            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`; 
+            for(let r=0; r<5; r++) { 
+                for(let c=0; c<5; c++) { 
+                    let num = gObj.grid[c][r]; 
+                    let isMarked = called.includes(num) || (c===2&&r===2); 
+                    fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`; 
+                } 
+            } 
+            fullHtml += `</div>`; 
+            if(i !== grids.length - 1) { 
+                fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; 
+            } 
+        }); 
+        document.getElementById('m-grid').innerHTML = fullHtml; 
+        document.getElementById('history-modal').style.display = 'flex'; 
+    }
 
     async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amt = document.getElementById('sb-amt').value; if(!phone || !amt) return alert("Fill both!"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; } }
     async function sendBulkBonus() { let phones = document.getElementById('b-phones').value; let amt = document.getElementById('mb-amt-bulk').value; if(!phones || !amt) return alert("Fill both!"); let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim()); let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; } }
