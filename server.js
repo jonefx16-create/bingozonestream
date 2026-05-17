@@ -370,39 +370,71 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
-app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
-app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(300)));
+// 1. የዩዘር ሪፖርት (የቅርብ 300 ብቻ ያወጣል)
+app.post('/api/admin/users', auth, async (req, res) => {
+    res.json(await User.find().sort({ _id: -1 }).limit(300).lean());
+});
 
+// 2. የዝውውር ታሪክ (የቅርብ 300 ብቻ)
+app.post('/api/admin/transactions', auth, async (req, res) => {
+    res.json(await Transaction.find().sort({ date: -1 }).limit(300).lean());
+});
+
+// 3. የጌም ታሪክ (የቅርብ 200 ብቻ)
+app.post('/api/admin/history', auth, async (req, res) => {
+    res.json(await GameHistory.find().sort({ date: -1 }).limit(200).lean());
+});
+
+// 4. የፋይናንስ ሪፖርት (ሜሞሪ እንዳይበላ በጣም ቀለል ያለ)
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(1000);
-        let games = await GameHistory.find().sort({date: -1}).limit(500);
-        let bonuses = await ActiveBonus.find();
-        let users = await User.find({}, 'mainBalance playBalance'); 
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({ date: -1 }).limit(500).lean();
+        let games = await GameHistory.find().sort({ date: -1 }).limit(200).lean();
+        let bonuses = await ActiveBonus.find().lean();
+        let users = await User.find({}, 'mainBalance playBalance').lean(); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// 5. የአድሚን ዳሽቦርድ ላይቭ ስታቲስቲክስ (በጣም ፈጣን እና ቀለል ያለ)
 app.post('/api/admin/live-stats', auth, async (req, res) => {
-    const totalUsers = await User.countDocuments();
-    const profitAgg = await GameHistory.aggregate([{ $group: { _id: null, total: { $sum: "$adminProfit" } } }]);
-    let totalProfit = profitAgg.length > 0 ? profitAgg[0].total : 0;
-    
-    let startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    try {
+        const totalUsers = await User.countDocuments();
+        
+        // ሜሞሪ እንዳይሞላ ፕሮፊቱን በቀጥታ በዳታቤዙ ውስጥ መደመር (Aggregation)
+        const profitAgg = await GameHistory.aggregate([{ $group: { _id: null, total: { $sum: "$adminProfit" } } }]);
+        let totalProfit = profitAgg.length > 0 ? profitAgg[0].total : 0;
+        
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' });
-    let dailyDeposit = todayTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
-    let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
+        // የዛሬን ዴፖዚት ማውጣት (Aggregation)
+        const depAgg = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved', type: 'deposit' } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        let dailyDeposit = depAgg.length > 0 ? depAgg[0].total : 0;
 
-    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
-    let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+        // የዛሬን ዊዝድሮው ማውጣት (Aggregation)
+        const witAgg = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved', type: 'withdraw' } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        let dailyWithdraw = witAgg.length > 0 ? witAgg[0].total : 0;
 
-    res.json({ 
-        totalUsers, livePlayers: Object.keys(activePlayers).length, 
-        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
-    });
+        // ቦነስ ማውጣት (Aggregation)
+        const todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } }).lean();
+        let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+
+        res.json({ 
+            totalUsers, livePlayers: Object.keys(activePlayers).length, 
+            gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+            gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, 
+            dailyDeposit, dailyWithdraw, dailyBonus
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Stats Error" });
+    }
 });
 
 app.post('/api/admin/delete-users', auth, async (req, res) => {
