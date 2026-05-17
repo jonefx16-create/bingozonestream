@@ -758,58 +758,81 @@
     }
     setInterval(loadLiveStats, 3000);
 
-    async function loadData() {
+    // 🔥 አድሚን ዳሽቦርድ መግቢያ እና ዳታ መጫኛ (Fixed)
+async function login() {
+    pass = document.getElementById('adminPass').value;
+    if(!pass) return alert("እባክዎ ፓስወርድ ያስገቡ!");
+    // ወደ መጀመሪያ ገፅ ይመልሰዋል
+    p_users = 1; 
+    loadData();
+}
+
+async function loadData() {
     if (!pass) return;
     try {
-        // 🔥 አዲሱ ዳታ መሳቢያ - ገፅ ቁጥሩን (p_users) ለሰርቨር ይልካል
+        console.log("Loading data for page:", p_users);
+        
+        // 1. ዩዘሮችን ገፅ በገፅ ለመጥራት
         let uRes = await fetch('/api/admin/users', { 
             method: 'POST', 
             headers: {'Content-Type':'application/json'}, 
             body: JSON.stringify({adminPass: pass, page: p_users}) 
         });
 
-        if(uRes.status === 401) { alert("Wrong Password!"); return; }
+        // ፓስወርድ ከተሳሳተ
+        if(uRes.status === 401) { 
+            alert("❌ የገቡት ፓስወርድ ትክክል አይደለም!"); 
+            return; 
+        }
+
+        // ዳታው በትክክል ከመጣ ሎጊን ፔጁን ደብቅ
         document.getElementById('login-sec').style.display = 'none'; 
         document.getElementById('dash-sec').style.display = 'flex';
         
         let data = await uRes.json();
         
-        // በዳታቤዝ ውስጥ ያሉትን 50 ዩዘሮች ብቻ ይቀበላል
-        allUsers = data.users; 
-        filteredUsers = allUsers;
-        
-        // ዩዘሮቹን በጠረጴዛው ላይ ያሳያል
-        renderUsersPage();
-        
-        // የ Next እና Prev በተኖችን ከታች ይፈጥራል (Pagination)
-        renderPagination('pag-users', data.total, p_users, 'changePageUsers');
+        // አዲሱ ሰርቨር የላከውን ዳታ መቆጣጠሪያ
+        if (data.users) {
+            allUsers = data.users; 
+            filteredUsers = allUsers;
+            renderUsersPage();
+            // ከታች Next/Prev በተን እንዲመጣ
+            renderPagination('pag-users', data.total, p_users, 'changePageUsers');
+        }
 
-        // Banned users እና stats ሎጂክ...
-        let bannedHtml = "", refList = {};
-        allUsers.forEach(u => {
-            if(u.status === 'banned') { bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`; }
-            if(u.referredBy && u.referredBy !== "") { if(!refList[u.referredBy]) refList[u.referredBy] = []; refList[u.referredBy].push(u.phone); }
+        // 2. ትራንዛክሽን መጥራት (የ 2 ቀን ዳታ)
+        let tRes = await fetch('/api/admin/transactions', { 
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify({adminPass: pass}) 
         });
-        document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users on this page</td></tr>`;
-
-        // የቆዩ ጌሞችን ዝርዝር ለማምጣት
-        let hRes = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-        allHistory = await hRes.json();
-        
-        // ትራንዛክሽን ዝርዝር ለማምጣት
-        let tRes = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
         allTx = await tRes.json();
         populatePendingDeposits(); 
         populatePendingWithdraws(); 
         filterHistoryTxType(currentHistType);
 
-    } catch (e) { console.log("LoadData Error:", e); }
+        // 3. ጌም ሂስትሪ መጥራት (የ 12 ሰዓት ዳታ)
+        let hRes = await fetch('/api/admin/history', { 
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify({adminPass: pass}) 
+        });
+        allHistory = await hRes.json();
+        renderHistoryPage();
+
+        // ስታቲስቲክስ እንዲሰራ
+        loadLiveStats();
+
+    } catch (e) { 
+        console.error("Login Error:", e);
+        alert("❌ ሰርቨሩ ዳታውን መጫን አልቻለም። ሰርቨሩ ተጨናንቆ ሊሆን ይችላል፣ እባክዎ ትንሽ ቆይተው ይሞክሩ።");
+    }
 }
 
-// 🔥 ገፅ ለመቀየር የሚረዳ ፋንክሽን (ይህንን ከ loadData በታች ጨምረው)
+// Next/Prev ሲነካ የሚሰራ
 window.changePageUsers = function(p) {
     p_users = p;
-    loadData(); // ወደፈለከው ገፅ ሄዶ አዲስ 50 ሰው ያመጣል
+    loadData();
 };
             
             let bannedHtml = "", refList = {};
