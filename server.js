@@ -376,8 +376,8 @@ app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHist
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
-        let games = await GameHistory.find();
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(1000);
+        let games = await GameHistory.find().sort({date: -1}).limit(500);
         let bonuses = await ActiveBonus.find();
         let users = await User.find({}, 'mainBalance playBalance'); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
@@ -386,8 +386,8 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
-    const history = await GameHistory.find();
-    let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
+    const profitAgg = await GameHistory.aggregate([{ $group: { _id: null, total: { $sum: "$adminProfit" } } }]);
+    let totalProfit = profitAgg.length > 0 ? profitAgg[0].total : 0;
     
     let startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
