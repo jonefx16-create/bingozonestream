@@ -40,12 +40,16 @@ const User = mongoose.model('User', new mongoose.Schema({
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
     
+    // 🔥 PROMOTER FIELDS
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
     promoterEarned: { type: Number, default: 0 },
     promoterUnpaidBalance: { type: Number, default: 0 }, 
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
-    promoterCommissionGenerated: { type: Number, default: 0 } 
+    promoterCommissionGenerated: { type: Number, default: 0 },
+    
+    // 🔥 NEW: Track how many invites we already paid them for
+    compensatedInvites: { type: Number, default: 0 }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -97,9 +101,7 @@ async function loadSettings() {
 }
 loadSettings();
 
-function generateRefCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
 const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '1000624021703', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
@@ -222,8 +224,10 @@ app.post('/api/register', async (req, res) => {
             if (refUser) { 
                 actualRef = refUser.phone;
                 if (isPromoLink && refUser.isPromoter) {
+                    // Promoter logic handles % later
                 } else {
                     refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                    refUser.compensatedInvites = (refUser.compensatedInvites || 0) + 1; // Track paid invite
                     await refUser.save(); 
                     io.emit('balance_updated', refUser.phone); 
                     isPromoLink = false; 
@@ -379,7 +383,7 @@ app.post('/api/admin/users', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 2. Transactions (3 Days for History, All for Pending)
+// 2. Transactions (All Time Paginated, No 3 Day Limit!)
 app.post('/api/admin/transactions', auth, async (req, res) => {
     try {
         if (req.body.isPending) {
@@ -391,8 +395,8 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
         let search = req.body.search || '';
         let type = req.body.type || 'deposit';
         
-        let threeDaysAgo = new Date(Date.now() - (3 * 24 * 60 * 60 * 1000));
-        let query = { date: { $gte: threeDaysAgo } };
+        // NO DATE RESTRICTION HERE (Shows all history paginated)
+        let query = {};
         
         if (type === 'rejected') { query.status = 'Rejected'; } 
         else { query.type = type; query.status = 'Approved'; }
@@ -405,7 +409,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 3. Game History (12 Hours)
+// 3. Game History (12 Hours only to prevent crashing on game details)
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -434,8 +438,11 @@ app.post('/api/admin/user-details', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
+// 5. Daily Live Stats (Strictly 24 hours - Resets at Midnight)
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
+    
+    // Get start of today (Midnight)
     let startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -444,16 +451,89 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
 
     let history = await GameHistory.find({ date: { $gte: startOfDay } });
-    let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
+    let dailyTotalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0); // DAILY PROFIT ONLY
 
     let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
     let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
     res.json({ 
         totalUsers, livePlayers: Object.keys(activePlayers).length, 
-        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
+        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit: dailyTotalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
     });
 });
+
+// 6. Referral Data Aggregation (To avoid Memory Crash)
+app.post('/api/admin/referrals', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 50;
+        let search = req.body.search || '';
+
+        // Match only normal invites (not promo)
+        let matchStage = { referredBy: { $ne: "" }, referredViaPromo: false };
+        
+        let pipeline = [
+            { $match: matchStage },
+            { $group: { _id: "$referredBy", count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+        ];
+
+        let results = await User.aggregate(pipeline);
+
+        if (search) {
+            results = results.filter(r => r._id.includes(search));
+        }
+
+        let total = results.length;
+        let paginated = results.slice((page - 1) * limit, page * limit);
+
+        res.json({ success: true, referrals: paginated, total });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// 7. Fix Missing Invite Bonuses Endpoint
+app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
+    try {
+        // Find all normal invites
+        let users = await User.find({ referredBy: { $ne: "" }, referredViaPromo: false });
+        let inviteCounts = {};
+        
+        users.forEach(u => {
+            inviteCounts[u.referredBy] = (inviteCounts[u.referredBy] || 0) + 1;
+        });
+
+        let fixedCount = 0;
+        let totalPaid = 0;
+
+        for (let phone in inviteCounts) {
+            let actualInvites = inviteCounts[phone];
+            let referrer = await User.findOne({ phone: phone });
+            
+            if (referrer) {
+                let paidSoFar = referrer.compensatedInvites || 0;
+                
+                if (actualInvites > paidSoFar) {
+                    let unpaidCount = actualInvites - paidSoFar;
+                    let bonusAmount = unpaidCount * GLOBAL_SETTINGS.inviteBonus;
+                    
+                    referrer.playBalance += bonusAmount;
+                    referrer.compensatedInvites = actualInvites; // Mark as paid
+                    await referrer.save();
+                    
+                    fixedCount++;
+                    totalPaid += bonusAmount;
+                    io.emit('balance_updated', referrer.phone);
+                }
+            }
+        }
+        res.json({ success: true, message: `✅ በተሳካ ሁኔታ ተስተካክሏል!\n\nለ ${fixedCount} ሰዎች አጠቃላይ ${totalPaid} ETB ቦነስ ተከፍሏል።` });
+    } catch(e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
+
 
 app.post('/api/admin/delete-users', auth, async (req, res) => {
     try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
@@ -1145,6 +1225,7 @@ bot.on('contact', async (msg) => {
                     if (isPromoLink && refUser.isPromoter) {
                     } else {
                         refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                        refUser.compensatedInvites = (refUser.compensatedInvites || 0) + 1; // Track paid invite
                         await refUser.save(); 
                         io.emit('balance_updated', refUser.phone);
                         isPromoLink = false; 
