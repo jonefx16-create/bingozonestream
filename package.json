@@ -8,8 +8,7 @@
     "start": "node --max-old-space-size=400 server.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
-    "mongoose": "^8.0.0"
-  }
+  "node-telegram-bot-api": "^0.64.0",
+  "mongoose": "^8.0.0"
 }
 
