@@ -201,6 +201,10 @@
         <!-- USERS -->
         <div id="tab-users" class="tab-content">
             <div class="stats-grid" style="margin-bottom: 20px;">
+                <!-- 🔥 Daily, Weekly, Monthly Stats Here 🔥 -->
+                <div class="stat-card" style="border-color: var(--faded-green);"><h3>Daily Active</h3><h2 id="u-daily" style="color:var(--faded-green);">0</h2></div>
+                <div class="stat-card" style="border-color: var(--blue);"><h3>Weekly Active</h3><h2 id="u-weekly" style="color:var(--blue);">0</h2></div>
+                <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--orange);"><h3>Total Users</h3><h2 id="box-total-reg" style="color:var(--orange);">0</h2></div>
             </div>
 
@@ -338,7 +342,7 @@
             <div class="card">
                 <div class="table-responsive">
                     <table id="table-referrals">
-                        <thead><tr><th>Referrer Phone (ጋባዥ)</th><th>Total Invited (ያመጣቸው)</th><th>Total Expected Bonus</th></tr></thead>
+                        <thead><tr><th>Referrer Phone (ጋባዥ)</th><th>Total Invited (ያመጣቸው)</th><th>Total Expected Bonus</th><th>Action</th></tr></thead>
                         <tbody id="ref-body"></tbody>
                     </table>
                 </div>
@@ -628,6 +632,18 @@
     </div>
 </div>
 
+<!-- 🔥 Add the Invited People Modal Here 🔥 -->
+<div class="modal" id="invited-modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <h3 style="color: var(--purple); margin-top:0; text-align: center;">👥 People Invited By This User</h3>
+        <p style="font-size: 13px; text-align: center; margin-bottom: 10px;"><b>Inviter Phone:</b> <span id="inviter-phone" style="color:var(--cyan); font-weight:bold;"></span></p>
+        <div id="invited-list" style="background: #000; padding: 15px; border-radius: 6px; border: 1px solid var(--border); max-height: 350px; overflow-y: auto;">
+            <div style="text-align:center; color:gray;">Loading...</div>
+        </div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">Close</button>
+    </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
@@ -684,6 +700,11 @@
             
             sysSettings = data.settings;
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
+            
+            // 🔥 UPDATE NEW DAILY, WEEKLY, MONTHLY BOXES 🔥
+            if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
+            if (document.getElementById('u-weekly')) document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US');
+            if (document.getElementById('u-monthly')) document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
             
             if(document.getElementById('tab-live').classList.contains('active')) {
                 document.getElementById('stat-total-users').innerText = data.totalUsers.toLocaleString('en-US'); 
@@ -918,6 +939,7 @@
         }
     }
     
+    // 🔥 NEW: LOAD REFERRAL PAGE 🔥
     async function loadRefPage(page) {
         p_ref = page;
         let search = document.getElementById('search-ref').value.trim();
@@ -934,10 +956,41 @@
                     <td style="color:var(--cyan); font-weight:bold;">${r._id}</td>
                     <td>${r.count} People</td>
                     <td style="color:var(--faded-green); font-weight:bold;">${Number(r.count * invBonus).toLocaleString('en-US')} ETB</td>
+                    <td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${r._id}')">👁️ የጋበዛቸው ሰዎች (View)</button></td>
                 </tr>`;
             });
-            document.getElementById('ref-body').innerHTML = html || `<tr><td colspan="3" style="text-align:center;">No referrals found.</td></tr>`;
+            document.getElementById('ref-body').innerHTML = html || `<tr><td colspan="4" style="text-align:center;">No referrals found.</td></tr>`;
             renderPagination('pag-ref', data.total, p_ref, 'loadRefPage');
+        }
+    }
+
+    // 🔥 NEW: FETCH AND SHOW SPECIFIC INVITED PEOPLE IN MODAL 🔥
+    async function showInvitedUsers(phone) {
+        document.getElementById('inviter-phone').innerText = phone;
+        document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:gray;">Loading...</div>`;
+        document.getElementById('invited-modal').style.display = 'flex';
+        
+        try {
+            let res = await fetch('/api/admin/referral-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone: phone}) });
+            let data = await res.json();
+            
+            if(data.success) {
+                let html = data.users.map((u, i) => {
+                    let d = new Date(u.date || new Date()).toLocaleDateString();
+                    return `<div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="color:var(--faded-green); font-weight:bold;">${i+1}. ${u.name || 'Unknown'}</div>
+                            <div style="font-family:monospace; font-size:12px; color:#cbd5e1;">${u.phone}</div>
+                        </div>
+                        <div style="font-size:11px; color:gray;">${d}</div>
+                    </div>`;
+                }).join('');
+                document.getElementById('invited-list').innerHTML = html || `<div style="text-align:center; color:gray;">No users found.</div>`;
+            } else {
+                document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:red;">Failed to load data.</div>`;
+            }
+        } catch(e) {
+            document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:red;">Error connecting to server.</div>`;
         }
     }
 
