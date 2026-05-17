@@ -423,11 +423,30 @@ app.post('/api/admin/history', auth, async (req, res) => {
     res.json(await GameHistory.find().sort({ date: -1 }).limit(50).lean());
 });
  // ይህ ኮድ የአንድን ሰው ሙሉ የትራንዛክሽን መረጃ ያመጣል (Audit ለማድረግ)
-app.get('/api/admin/user-full-tx/:phone', auth, async (req, res) => {
+app.post('/api/admin/users', auth, async (req, res) => {
     try {
-        const txs = await Transaction.find({ phone: req.params.phone }).sort({ date: -1 }).limit(100).lean();
-        res.json({ success: true, txs });
-    } catch (e) { res.json({ success: false }); }
+        const page = parseInt(req.body.page) || 1;
+        const limit = 50; 
+        const skip = (page - 1) * limit;
+
+        const totalUsers = await User.countDocuments();
+        const users = await User.find()
+            .select('name phone mainBalance playBalance totalDeposited status')
+            .sort({ _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // ⚠️ ይህን መመለስ አለበት (Object እንጂ Array ብቻ መሆን የለበትም)
+        res.json({ 
+            users, 
+            total: totalUsers, 
+            pages: Math.ceil(totalUsers / limit),
+            currentPage: page 
+        });
+    } catch (e) { 
+        res.status(500).json({ error: "Users load error" }); 
+    }
 });
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
