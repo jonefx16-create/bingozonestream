@@ -90,18 +90,6 @@
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
         .disabled-input { opacity: 0.4; pointer-events: none; }
 
-        .chat-container { display: flex; height: 65vh; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #050810;}
-        .chat-sidebar { width: 35%; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; }
-        .chat-user { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s;}
-        .chat-user:hover { background: rgba(74, 222, 128, 0.1); }
-        .chat-user.active { background: rgba(74, 222, 128, 0.15); border-left: 3px solid var(--faded-green); }
-        .chat-main { flex: 1; display: flex; flex-direction: column; background: #000; }
-        .chat-history { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .chat-bubble { max-width: 75%; padding: 10px 15px; border-radius: 15px; font-size: 13px; line-height: 1.4; word-wrap: break-word;}
-        .chat-user-msg { background: #1e293b; color: white; align-self: flex-start; border-bottom-left-radius: 0; }
-        .chat-admin-msg { background: var(--faded-green); color: black; align-self: flex-end; border-bottom-right-radius: 0; font-weight: bold;}
-        .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--panel); }
-
         .promoter-header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; border: 1px solid var(--cyan); margin-bottom: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .promoter-stats { display: flex; justify-content: space-between; background: #000; padding: 15px; border-radius: 8px; margin-top: 15px; }
         .p-stat-box { text-align: center; flex: 1; }
@@ -117,8 +105,6 @@
             .header-top h2 { font-size: 16px; }
             .search-container { flex-direction: column; align-items: stretch; }
             .login-card { padding: 40px 20px; }
-            .chat-container { flex-direction: column; height: 75vh;}
-            .chat-sidebar { width: 100%; height: 30%; border-right: none; border-bottom: 1px solid var(--border); }
         }
     </style>
 </head>
@@ -141,9 +127,7 @@
         <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();"><div>📊 Live & Analytics</div></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
-        
-        <button class="nav-btn" onclick="switchTab('tab-messages', this); loadMessages();"><div>💬 User Messages</div> <span class="badge-alert" id="badge-msg" style="background:var(--cyan);">0</span></button>
-        
+                
         <button class="nav-btn" onclick="switchTab('tab-users', this)"><div>👥 Users & Passwords</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this)"><div>🏆 Winners History</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this)"><div>💸 Financial History</div></button>
@@ -213,26 +197,6 @@
                     <tbody id="pend-wit-body"></tbody>
                 </table>
             </div></div>
-        </div>
-
-        <!-- SUPPORT CHAT -->
-        <div id="tab-messages" class="tab-content">
-            <div class="card" style="padding: 0;">
-                <div class="chat-container">
-                    <div class="chat-sidebar" id="chat-sidebar-list">
-                        <div style="padding: 15px; text-align: center; color: var(--text-gray);">Loading users...</div>
-                    </div>
-                    <div class="chat-main">
-                        <div class="chat-history" id="chat-history-box">
-                            <div style="margin: auto; color: var(--text-gray);">Select a user to view messages</div>
-                        </div>
-                        <div class="chat-input-area">
-                            <input type="text" id="chat-input" placeholder="Type reply here..." style="margin-bottom:0; flex:1;" onkeyup="if(event.key === 'Enter') sendReply()">
-                            <button class="action-btn" style="width:auto;" onclick="sendReply()">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- USERS -->
@@ -735,7 +699,6 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
-    let chatData = {}; let activeChatTgId = null;
 
     let limitPerPage = 50;
     
@@ -768,10 +731,7 @@
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
-    // 🔥 አዲስ ሜሴጅ ሲላክ ወዲያውኑ ቻቱን ሪፍሬሽ ያደርገዋል 🔥
-    socket.on('new_support_message', () => {
-        loadMessages();
-    });
+
     async function loadLiveStats() {
         if(!pass) return;
         try {
@@ -1217,33 +1177,6 @@
         } catch(e) { alert("Error loading profile"); }
     }
 
-    async function loadMessages() {
-        try {
-            let res = await fetch('/api/admin/get-messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            if(data.success) {
-                chatData = {}; let unreadCount = 0;
-                data.msgs.forEach(m => { if(!chatData[m.telegramId]) { chatData[m.telegramId] = { name: m.name, phone: m.phone, msgs: [] }; } chatData[m.telegramId].msgs.push(m); if(m.sender === 'user' && !m.isRead) unreadCount++; });
-                document.getElementById('badge-msg').innerText = unreadCount; document.getElementById('badge-msg').style.display = unreadCount > 0 ? 'inline-block' : 'none';
-                let sbHtml = "";
-                for (const [tgId, uData] of Object.entries(chatData)) {
-                    let lastMsg = uData.msgs[uData.msgs.length - 1].text; let shortMsg = lastMsg.length > 20 ? lastMsg.substring(0, 20) + "..." : lastMsg;
-                    sbHtml += `<div class="chat-user ${activeChatTgId === tgId ? 'active' : ''}" onclick="openChat('${tgId}')"><div style="font-weight:bold; color:white; font-size:13px;">${uData.name} <span style="font-size:10px; color:var(--cyan);">(${uData.phone})</span></div><div style="color:var(--text-gray); font-size:11px; margin-top:3px;">${shortMsg}</div></div>`;
-                }
-                document.getElementById('chat-sidebar-list').innerHTML = sbHtml || `<div style="padding: 15px; text-align: center; color: var(--text-gray);">No messages yet</div>`;
-                if(activeChatTgId) openChat(activeChatTgId);
-            }
-        } catch(e) {}
-    }
-    function openChat(tgId) {
-        activeChatTgId = tgId; document.querySelectorAll('.chat-user').forEach(el => el.classList.remove('active')); loadMessages(); 
-        let uData = chatData[tgId]; let chatBox = document.getElementById('chat-history-box');
-        let html = `<div style="text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:15px; color:var(--gold); font-weight:bold; font-size:14px;">Chatting with ${uData.name} (${uData.phone})</div>`;
-        uData.msgs.forEach(m => { if(m.sender === 'user') { html += `<div class="chat-bubble chat-user-msg">${m.text}<br><span style="font-size:9px; color:gray; float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`; } else { html += `<div class="chat-bubble chat-admin-msg">${m.text}<br><span style="font-size:9px; color:rgba(0,0,0,0.5); float:right; margin-top:5px;">${new Date(m.date).toLocaleTimeString()}</span></div>`; } });
-        chatBox.innerHTML = html; chatBox.scrollTop = chatBox.scrollHeight;
-    }
-    async function sendReply() { let input = document.getElementById('chat-input'); let text = input.value.trim(); if(!activeChatTgId || !text) return; input.disabled = true; try { await fetch('/api/admin/reply-message', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, telegramId: activeChatTgId, text})}); input.value = ''; await loadMessages(); } catch(e) {} input.disabled = false; input.focus(); }
-    setInterval(() => { if(pass) loadMessages(); }, 5000);
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
