@@ -32,7 +32,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     password: { type: String, required: true },
     referredBy: { type: String, default: "" }, 
     referredViaPromo: { type: Boolean, default: false }, 
-    totalInvites: { type: Number, default: 0 }, // 🔥 አዲስ: የጋበዟቸውን ሰዎች ብዛት በትክክል የሚይዝ
+    totalInvites: { type: Number, default: 0 }, 
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
@@ -133,9 +133,9 @@ function getBankAmount(text) {
 async function isSmsAlreadyUsed(userInputSms) {
     let txRef = getTxRef(userInputSms);
     if (!txRef) return false; 
-    let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
+    let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true }).lean();
     if (inBankSms) return true;
-    let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
+    let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } }).lean();
     return !!inTxRef;
 }
 
@@ -169,6 +169,7 @@ async function autoApprovePendingDeposits() {
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
 
+                    // የፕሮሞተር ኮሚሽን የሚሰጠው በ promo_ ሊንክ ለተመዘገቡ ብቻ ነው
                     if(user.referredBy && user.referredViaPromo) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
@@ -199,7 +200,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let txRef = getTxRef(message);
         let amount = getBankAmount(message);
         if(amount > 0 && txRef) {
-            const exists = await BankSMS.findOne({ txRef: txRef });
+            const exists = await BankSMS.findOne({ txRef: txRef }).lean();
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
                 await autoApprovePendingDeposits(); 
@@ -212,7 +213,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
-        if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
+        if (await User.findOne({ phone }).lean()) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         
         let actualRef = "";
         let cleanRefCode = refCode || "";
@@ -227,7 +228,7 @@ app.post('/api/register', async (req, res) => {
             let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
             if (refUser) { 
                 actualRef = refUser.phone;
-                // 🔥 የጋበዘውን ሰው ቆጠራ መጨመር 🔥
+                // የጋበዘውን ሰው ቆጠራ መጨመር
                 refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                 
                 if (isPromoLink && refUser.isPromoter) {
@@ -270,7 +271,7 @@ app.post('/api/user/change-password', async (req, res) => {
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
-    const user = await User.findOne({ phone: req.params.phone }); res.json(user ? { success: true, user } : { success: false });
+    const user = await User.findOne({ phone: req.params.phone }).lean(); res.json(user ? { success: true, user } : { success: false });
 });
 
 app.post('/api/request-tx', async (req, res) => {
@@ -318,7 +319,7 @@ app.get('/api/user/transactions/:phone', async (req, res) => {
             { type: 'withdraw', method: { $ne: 'Promoter Comm' }, status: 'Approved' }, 
             { type: 'deposit', status: 'Approved' } 
         ] 
-    }).sort({ date: -1 }).limit(30);
+    }).sort({ date: -1 }).limit(30).lean();
     res.json({ success: true, txs }); 
 });
 
@@ -329,7 +330,7 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => { 
     try {
-        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); 
+        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won').lean(); 
         res.json({ success: true, leaderboard }); 
     } catch(e) { res.json({ success: false }); }
 });
@@ -371,34 +372,52 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
-app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
-app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(300)));
+// 🔥 MEMORY OPTIMIZED ADMIN ENDPOINTS (To Prevent 502 Out of Memory Error) 🔥
+app.post('/api/admin/users', auth, async (req, res) => {
+    try {
+        // `.lean()` and excluding `telegramId` saves massive amount of RAM.
+        res.json(await User.find().select('-telegramId').sort({ _id: -1 }).lean());
+    } catch (e) { res.status(500).json({ error: "Failed to load users" }); }
+});
+
+app.post('/api/admin/transactions', auth, async (req, res) => {
+    try {
+        // Limited to 2000 to prevent crashing with thousands of records
+        res.json(await Transaction.find().sort({ date: -1 }).limit(2000).lean());
+    } catch (e) { res.status(500).json({ error: "Failed to load txs" }); }
+});
+
+app.post('/api/admin/history', auth, async (req, res) => {
+    try {
+        // Limited to 150 because GameHistory arrays (winningGrid, playersData) are extremely huge
+        res.json(await GameHistory.find().sort({ date: -1 }).limit(150).lean());
+    } catch (e) { res.status(500).json({ error: "Failed to load history" }); }
+});
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
-        let games = await GameHistory.find();
-        let bonuses = await ActiveBonus.find();
-        // 🔥 መጀመሪያ እንደነበረው ሙሉ የ User ዳታ እንዲላክ ተደርጓል (Admin data missing እንዳይል) 🔥
-        let users = await User.find(); 
+        // lean() እና limit() በመጠቀም ሚሞሪ እንቆጥባለን
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(1500).lean();
+        let games = await GameHistory.find().sort({date: -1}).limit(100).lean();
+        let bonuses = await ActiveBonus.find().lean();
+        let users = await User.find().select('-telegramId').lean(); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
-    const history = await GameHistory.find();
+    const history = await GameHistory.find().lean(); // Use lean here too
     let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
     
     let startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' });
+    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' }).lean();
     let dailyDeposit = todayTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
     let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
 
-    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
+    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } }).lean();
     let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
     res.json({ 
@@ -432,14 +451,14 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
 
 app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
     try {
-        let promoters = await User.find({ isPromoter: true });
+        let promoters = await User.find({ isPromoter: true }).lean();
         let data = [];
         for (let p of promoters) {
-            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
+            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true }).lean();
             let refPhones = refUsers.map(u => u.phone);
             let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
 
-            let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
+            let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' }).lean();
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
             
             data.push({
@@ -469,13 +488,13 @@ app.post('/api/admin/set-promoter', auth, async (req, res) => {
 
 app.post('/api/admin/promoter-details', auth, async (req, res) => {
     try {
-        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true }).lean();
         if(!p) return res.json({ success: false });
 
-        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
+        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true }).lean();
         let details = [];
         for(let u of refUsers) {
-            let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
+            let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' }).lean();
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
             details.push({
                 name: u.name, phone: u.phone, totalDeposit: totalDep, commission: u.promoterCommissionGenerated || 0
@@ -635,24 +654,7 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     }
 });
 
-app.post('/api/admin/get-messages', auth, async (req, res) => {
-    try {
-        let msgs = await SupportMessage.find().sort({ date: 1 });
-        res.json({ success: true, msgs });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/reply-message', auth, async (req, res) => {
-    try {
-        const { telegramId, text } = req.body;
-        await SupportMessage.create({ telegramId, text, sender: 'admin' });
-        try {
-            await bot.sendMessage(telegramId, `👨‍💻 <b>Admin:</b>\n${text}`, { parse_mode: "HTML" });
-        } catch(e) { console.log("Bot send failed", e); }
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
+;
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
         const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
@@ -685,7 +687,7 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
 
 app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     try {
-        let activeBonus = await ActiveBonus.findOne({ isActive: true });
+        let activeBonus = await ActiveBonus.findOne({ isActive: true }).lean();
         if(!activeBonus) return res.json({ success: false, message: "No active promo." });
         res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
     } catch(e) { res.status(500).json({ success: false }); }
@@ -701,7 +703,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         io.emit('new_promo_alert', { amount: amount, msg: message });
 
         if (message) {
-            const users = await User.find({ telegramId: { $ne: "" } });
+            const users = await User.find({ telegramId: { $ne: "" } }).lean();
             lastBroadcasts = []; 
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
@@ -737,7 +739,7 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
         const { message, photoUrl } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
-        const users = await User.find({ telegramId: { $ne: "" } });
+        const users = await User.find({ telegramId: { $ne: "" } }).lean();
         lastBroadcasts = []; let count = 0;
         for (let u of users) {
             try {
@@ -904,6 +906,7 @@ let buyingLocks = {};
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
+    
     socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
     socket.on('buy_tickets', async (data) => {
@@ -924,7 +927,6 @@ io.on('connection', (socket) => {
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 
-                // 🔥 ከየትኛው ሂሳብ ስንት እንደተቆረጠ ማስላት 🔥
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
@@ -941,7 +943,6 @@ io.on('connection', (socket) => {
                 user.played += 1; 
                 await user.save();
 
-                // 🔥 እያንዳንዱ ካርቴላ ከየትኛው ሂሳብ እንደተገዛ መመዝገብ (ለመመለስ እንዲያመች) 🔥
                 let playPerTicket = playDeducted / data.ticketCount;
                 let mainPerTicket = mainDeducted / data.ticketCount;
                 
@@ -970,7 +971,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 🔥 የተስተካከለው ብር መመለሻ (Refund) ኮድ 🔥
     socket.on('cancel_ticket', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         if (buyingLocks[data.phone]) return; 
@@ -984,7 +984,6 @@ io.on('connection', (socket) => {
                 
                 if(p && canceledTicket) {
                     
-                    // 🔥 የተቆረጠበትን ሂሳብ ለይቶ በትክክል መመለስ 🔥
                     let refundPlay = canceledTicket.paidFromPlay || 0;
                     let refundMain = canceledTicket.paidFromMain || 0;
                     
@@ -1025,7 +1024,6 @@ const t = {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
         btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 ድርጅቱን አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።", err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
-        // 🔥 የጋበዟቸውን ሰዎች ቁጥር (Invites) የሚያሳይ አዲስ ጽሁፍ ተካቷል
         profile_text: (u, invites) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n👥 <b>የጋበዟቸው ሰዎች:</b> ${invites}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>", wit_msg: "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>",
@@ -1118,7 +1116,6 @@ bot.on('contact', async (msg) => {
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
                 if (refUser) { 
                     actualRef = refUser.phone;
-                    // 🔥 እዚህ ጋ የጋበዘው ሰው ቁጥር ሲመዘገብ አንድ ይጨምራል 🔥
                     refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                     
                     if (isPromoLink && refUser.isPromoter) {
@@ -1161,24 +1158,11 @@ bot.on('message', async (msg) => {
         return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
-    if (state.step === 'support_chat') {
-        if(!user) return;
-        await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
-        
-        io.emit('new_support_message'); 
-
-        bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
-        state.step = 'idle';
-        botState[chatId] = state;
-        return;
-    }
-
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
     else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
-        // 🔥 የጋበዟቸውን ሰዎች ቁጥር ያሳያል 🔥
         let invites = user.totalInvites || await User.countDocuments({ referredBy: user.phone });
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n👥 <b>የጋበዟቸው ሰዎች:</b> ${invites}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
         try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -1226,10 +1210,10 @@ bot.on('message', async (msg) => {
             reply_markup: { inline_keyboard: [[{ text: `📖 ${guideTxt}`, web_app: { url: `${WEB_URL}/guide?lang=${langParam}` } }]] }
         }); 
     }
-    else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
+    else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help')) { 
         if(!user) return; 
-        bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት እዚሁ ይፃፉልን፣ በቅርቡ እንመልስሎታለን።</b>\n\n👉 (ወይም አድሚኑን ቀጥታ በ @bingohabesha ያናግሩ)", { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
-        state.step = 'support_chat';
+        bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት እባክዎ አድሚኑን ቀጥታ ያናግሩ፦</b>\n\n👉 <b>Admin:</b> @bingohabesha", { parse_mode: "HTML", ...getMainMenu(user) }); 
+        state.step = 'idle'; // ቻት እንዳይከፍት እዚህ ጋር እናቆመዋለን
     } 
     else if (text === t.am.btn_lang || text === t.en.btn_lang || text === t.or.btn_lang || text === t.ti.btn_lang || text.includes('ቋንቋ') || text.includes('Language') || text === '/lang') { 
         if(!user) return; 
