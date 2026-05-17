@@ -375,22 +375,46 @@ const financeAuth = (req, res, next) => {
 // 🔥 MEMORY OPTIMIZED ADMIN ENDPOINTS (To Prevent 502 Out of Memory Error) 🔥
 // 🔥 ለ 3600+ ዩዘሮች እና ለተሻሻለ ሰርቨር የተሰራ High-Performance API 🔥
 
+// 🔥 ሚሞሪ እንዳይዘጋ ገፅ በገፅ (Pagination) የሚያመጣ ኮድ 🔥
+
 app.post('/api/admin/users', auth, async (req, res) => {
     try {
-        // የሁሉንም 3,600 ሰዎች ፓስወርድና ቴሌግራም አይዲ በአንድ ጊዜ መጥራት ሰርቨር ያቆማል
-        // ስለዚህ አስፈላጊውን ብቻ (Name, Phone, Balance) እና የመጨረሻዎቹን 1000 ብቻ እናወጣለን
+        const page = parseInt(req.body.page) || 1;
+        const limit = 50; // በአንድ ገፅ 50 ሰው ብቻ
+        const skip = (page - 1) * limit;
+
+        const totalUsers = await User.countDocuments();
         const users = await User.find()
             .select('name phone mainBalance playBalance totalDeposited status')
             .sort({ _id: -1 })
-            .limit(1000) 
-            .lean(); // .lean() ዳታው በጣም እንዲቀል ያደርገዋል
-        res.json(users);
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        res.json({ 
+            users, 
+            total: totalUsers, 
+            pages: Math.ceil(totalUsers / limit),
+            currentPage: page 
+        });
     } catch (e) { res.status(500).json({ error: "Users load error" }); }
 });
 
 app.post('/api/admin/transactions', auth, async (req, res) => {
-    // ትራንዛክሽን የመጨረሻዎቹን 1000 ብቻ (ሚሞሪ ለመቆጠብ)
-    res.json(await Transaction.find().sort({ date: -1 }).limit(1000).lean());
+    try {
+        const page = parseInt(req.body.page) || 1;
+        const limit = 50;
+        const skip = (page - 1) * limit;
+
+        const totalTx = await Transaction.countDocuments();
+        const txs = await Transaction.find()
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        res.json({ txs, total: totalTx, pages: Math.ceil(totalTx / limit) });
+    } catch (e) { res.status(500).json({ error: "Tx load error" }); }
 });
 
 app.post('/api/admin/history', auth, async (req, res) => {
