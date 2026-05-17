@@ -19,7 +19,10 @@ app.use(express.static(__dirname));
 // 🔵 DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
+mongoose.connect(mongoURI).then(() => {
+    console.log("✅ Database Connected");
+    loadSettings(); // ዳታቤዙ ሲገናኝ ብቻ ሴቲንጉን ያንብብ
+}).catch(err => console.log(err));
 
 // ==========================================
 // 🔵 MODELS 
@@ -31,7 +34,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     name: String, 
     password: { type: String, required: true },
     referredBy: { type: String, default: "" }, 
-    referredViaPromo: { type: Boolean, default: false }, // 🔥 አዲስ: በፕሮሞተር ሊንክ መመዝገቡን የሚለይ
+    referredViaPromo: { type: Boolean, default: false },
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
@@ -100,7 +103,6 @@ async function loadSettings() {
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4
     };
 }
-loadSettings();
 
 function generateRefCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -168,7 +170,6 @@ async function autoApprovePendingDeposits() {
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
 
-                    // 🔥 የፕሮሞተር ኮሚሽን የሚሰጠው በ promo_ ሊንክ ለተመዘገቡ ብቻ ነው 🔥
                     if(user.referredBy && user.referredViaPromo) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
@@ -227,15 +228,12 @@ app.post('/api/register', async (req, res) => {
             let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
             if (refUser) { 
                 actualRef = refUser.phone;
-                
-                // 🔥 ጋባዡ ፕሮሞተር ሆኖ ኖርማል ሊንክ ከሆነ የመጣው ኮሚሽን አይሰራለትም፣ ፕሌይ ባላንስ ግን ያገኛል 🔥
                 if (isPromoLink && refUser.isPromoter) {
-                    // ምንም Play Balance አያገኝም (በኋላ ላይ ፐርሰንት ያገኛል)
                 } else {
                     refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                     await refUser.save(); 
                     io.emit('balance_updated', refUser.phone); 
-                    isPromoLink = false; // ኖርማል ጋባዥ ከሆነ ኮሚሽን እንዳይሰጠው ይከላከላል
+                    isPromoLink = false;
                 }
             } 
         }
@@ -370,40 +368,68 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-app.post('/api/admin/users', auth, async (req, res) => res.json(await User.find().sort({ _id: -1 })));
-app.post('/api/admin/transactions', auth, async (req, res) => res.json(await Transaction.find().sort({ date: -1 })));
-app.post('/api/admin/history', auth, async (req, res) => res.json(await GameHistory.find().sort({ date: -1 }).limit(300)));
+// ==============================================
+// 🔥 NEW MEMORY-SAFE ADMIN ENDPOINTS 🔥
+// ==============================================
+
+app.post('/api/admin/users', auth, async (req, res) => {
+    res.json(await User.find().sort({ _id: -1 }).limit(300).lean());
+});
+
+app.post('/api/admin/transactions', auth, async (req, res) => {
+    res.json(await Transaction.find().sort({ date: -1 }).limit(300).lean());
+});
+
+app.post('/api/admin/history', auth, async (req, res) => {
+    res.json(await GameHistory.find().sort({ date: -1 }).limit(200).lean());
+});
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
-        let games = await GameHistory.find();
-        let bonuses = await ActiveBonus.find();
-        let users = await User.find({}, 'mainBalance playBalance'); 
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({ date: -1 }).limit(500).lean();
+        let games = await GameHistory.find().sort({ date: -1 }).limit(200).lean();
+        let bonuses = await ActiveBonus.find().lean();
+        let users = await User.find({}, 'mainBalance playBalance').lean(); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/live-stats', auth, async (req, res) => {
-    const totalUsers = await User.countDocuments();
-    const history = await GameHistory.find();
-    let totalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0);
-    
-    let startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    try {
+        const totalUsers = await User.countDocuments();
+        const profitAgg = await GameHistory.aggregate([{ $group: { _id: null, total: { $sum: "$adminProfit" } } }]);
+        let totalProfit = profitAgg.length > 0 ? profitAgg[0].total : 0;
+        
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' });
-    let dailyDeposit = todayTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
-    let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
+        const depAgg = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved', type: 'deposit' } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        let dailyDeposit = depAgg.length > 0 ? depAgg[0].total : 0;
 
-    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
-    let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+        const witAgg = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved', type: 'withdraw' } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        let dailyWithdraw = witAgg.length > 0 ? witAgg[0].total : 0;
 
-    res.json({ 
-        totalUsers, livePlayers: Object.keys(activePlayers).length, 
-        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
-    });
+        const todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } }).lean();
+        let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+
+        res.json({ 
+            totalUsers, livePlayers: Object.keys(activePlayers).length, 
+            gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+            gameId, totalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, 
+            dailyDeposit, dailyWithdraw, dailyBonus
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Stats Error" });
+    }
 });
+
+// ==============================================
 
 app.post('/api/admin/delete-users', auth, async (req, res) => {
     try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
@@ -433,7 +459,6 @@ app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
         let promoters = await User.find({ isPromoter: true });
         let data = [];
         for (let p of promoters) {
-            // 🔥 በ promo_ ሊንክ የተመዘገቡትን ብቻ ያሳያል 🔥
             let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
             let refPhones = refUsers.map(u => u.phone);
             let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
@@ -471,7 +496,6 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
         if(!p) return res.json({ success: false });
 
-        // 🔥 በ promo_ ሊንክ የተመዘገቡትን ብቻ ያሳያል 🔥
         let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
         let details = [];
         for(let u of refUsers) {
@@ -536,7 +560,6 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             user.playBalance += totalCredit;
             user.totalDeposited += actualAmount;
 
-            // 🔥 የፕሮሞተር ኮሚሽን የሚሰጠው በ promo_ ሊንክ ለተመዘገቡ ብቻ ነው 🔥
             if(user.referredBy && user.referredViaPromo) {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
@@ -925,7 +948,6 @@ io.on('connection', (socket) => {
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 
-                // 🔥 ከየትኛው ሂሳብ ስንት እንደተቆረጠ ማስላት 🔥
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
@@ -942,7 +964,6 @@ io.on('connection', (socket) => {
                 user.played += 1; 
                 await user.save();
 
-                // 🔥 እያንዳንዱ ካርቴላ ከየትኛው ሂሳብ እንደተገዛ መመዝገብ (ለመመለስ እንዲያመች) 🔥
                 let playPerTicket = playDeducted / data.ticketCount;
                 let mainPerTicket = mainDeducted / data.ticketCount;
                 
@@ -971,7 +992,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 🔥 የተስተካከለው ብር መመለሻ (Refund) ኮድ 🔥
     socket.on('cancel_ticket', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         if (buyingLocks[data.phone]) return; 
@@ -985,11 +1005,9 @@ io.on('connection', (socket) => {
                 
                 if(p && canceledTicket) {
                     
-                    // 🔥 የተቆረጠበትን ሂሳብ ለይቶ በትክክል መመለስ 🔥
                     let refundPlay = canceledTicket.paidFromPlay || 0;
                     let refundMain = canceledTicket.paidFromMain || 0;
                     
-                    // ኤረር እንዳይፈጠር መከላከያ (Backup)
                     if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
 
                     user.playBalance += refundPlay;
@@ -997,12 +1015,10 @@ io.on('connection', (socket) => {
                     user.played = Math.max(0, user.played - 1);
                     await user.save();
 
-                    // ካርቴላውን ከተጫዋቹ ላይ ማጥፋት
                     p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
                     p.tickets -= 1;
                     if(p.tickets === 0) delete activePlayers[data.phone];
 
-                    // ካርቴላውን ከሲስተሙ ላይ ነፃ ማድረግ
                     totalTickets -= 1;
                     totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
                     totalPrizePool -= (GLOBAL_SETTINGS.ticketPrice * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100));
@@ -1122,15 +1138,12 @@ bot.on('contact', async (msg) => {
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
                 if (refUser) { 
                     actualRef = refUser.phone;
-                    
-                    // 🔥 ጋባዡ ፕሮሞተር ሆኖ ኖርማል ሊንክ ከሆነ የመጣው ኮሚሽን አይሰራለትም፣ ፕሌይ ባላንስ ግን ያገኛል 🔥
                     if (isPromoLink && refUser.isPromoter) {
-                        // ምንም Play Balance አያገኝም
                     } else {
                         refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                         await refUser.save(); 
                         io.emit('balance_updated', refUser.phone);
-                        isPromoLink = false; // ኖርማል ጋባዥ ከሆነ ኮሚሽን እንዳይሰጠው ይከላከላል
+                        isPromoLink = false;
                     }
                 } 
             }
@@ -1166,9 +1179,7 @@ bot.on('message', async (msg) => {
     if (state.step === 'support_chat') {
         if(!user) return;
         await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
-        
         io.emit('new_support_message'); 
-
         bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
         state.step = 'idle';
         botState[chatId] = state;
@@ -1201,7 +1212,6 @@ bot.on('message', async (msg) => {
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
-        // 🔥 የኖርማል መጋበዣ ሊንክ (promo_ የለውም) 🔥
         let inviteLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
         bot.sendMessage(chatId, ln.invite_msg(inviteLink), { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
@@ -1313,7 +1323,6 @@ bot.on('callback_query', async (query) => {
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
 });
 
-// 🔥 UPDATE BASIC AUTH FOR FINANCE ENDPOINT 🔥
 const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
@@ -1329,7 +1338,6 @@ const basicAuth = (req, res, next) => {
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin" ወይም "finance") እና Password ያስገቡ።</p>');
 };
 
-// 🔥 MULTI-LANGUAGE GUIDE WEB APP ENDPOINT WITH LOGO AND BACK BUTTON 🔥
 app.get('/guide', (req, res) => {
     let lang = req.query.lang || 'am';
     
@@ -1430,7 +1438,6 @@ app.get('/guide', (req, res) => {
             .free { background: #0f172a; color: white; border: 1px solid #4ade80; font-size: 12px; }
             .free.hl { background: #4ade80; color: black; border: none; }
             
-            /* 🔥 አዲሱ የመመለሻ ቁልፍ ዲዛይን 🔥 */
             .back-btn-wrapper {
                 position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
                 width: 90%; max-width: 400px; z-index: 9999;
@@ -1448,12 +1455,10 @@ app.get('/guide', (req, res) => {
         </style>
     </head>
     <body>
-        <!-- 🟢 ቢንጎ ሀበሻ LOGO START -->
         <div style="text-align: left; margin-bottom: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; background: rgba(0,0,0,0.3); display: inline-block; padding: 5px 10px; border-radius: 6px; float: left;">
             <span style="color: #4ade80;">ቢንጎ</span> <span style="color: #ffffff;">ሀበሻ</span>
         </div>
         <div style="clear: both;"></div>
-        <!-- 🟢 ቢንጎ ሀበሻ LOGO END -->
 
         <h2>${tr.title}</h2>
         
@@ -1511,7 +1516,6 @@ app.get('/guide', (req, res) => {
         
         <p style="color:#4ade80; font-size:12px; margin-top:20px; border:1px dashed #4ade80; padding:10px; border-radius:8px;">${tr.hint}</p>
 
-        <!-- 🔥 ወደ ኋላ መመለሻ (Close) BUTTON 🔥 -->
         <div class="back-btn-wrapper">
             <button onclick="window.location.href='/'">${tr.back}</button>
         </div>
@@ -1522,21 +1526,18 @@ app.get('/guide', (req, res) => {
     res.send(html);
 });
 
-// 🔥 MULTI-LANGUAGE PROMOTER WEB APP ROUTE WITH LOGO 🔥
 app.get('/promoter', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
     let user = await User.findOne({ phone, password: pass });
     if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ Unauthorized / የተፈቀደ አስተዋዋቂ አይደሉም!</h1>");
 
-    // 🔥 እዚህ ጋር በ promo_ ሊንክ የተመዘገቡትን ብቻ ያሳያል 🔥
     let referredUsers = await User.find({ referredBy: user.phone, referredViaPromo: true });
     let activeDepositedUsers = referredUsers.filter(u => u.totalDeposited > 0).length;
 
     let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
     let myCode = user.refCode ? user.refCode : user.phone;
-    // 🔥 የተስተካከለው የመጋበዣ ሊንክ (አስተዋዋቂ ስለሆነ promo_ ይጨመርበታል) 🔥
     let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
 
     let lang = user.language || 'am';
@@ -1607,11 +1608,9 @@ app.get('/promoter', async (req, res) => {
         </style>
     </head>
     <body>
-        <!-- 🟢 ቢንጎ ሀበሻ LOGO START -->
         <div style="text-align: left; margin-bottom: 15px; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; background: rgba(0,0,0,0.3); display: inline-block; padding: 5px 10px; border-radius: 6px;">
             <span style="color: #4ade80;">ቢንጎ</span> <span style="color: #ffffff;">ሀበሻ</span>
         </div>
-        <!-- 🟢 ቢንጎ ሀበሻ LOGO END -->
 
         <div class="card">
             <div class="title">${pr.dash}</div>
@@ -1865,7 +1864,16 @@ setInterval(async () => {
     } catch (error) {}
 }, 30000); 
 
-server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 30000
+server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
+
+// ቴሌግራም ላይ ቦቱን ብሎክ ያደረጉ ሰዎች ካሉ ሰርቨሩ ላይ ኤረር እንዳያመጣ
+process.on('unhandledRejection', (reason, promise) => {
+    if (reason && reason.message && reason.message.includes('ETELEGRAM')) {
+        console.log("⚠️ ቴሌግራም ኤረር (ሰውየው ቦቱን ብሎክ አድርጎታል):", reason.message);
+    } else {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    }
+});
 
 
 
