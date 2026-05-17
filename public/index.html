@@ -481,7 +481,7 @@
         <div class="top-info-box"><div class="info-title" id="g-lbl-round">#ዙር (Round)</div><div class="info-val" id="g-id">#---</div></div>
         <div class="top-info-box"><div class="info-title" id="g-lbl-bet">መወራረጃ</div><div class="info-val" id="g-val-bet">10.00</div></div>
         <div class="top-info-box prize-box"><div class="info-title prize-title" id="g-lbl-prize">ሽልማት (Prize)</div><div class="info-val highlight" id="g-prize">0.00</div></div>
-        <div class="top-info-box"><div class="info-title" id="g-lbl-balls">እጣ (Balls)</div><div class="info-val" id="g-balls">0/20</div></div>
+        <div class="top-info-box"><div class="info-title" id="g-lbl-balls">እጣ (Balls)</div><div class="info-val" id="g-balls">0/75</div></div>
     </div>
     <div id="history-scroll-top" class="history-top-bar"></div>
     
@@ -515,7 +515,7 @@
     <div class="ticket-top-section">
         
         <div class="t-page-badges-container">
-            <div class="t-badge-box"><span>Balls:</span><b id="t-page-balls">0/20</b></div>
+            <div class="t-badge-box"><span>Balls:</span><b id="t-page-balls">0/75</b></div>
             <div class="t-badge-box prize-b"><span>Prize:</span><b id="t-page-prize">0.00 ETB</b></div>
         </div>
         
@@ -1032,7 +1032,7 @@
 
     socket.on('sync_data', (data) => {
         globalTakenTickets = data.globalTakenTickets || []; called = data.calledNumbers || []; userTicketsData = data.myTickets || [];
-        document.getElementById('g-balls').innerText = called.length + "/20"; document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+        document.getElementById('g-balls').innerText = called.length + "/75"; document.getElementById('t-page-balls').innerText = called.length + "/75"; 
         
         renderGridTakenStates();
         updateBetPreview();
@@ -1118,8 +1118,8 @@
                 
                 document.getElementById('caller-ball').innerText = "--"; 
                 let ticketCb = document.getElementById('ticket-caller-ball'); if(ticketCb) ticketCb.innerText = "--";
-                document.getElementById('g-balls').innerText = "0/20"; 
-                document.getElementById('t-page-balls').innerText = "0/20"; 
+                document.getElementById('g-balls').innerText = "0/75"; 
+                document.getElementById('t-page-balls').innerText = "0/75"; 
                 called = []; 
                 
                 if (currentUser) {
@@ -1145,8 +1145,8 @@
                 if (currentUser && !document.getElementById('game-page').classList.contains('active-page')) { showPage('game'); }
             }
             called = data.calledNumbers || []; 
-            document.getElementById('g-balls').innerText = called.length + "/20";
-            document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+            document.getElementById('g-balls').innerText = called.length + "/75";
+            document.getElementById('t-page-balls').innerText = called.length + "/75"; 
             
             document.querySelectorAll('.mb-cell').forEach(c => c.classList.remove('called', 'current'));
             document.getElementById('history-scroll-top').innerHTML = ''; document.getElementById('ticket-history-bar').innerHTML = '';
@@ -1158,8 +1158,8 @@
         if (!isGameRunningLocally) return;
         called.push(num); 
         playNumberSound(num); 
-        document.getElementById('g-balls').innerText = called.length + "/20"; 
-        document.getElementById('t-page-balls').innerText = called.length + "/20"; 
+        document.getElementById('g-balls').innerText = called.length + "/75"; 
+        document.getElementById('t-page-balls').innerText = called.length + "/75"; 
         updateLiveUI(num, true);
         userTicketsData.forEach(t => { for(let c=0; c<5; c++) { for(let r=0; r<5; r++) { if(t.grid[c][r] === num) t.marks[c][r] = 1; } } });
     });
