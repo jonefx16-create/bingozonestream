@@ -18,19 +18,8 @@ app.use(express.static(__dirname));
 // ==========================================
 // 🔵 DATABASE CONNECTION
 // ==========================================
-const mongoURI = process.env.MONGO_URI;
-
-mongoose.connect(mongoURI, {
-    serverSelectionTimeoutMS: 5000 // 5 ሰከንድ ብቻ ይጠብቅ
-})
-.then(() => {
-    console.log("✅ Database Connected");
-    loadSettings(); // ዳታቤዝ ከተገናኘ በኋላ ብቻ Settings ይጫን
-})
-.catch(err => {
-    console.log("❌ Database Error:", err);
-    process.exit(1); // ዳታቤዝ ከሌለ ሰርቨሩ መቆም አለበት
-});
+const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+mongoose.connect(mongoURI).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
 // 🔵 MODELS 
@@ -864,35 +853,17 @@ async function declareWinners(winners) {
 }
 
 function resetToWaiting() {
-    gameState = "WAITING"; 
-    gameClock = GLOBAL_SETTINGS.gameTimer; 
-    
-    // 🔥 ይሄ በጣም አስፈላጊ ነው - አሮጌ ተጫዋቾችን ሙሉ በሙሉ ይሰርዛል
-    activePlayers = {}; 
-    
-    totalPrizePool = 0; 
-    totalCollectedMoney = 0; 
-    totalTickets = 0; 
-    calledNumbers = []; 
-    currentDrawSequence = [];
-    gameId = Math.floor(Math.random() * 9000) + 1000;
-    globalTakenTickets = []; 
-    
-    // ለሁሉም ተጫዋቾች ዜሮ መሆኑን እንዲያውቁ ይላካል
-    io.emit('update_taken_tickets', []); 
+    gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
+    totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
+    calledNumbers = []; currentDrawSequence = [];
+    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn }); return; }
     if (gameState === "WAITING") {
-    gameClock--;
-    // ሙሉ መረጃ ከመላክ ይልቅ የጠፋውን ሰዓት ብቻ ይላኩ
-    io.emit('game_status', { 
-        state: gameState, 
-        timer: gameClock 
-        // የተቀረውን ከባድ መረጃ (depBannerText, etc) እዚህ አይላኩ፣ እሱ አንዴ ከተላከ ይበቃል
-    });
-    // ...
+        gameClock--;
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
