@@ -373,11 +373,41 @@ const financeAuth = (req, res, next) => {
 };
 
 // 🔥 MEMORY OPTIMIZED ADMIN ENDPOINTS (To Prevent 502 Out of Memory Error) 🔥
+// 🔥 ለ 3600+ ዩዘሮች እና ለተሻሻለ ሰርቨር የተሰራ High-Performance API 🔥
+
 app.post('/api/admin/users', auth, async (req, res) => {
     try {
-        // `.lean()` and excluding `telegramId` saves massive amount of RAM.
-        res.json(await User.find().select('-telegramId').sort({ _id: -1 }).lean());
-    } catch (e) { res.status(500).json({ error: "Failed to load users" }); }
+        // የሁሉንም 3,600 ሰዎች ፓስወርድና ቴሌግራም አይዲ በአንድ ጊዜ መጥራት ሰርቨር ያቆማል
+        // ስለዚህ አስፈላጊውን ብቻ (Name, Phone, Balance) እና የመጨረሻዎቹን 1000 ብቻ እናወጣለን
+        const users = await User.find()
+            .select('name phone mainBalance playBalance totalDeposited status')
+            .sort({ _id: -1 })
+            .limit(1000) 
+            .lean(); // .lean() ዳታው በጣም እንዲቀል ያደርገዋል
+        res.json(users);
+    } catch (e) { res.status(500).json({ error: "Users load error" }); }
+});
+
+app.post('/api/admin/transactions', auth, async (req, res) => {
+    // ትራንዛክሽን የመጨረሻዎቹን 1000 ብቻ (ሚሞሪ ለመቆጠብ)
+    res.json(await Transaction.find().sort({ date: -1 }).limit(1000).lean());
+});
+
+app.post('/api/admin/history', auth, async (req, res) => {
+    // ጌም ሂስትሪ በጣም ከባድ ዳታ ስለሆነ 50 ብቻ እናምጣ
+    // ተጨማሪ ከፈለክ አድሚን ላይ Search ተጠቀም
+    res.json(await GameHistory.find().sort({ date: -1 }).limit(50).lean());
+});
+
+app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
+    try {
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(1000).lean();
+        let games = await GameHistory.find().sort({date: -1}).limit(20).lean();
+        let bonuses = await ActiveBonus.find().lean();
+        // ፋይናንስ ላይ ሁሉንም 3600 ዩዘር መጥራት ግዴታ ስለሆነ ሚሞሪ እንዳይበላ ፊልድ እንመርጣለን
+        let users = await User.find().select('mainBalance playBalance totalDeposited won played').lean(); 
+        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
+    } catch(e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/transactions', auth, async (req, res) => {
