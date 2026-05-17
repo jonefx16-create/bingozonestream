@@ -707,6 +707,31 @@
     </div>
 </div>
 
+<!-- 🔥 አዲስ: የተጠቃሚ መረጃ እና ሂስትሪ ማሳያ ሞዳል (User Info Modal) 🔥 -->
+<div class="modal" id="user-info-modal">
+    <div class="modal-content" style="max-width: 700px; text-align: left;">
+        <h3 style="color: var(--cyan); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">👤 User Information & History</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:15px; margin-bottom:15px; font-size:14px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Name:</span><br><b id="ui-name" style="color:white; font-size:16px;"></b></div>
+            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Phone:</span><br><b id="ui-phone" style="color:var(--cyan); font-size:16px; font-family:monospace;"></b></div>
+            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Main Balance:</span><br><b id="ui-main" style="color:var(--gold); font-size:16px;"></b> ETB</div>
+            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Play Balance:</span><br><b id="ui-play" style="color:var(--faded-green); font-size:16px;"></b> ETB</div>
+        </div>
+        
+        <span style="font-size: 14px; color: white; display:block; margin-bottom:8px; font-weight:bold;">📜 Transaction History:</span>
+        <div class="table-responsive" style="max-height: 40vh; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr><th>Date</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody id="ui-tx-body"></tbody>
+            </table>
+        </div>
+        
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('user-info-modal').style.display='none'">Close</button>
+    </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
@@ -996,7 +1021,10 @@
                 <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                 <td>${bonusDisplay}</td> <!-- 🔥 BONUS COLUMN DISPLAY 🔥 -->
                 <td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td>
-                <td><button class="btn-sm btn-red" onclick="singleDelete('transactions', '${t._id}')">Delete</button></td>
+                <td>
+                    <button class="btn-sm btn-purple" style="margin-bottom:5px; margin-right:5px;" onclick="showUserInfo('${t.phone}')">👁️ User</button>
+                    <button class="btn-sm btn-red" onclick="singleDelete('transactions', '${t._id}')">Delete</button>
+                </td>
             </tr>`;
         });
         document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found.</td></tr>`;
@@ -1219,9 +1247,39 @@
     function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
     function showInvitedUsers(inviter, invitedListStr) { let list = JSON.parse(invitedListStr); document.getElementById('inviter-phone').innerText = inviter; document.getElementById('invited-list').innerHTML = list.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('invited-modal').style.display = 'flex'; }
 
+    // 🔥 አዲስ: የተጠቃሚ መረጃ እና ትራንዛክሽን ማሳያ ፉንክሽን 🔥
+    function showUserInfo(phone) {
+        let u = allUsers.find(x => x.phone === phone);
+        if (!u) {
+            alert("User data not found (might be deleted or not loaded yet).");
+            return;
+        }
+        
+        document.getElementById('ui-name').innerText = u.name;
+        document.getElementById('ui-phone').innerText = u.phone;
+        document.getElementById('ui-main').innerText = Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('ui-play').innerText = Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2});
+        
+        let userTxs = allTx.filter(x => x.phone === phone);
+        let txHtml = userTxs.map(t => {
+            let statusColor = t.status === 'Approved' ? 'color:var(--faded-green);' : (t.status === 'Pending' ? 'color:var(--orange);' : 'color:var(--red);');
+            return `<tr>
+                <td style="font-size:11px;">${new Date(t.date).toLocaleString()}</td>
+                <td style="text-transform:uppercase; font-size:12px;">${t.type}</td>
+                <td style="font-size:12px;">${t.method}</td>
+                <td style="font-weight:bold; font-size:12px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td style="font-weight:bold; font-size:11px; ${statusColor}">${t.status}</td>
+            </tr>`;
+        }).join('');
+        
+        document.getElementById('ui-tx-body').innerHTML = txHtml || `<tr><td colspan="5" style="text-align:center; color:gray;">No transactions found.</td></tr>`;
+        
+        document.getElementById('user-info-modal').style.display = 'flex';
+    }
+
     function populatePendingDeposits() {
         let deps = allTx.filter(t => t.type === 'deposit' && t.status === 'Pending'); let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
-        document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
+        document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm btn-purple" style="margin-right:5px;" onclick="showUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
     }
     
     function populatePendingWithdraws() {
@@ -1246,7 +1304,11 @@
                 <td>${methodBadge}</td>
                 <td style="font-weight: 900; font-size: 16px; color: var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                 <td style="font-family: monospace; font-weight: 900; font-size: 15px; color: var(--cyan); letter-spacing: 1px;">${(t.smsText||'').replace('Transfer to: ', '')}</td>
-                <td><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td>
+                <td>
+                    <button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="showUserInfo('${t.phone}')">👁️ User</button>
+                    <button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> 
+                    <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button>
+                </td>
             </tr>`; 
         }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
     }
@@ -1260,6 +1322,7 @@
                 <td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                 <td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td>
                 <td>
+                    <button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="showUserInfo('${t.phone}')">👁️ User</button>
                     <button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> 
                     <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button>
                 </td>
