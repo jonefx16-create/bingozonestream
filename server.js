@@ -1866,7 +1866,14 @@ setInterval(async () => {
 }, 30000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
-
+// ቴሌግራም ላይ ቦቱን ብሎክ ያደረጉ ሰዎች ካሉ ሰርቨሩ ላይ ኤረር እንዳያመጣ
+process.on('unhandledRejection', (reason, promise) => {
+    if (reason && reason.message && reason.message.includes('ETELEGRAM')) {
+        console.log("⚠️ ቴሌግራም ኤረር (ሰውየው ቦቱን ብሎክ አድርጎታል):", reason.message);
+    } else {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    }
+});
 
 
 
