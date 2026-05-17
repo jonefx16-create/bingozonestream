@@ -4,8 +4,8 @@
   "description": "Bingo Stream Ultimate Game Live",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
-  },
+  "start": "node --max-old-space-size=400 server.js"
+}
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^7.0.0",
