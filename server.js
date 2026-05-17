@@ -422,7 +422,13 @@ app.post('/api/admin/history', auth, async (req, res) => {
     // ተጨማሪ ከፈለክ አድሚን ላይ Search ተጠቀም
     res.json(await GameHistory.find().sort({ date: -1 }).limit(50).lean());
 });
-
+ // ይህ ኮድ የአንድን ሰው ሙሉ የትራንዛክሽን መረጃ ያመጣል (Audit ለማድረግ)
+app.get('/api/admin/user-full-tx/:phone', auth, async (req, res) => {
+    try {
+        const txs = await Transaction.find({ phone: req.params.phone }).sort({ date: -1 }).limit(100).lean();
+        res.json({ success: true, txs });
+    } catch (e) { res.json({ success: false }); }
+});
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(1000).lean();
@@ -436,25 +442,45 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
 
 app.post('/api/admin/transactions', auth, async (req, res) => {
     try {
-        // Limited to 2000 to prevent crashing with thousands of records
-        res.json(await Transaction.find().sort({ date: -1 }).limit(2000).lean());
-    } catch (e) { res.status(500).json({ error: "Failed to load txs" }); }
+        const fortyEightHoursAgo = new Date(Date.now() - (48 * 60 * 60 * 1000));
+        
+        const txs = await Transaction.find({
+            $or: [
+                { status: 'Pending' }, // ሁሉም ያልተሰሩ (Pending) ይምጡ
+                { date: { $gte: fortyEightHoursAgo } } // ያለፉት 2 ቀን ያለቁ (Approved/Rejected)
+            ]
+        })
+        .sort({ date: -1 })
+        .limit(2000) // ለጥንቃቄ ቢበዛ 2000 ብቻ
+        .lean();
+
+        res.json(txs);
+    } catch (e) {
+        res.status(500).json({ error: "Transaction fetch error" });
+    }
 });
 
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
-        // Limited to 150 because GameHistory arrays (winningGrid, playersData) are extremely huge
-        res.json(await GameHistory.find().sort({ date: -1 }).limit(150).lean());
-    } catch (e) { res.status(500).json({ error: "Failed to load history" }); }
+        const twelveHoursAgo = new Date(Date.now() - (12 * 60 * 60 * 1000));
+        const history = await GameHistory.find({ date: { $gte: twelveHoursAgo } })
+            .sort({ date: -1 })
+            .lean();
+        res.json(history);
+    } catch (e) { res.status(500).json({ error: "History error" }); }
 });
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        // lean() እና limit() በመጠቀም ሚሞሪ እንቆጥባለን
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(1500).lean();
-        let games = await GameHistory.find().sort({date: -1}).limit(100).lean();
+        const fortyEightHoursAgo = new Date(Date.now() - (48 * 60 * 60 * 1000));
+        
+        let txs = await Transaction.find({ date: { $gte: fortyEightHoursAgo }, status: { $in: ['Approved', 'Pending'] } }).lean();
+        let games = await GameHistory.find({ date: { $gte: fortyEightHoursAgo } }).lean();
         let bonuses = await ActiveBonus.find().lean();
-        let users = await User.find().select('-telegramId').lean(); 
+        
+        // ዩዘሮችን በሚጠራበት ጊዜ አስፈላጊ የሆኑትን ፊልዶች ብቻ (ሚሞሪ እንዳይዘጋ)
+        let users = await User.find().select('mainBalance playBalance totalDeposited won').lean(); 
+        
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS }); 
     } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -480,9 +506,28 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     });
 });
 
-app.post('/api/admin/delete-users', auth, async (req, res) => {
-    try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
-    catch(e) { res.json({ success: false }); }
+// ትራንዛክሽን ማጥፊያ
+app.post('/api/admin/delete-transactions', auth, async (req, res) => {
+    try {
+        const ids = req.body.ids;
+        if (!ids || ids.length === 0) return res.json({ success: false });
+
+        // ዳታቤዙን አጥፋ ብሎ ወዲያውኑ ለተጠቃሚው Success ይልካል (ሰርቨሩ እንዳይቆም)
+        await Transaction.deleteMany({ _id: { $in: ids } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
+
+// ጌም ሂስትሪ ማጥፊያ
+app.post('/api/admin/delete-history', auth, async (req, res) => {
+    try {
+        await GameHistory.deleteMany({ _id: { $in: req.body.ids } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
 });
 app.post('/api/admin/delete-history', auth, async (req, res) => {
     try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
