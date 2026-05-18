@@ -328,10 +328,11 @@
 
         <!-- 🔥 REFERRALS (Invite & Earn) 🔥 -->
         <div id="tab-referral" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
-                <h3 style="color:var(--gold); margin-top:0;">🔧 Fix Missing Invite Bonuses</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የሚያገለግለው ቀደም ብሎ ሰው ጋብዘው <b>(Play Balance)</b> ላልተሰጣቸው ሰዎች ለማስተካከል እና ለመክፈል ነው። (ያልተከፈላቸውን ብቻ አጣርቶ ይከፍላል፣ ሁለት ጊዜ አይከፍልም)።</p>
-                <button class="action-btn btn-orange" onclick="fixMissingReferralBonuses()">🔍 ላልተከፈላቸው ጋባዦች ቦነስ ክፈል (Fix Missing)</button>
+            <!-- አዲሱ የ Sync ቦክስ -->
+            <div class="card" style="border-left: 4px solid var(--blue); margin-bottom: 15px;">
+                <h3 style="color:var(--blue); margin-top:0;">🔄 Sync All Users Data (የሁሉንም ዳታ አስተካክል)</h3>
+                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የተጠቃሚዎችን (Users) ፕሮፋይል አሁን ካለው ትክክለኛ የሰው ብዛት ጋር 100% ተመሳሳይ እንዲሆን ያስተካክላል። (አካውንት ያጠፉ ሰዎች ካሉ ከተጠቃሚው ፕሮፋይል ላይ ቁጥራቸውን እና ብራቸውን ይቀንሳል)።</p>
+                <button class="action-btn btn-blue" onclick="syncAllReferrals()">🔄 የሁሉንም ዳታ አሁን ካለው ጋር አመሳስል</button>
             </div>
             
             <div class="search-container">
@@ -963,7 +964,27 @@
             renderPagination('pag-ref', data.total, p_ref, 'loadRefPage');
         }
     }
+   async function syncAllReferrals() {
+        if(!confirm("⚠️ እርግጠኛ ነዎት የሁሉንም ጋባዦች ፕሮፋይል አሁን ካለው እውነተኛ የሰው ብዛት ጋር ማመሳሰል (Sync) ማድረግ ይፈልጋሉ?")) return;
+        
+        let btn = document.querySelector('#tab-referral .btn-blue');
+        let origText = btn.innerText;
+        btn.innerText = "እያስተካከለ ነው... (Syncing...)";
 
+        try {
+            let res = await fetch('/api/admin/sync-all-referrals', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({ adminPass: pass }) 
+            });
+            let data = await res.json();
+            alert(data.message);
+            loadRefPage(p_ref);
+        } catch(e) {
+            alert("❌ ኮኔክሽን ችግር!");
+        }
+        btn.innerText = origText;
+    }
     // 🔥 NEW: FETCH AND SHOW SPECIFIC INVITED PEOPLE IN MODAL 🔥
     async function showInvitedUsers(phone) {
         document.getElementById('inviter-phone').innerText = phone;
