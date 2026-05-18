@@ -502,14 +502,14 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     });
 });
 
-// 🔥 1. ትክክለኛውን የጋባዦች ቁጥር እና ያገኙትን ብር የሚያወጣው የተስተካከለ ኮድ 🔥
+// 🔥 አድሚን ፓነል ላይ የጋባዦችን ትክክለኛ ቁጥር እና ያገኙትን ብር የሚያወጣ ኮድ 🔥
 app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
         let search = req.body.search || '';
 
-        // ጋብዘው የሚያውቁ ሰዎችን ብቻ እንፈልጋለን
+        // ጋብዘው የሚያውቁ (ቢያንስ 1 ሰው ያመጡ) ሰዎችን ብቻ እንፈልጋለን
         let query = { totalInvites: { $gt: 0 } };
 
         if (search) {
@@ -523,11 +523,14 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
             .skip((page - 1) * limit)
             .limit(limit);
 
-        let mappedData = referrers.map(r => ({
-            _id: r.phone,
-            count: r.totalInvites, // 🔥 ትክክለኛው 20 ያመጣውን 20 ይለዋል
-            earned: r.inviteBonusEarned // 🔥 ትክክለኛው የተከፈለው/ያገኘው ብር
-        }));
+        let mappedData = referrers.map(r => {
+            let actualInvites = r.totalInvites || 0;
+            return {
+                _id: r.phone, // የሰውየው ስልክ
+                count: actualInvites, // ⚠️ ያልተሰረዘው ቋሚ ያመጣው ሰው ብዛት
+                earned: actualInvites * GLOBAL_SETTINGS.inviteBonus // ⚠️ ያመጣው ሰው ሲባዛ በቦነሱ (ያገኘው ብር)
+            };
+        });
 
         res.json({ success: true, referrals: mappedData, total });
     } catch(e) {
