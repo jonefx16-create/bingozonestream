@@ -1362,7 +1362,17 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         
+        // 🔥 ሲስተሙ ትክክለኛውን የሰው ብዛት አሁን ይቆጥራል 🔥
         let actualInvites = await User.countDocuments({ referredBy: user.phone });
+        
+        // 🔥 የተጠቃሚውን (User) ፕሮፋይል ከእውነታው ጋር ያስተካክላል (Sync ያደርጋል) 🔥
+        user.totalInvites = actualInvites;
+        if (!user.isPromoter) {
+            user.inviteBonusEarned = actualInvites * GLOBAL_SETTINGS.inviteBonus;
+            user.compensatedInvites = actualInvites; 
+        }
+        await user.save(); 
+
         let earned = user.inviteBonusEarned || 0;
         
         if (user.isPromoter) {
