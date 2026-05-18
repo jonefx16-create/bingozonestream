@@ -66,15 +66,10 @@ const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
     rawText: String, txRef: String, amount: Number, isUsed: { type: Boolean, default: false }, dateReceived: { type: Date, default: Date.now }
 }));
 
-const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
-    adminPass: { type: String, default: "bingo1234" }, 
-    financePass: { type: String, default: "finance1234" }, 
-    ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
-    
-    // 🔥 ይሄንን አዲሱን መስመር ይጨምሩ 🔥
-    minWithdrawAmount: { type: Number, default: 50 },
-
-    depBonusMinAmount: { type: Number, default: 100 }, // ... ቀሪው እንዳለ ይቀጥላል
+const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
+    gameId: Number, ticketId: String, winnerName: String, winnerPhone: String, prize: Number,
+    adminProfit: { type: Number, default: 0 }, ticketPrice: Number, winningGrid: Array, calledNumbers: Array, playersData: Array, date: { type: Date, default: Date.now }
+}));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
@@ -89,20 +84,14 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false }, witBonusTimeRestricted: { type: Boolean, default: false }, witHappyHourStart: { type: Number, default: 0 }, witHappyHourEnd: { type: Number, default: 23 },
     cashbackMinLoss: { type: Number, default: 200 }, cashbackAmount: { type: Number, default: 10 }, isCashbackActive: { type: Boolean, default: false },
     registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
-    maxTicketsPerUser: { type: Number, default: 4 }
+    maxTicketsPerUser: { type: Number, default: 4 },
+    minWithdrawLimit: { type: Number, default: 50 } // 🔥 Withdraw limit settings
 }));
 
 let GLOBAL_SETTINGS = {};
 async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
-    GLOBAL_SETTINGS = { 
-        adminPass: s.adminPass, financePass: s.financePass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
-
-        // 🔥 ይሄንን አዲሱን መስመር ይጨምሩ 🔥
-        minWithdrawAmount: s.minWithdrawAmount !== undefined ? s.minWithdrawAmount : 50,
-
-        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, // ...
     GLOBAL_SETTINGS = { 
         adminPass: s.adminPass, financePass: s.financePass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
@@ -113,7 +102,8 @@ async function loadSettings() {
         witBonusTimeRestricted: s.witBonusTimeRestricted || false, witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
         cashbackMinLoss: s.cashbackMinLoss !== undefined ? s.cashbackMinLoss : 200, cashbackAmount: s.cashbackAmount !== undefined ? s.cashbackAmount : 10, isCashbackActive: s.isCashbackActive || false,
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
-        adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4
+        adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
+        minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50 // 🔥 Update Global settings for withdraw
     };
 }
 loadSettings();
@@ -295,16 +285,12 @@ app.post('/api/request-tx', async (req, res) => {
         const { phone, type, amount, method, sms, destinationPhone } = req.body; 
         let user = await User.findOne({phone}); if(!user) return res.json({success: false});
         if(type === 'withdraw') {
-            // 🔥 አዲሱ የ Limit ህግ እዚህ ጋር ተጨምሯል 🔥
-            if (amount < GLOBAL_SETTINGS.minWithdrawAmount) {
-                return res.json({success: false, message: `❌ ቢያንስ ${GLOBAL_SETTINGS.minWithdrawAmount} ብር ማውጣት ይቻላል!`});
-            }
+            // 🔥 አድሚን ያደረገው Minimum Withdraw Limit ዌብሳይት ላይ አፕላይ መደረጉ
+            if(amount < GLOBAL_SETTINGS.minWithdrawLimit) return res.json({success: false, message: `❌ ማውጣት የሚችሉት ቢያንስ ${GLOBAL_SETTINGS.minWithdrawLimit} ብር ነው!`});
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
-            
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
         } else {
-            // ... ቀሪው የ deposit ኮድ እንዳለ ይቀጥላል
             let txRef = getTxRef(sms);
             if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) አልተገኘም!" });
             if (await isSmsAlreadyUsed(sms)) return res.json({ success: false, message: "❌ ይህ SMS ቀድሞ ጥቅም ላይ ውሏል!" });
@@ -796,12 +782,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.newPass) s.adminPass = req.body.newPass;
     if(req.body.newFinancePass) s.financePass = req.body.newFinancePass;
     
-    // 🔥 ይሄንን አዲሱን መስመር ይጨምሩ 🔥
-    if(req.body.minWithdrawAmount !== undefined) s.minWithdrawAmount = req.body.minWithdrawAmount;
-
-    if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
-    // ...
-    
     if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
@@ -830,6 +810,10 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.inviteBonus !== undefined) s.inviteBonus = req.body.inviteBonus;
     if(req.body.adminProfitPercent !== undefined) s.adminProfitPercent = req.body.adminProfitPercent; 
     if(req.body.maxTicketsPerUser !== undefined) s.maxTicketsPerUser = req.body.maxTicketsPerUser; 
+    
+    // 🔥 አዲሱ Withdraw Limit
+    if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
+
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
@@ -1067,15 +1051,15 @@ function resetToWaiting() {
 }
 
 setInterval(() => {
-    if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn }); return; }
+    if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit }); return; }
     if (gameState === "WAITING") {
         gameClock--;
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); 
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
+                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
             }
@@ -1111,7 +1095,7 @@ setInterval(() => {
 let buyingLocks = {}; 
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
-    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn });
+    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
     socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
     socket.on('buy_tickets', async (data) => {
@@ -1223,6 +1207,7 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
+// 🔥 በቴሌግራም ቦት ላይ ያለው Withdraw Limit ቋሚ የነበረው ወደ ዳይናሚክ (በአድሚን ወደሚቀየረው) ተቀይሯል 🔥
 const t = {
     am: {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -1238,12 +1223,11 @@ const t = {
         warn_telebirr: "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr) ብቻ ያስገቡ!\n\n", warn_cbebirr: "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBEBirr to CBEBirr) ብቻ ያስገቡ!\n\n",
         bank_info: (method, warning, name, num) => `🏦 ባንክ: <b>${method}</b>\n\n${warning}እባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👤 ስም: <b>${name}</b>\n👉 ቁጥር: <b>${num}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> ብቻ እዚህ ይፃፉልኝ (ምሳሌ: 100):`,
         wit_info: (method) => `🏦 ባንክ: <b>${method}</b>\n\nገንዘቡ እንዲላክልዎ የሚፈልጉትን <b>ስልክ ቁጥር ወይም አካውንት</b> ያስገቡ፦`,
-        invalid_amt: (min) => `❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ ${min} ብር):`, 
-        enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nእባክዎ ክፍያ የፈጸሙበትን...`, 
-        dep_success: "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>...", 
+        invalid_amt: (min) => `❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ ${min} ብር):`, enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nእባክዎ ክፍያ የፈጸሙበትን የ <b>ትክክለኛውን የባንክ SMS ማረጋገጫ (Tx Ref) ፅሁፍ</b> አሁን እዚህ ይላኩ፦`,
+        dep_success: "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።",
         enter_wit_amt: (acc, min) => `✅ አካውንት: <b>${acc}</b>\n\nማውጣት የሚፈልጉትን መጠን ያስገቡ (ቢያንስ ${min} ብር):`, insufficient: "❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!", wit_success: (amt, acc) => `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${amt} ETB\nወደ: ${acc}\n\nበቅርቡ ይላካል!`,
         play_msg: "በቢንጎ ሐበሻ ቤት ይጫወቱ ይዝናኑ በሺዎች ያሸንፉ\nመልካም እድል ይሁንሎት"
-       },
+    },
     en: {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
         btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back",
@@ -1258,9 +1242,8 @@ const t = {
         warn_telebirr: "⚠️ <b>WARNING:</b> Send Telebirr to Telebirr ONLY!\n\n", warn_cbebirr: "⚠️ <b>WARNING:</b> Send CBEBirr to CBEBirr ONLY!\n\n",
         bank_info: (method, warning, name, num) => `🏦 Bank: <b>${method}</b>\n\n${warning}Send money to:\n👤 Name: <b>${name}</b>\n👉 Account: <b>${num}</b>\n\nType the <b>amount you sent</b> here (e.g., 100):`,
         wit_info: (method) => `🏦 Bank: <b>${method}</b>\n\nEnter the <b>Account or Phone number</b>:`,
-        invalid_amt: (min) => `❌ Invalid Amount. Min ${min} ETB:`, 
-        enter_wit_amt: (acc, min) => `✅ Account: <b>${acc}</b>\n\nEnter withdrawal amount (Min ${min} ETB):`,
-        insufficient: "❌ Insufficient Main Balance!", wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\nAmount: ${amt} ETB\nTo: ${acc}`,
+        invalid_amt: (min) => `❌ Invalid Amount. Min ${min} ETB:`, enter_sms: (amt) => `✅ Amount: <b>${amt} ETB</b>\n\nPaste exact <b>Bank SMS</b>:`,
+        dep_success: "✅ <b>Deposit Request Sent!</b>", enter_wit_amt: (acc, min) => `✅ Account: <b>${acc}</b>\n\nEnter withdrawal amount (Min ${min} ETB):`, insufficient: "❌ Insufficient Main Balance!", wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\nAmount: ${amt} ETB\nTo: ${acc}`,
         play_msg: "Play and have fun at Bingo Habesha and win thousands!\nGood luck!"
     },
     or: {
@@ -1269,9 +1252,7 @@ const t = {
         balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Tapha: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Baankii filadhu:</b>", wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>", invite_msg: (l) => `🔗 <b>Afeeri</b>\n\nLachuun keessan Boonasii argattu!\n\n👇 Liinkii Kee:\n${l}`, guide_msg: `📖 <b>Akkaataa Tapha:</b> Sarara guutu BINGO!`, rules_msg: `📜 <b>Seera:</b> Telebirr gara Telebirr QOFA. CBEBirr gara CBEBirr QOFA.`, choose_lang: "Afaan filadhu:", lang_set: "✅ Jijjiirameera!", warn_telebirr: "⚠️ Telebirr gara Telebirr QOFA!\n\n", warn_cbebirr: "⚠️ CBEBirr gara CBEBirr QOFA!\n\n",
         bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Qarshii ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\n<b>Hamma qarshii</b> asitti barreessaa (Fkn: 100):`,
-        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa barreessaa:`, invalid_amt: (min) => `❌ Yoo xiqqaate ${min} ETB:`, 
-        enter_wit_amt: (acc, min) => `✅ Herrega: <b>${acc}</b>\n\nHamma galchaa (Min ${min}):`,
-        insufficient: "❌ Qarshiin ga'aan hin jiru!", wit_success: (amt, acc) => `✅ <b>Ergameera!</b>`,
+        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa barreessaa:`, invalid_amt: (min) => `❌ Yoo xiqqaate ${min} ETB:`, enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma <b>SMS Baankii</b> asitti ergaa:`, dep_success: "✅ <b>Ergameera!</b>", enter_wit_amt: (acc, min) => `✅ Herrega: <b>${acc}</b>\n\nHamma galchaa (Min ${min}):`, insufficient: "❌ Qarshiin ga'aan hin jiru!", wit_success: (amt, acc) => `✅ <b>Ergameera!</b>`,
         play_msg: "BINGO HABESHA irratti taphadhaa, bashannanaa, kumaatama mo'adhaa!\nCarraa Gaarii!"
     },
     ti: {
@@ -1280,8 +1261,7 @@ const t = {
         balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>ባንኪ ምረጽ?</b>", wit_msg: "🏦 <b>ባንኪ ምረጽ?</b>", invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nንስኹም ሆነ ንሱ ፍሉይ ቦነስ ክትረኽቡ ኢኹም!\n\n👇 ሊንክ:\n${l}`, guide_msg: `📖 <b>መምርሒ:</b> ምሉእ መስመር እንተሰሪሖም BINGO!`, rules_msg: `📜 <b>ሕግታት:</b> ካብ ቴሌብር ናብ ቴሌብር ጥራይ። ካብ CBEBirr ናብ CBEBirr ጥራይ።`, choose_lang: "ቋንቋ ምረጹ:", lang_set: "✅ ተቐይሩ ኣሎ!", warn_telebirr: "⚠️ ካብ ቴሌብር ናብ ቴሌብር ጥራይ!\n\n", warn_cbebirr: "⚠️ ካብ CBEBirr ናብ CBEBirr ጥራይ!\n\n",
         bank_info: (method, warning, name, num) => `🏦 ባንኪ: <b>${method}</b>\n\n${warning}ገንዘብ ናብዚ ኣእትዉ:\n👤 ስም: <b>${name}</b>\n👉 ቁጽሪ: <b>${num}</b>\n\n<b>መጠን ገንዘብ</b> ኣብዚ ጽሓፉ (ንኣብነት: 100):`,
-        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\n<b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`, invalid_amt: (min) => `❌ እንተወሓደ ${min} ብር:`, 
-        enter_wit_amt: (acc, min) => `✅ ኣካውንት: <b>${acc}</b>\n\nመጠን ኣእትዉ (Min ${min}):`, insufficient: "❌ እኹል ገንዘብ የለን!", wit_success: (amt, acc) => `✅ <b>ተላኢኹ!</b>`,
+        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\n<b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`, invalid_amt: (min) => `❌ እንተወሓደ ${min} ብር:`, enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nሕጂ <b>ትኽክለኛ SMS</b> ስደዱ፦`, dep_success: "✅ <b>ተላኢኹ!</b>", enter_wit_amt: (acc, min) => `✅ ኣካውንት: <b>${acc}</b>\n\nመጠን ኣእትዉ (Min ${min}):`, insufficient: "❌ እኹል ገንዘብ የለን!", wit_success: (amt, acc) => `✅ <b>ተላኢኹ!</b>`,
         play_msg: "ኣብ ቢንጎ ሓበሻ ጻወቱ፡ ተዘናግዑ፡ ብኣሽሓት ድማ ዕወቱ!\nሰናይ ዕድል!"
     }
 };
@@ -1402,17 +1382,11 @@ bot.on('message', async (msg) => {
         state.step = 'idle';
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
-    // 🔥 የተስተካከለ፡ 2 ሊንክ ለፕሮሞተር፣ 1 ሊንክ ለኖርማል ጋባዥ እና ትክክለኛ የጋበዘው ሰው ቆጠራ 🔥
-    // 🔥 የተስተካከለ፡ የሰዎች ዳታ ቢጠፋም የጋባዡ ቁጥር በፍፁም እንዳይጠፋ የተደረገ 🔥
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         
-        // ⚠️ ትልቁ ማስተካከያ፡ ዳታቤዝ ውስጥ ያሉትን ከመቁጠር ይልቅ፣ ፕሮፋይሉ ላይ ያለውን ቋሚ ቁጥር እንጠቀማለን!
-        // ይህ ማለት እርስዎ (አድሚን) የድሮ ሰዎችን ከሲስተሙ ቢያጠፉም የጋባዡ ቁጥር አይቀንስም።
         let actualInvites = user.totalInvites || 0; 
-        
-        // የተጠቃሚውን Play Balance አይነካም። ለዕይታ ብቻ!
         let displayEarned = actualInvites * GLOBAL_SETTINGS.inviteBonus;
 
         if (user.isPromoter) {
@@ -1474,8 +1448,8 @@ bot.on('message', async (msg) => {
     } 
     
     else if (state.step === 'awaiting_dep_amt') {
-        state.amount = parseFloat(text); if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt, cancelKeyboard(ln));
-        bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone, GLOBAL_SETTINGS.minWithdrawAmount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
+        state.amount = parseFloat(text); if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt(50), cancelKeyboard(ln));
+        bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
     } 
     else if (state.step === 'awaiting_dep_sms') {
         if(user) { 
@@ -1491,13 +1465,14 @@ bot.on('message', async (msg) => {
         state.step = 'idle';
     } 
     else if (state.step === 'awaiting_wit_acc') {
-        state.destinationPhone = text.trim(); bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_wit_amt';
+        state.destinationPhone = text.trim(); 
+        // 🔥 Dynamic Admin Limit Check applied here 🔥
+        bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_wit_amt';
     }
     else if (state.step === 'awaiting_wit_amt') {
         state.amount = parseFloat(text); 
-if(isNaN(state.amount) || state.amount < GLOBAL_SETTINGS.minWithdrawAmount) {
-    return bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone, GLOBAL_SETTINGS.minWithdrawAmount), { parse_mode: "HTML", ...cancelKeyboard(ln) });
-}
+        // 🔥 Dynamic Admin Limit Check applied here 🔥
+        if(isNaN(state.amount) || state.amount < GLOBAL_SETTINGS.minWithdrawLimit) return bot.sendMessage(chatId, ln.invalid_amt(GLOBAL_SETTINGS.minWithdrawLimit), cancelKeyboard(ln));
         if(user) {
             if(user.mainBalance < state.amount) return bot.sendMessage(chatId, ln.insufficient, { ...getMainMenu(user) });
             user.mainBalance -= state.amount; await user.save(); await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: `Transfer to: ${state.destinationPhone}` }).save();
@@ -1517,7 +1492,7 @@ bot.on('callback_query', async (query) => {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
         if (!activeBonus) return bot.answerCallbackQuery(query.id, { text: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!", show_alert: true });
-        if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
+        if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው 코ታ ሞልቷል።", show_alert: true });
         if (activeBonus.claimedBy.includes(user.phone)) return bot.answerCallbackQuery(query.id, { text: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!", show_alert: true });
         activeBonus.claimedBy.push(user.phone); activeBonus.currentClaims += 1; await activeBonus.save(); user.playBalance += activeBonus.amount; await user.save();
         io.emit('balance_updated', user.phone); return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
@@ -1536,7 +1511,8 @@ bot.on('callback_query', async (query) => {
         state.method = data.split('_')[1]; 
         state.destinationPhone = user.phone; 
         state.step = 'awaiting_wit_amt'; 
-        bot.sendMessage(chatId, ln.enter_wit_amt(user.phone), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
+        // 🔥 Dynamic Admin Limit Check applied here 🔥
+        bot.sendMessage(chatId, ln.enter_wit_amt(user.phone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
     }
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
 });
@@ -1931,6 +1907,7 @@ app.get('*', (req, res) => {
     if (fs.existsSync(target)) {
         let html = fs.readFileSync(target, 'utf8');
         
+        // 🔥 ምንም የfront-end ፋይል ሳልነካ Withdraw input placeholder በአድሚኑ በሚቀየረው ልክ በራሱ እንዲቀየር የሚያደርግ ኮድ 🔥
         let maintenanceScript = `
         <style>
             #dynamic-maintenance {
@@ -1985,6 +1962,19 @@ app.get('*', (req, res) => {
                         } else {
                             document.body.classList.remove('paused-mode');
                             document.getElementById('dynamic-maintenance').style.display = 'none';
+                        }
+
+                        // 🔥 DYNAMIC WITHDRAW LIMIT PLACEHOLDER CHANGER 🔥
+                        if (data.minWithdrawLimit) {
+                            let witInputs = document.querySelectorAll('input[type="number"]');
+                            witInputs.forEach(input => {
+                                let ph = input.getAttribute('placeholder') || '';
+                                if (ph.includes('ቢያንስ') || ph.includes('Min')) {
+                                    if (ph.includes('ብር') || ph.includes('ETB')) {
+                                        input.setAttribute('placeholder', 'የብር መጠን (ቢያንስ ' + data.minWithdrawLimit + ' ብር)');
+                                    }
+                                }
+                            });
                         }
                     });
 
