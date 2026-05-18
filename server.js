@@ -789,7 +789,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
     
-    // 🔥 አዳዲሶቹ ማስተካከያዎች 🔥
     if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
     if(req.body.forcedWinnerPhones !== undefined) s.forcedWinnerPhones = req.body.forcedWinnerPhones;
 
@@ -965,7 +964,7 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
-// 🔥 ጌሙን (አሸናፊውን) የመቆጣጠሪያ ሲስተም (Forced Winning Logic) 🔥
+// 🔥 100% አስተማማኝ የሆነው ጌሙን የመቆጣጠሪያ ሲስተም (Forced Winning Logic) 🔥
 function getRiggedSequence(baseSequence) {
     if (!GLOBAL_SETTINGS.forcedWinnerPhones || GLOBAL_SETTINGS.forcedWinnerPhones.trim() === "") {
         return baseSequence; 
@@ -991,6 +990,7 @@ function getRiggedSequence(baseSequence) {
     let targetTicket = targetPlayer.ticketsData[Math.floor(Math.random() * targetPlayer.ticketsData.length)];
 
     // በመሀል በኩል አሸናፊ እናደርገዋለን (ምክንያቱም FREE ስላለው የሚያስፈልገው 4 ቁጥር ብቻ ነው)
+    // እና እነዚህ 4 ቁጥሮች ቀድመው እንዲወጡ እናደርጋለን
     let neededNumbers = [
         targetTicket.grid[0][2],
         targetTicket.grid[1][2],
@@ -998,13 +998,15 @@ function getRiggedSequence(baseSequence) {
         targetTicket.grid[4][2]
     ];
 
-    // እነዚህን 4 ቁጥሮች ከኖርማሉ ዕጣ ውስጥ እናወጣቸዋለን
+    // እነዚህን 4 ቁጥሮች ከኖርማሉ ዕጣ ውስጥ እናወጣቸዋለን (በድጋሚ እንዳይገቡ)
     let pool = baseSequence.filter(n => !neededNumbers.includes(n));
     
+    // በዕጣው ውስጥ የፈለግነውን ቁጥር የምናስገባበትን ቦታዎች እንመርጣለን
     let finalSequence = [];
     let winIndex = 0;
 
-    // አሸናፊው ቶሎ (በ25ኛው ዕጣ አካባቢ) እንዲያሸንፍና ማንም እንዳይቀድመው እናደርጋለን
+    // አሸናፊው ቶሎ (በ25ኛው ዕጣ አካባቢ) እንዲያሸንፍና ሌላ ማንም እንዳይቀድመው 
+    // የተመረጡትን ቁጥሮች በትክክል እናስገባቸዋለን
     let winPositions = [8, 15, 20, 25]; 
 
     for(let i=1; i<=75; i++) {
