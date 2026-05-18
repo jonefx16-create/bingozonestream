@@ -169,7 +169,8 @@ async function autoApprovePendingDeposits() {
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
 
-                    if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
+                    // 🔥 ፕሮሞተር ኮሚሽን የሚያገኘው በ promo_ ሊንክ ከጋበዘ ብቻ ነው 🔥
+                    if(user.referredBy && user.referredViaPromo) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
                             let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
@@ -209,6 +210,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
+// 🔥 WEB API REGISTRATION: PROMOTER 2-LINK LOGIC 🔥
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
@@ -224,22 +226,21 @@ app.post('/api/register', async (req, res) => {
         }
 
         if (cleanRefCode) { 
-            let ref = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
-            if (ref) { 
-                actualRef = ref.phone; 
+            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
+            if (refUser) { 
+                actualRef = refUser.phone;
+                refUser.totalInvites = (refUser.totalInvites || 0) + 1; // ሁሌም የጋበዘውን ሰው ቁጥር 1 ይጨምራል
                 
-                if (isPromoLink && ref.isPromoter) {
-                    // ፕሮሞተር ከሆነ የጋበዘውን ቁጥር ብቻ ይጨምራል
-                    ref.totalInvites = (ref.totalInvites || 0) + 1;
-                    await ref.save();
+                if (isPromoLink && refUser.isPromoter) {
+                    // ፕሮሞተር ከሆነና በ promo_ ከተመዘገበ Play Balance አይሰጠውም (በኋላ ላይ ኮሚሽን ያገኛል)
+                    await refUser.save();
                 } else {
-                    // ኖርማል ሰው ከሆነ ቦነሱን ይጨምርለታል
-                    ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
-                    ref.totalInvites = (ref.totalInvites || 0) + 1;
-                    ref.inviteBonusEarned = (ref.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
-                    await ref.save(); 
-                    io.emit('balance_updated', ref.phone); 
-                    isPromoLink = false; 
+                    // ኖርማል ጋባዥ ከሆነ ወይም ፕሮሞተር ሆኖ በኖርማል ሊንክ ከጋበዘ ወዲያውኑ Play Balance ያገኛል
+                    refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                    refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
+                    await refUser.save(); 
+                    io.emit('balance_updated', refUser.phone); 
+                    isPromoLink = false; // ለኖርማል ጋባዥ በስህተት ኮሚሽን እንዳይሰራበት
                 }
             } 
         }
@@ -384,6 +385,7 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+
 // 🟢 FAST SERVER-SIDE PAGINATION ENDPOINTS (FIXES SERVER CRASH) 🟢
 
 app.post('/api/admin/users', auth, async (req, res) => {
@@ -399,7 +401,33 @@ app.post('/api/admin/users', auth, async (req, res) => {
         let total = await User.countDocuments(query);
         let users = await User.find(query).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit);
 
-        res.json({ success: true, users, total, settings: GLOBAL_SETTINGS });
+        // 🔥 Safe Background Auto-Fix (Prevents Server Crash) 🔥
+        let phoneList = users.map(u => u.phone);
+        let actualInviteCounts = await User.aggregate([
+            { $match: { referredBy: { $in: phoneList } } },
+            { $group: { _id: "$referredBy", count: { $sum: 1 } } }
+        ]);
+        let inviteMap = {};
+        actualInviteCounts.forEach(i => inviteMap[i._id] = i.count);
+
+        let updatedUsers = [];
+        for (let u of users) {
+            let userObj = u.toObject();
+            let trueCount = inviteMap[userObj.phone] || 0;
+            
+            userObj.totalInvites = Math.max(userObj.totalInvites || 0, trueCount);
+            if (!userObj.isPromoter) {
+                userObj.inviteBonusEarned = Math.max(userObj.inviteBonusEarned || 0, trueCount * GLOBAL_SETTINGS.inviteBonus);
+            }
+            updatedUsers.push(userObj);
+            
+            // Background save logic
+            if ((u.totalInvites || 0) < trueCount || (!u.isPromoter && (u.inviteBonusEarned || 0) < (trueCount * GLOBAL_SETTINGS.inviteBonus))) {
+                User.updateOne({ phone: u.phone }, { $set: { totalInvites: userObj.totalInvites, inviteBonusEarned: userObj.inviteBonusEarned } }).exec();
+            }
+        }
+
+        res.json({ success: true, users: updatedUsers, total, settings: GLOBAL_SETTINGS });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -572,7 +600,7 @@ app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
         let promoters = await User.find({ isPromoter: true });
         let data = [];
         for (let p of promoters) {
-            let refUsers = await User.find({ referredBy: p.phone });
+            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
             let refPhones = refUsers.map(u => u.phone);
             let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
 
@@ -609,7 +637,7 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
         if(!p) return res.json({ success: false });
 
-        let refUsers = await User.find({ referredBy: p.phone });
+        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
         let details = [];
         for(let u of refUsers) {
             let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
@@ -673,7 +701,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             user.playBalance += totalCredit;
             user.totalDeposited += actualAmount;
 
-            if(user.referredBy && user.referredBy.trim() !== "") {
+            if(user.referredBy && user.referredViaPromo) {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
                     let commission = actualAmount * (promoter.promoterPercent / 100);
@@ -1231,20 +1259,21 @@ bot.on('contact', async (msg) => {
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
                 if (refUser) { 
                     actualRef = refUser.phone;
-                    if(!refUser.isPromoter || !isPromoLink) {
+                    if (isPromoLink && refUser.isPromoter) {
+                        refUser.totalInvites = (refUser.totalInvites || 0) + 1;
+                        await refUser.save();
+                    } else {
                         refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                         refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                         refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
                         await refUser.save(); 
                         io.emit('balance_updated', refUser.phone);
-                    } else {
-                        refUser.totalInvites = (refUser.totalInvites || 0) + 1;
-                        await refUser.save();
+                        isPromoLink = false; 
                     }
                 } 
             }
             let myRefCode = generateRefCode();
-            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
+            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
             const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -1307,25 +1336,29 @@ bot.on('message', async (msg) => {
         state.step = 'idle';
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
-    // 🔥 የተስተካከለ፡ የጋበዘውን ሰው እና ያገኘውን ብር በትክክል ያሳያል፣ ፕሮሞተር እና ኖርማል ሊንክም ይለያል 🔥
+    // 🔥 የተስተካከለ፡ 2 ሊንክ ለፕሮሞተር፣ 1 ሊንክ ለኖርማል ጋባዥ እና ትክክለኛ የጋበዘው ሰው ቆጠራ 🔥
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         
-        let inviteCount = await User.countDocuments({ referredBy: user.phone });
+        let actualInvites = await User.countDocuments({ referredBy: user.phone });
         let earned = user.inviteBonusEarned || 0;
         
-        // ⭐️ ፕሮሞተር ከሆነ ሊንኩ ራሱ ላይ promo_ ያደርግለታል ⭐️
-        let prefix = user.isPromoter ? "promo_" : "";
-        let inviteLink = `https://t.me/bingo_habesha_bot?start=${prefix}${user.refCode}`;
-        
-        let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${inviteCount} ሰው\n🎁 <b>ያገኙት ቦነስ (Earned):</b> ${earned} ETB`;
-        
         if (user.isPromoter) {
-            statsText = `\n\n🌟 <b>እርስዎ ልዩ አስተዋዋቂ ነዎት!</b>\n👥 <b>ያመጡት ሰው (Invited):</b> ${inviteCount} ሰው\n\n(ኮሚሽንዎን ለማየት 'ድርጅቱን አስተዋውቅ' / Promoter ዳሽቦርድ ውስጥ ይግቡ)`;
+            let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
+            let promoLink = `https://t.me/bingo_habesha_bot?start=promo_${user.refCode}`;
+
+            let msg = `📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>ያመጡት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>የጋባዥ ቦነስ (Bonus Earned):</b> ${earned} ETB\n\n`;
+            msg += `🌟 <b>እርስዎ ልዩ አስተዋዋቂ ነዎት! ከታች 2 አይነት ሊንክ አለዎት፡</b>\n\n`;
+            msg += `1️⃣ <b>የመጫወቻ ቦነስ ማግኛ ሊንክ (Normal Link):</b>\nይህንን ለሰው ሲልኩ፣ ሰውየው ሲገባ እርስዎ ወዲያውኑ የመጫወቻ ቦነስ ያገኛሉ። (ሰውየው ብር ቢያስገባ ግን ፐርሰንት የለዎትም)\n👇\n${normalLink}\n\n`;
+            msg += `2️⃣ <b>የኮሚሽን ማግኛ ሊንክ (Promoter Link):</b>\nይህንን ለሰው ሲልኩ ወዲያውኑ የመጫወቻ ቦነስ አያገኙም፣ ነገር ግን ሰውየው ብር ሲያስገባ እርስዎ የገንዘብ ፐርሰንት (ኮሚሽን) ያገኛሉ።\n👇\n${promoLink}`;
+
+            bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
+        } else {
+            let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
+            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>ያገኙት ቦነስ (Bonus Earned):</b> ${earned} ETB`;
+            bot.sendMessage(chatId, ln.invite_msg(normalLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         }
-        
-        bot.sendMessage(chatId, ln.invite_msg(inviteLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
     else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
@@ -1650,7 +1683,6 @@ app.get('/promoter', async (req, res) => {
     let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
     let myCode = user.refCode ? user.refCode : user.phone;
-    // 🔥 PROMOTER LINK ALWAYS HAS PROMO_ 🔥
     let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
 
     let lang = user.language || 'am';
@@ -1659,7 +1691,7 @@ app.get('/promoter', async (req, res) => {
         am: {
             dash: "📊 ዳሽቦርድ (Dashboard)",
             brought: "👥 ያመጧቸው (Total)", active: "✅ ገቢ ያደረጉ (Active)", bal: "💰 ሂሳብ (Balance)", earned: "🎁 የተሰበሰበ ኮሚሽን",
-            perc: "📈 የኮሚሽን መጠንዎ", link_title: "🔗 መጋበዣ ሊንክ (Share Link):", copy_hint: "📋 ይጫኑ ኮፒ ለማድረግ", copied: "✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!",
+            perc: "📈 የኮሚሽን መጠንዎ", link_title: "🔗 ኮሚሽን ማግኛ ሊንክ (Promo Link):", copy_hint: "📋 ይጫኑ ኮፒ ለማድረግ", copied: "✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!",
             wit_title: "💸 ኮሚሽን ወጪ ማድረጊያ", wit_desc: "ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ",
             amt_ph: "የብር መጠን (ቢያንስ 1000 ብር)", acc_ph: "የባንክ አካውንት (ወይም ስልክ)", btn_wit: "ወጪ አድርግ (Withdraw)",
             wait: "እባክዎ ይጠብቁ...", alert_fill: "እባክዎ መረጃውን በትክክል ይሙሉ!", err_conn: "ግንኙነት ተቋርጧል",
