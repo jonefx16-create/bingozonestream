@@ -31,7 +31,6 @@ const User = mongoose.model('User', new mongoose.Schema({
     name: String, 
     password: { type: String, required: true },
     referredBy: { type: String, default: "" }, 
-    referredViaPromo: { type: Boolean, default: false }, 
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
@@ -40,7 +39,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
     
-    // 🔥 PROMOTER FIELDS
+    // 🔥 PROMOTER FIELDS 🔥
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
     promoterEarned: { type: Number, default: 0 },
@@ -48,7 +47,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
     promoterCommissionGenerated: { type: Number, default: 0 },
     
-    // 🔥 NEW: Track how many invites we already paid them for
+    // 🔥 Used for admin fixes if needed
+    referredViaPromo: { type: Boolean, default: false }, 
     compensatedInvites: { type: Number, default: 0 }
 }));
 
@@ -165,7 +165,8 @@ async function autoApprovePendingDeposits() {
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
 
-                    if(user.referredBy && user.referredViaPromo) {
+                    // 🔥 Restored V1 logic for accurate promoter commission 🔥
+                    if(user.referredBy && user.telegramId && user.telegramId.trim() !== "") {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
                             let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
@@ -205,37 +206,30 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
+// 🔥 Restored exactly to V1 Logic for proper Invite processing 🔥
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
-        
         let actualRef = "";
-        let cleanRefCode = refCode || "";
-        let isPromoLink = false;
         
+        let cleanRefCode = refCode || "";
         if (cleanRefCode.startsWith('promo_')) {
             cleanRefCode = cleanRefCode.replace('promo_', '');
-            isPromoLink = true;
         }
 
         if (cleanRefCode) { 
-            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
-            if (refUser) { 
-                actualRef = refUser.phone;
-                if (isPromoLink && refUser.isPromoter) {
-                    // Promoter logic handles % later
-                } else {
-                    refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
-                    refUser.compensatedInvites = (refUser.compensatedInvites || 0) + 1; // Track paid invite
-                    await refUser.save(); 
-                    io.emit('balance_updated', refUser.phone); 
-                    isPromoLink = false; 
+            let ref = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
+            if (ref) { 
+                if(!ref.isPromoter) {
+                    ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                    await ref.save(); io.emit('balance_updated', ref.phone); 
                 }
+                actualRef = ref.phone; 
             } 
         }
         let myRefCode = generateRefCode();
-        await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
+        await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -365,6 +359,17 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
+// 🟢 Restored Missing Finance Raw Data Endpoint (Fixes Finance Page Issue) 🟢
+app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
+    try {
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } });
+        let games = await GameHistory.find();
+        let bonuses = await ActiveBonus.find();
+        let users = await User.find({}, 'mainBalance playBalance'); 
+        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
 // 🟢 SERVER-SIDE PAGINATION ENDPOINTS TO FIX OOM (MEMORY CRASH) 🟢
 
 // 1. Users (Paginated)
@@ -462,15 +467,14 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     });
 });
 
-// 6. Referral Data Aggregation (To avoid Memory Crash)
+// 6. Referral Data Aggregation (Restored V1 logic logic)
 app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
         let search = req.body.search || '';
 
-        // Match only normal invites (not promo)
-        let matchStage = { referredBy: { $ne: "" }, referredViaPromo: false };
+        let matchStage = { referredBy: { $ne: "" } };
         
         let pipeline = [
             { $match: matchStage },
@@ -493,11 +497,9 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
     }
 });
 
-// 7. Fix Missing Invite Bonuses Endpoint
 app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
     try {
-        // Find all normal invites
-        let users = await User.find({ referredBy: { $ne: "" }, referredViaPromo: false });
+        let users = await User.find({ referredBy: { $ne: "" } });
         let inviteCounts = {};
         
         users.forEach(u => {
@@ -509,7 +511,7 @@ app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
 
         for (let phone in inviteCounts) {
             let actualInvites = inviteCounts[phone];
-            let referrer = await User.findOne({ phone: phone });
+            let referrer = await User.findOne({ phone: phone, isPromoter: false }); // Do not pay promoters via invite bonus
             
             if (referrer) {
                 let paidSoFar = referrer.compensatedInvites || 0;
@@ -558,12 +560,13 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 Restored Promoter accurate data retrieval logic from V1 🔥
 app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
     try {
         let promoters = await User.find({ isPromoter: true });
         let data = [];
         for (let p of promoters) {
-            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
+            let refUsers = await User.find({ referredBy: p.phone });
             let refPhones = refUsers.map(u => u.phone);
             let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
 
@@ -595,12 +598,13 @@ app.post('/api/admin/set-promoter', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
+// 🔥 Restored logic from V1 🔥
 app.post('/api/admin/promoter-details', auth, async (req, res) => {
     try {
         let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
         if(!p) return res.json({ success: false });
 
-        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
+        let refUsers = await User.find({ referredBy: p.phone });
         let details = [];
         for(let u of refUsers) {
             let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
@@ -644,6 +648,7 @@ app.post('/api/admin/delete-old-history', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 Restored V1 logic for accurate promoter commission generation 🔥
 app.post('/api/admin/action-tx', auth, async (req, res) => {
     const tx = await Transaction.findById(req.body.txId); const user = await User.findOne({phone: tx.phone});
     if (req.body.action === 'Approve') { 
@@ -664,7 +669,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             user.playBalance += totalCredit;
             user.totalDeposited += actualAmount;
 
-            if(user.referredBy && user.referredViaPromo) {
+            if(user.referredBy && user.referredBy.trim() !== "") {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
                     let commission = actualAmount * (promoter.promoterPercent / 100);
@@ -1203,6 +1208,7 @@ bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
     }
 });
 
+// 🔥 Restored V1 exactly so all players get their invite bonus accurately 🔥
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id; let phone = msg.contact.phone_number;
     if (phone.startsWith('251')) phone = '0' + phone.substring(3); if (phone.startsWith('+251')) phone = '0' + phone.substring(4);
@@ -1211,29 +1217,24 @@ bot.on('contact', async (msg) => {
         if (!user) {
             let actualRef = "";
             let cleanRefCode = state.refCode || "";
-            let isPromoLink = false;
 
             if (cleanRefCode.startsWith('promo_')) { 
                 cleanRefCode = cleanRefCode.replace('promo_', ''); 
-                isPromoLink = true;
             }
 
             if (cleanRefCode) { 
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
                 if (refUser) { 
-                    actualRef = refUser.phone;
-                    if (isPromoLink && refUser.isPromoter) {
-                    } else {
+                    if(!refUser.isPromoter) {
                         refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
-                        refUser.compensatedInvites = (refUser.compensatedInvites || 0) + 1; // Track paid invite
                         await refUser.save(); 
                         io.emit('balance_updated', refUser.phone);
-                        isPromoLink = false; 
                     }
+                    actualRef = refUser.phone;
                 } 
             }
             let myRefCode = generateRefCode();
-            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
+            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
             const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -1600,19 +1601,20 @@ app.get('/guide', (req, res) => {
     res.send(html);
 });
 
+// 🔥 Restored Promoter link to match V1 precisely 🔥
 app.get('/promoter', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
     let user = await User.findOne({ phone, password: pass });
     if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ Unauthorized / የተፈቀደ አስተዋዋቂ አይደሉም!</h1>");
 
-    let referredUsers = await User.find({ referredBy: user.phone, referredViaPromo: true });
+    let referredUsers = await User.find({ referredBy: user.phone });
     let activeDepositedUsers = referredUsers.filter(u => u.totalDeposited > 0).length;
 
     let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
     
     let myCode = user.refCode ? user.refCode : user.phone;
-    let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
+    let link = `https://t.me/bingo_habesha_bot?start=${myCode}`;
 
     let lang = user.language || 'am';
     
