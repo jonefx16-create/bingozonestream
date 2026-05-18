@@ -135,7 +135,6 @@
         
         <button class="nav-btn" onclick="switchTab('tab-promoters', this); loadPromoters();" style="color:var(--cyan);"><div>📈 Promoters (አስተዋዋቂዎች)</div></button>
         
-        <!-- 🔥 Invite & Earn Menu 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-referral', this); loadRefPage(1);"><div>🤝 Invite & Earn (ጋባዦች)</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
@@ -294,7 +293,7 @@
             </div>
         </div>
 
-        <!-- 🔥 PROMOTERS TAB 🔥 -->
+        <!-- PROMOTERS TAB -->
         <div id="tab-promoters" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--red); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--red);">📤 Pending Promoter Withdrawals (የአስተዋዋቂዎች ወጪ ጥያቄ)</h3>
@@ -326,7 +325,7 @@
             </div></div>
         </div>
 
-        <!-- 🔥 REFERRALS (Invite & Earn) 🔥 -->
+        <!-- REFERRALS (Invite & Earn) -->
         <div id="tab-referral" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
                 <h3 style="color:var(--gold); margin-top:0;">🔧 Fix Missing Invite Bonuses</h3>
@@ -501,7 +500,14 @@
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
 
                     <label style="font-weight:bold; color:var(--purple);">🔢 Max Tickets per user</label>
-                    <div style="display:flex; gap:10px;"><input type="number" id="set-max-tickets" placeholder="e.g. 4"><button class="action-btn" onclick="updateSettings('maxtickets')">Save</button></div>
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-max-tickets" placeholder="e.g. 4"><button class="action-btn" onclick="updateSettings('maxtickets')">Save</button></div>
+                    
+                    <!-- 🔥 አዲሱ Minimum Withdraw ማስተካከያ እዚህ ገብቷል 🔥 -->
+                    <label style="font-weight:bold; color:var(--red);">📤 Minimum Withdraw (ETB)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="set-min-withdraw" placeholder="e.g. 50">
+                        <button class="action-btn" onclick="updateSettings('minwithdraw')">Save</button>
+                    </div>
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
@@ -607,7 +613,6 @@
     </div>
 </div>
 
-<!-- 🔥 User Info & Transactions Modal 🔥 -->
 <div class="modal" id="user-info-modal">
     <div class="modal-content" style="max-width: 700px; text-align: left;">
         <h3 style="color: var(--cyan); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">👤 User Information & History</h3>
@@ -631,7 +636,6 @@
     </div>
 </div>
 
-<!-- 🔥 Add the Invited People Modal Here 🔥 -->
 <div class="modal" id="invited-modal">
     <div class="modal-content" style="max-width: 450px;">
         <h3 style="color: var(--purple); margin-top:0; text-align: center;">👥 People Invited By This User</h3>
@@ -700,7 +704,6 @@
             sysSettings = data.settings;
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
             
-            // 🔥 UPDATE NEW DAILY, WEEKLY, MONTHLY BOXES 🔥
             if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
             if (document.getElementById('u-weekly')) document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US');
             if (document.getElementById('u-monthly')) document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
@@ -725,6 +728,9 @@
                 document.getElementById('set-price').value = data.settings.ticketPrice || 10;
                 document.getElementById('set-timer').value = data.settings.gameTimer || 40;
                 document.getElementById('set-max-tickets').value = data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4;
+                // 🔥 Admin Panel UI Value Set for Minimum Withdraw
+                document.getElementById('set-min-withdraw').value = data.settings.minWithdrawAmount !== undefined ? data.settings.minWithdrawAmount : 50;
+                
                 document.getElementById('set-admin-profit').value = data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15;
                 document.getElementById('set-reg-bonus').value = data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10;
                 document.getElementById('set-inv-bonus').value = data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10;
@@ -938,7 +944,6 @@
         }
     }
     
-    // 🔥 NEW: LOAD REFERRAL PAGE (የተስተካከለ) 🔥
     async function loadRefPage(page) {
         p_ref = page;
         let search = document.getElementById('search-ref').value.trim();
@@ -964,7 +969,6 @@
         }
     }
 
-    // 🔥 NEW: FETCH AND SHOW SPECIFIC INVITED PEOPLE IN MODAL 🔥
     async function showInvitedUsers(phone) {
         document.getElementById('inviter-phone').innerText = phone;
         document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:gray;">Loading...</div>`;
@@ -1058,7 +1062,6 @@
         if(type === 'history') loadHistoryPage(p_hist); else loadTxPage(p_tx);
     }
 
-    // 🔥 የተስተካከለው የቅርብ ሰዓት የማያጠፋው ኮድ 🔥
     async function deleteOldGames() {
         if(!confirm("⚠️ እርግጠኛ ነዎት ከ 6 ሰዓት በፊት የተጫወቱትን ጌሞች ከዳታቤዝ ላይ ሙሉ በሙሉ ማጥፋት ይፈልጋሉ? (የቅርብ 6 ሰዓቶቹ አይጠፉም)")) return;
         try {
@@ -1334,6 +1337,14 @@
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
         if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
         if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
+        
+        // 🔥 አዲሱ Minimum Withdraw ማስተካከያ ኮድ
+        if(type === 'minwithdraw') { 
+            let mw = document.getElementById('set-min-withdraw').value; 
+            if(!mw || mw < 1) return alert("Enter valid minimum amount!"); 
+            payload.minWithdrawAmount = Number(mw); 
+        }
+
         if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
         if(type === 'dep_bonus') {
             let isRestricted = document.getElementById('set-dep-time-restrict').checked; let mAmt = document.getElementById('set-dep-min').value; let mPer = document.getElementById('set-dep-perc').value; let start = document.getElementById('set-dep-start').value; let end = document.getElementById('set-dep-end').value;
@@ -1357,6 +1368,6 @@
     async function deleteLastTelegramPromo() { if(!confirm("Are you sure?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
 </script>
 </body>
-</html
+</html>
 
 
