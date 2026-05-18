@@ -502,30 +502,51 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     });
 });
 
+// 🔥 1. ትክክለኛውን የጋባዦች ቁጥር እና ያገኙትን ብር የሚያወጣው የተስተካከለ ኮድ 🔥
 app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
         let search = req.body.search || '';
 
-        let matchStage = { referredBy: { $ne: "" } };
-        
-        let pipeline = [
-            { $match: matchStage },
-            { $group: { _id: "$referredBy", count: { $sum: 1 } } },
-            { $sort: { count: -1 } }
-        ];
-
-        let results = await User.aggregate(pipeline);
+        // ጋብዘው የሚያውቁ ሰዎችን ብቻ እንፈልጋለን
+        let query = { totalInvites: { $gt: 0 } };
 
         if (search) {
-            results = results.filter(r => r._id.includes(search));
+            query.phone = new RegExp(search, 'i');
         }
 
-        let total = results.length;
-        let paginated = results.slice((page - 1) * limit, page * limit);
+        let total = await User.countDocuments(query);
+        // ብዙ የጋበዙት ከላይ እንዲመጡ እናደርጋለን
+        let referrers = await User.find(query)
+            .sort({ totalInvites: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
 
-        res.json({ success: true, referrals: paginated, total });
+        let mappedData = referrers.map(r => ({
+            _id: r.phone,
+            count: r.totalInvites, // 🔥 ትክክለኛው 20 ያመጣውን 20 ይለዋል
+            earned: r.inviteBonusEarned // 🔥 ትክክለኛው የተከፈለው/ያገኘው ብር
+        }));
+
+        res.json({ success: true, referrals: mappedData, total });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// 🔥 2. የጋበዟቸውን ሰዎች ዝርዝር (ስም እና ስልክ) ለማየት የሚረዳው አዲሱ ኮድ 🔥
+app.post('/api/admin/referral-details', auth, async (req, res) => {
+    try {
+        // ጋባዡን (referredBy) በመጠቀም አሁን ዳታቤዝ ላይ ያሉትን ያመጣቸዉን ሰዎች ይፈልጋል
+        let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 });
+        
+        let mappedUsers = users.map(u => ({
+            name: u.name,
+            phone: u.phone,
+            date: u._id.getTimestamp()
+        }));
+        res.json({ success: true, users: mappedUsers });
     } catch(e) {
         res.json({ success: false });
     }
