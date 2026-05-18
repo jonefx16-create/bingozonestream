@@ -502,15 +502,15 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     });
 });
 
-// 🔥 አድሚን ፓነል ላይ የጋባዦችን ትክክለኛ ቁጥር እና ያገኙትን ብር የሚያወጣ ኮድ 🔥
+// 🔥 1. ትክክለኛውን የጋባዦች ቁጥር እና ያገኙትን ብር የሚያወጣው የተስተካከለ ኮድ 🔥
 app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
         let search = req.body.search || '';
 
-        // ጋብዘው የሚያውቁ (ቢያንስ 1 ሰው ያመጡ) ሰዎችን ብቻ እንፈልጋለን
-        let query = { totalInvites: { $gt: 0 } };
+        // ጋብዘው የሚያውቁ (ቢያንስ 1 ሰው ያመጡ ወይም ቦነስ ያገኙ)
+        let query = { $or: [{ totalInvites: { $gt: 0 } }, { inviteBonusEarned: { $gt: 0 } }] };
 
         if (search) {
             query.phone = new RegExp(search, 'i');
@@ -525,10 +525,17 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
 
         let mappedData = referrers.map(r => {
             let actualInvites = r.totalInvites || 0;
+            // ⚠️ የቦነስ መጠኑ ካልተገኘ (Undefined ከሆነ) በ 10 ብር እንዲያባዛ መተማመኛ አድርገናል
+            let bonusAmount = GLOBAL_SETTINGS.inviteBonus || 10; 
+
+            let expectedEarned = actualInvites * bonusAmount;
+            let alreadyEarned = r.inviteBonusEarned || 0;
+
             return {
-                _id: r.phone, // የሰውየው ስልክ
-                count: actualInvites, // ⚠️ ያልተሰረዘው ቋሚ ያመጣው ሰው ብዛት
-                earned: actualInvites * GLOBAL_SETTINGS.inviteBonus // ⚠️ ያመጣው ሰው ሲባዛ በቦነሱ (ያገኘው ብር)
+                _id: r.phone,
+                count: actualInvites,
+                // የትኛውም ትልቅ ቢሆን እሱን ያሳያል (የጠፋ ዳታ ቢኖር እንኳን አይቀንስም)
+                earned: Math.max(expectedEarned, alreadyEarned)
             };
         });
 
