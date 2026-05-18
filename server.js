@@ -58,7 +58,8 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: String, type: String, amount: Number, method: String, status: { type: String, default: 'Pending' }, date: { type: Date, default: Date.now }, smsText: {type: String, default: ""},
-    txRef: { type: String, default: "" }
+    txRef: { type: String, default: "" },
+    hiddenFromAdmin: { type: Boolean, default: false } // 🔥 ይሄ አዲስ የተጨመረ ነው (ከአድሚን ለመደበቅ)
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -431,10 +432,11 @@ app.post('/api/admin/users', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 አድሚን ፓነል ላይ የተደበቁትን ትራንዛክሽኖች እንዳያሳይ 🔥
 app.post('/api/admin/transactions', auth, async (req, res) => {
     try {
         if (req.body.isPending) {
-            let txs = await Transaction.find({ status: 'Pending' }).sort({ date: -1 });
+            let txs = await Transaction.find({ status: 'Pending', hiddenFromAdmin: { $ne: true } }).sort({ date: -1 });
             return res.json({ success: true, txs });
         }
         let page = parseInt(req.body.page) || 1;
@@ -442,7 +444,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
         let search = req.body.search || '';
         let type = req.body.type || 'deposit';
         
-        let query = {};
+        let query = { hiddenFromAdmin: { $ne: true } }; // የተደበቀውን አታምጣ
         if (type === 'rejected') { query.status = 'Rejected'; } 
         else { query.type = type; query.status = 'Approved'; }
         
@@ -476,7 +478,7 @@ app.post('/api/admin/history', auth, async (req, res) => {
 
 app.post('/api/admin/user-details', auth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ phone: req.body.phone }).sort({ date: -1 }).limit(100);
+        let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
         res.json({ success: true, txs });
     } catch (e) { res.json({ success: false }); }
 });
@@ -611,8 +613,12 @@ app.post('/api/admin/delete-history', auth, async (req, res) => {
     try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
 });
+// 🔥 አድሚን Delete ሲል ከዳታቤዝ አይጠፋም፣ ከአድሚን እይታ ግን ይደበቃል (ለተጠቃሚው ይታያል) 🔥
 app.post('/api/admin/delete-transactions', auth, async (req, res) => {
-    try { await Transaction.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
+    try { 
+        await Transaction.updateMany({ _id: { $in: req.body.ids } }, { hiddenFromAdmin: true }); 
+        res.json({ success: true }); 
+    } 
     catch(e) { res.json({ success: false }); }
 });
 app.post('/api/admin/delete-game-player', auth, async (req, res) => {
