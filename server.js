@@ -217,6 +217,7 @@ app.post('/api/register', async (req, res) => {
         
         let cleanRefCode = refCode || "";
         let isPromoLink = false;
+        
         if (cleanRefCode.startsWith('promo_')) {
             cleanRefCode = cleanRefCode.replace('promo_', '');
             isPromoLink = true;
@@ -226,15 +227,19 @@ app.post('/api/register', async (req, res) => {
             let ref = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
             if (ref) { 
                 actualRef = ref.phone; 
-                if(!ref.isPromoter || !isPromoLink) {
+                
+                if (isPromoLink && ref.isPromoter) {
+                    // ፕሮሞተር ከሆነ የጋበዘውን ቁጥር ብቻ ይጨምራል
+                    ref.totalInvites = (ref.totalInvites || 0) + 1;
+                    await ref.save();
+                } else {
+                    // ኖርማል ሰው ከሆነ ቦነሱን ይጨምርለታል
                     ref.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                     ref.totalInvites = (ref.totalInvites || 0) + 1;
                     ref.inviteBonusEarned = (ref.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
                     await ref.save(); 
                     io.emit('balance_updated', ref.phone); 
-                } else {
-                    ref.totalInvites = (ref.totalInvites || 0) + 1;
-                    await ref.save();
+                    isPromoLink = false; 
                 }
             } 
         }
@@ -369,7 +374,6 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-// 🟢 FIX: LIMITED FINANCE RAW DATA TO PREVENT CRASHING 🟢
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
         let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500);
@@ -380,8 +384,7 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-
-// 🟢 SERVER-SIDE PAGINATION ENDPOINTS & SAFE AUTO FIX LOGIC 🟢
+// 🟢 FAST SERVER-SIDE PAGINATION ENDPOINTS (FIXES SERVER CRASH) 🟢
 
 app.post('/api/admin/users', auth, async (req, res) => {
     try {
@@ -396,33 +399,7 @@ app.post('/api/admin/users', auth, async (req, res) => {
         let total = await User.countDocuments(query);
         let users = await User.find(query).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit);
 
-        // 🔥 Safe Auto-Fix Logic: ONLY calculates for the currently displayed 50 users (Prevents Server Crash)
-        let phoneList = users.map(u => u.phone);
-        let actualInviteCounts = await User.aggregate([
-            { $match: { referredBy: { $in: phoneList } } },
-            { $group: { _id: "$referredBy", count: { $sum: 1 } } }
-        ]);
-        let inviteMap = {};
-        actualInviteCounts.forEach(i => inviteMap[i._id] = i.count);
-
-        let updatedUsers = [];
-        for (let u of users) {
-            let userObj = u.toObject();
-            let trueCount = inviteMap[userObj.phone] || 0;
-            
-            userObj.totalInvites = Math.max(userObj.totalInvites || 0, trueCount);
-            if (!userObj.isPromoter) {
-                userObj.inviteBonusEarned = Math.max(userObj.inviteBonusEarned || 0, trueCount * GLOBAL_SETTINGS.inviteBonus);
-            }
-            updatedUsers.push(userObj);
-            
-            // Background update to database without holding up response
-            if ((u.totalInvites || 0) < trueCount || (!u.isPromoter && (u.inviteBonusEarned || 0) < (trueCount * GLOBAL_SETTINGS.inviteBonus))) {
-                User.updateOne({ phone: u.phone }, { $set: { totalInvites: userObj.totalInvites, inviteBonusEarned: userObj.inviteBonusEarned } }).exec();
-            }
-        }
-
-        res.json({ success: true, users: updatedUsers, total, settings: GLOBAL_SETTINGS });
+        res.json({ success: true, users, total, settings: GLOBAL_SETTINGS });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -1244,15 +1221,17 @@ bot.on('contact', async (msg) => {
             let actualRef = "";
             let cleanRefCode = state.refCode || "";
 
+            let isPromoLink = false;
             if (cleanRefCode.startsWith('promo_')) { 
                 cleanRefCode = cleanRefCode.replace('promo_', ''); 
+                isPromoLink = true;
             }
 
             if (cleanRefCode) { 
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
                 if (refUser) { 
                     actualRef = refUser.phone;
-                    if(!refUser.isPromoter) {
+                    if(!refUser.isPromoter || !isPromoLink) {
                         refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
                         refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                         refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
@@ -1328,16 +1307,23 @@ bot.on('message', async (msg) => {
         state.step = 'idle';
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
-    // 🔥 NEW FEATURE: Show total invites and earned bonus when clicking the invite button 🔥
+    // 🔥 የተስተካከለ፡ የጋበዘውን ሰው እና ያገኘውን ብር በትክክል ያሳያል፣ ፕሮሞተር እና ኖርማል ሊንክም ይለያል 🔥
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         
         let inviteCount = await User.countDocuments({ referredBy: user.phone });
         let earned = user.inviteBonusEarned || 0;
-        let inviteLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
         
-        let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${inviteCount}\n🎁 <b>ያገኙት ቦነስ (Earned):</b> ${earned} ETB`;
+        // ⭐️ ፕሮሞተር ከሆነ ሊንኩ ራሱ ላይ promo_ ያደርግለታል ⭐️
+        let prefix = user.isPromoter ? "promo_" : "";
+        let inviteLink = `https://t.me/bingo_habesha_bot?start=${prefix}${user.refCode}`;
+        
+        let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${inviteCount} ሰው\n🎁 <b>ያገኙት ቦነስ (Earned):</b> ${earned} ETB`;
+        
+        if (user.isPromoter) {
+            statsText = `\n\n🌟 <b>እርስዎ ልዩ አስተዋዋቂ ነዎት!</b>\n👥 <b>ያመጡት ሰው (Invited):</b> ${inviteCount} ሰው\n\n(ኮሚሽንዎን ለማየት 'ድርጅቱን አስተዋውቅ' / Promoter ዳሽቦርድ ውስጥ ይግቡ)`;
+        }
         
         bot.sendMessage(chatId, ln.invite_msg(inviteLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: false, ...getMainMenu(user) }); 
     } 
