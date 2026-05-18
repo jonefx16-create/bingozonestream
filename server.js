@@ -536,21 +536,17 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
 });
 
 // 🔥 2. የጋበዟቸውን ሰዎች ዝርዝር (ስም እና ስልክ) ለማየት የሚረዳው አዲሱ ኮድ 🔥
-app.post('/api/admin/sync-all-referrals', auth, async (req, res) => {
+app.post('/api/admin/referral-details', auth, async (req, res) => {
     try {
-        let users = await User.find({ $or: [{ totalInvites: { $gt: 0 } }, { isPromoter: true }] });
+        // ጋባዡን (referredBy) በመጠቀም አሁን ዳታቤዝ ላይ ያሉትን ያመጣቸዉን ሰዎች ይፈልጋል
+        let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 });
         
-        for (let u of users) {
-            let realCount = await User.countDocuments({ referredBy: u.phone });
-            u.totalInvites = realCount;
-            
-            if (!u.isPromoter) {
-                u.inviteBonusEarned = realCount * GLOBAL_SETTINGS.inviteBonus;
-                u.compensatedInvites = realCount;
-            }
-            await u.save();
-        }
-        res.json({ success: true, message: "✅ የሁሉም ተጫዋቾች ዳታ ከእውነተኛው የሰው ብዛት ጋር 100% ተስተካክሏል!" });
+        let mappedUsers = users.map(u => ({
+            name: u.name,
+            phone: u.phone,
+            date: u._id.getTimestamp()
+        }));
+        res.json({ success: true, users: mappedUsers });
     } catch(e) {
         res.json({ success: false });
     }
@@ -1366,17 +1362,7 @@ bot.on('message', async (msg) => {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         
-        // 🔥 ሲስተሙ ትክክለኛውን የሰው ብዛት አሁን ይቆጥራል 🔥
         let actualInvites = await User.countDocuments({ referredBy: user.phone });
-        
-        // 🔥 የተጠቃሚውን (User) ፕሮፋይል ከእውነታው ጋር ያስተካክላል (Sync ያደርጋል) 🔥
-        user.totalInvites = actualInvites;
-        if (!user.isPromoter) {
-            user.inviteBonusEarned = actualInvites * GLOBAL_SETTINGS.inviteBonus;
-            user.compensatedInvites = actualInvites; 
-        }
-        await user.save(); 
-
         let earned = user.inviteBonusEarned || 0;
         
         if (user.isPromoter) {
