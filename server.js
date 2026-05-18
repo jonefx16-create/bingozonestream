@@ -1358,18 +1358,23 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
     } 
     // 🔥 የተስተካከለ፡ 2 ሊንክ ለፕሮሞተር፣ 1 ሊንክ ለኖርማል ጋባዥ እና ትክክለኛ የጋበዘው ሰው ቆጠራ 🔥
+    // 🔥 የተስተካከለ፡ የሰዎች ዳታ ቢጠፋም የጋባዡ ቁጥር በፍፁም እንዳይጠፋ የተደረገ 🔥
     else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
         
-        let actualInvites = await User.countDocuments({ referredBy: user.phone });
-        let earned = user.inviteBonusEarned || 0;
+        // ⚠️ ትልቁ ማስተካከያ፡ ዳታቤዝ ውስጥ ያሉትን ከመቁጠር ይልቅ፣ ፕሮፋይሉ ላይ ያለውን ቋሚ ቁጥር እንጠቀማለን!
+        // ይህ ማለት እርስዎ (አድሚን) የድሮ ሰዎችን ከሲስተሙ ቢያጠፉም የጋባዡ ቁጥር አይቀንስም።
+        let actualInvites = user.totalInvites || 0; 
         
+        // የተጠቃሚውን Play Balance አይነካም። ለዕይታ ብቻ!
+        let displayEarned = actualInvites * GLOBAL_SETTINGS.inviteBonus;
+
         if (user.isPromoter) {
             let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
             let promoLink = `https://t.me/bingo_habesha_bot?start=promo_${user.refCode}`;
 
-            let msg = `📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>ያመጡት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>የጋባዥ ቦነስ (Bonus Earned):</b> ${earned} ETB\n\n`;
+            let msg = `📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>ያመጡት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>በጋባዥነት ያገኙት (Invite Bonus):</b> ${displayEarned} ETB\n💸 <b>የኮሚሽን ገቢ (Commission):</b> ${(user.promoterEarned || 0).toLocaleString()} ETB\n💰 <b>አሁን ያለው ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB\n\n`;
             msg += `🌟 <b>እርስዎ ልዩ አስተዋዋቂ ነዎት! ከታች 2 አይነት ሊንክ አለዎት፡</b>\n\n`;
             msg += `1️⃣ <b>የመጫወቻ ቦነስ ማግኛ ሊንክ (Normal Link):</b>\nይህንን ለሰው ሲልኩ፣ ሰውየው ሲገባ እርስዎ ወዲያውኑ የመጫወቻ ቦነስ ያገኛሉ። (ሰውየው ብር ቢያስገባ ግን ፐርሰንት የለዎትም)\n👇\n${normalLink}\n\n`;
             msg += `2️⃣ <b>የኮሚሽን ማግኛ ሊንክ (Promoter Link):</b>\nይህንን ለሰው ሲልኩ ወዲያውኑ የመጫወቻ ቦነስ አያገኙም፣ ነገር ግን ሰውየው ብር ሲያስገባ እርስዎ የገንዘብ ፐርሰንት (ኮሚሽን) ያገኛሉ።\n👇\n${promoLink}`;
@@ -1377,7 +1382,7 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         } else {
             let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
-            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>ያገኙት ቦነስ (Bonus Earned):</b> ${earned} ETB`;
+            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>ያገኙት ቦነስ ጠቅላላ (Bonus Earned):</b> ${displayEarned} ETB\n💰 <b>አሁን ያለው መጫወቻ ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB`;
             bot.sendMessage(chatId, ln.invite_msg(normalLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         }
     } 
