@@ -130,7 +130,7 @@
         
         <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Users & Passwords</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this); loadHistoryPage(1);"><div>🏆 Winners History (12h)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (All Time)</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info (12h)</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-promoters', this); loadPromoters();" style="color:var(--cyan);"><div>📈 Promoters (አስተዋዋቂዎች)</div></button>
@@ -201,7 +201,6 @@
         <!-- USERS -->
         <div id="tab-users" class="tab-content">
             <div class="stats-grid" style="margin-bottom: 20px;">
-                <!-- 🔥 Daily, Weekly, Monthly Stats Here 🔥 -->
                 <div class="stat-card" style="border-color: var(--faded-green);"><h3>Daily Active</h3><h2 id="u-daily" style="color:var(--faded-green);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--blue);"><h3>Weekly Active</h3><h2 id="u-weekly" style="color:var(--blue);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
@@ -224,7 +223,7 @@
             </div>
         </div>
 
-        <!-- HISTORY (12 Hours) -->
+        <!-- HISTORY (12 Hours Show, 6 Hours Delete) -->
         <div id="tab-history" class="tab-content">
             <div class="bulk-action-bar" id="bulk-history">
                 <div><span style="font-weight:bold; color:white;">🏆 Winners History Action: </span><span id="sel-count-history" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
@@ -233,7 +232,7 @@
 
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-history" onkeyup="debounceSearch(() => loadHistoryPage(1))" placeholder="🔍 Search Winner Phone or Game ID...">
-                <button class="action-btn btn-red" onclick="deleteOldGames()" style="padding: 10px; margin-left: 10px;">🗑️ Delete Older Than 12 Hours</button>
+                <button class="action-btn btn-red" onclick="deleteOldGames()" style="padding: 10px; margin-left: 10px;">🗑️ የቆዩትን አጥፋ (Delete Older Than 6 Hours)</button>
             </div>
             <div class="card">
                 <div class="table-responsive">
@@ -843,7 +842,7 @@
                 dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName} (${d.toLocaleTimeString()})</option>`; 
             });
             
-            document.getElementById('game-history-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No history found (Last 12 Hours).</td></tr>`;
+            document.getElementById('game-history-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No history found.</td></tr>`;
             document.getElementById('game-details-select').innerHTML = dropHtml;
             document.getElementById('chk-all-history').checked = false;
             
@@ -899,7 +898,7 @@
                     </td>
                 </tr>`;
             });
-            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found (All Time).</td></tr>`;
+            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found.</td></tr>`;
             document.getElementById('chk-all-tx').checked = false;
             
             renderPagination('pag-tx', data.total, p_tx, 'loadTxPage');
@@ -939,7 +938,7 @@
         }
     }
     
-    // 🔥 NEW: LOAD REFERRAL PAGE 🔥
+    // 🔥 NEW: LOAD REFERRAL PAGE (የተስተካከለ) 🔥
     async function loadRefPage(page) {
         p_ref = page;
         let search = document.getElementById('search-ref').value.trim();
@@ -952,10 +951,11 @@
             let html = "";
             let invBonus = sysSettings ? sysSettings.inviteBonus : 10;
             data.referrals.forEach(r => {
+                let displayEarned = r.earned !== undefined ? r.earned : (r.count * invBonus);
                 html += `<tr>
                     <td style="color:var(--cyan); font-weight:bold;">${r._id}</td>
-                    <td>${r.count} People</td>
-                    <td style="color:var(--faded-green); font-weight:bold;">${Number(r.count * invBonus).toLocaleString('en-US')} ETB</td>
+                    <td style="color:white; font-weight:bold; font-size:14px;">${r.count} People</td>
+                    <td style="color:var(--faded-green); font-weight:bold;">${Number(displayEarned).toLocaleString('en-US')} ETB</td>
                     <td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${r._id}')">👁️ የጋበዛቸው ሰዎች (View)</button></td>
                 </tr>`;
             });
@@ -1058,11 +1058,13 @@
         if(type === 'history') loadHistoryPage(p_hist); else loadTxPage(p_tx);
     }
 
+    // 🔥 የተስተካከለው የቅርብ ሰዓት የማያጠፋው ኮድ 🔥
     async function deleteOldGames() {
-        if(!confirm("⚠️ እርግጠኛ ነዎት ከ 12 ሰዓት በፊት የተጫወቱትን ጌሞች ከዳታቤዝ ላይ ሙሉ በሙሉ ማጥፋት ይፈልጋሉ?")) return;
+        if(!confirm("⚠️ እርግጠኛ ነዎት ከ 6 ሰዓት በፊት የተጫወቱትን ጌሞች ከዳታቤዝ ላይ ሙሉ በሙሉ ማጥፋት ይፈልጋሉ? (የቅርብ 6 ሰዓቶቹ አይጠፉም)")) return;
         try {
             await fetch('/api/admin/delete-old-history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
-            alert("✅ የቆዩ ጌሞች በተሳካ ሁኔታ ጠፍተዋል።"); loadHistoryPage(1);
+            alert("✅ ከ 6 ሰዓት በፊት የነበሩ ጌሞች በተሳካ ሁኔታ ጠፍተዋል።"); 
+            loadHistoryPage(1);
         } catch(e) { alert("❌ ማጥፋት አልተቻለም።"); }
     }
 
