@@ -559,7 +559,7 @@
         </div>
     </div>
     <div style="margin-top: 30px; padding: 0 10px;">
-        <h4 id="wal-hist-lbl" style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">የሂሳብ ዝውውር ታሪክ (Approved)</h4>
+        <h4 id="wal-hist-lbl" style="color:var(--text-gray); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">የሂሳብ ዝውውር ታሪክ (History)</h4>
         <div id="wallet-history-list"><p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም / No History</p></div>
     </div>
 </div>
@@ -607,7 +607,6 @@
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📞</span> <span id="prof-help-lbl" style="color:var(--cyan);">እርዳታ ያስፈልጎታል?</span></div><span style="color:var(--cyan)">></span>
         </button>
         
-        <!-- 🔥 አዲሱ የመመሪያ ቁልፍ እዚህ ገብቷል 🔥 -->
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="window.location.href='/guide?lang=' + (document.getElementById('btn-en').style.background === 'white' ? 'en' : 'am')">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📖</span> <span id="prof-guide-lbl">መመሪያ (Guide)</span></div><span style="color:var(--text-gray)">></span>
         </button>
@@ -669,7 +668,7 @@
             if(status.innerText.includes("Starting") || status.innerText.includes("ሊጀምር")) { status.innerText = "ጨዋታው ሊጀምር ነው"; } else if(status.innerText.includes("LIVE") || status.innerText.includes("በመካሄድ")) { status.innerText = "ጨዋታው በመካሄድ ላይ ነው"; }
             
             document.getElementById('nav-txt-home').innerText = "Home"; document.getElementById('nav-txt-ticket').innerText = "Ticket"; document.getElementById('nav-txt-wallet').innerText = "Wallet"; document.getElementById('nav-txt-rank').innerText = "Rank"; document.getElementById('nav-txt-profile').innerText = "Profile";
-            document.getElementById('wal-title').innerText = "የእኔ ሂሳብ (Wallet)"; document.getElementById('wal-main-lbl').innerHTML = "ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span>"; document.getElementById('wal-play-lbl').innerText = "መጫወቻ ሂሳብ:"; document.getElementById('wal-hist-lbl').innerText = "የሂሳብ ዝውውር ታሪክ (Approved)"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+            document.getElementById('wal-title').innerText = "የእኔ ሂሳብ (Wallet)"; document.getElementById('wal-main-lbl').innerHTML = "ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span>"; document.getElementById('wal-play-lbl').innerText = "መጫወቻ ሂሳብ:"; document.getElementById('wal-hist-lbl').innerText = "የሂሳብ ዝውውር ታሪክ (History)"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
             document.getElementById('rnk-title').innerText = "🏆 አሸናፊዎች (Top 10 Rank)";
             document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል"; document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)"; document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)"; document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)"; document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?"; document.getElementById('prof-guide-lbl').innerText = "መመሪያ (Guide)"; document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር"; document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
             document.getElementById('t-page-title').innerText = "የእኔ ካርቴላዎች"; document.getElementById('t-btn-mb-txt').innerText = "ሙሉ ቦርድ እይ (Master Board)";
@@ -695,7 +694,7 @@
             if(status.innerText.includes("ሊጀምር") || status.innerText.includes("Starting")) { status.innerText = "Game is Starting"; } else if(status.innerText.includes("በመካሄድ") || status.innerText.includes("LIVE")) { status.innerText = "Game is LIVE"; }
 
             document.getElementById('nav-txt-home').innerText = "Home"; document.getElementById('nav-txt-ticket').innerText = "Tickets"; document.getElementById('nav-txt-wallet').innerText = "Wallet"; document.getElementById('nav-txt-rank').innerText = "Rank"; document.getElementById('nav-txt-profile').innerText = "Profile";
-            document.getElementById('wal-title').innerText = "My Wallet"; document.getElementById('wal-main-lbl').innerHTML = "Main Balance <span style='font-size:9px; color:#fbbf24;'>(Withdrawable)</span>"; document.getElementById('wal-play-lbl').innerText = "Play Balance:"; document.getElementById('wal-hist-lbl').innerText = "Transaction History (Approved)"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
+            document.getElementById('wal-title').innerText = "My Wallet"; document.getElementById('wal-main-lbl').innerHTML = "Main Balance <span style='font-size:9px; color:#fbbf24;'>(Withdrawable)</span>"; document.getElementById('wal-play-lbl').innerText = "Play Balance:"; document.getElementById('wal-hist-lbl').innerText = "Transaction History"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
             document.getElementById('rnk-title').innerText = "🏆 Leaderboard (Top 10)";
             document.getElementById('prof-title').innerText = "👤 My Profile"; document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)"; document.getElementById('prof-played-lbl').innerText = "Games Played"; document.getElementById('prof-won-lbl').innerText = "Total Won"; document.getElementById('prof-help-lbl').innerText = "Need Help?"; document.getElementById('prof-guide-lbl').innerText = "Game Guide"; document.getElementById('prof-pw-lbl').innerText = "Change Password"; document.getElementById('prof-out-lbl').innerText = "Logout";
             document.getElementById('t-page-title').innerText = "My Tickets"; document.getElementById('t-btn-mb-txt').innerText = "View Master Board";
@@ -975,8 +974,22 @@
             if(data.success && data.txs.length > 0) {
                 hc.innerHTML = '';
                 data.txs.forEach(tx => {
-                    let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444'; let sign = tx.type === 'deposit' ? '+' : '-'; let time = new Date(tx.date).toLocaleString();
-                    hc.innerHTML += `<div class="list-card" style="border-left-color: ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827);"><div><span style="font-weight:bold; font-size: 11px; color:white; text-transform:uppercase;">${tx.type} (${tx.method})</span><br><small style="color:var(--text-gray); font-size: 9px;">${time}</small></div><b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</b></div>`;
+                    let color = tx.type === 'deposit' ? '#0d9488' : '#ef4444'; 
+                    let sign = tx.type === 'deposit' ? '+' : '-'; 
+                    let time = new Date(tx.date).toLocaleString();
+                    
+                    let statusColor = tx.status === 'Approved' ? '#34d399' : (tx.status === 'Pending' ? '#fbbf24' : '#ef4444');
+                    let statusText = tx.status === 'Approved' ? '✅ Approved' : (tx.status === 'Pending' ? '⏳ Pending' : '❌ Rejected');
+
+                    hc.innerHTML += `
+                    <div class="list-card" style="border-left: 3px solid ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight:bold; font-size: 11px; color:white; text-transform:uppercase;">${tx.type} (${tx.method})</span><br>
+                            <span style="font-size: 10px; font-weight: bold; color: ${statusColor};">${statusText}</span><br>
+                            <small style="color:var(--text-gray); font-size: 9px;">${time}</small>
+                        </div>
+                        <b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</b>
+                    </div>`;
                 });
             } else { hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም</p>`; }
         } catch(e) { hc.innerHTML = `<p style="text-align:center; color:#ef4444; font-size:11px;">Error loading history.</p>`; }
