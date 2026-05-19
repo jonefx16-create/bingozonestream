@@ -841,8 +841,15 @@
         if(!method) return alert("እባክዎ ባንክ ይምረጡ!"); if(!amt || amt < 50) return alert("ዝቅተኛው መጠን 50 ብር ነው!"); if(!smsText) return alert("እባክዎ የSMS ማረጋገጫ ያስገቡ!");
         let btn = document.getElementById('m-dep-btn'); btn.innerText = "እየላከ ነው...";
         try { 
-            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); let data = await res.json(); alert(data.message); 
-            if(data.success) { document.getElementById('m-dep-amt').value = ''; document.getElementById('m-dep-sms').value = ''; closeDepositModal(); }
+            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'deposit', amount: amt, method: method, sms: smsText }) }); 
+            let data = await res.json(); 
+            alert(data.message); 
+            if(data.success) { 
+                document.getElementById('m-dep-amt').value = ''; 
+                document.getElementById('m-dep-sms').value = ''; 
+                closeDepositModal(); 
+                loadTransactionHistory(); // 🔥 ይህ ነው አዲሱን ሂስቶሪ ሪፍሬሽ ሳያደርግ የሚያመጣው
+            }
         } catch(e) {}
         btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
     }
@@ -853,8 +860,18 @@
         let currentMainBal = parseFloat(currentUser.mainBalance) || 0; if(amt > currentMainBal) return alert("በዋና (ያሸነፉት) ሂሳብዎ ላይ በቂ ገንዘብ የሎትም!"); 
         let btn = document.getElementById('m-wit-btn'); btn.innerText = "እየላከ ነው...";
         try { 
-            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method, destinationPhone: phone }) }); let data = await res.json(); 
-            if(data.success) { await fetchUpdatedBalance(); alert(data.message); document.getElementById('m-wit-amt').value = ''; document.getElementById('m-wit-phone').value = ''; closeWithdrawModal(); } else { alert(data.message); } 
+            let res = await fetch('/api/request-tx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, type: 'withdraw', amount: amt, method: method, destinationPhone: phone }) }); 
+            let data = await res.json(); 
+            if(data.success) { 
+                await fetchUpdatedBalance(); 
+                alert(data.message); 
+                document.getElementById('m-wit-amt').value = ''; 
+                document.getElementById('m-wit-phone').value = ''; 
+                closeWithdrawModal(); 
+                loadTransactionHistory(); // 🔥 ይህ ነው አዲሱን ሂስቶሪ ሪፍሬሽ ሳያደርግ የሚያመጣው
+            } else { 
+                alert(data.message); 
+            } 
         } catch(e) {}
         btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
     }
