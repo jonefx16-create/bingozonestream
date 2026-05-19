@@ -313,13 +313,11 @@ app.post('/api/promoter/withdraw', async (req, res) => {
     } catch (e) { res.json({ success: false, message: "ስህተት አጋጥሟል" }); }
 });
 
+// ✅ Pending እና Rejected ሪፖርቶችም እንዲታዩ ተስተካክሏል
 app.get('/api/user/transactions/:phone', async (req, res) => { 
     const txs = await Transaction.find({ 
         phone: req.params.phone, 
-        $or: [ 
-            { type: 'withdraw', method: { $ne: 'Promoter Comm' }, status: 'Approved' }, 
-            { type: 'deposit', status: 'Approved' } 
-        ] 
+        method: { $ne: 'Promoter Comm' }
     }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
 });
