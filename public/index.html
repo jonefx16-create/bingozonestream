@@ -296,8 +296,8 @@
             <div class="dep-banner-text" id="dynamic-dep-banner">ልዩ ስጦታ<br>ከ 100 ብር ጀምሮ ገቢ ሲያደርጉ ተጨማሪ 20% ጉርሻ ያግኙ!</div>
         </div>
         
-        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 11px; color: #fca5a5; text-align: center;" id="dep-strict-warn">
-            ⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።
+        <div id="dynamic-wit-banner" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 11px; color: #fde047; text-align: center;">
+            ⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።
         </div>
 
         <span class="trx-label">ባንክ ይምረጡ</span>
@@ -1109,6 +1109,14 @@
         let bannerTextEn = data.depBannerTextEn || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
         let dynBanner = document.getElementById('dynamic-dep-banner');
         if(dynBanner) { dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>'); }
+        let witBannerAm = data.witBannerTextAm || "⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።";
+        let witBannerEn = data.witBannerTextEn || "⚠️ <b>Notice:</b> For security reasons, you can only withdraw to the <b>phone number you registered with</b>.";
+        
+        // የ Withdraw Modal ውስጥ ያለውን Warning Box መፈለግ (አይዲ ስላልነበረው id="dynamic-wit-banner" ብለህ ኤችቲኤምኤል ላይ ጨምርበት)
+        let dynWitBanner = document.getElementById('dynamic-wit-banner');
+        if(dynWitBanner) { 
+            dynWitBanner.innerHTML = isAm ? witBannerAm.replace(/\n/g, '<br>') : witBannerEn.replace(/\n/g, '<br>'); 
+        }
 
         document.getElementById('jp').innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2}); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2});
