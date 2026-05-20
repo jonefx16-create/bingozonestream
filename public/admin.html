@@ -432,7 +432,7 @@
                 </div>
 
                 <div class="card" style="border-left: 4px solid var(--cyan);">
-                    <h3 style="margin-top:0; color:var(--cyan);">📤 Withdraw Auto-Bonus</h3>
+                    <h3 style="margin-top:0; color:var(--cyan);">📤 Withdraw Auto-Bonus & Banner</h3>
                     <label style="display:flex; align-items:center; color:white; font-size:12px; margin-bottom:15px; border:1px solid var(--cyan); padding:10px; border-radius:8px;">
                         <input type="checkbox" id="set-wit-active"> ማበረታቻው ክፍት ይሁን? (Is Active?)
                     </label>
@@ -447,7 +447,17 @@
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour</label><input type="number" id="set-wit-start" placeholder="12"></div>
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour</label><input type="number" id="set-wit-end" placeholder="16"></div>
                     </div>
-                    <button class="action-btn btn-blue" style="width: 100%; margin-top:10px;" onclick="updateSettings('wit_bonus')">Save Withdraw Settings</button>
+
+                    <!-- 🔥 የ Withdraw Warning Text 🔥 -->
+                    <hr style="border-color: var(--border); margin: 15px 0;">
+                    <h4 style="margin-top:0; margin-bottom: 10px; color:var(--cyan);">📣 Withdraw Warning (የወጪ ማስጠንቀቂያ)</h4>
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
+                    <textarea id="set-wit-banner-am" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="ለምሳሌ: ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው..."></textarea>
+                    
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇺🇸 በእንግሊዝኛ (English Text)</label>
+                    <textarea id="set-wit-banner-en" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="e.g. For security reasons, withdrawals..."></textarea>
+
+                    <button class="action-btn btn-blue" style="width: 100%; margin-top:10px;" onclick="updateSettings('wit_bonus')">💾 Save Withdraw Settings</button>
                 </div>
 
                 <div class="card" style="border-left: 4px solid var(--purple); grid-column: 1 / -1;">
@@ -1426,9 +1436,29 @@ if(type === 'dep_bonus') {
             payload.depBannerTextEn = ben;
         }
         if(type === 'wit_bonus') {
-            let isActive = document.getElementById('set-wit-active').checked; let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; let wMin = document.getElementById('set-wit-min').value; let wPerc = document.getElementById('set-wit-perc').value; let start = document.getElementById('set-wit-start').value; let end = document.getElementById('set-wit-end').value;
-            if(!wMin || !wPerc) return alert("Fill fields!"); if(isTimeRestricted && (start==='' || end==='')) return alert("Enter time!");
-            payload.isWitBonusActive = isActive; payload.witBonusMinAmount = Number(wMin); payload.witBonusPercent = Number(wPerc); payload.witBonusTimeRestricted = isTimeRestricted; payload.witHappyHourStart = start !== '' ? Number(start) : 0; payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
+            let isActive = document.getElementById('set-wit-active').checked; 
+            let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; 
+            let wMin = document.getElementById('set-wit-min').value; 
+            let wPerc = document.getElementById('set-wit-perc').value; 
+            let start = document.getElementById('set-wit-start').value; 
+            let end = document.getElementById('set-wit-end').value;
+
+            // የወጪ ማስጠንቀቂያ ፅሁፎች
+            let wam = document.getElementById('set-wit-banner-am').value; 
+            let wen = document.getElementById('set-wit-banner-en').value;
+
+            if(!wMin || !wPerc) return alert("Fill fields!"); 
+            if(isTimeRestricted && (start==='' || end==='')) return alert("Enter time!");
+            
+            payload.isWitBonusActive = isActive; 
+            payload.witBonusMinAmount = Number(wMin); 
+            payload.witBonusPercent = Number(wPerc); 
+            payload.witBonusTimeRestricted = isTimeRestricted; 
+            payload.witHappyHourStart = start !== '' ? Number(start) : 0; 
+            payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
+
+            payload.witBannerTextAm = wam; 
+            payload.witBannerTextEn = wen;
         }
         if(type === 'cashback') {
             let isActive = document.getElementById('set-cb-active').checked; let cMin = document.getElementById('set-cb-min').value; let cAmt = document.getElementById('set-cb-amt').value;
