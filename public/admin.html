@@ -179,6 +179,9 @@
 
         <!-- PENDING DEPOSITS -->
         <div id="tab-pend-dep" class="tab-content">
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-pend-dep" onkeyup="simpleSearch('search-pend-dep', 'table-pend-dep')" placeholder="🔍 Search Phone, Bank, or Amount...">
+            </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-pend-dep">
                     <thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>SMS Detail (ማረጋገጫ)</th><th>Action</th></tr></thead>
@@ -189,6 +192,9 @@
 
         <!-- PENDING WITHDRAWS -->
         <div id="tab-pend-wit" class="tab-content">
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-pend-wit" onkeyup="simpleSearch('search-pend-wit', 'table-pend-wit')" placeholder="🔍 Search Phone, Bank, or Amount...">
+            </div>
             <div class="card"><div class="table-responsive">
                 <table id="table-pend-wit">
                     <thead><tr><th>Date</th><th>Phone</th><th>Bank Option</th><th>Amount</th><th>Sent To (Account)</th><th>Action</th></tr></thead>
