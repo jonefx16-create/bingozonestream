@@ -786,11 +786,11 @@
                 safeUpdate('set-reg-bonus', data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10);
                 safeUpdate('set-inv-bonus', data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10);
                 
-                safeUpdate('set-dep-min', data.settings.depBonusMinAmount || '');
-                safeUpdate('set-dep-perc', data.settings.depBonusPercent || '');
-                
-                safeUpdate('set-wit-min', data.settings.witBonusMinAmount || '');
-                safeUpdate('set-wit-perc', data.settings.witBonusPercent || '');
+                safeUpdate('set-dep-min', data.settings.depBonusMinAmount !== undefined ? data.settings.depBonusMinAmount : '');
+                safeUpdate('set-dep-perc', data.settings.depBonusPercent !== undefined ? data.settings.depBonusPercent : '');
+
+                safeUpdate('set-wit-min', data.settings.witBonusMinAmount !== undefined ? data.settings.witBonusMinAmount : '');
+                safeUpdate('set-wit-perc', data.settings.witBonusPercent !== undefined ? data.settings.witBonusPercent : '');
 
                 if(document.activeElement !== document.getElementById('set-dep-time-restrict')) {
                     document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
@@ -1419,16 +1419,13 @@ if(type === 'dep_bonus') {
             let start = document.getElementById('set-dep-start').value; 
             let end = document.getElementById('set-dep-end').value;
             
-            // የባነር ፅሁፎች
             let bam = document.getElementById('set-dep-banner-am').value; 
             let ben = document.getElementById('set-dep-banner-en').value;
 
-            if(!mAmt || !mPer) return alert("Fill fields!"); 
-            if(isRestricted && (start==='' || end==='')) return alert("Enter time!");
-            
+            // "Fill fields!" የሚለውን አስወግደነዋል፤ ባዶ ከሆነ 0 ያደርገዋል
             payload.depBonusTimeRestricted = isRestricted; 
-            payload.depBonusMinAmount = Number(mAmt); 
-            payload.depBonusPercent = Number(mPer); 
+            payload.depBonusMinAmount = mAmt !== '' ? Number(mAmt) : 0; 
+            payload.depBonusPercent = mPer !== '' ? Number(mPer) : 0; 
             payload.happyHourStart = start !== '' ? Number(start) : 0; 
             payload.happyHourEnd = end !== '' ? Number(end) : 23;
             
@@ -1443,16 +1440,12 @@ if(type === 'dep_bonus') {
             let start = document.getElementById('set-wit-start').value; 
             let end = document.getElementById('set-wit-end').value;
 
-            // የወጪ ማስጠንቀቂያ ፅሁፎች
             let wam = document.getElementById('set-wit-banner-am').value; 
             let wen = document.getElementById('set-wit-banner-en').value;
-
-            if(!wMin || !wPerc) return alert("Fill fields!"); 
-            if(isTimeRestricted && (start==='' || end==='')) return alert("Enter time!");
             
             payload.isWitBonusActive = isActive; 
-            payload.witBonusMinAmount = Number(wMin); 
-            payload.witBonusPercent = Number(wPerc); 
+            payload.witBonusMinAmount = wMin !== '' ? Number(wMin) : 0; 
+            payload.witBonusPercent = wPerc !== '' ? Number(wPerc) : 0; 
             payload.witBonusTimeRestricted = isTimeRestricted; 
             payload.witHappyHourStart = start !== '' ? Number(start) : 0; 
             payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
@@ -1465,15 +1458,21 @@ if(type === 'dep_bonus') {
             if(!cMin || !cAmt) return alert("Fill fields!"); payload.isCashbackActive = isActive; payload.cashbackMinLoss = Number(cMin); payload.cashbackAmount = Number(cAmt);
         }
         
-        // Disable save buttons temporarily to prevent double click
         let btns = document.querySelectorAll('.action-btn');
         btns.forEach(b => b.disabled = true);
         
-        await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+        try {
+            let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+            if(res.ok) {
+                alert("✅ Saved successfully!"); 
+            } else {
+                alert("❌ ስህተት ተፈጥሯል (Error saving)!");
+            }
+        } catch(e) {
+            alert("❌ Network Error: ኮኔክሽን ተቋርጧል!");
+        }
         
         btns.forEach(b => b.disabled = false);
-        alert("✅ Saved successfully!"); 
-    }
 
     async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); location.reload(); }
     async function deleteLastTelegramPromo() { if(!confirm("Are you sure?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
