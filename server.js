@@ -370,14 +370,110 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
+// 🔥 የተስተካከለ እና OOM የማያመጣ የ Finance API 🔥
+app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500);
-        let games = await GameHistory.find().sort({date: -1}).limit(100);
-        let bonuses = await ActiveBonus.find().sort({date: -1}).limit(50);
-        let users = await User.find({}, 'mainBalance playBalance'); 
-        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS });
-    } catch(e) { res.status(500).json({ success: false }); }
+        const { period, customDate, rangeStart, rangeEnd } = req.body;
+        
+        let now = new Date();
+        let startTime = new Date(0); 
+        let endTime = new Date();
+
+        // 1. Date Filter Logic
+        if (period === 'daily') {
+            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (period === 'weekly') {
+            startTime = new Date();
+            startTime.setDate(now.getDate() - 7);
+        } else if (period === 'monthly') {
+            startTime = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else if (period === 'custom' && customDate) {
+            let parts = customDate.split('-');
+            startTime = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 0, 0, 0, 0);
+            endTime = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59, 999);
+        } else if (period === 'range' && rangeStart && rangeEnd) {
+            let sParts = rangeStart.split('-');
+            let eParts = rangeEnd.split('-');
+            startTime = new Date(parseInt(sParts[0]), parseInt(sParts[1]) - 1, parseInt(sParts[2]), 0, 0, 0, 0);
+            endTime = new Date(parseInt(eParts[0]), parseInt(eParts[1]) - 1, parseInt(eParts[2]), 23, 59, 59, 999);
+        }
+
+        let dateQuery = { date: { $gte: startTime, $lte: endTime } };
+
+        // 2. Aggregate Queries (ዳታ ሳያመጣ ድምር ብቻ ይሰራል - በጣም ፈጣን እና ሜሞሪ አይበላም)
+        let txStats = await Transaction.aggregate([
+            { $match: { ...dateQuery, status: 'Approved', hiddenFromAdmin: { $ne: true } } },
+            { $group: {
+                _id: "$type",
+                totalAmount: { $sum: "$amount" },
+                promoterPaid: { $sum: { $cond: [{ $eq: ["$method", "Promoter Comm"] }, "$amount", 0] } }
+            }}
+        ]);
+
+        let gameStats = await GameHistory.aggregate([
+            { $match: dateQuery },
+            { $group: {
+                _id: null,
+                totalProfit: { $sum: "$adminProfit" },
+                totalWinnings: { $sum: "$prize" }
+            }}
+        ]);
+
+        let bonusStats = await ActiveBonus.aggregate([
+            { $match: dateQuery },
+            { $group: {
+                _id: null,
+                totalClaimed: { $sum: { $multiply: ["$amount", "$currentClaims"] } }
+            }}
+        ]);
+
+        // 3. User Liability (በአጠቃላይ ዩዘሮች አካውንታቸው ላይ ያላቸው ብር)
+        let userLiability = await User.aggregate([
+            { $group: { _id: null, totalMain: { $sum: "$mainBalance" }, totalPlay: { $sum: "$playBalance" }, totalUsers: { $sum: 1 } } }
+        ]);
+
+        // 4. Calculate final values
+        let tDep = 0, tWit = 0, tPromoterPaid = 0;
+        txStats.forEach(t => {
+            if (t._id === 'deposit') tDep = t.totalAmount;
+            if (t._id === 'withdraw') { tWit = t.totalAmount; tPromoterPaid = t.promoterPaid; }
+        });
+
+        let tProf = gameStats[0] ? gameStats[0].totalProfit : 0;
+        let tWinnings = gameStats[0] ? gameStats[0].totalWinnings : 0;
+        let claimPromoBonusAmt = bonusStats[0] ? bonusStats[0].totalClaimed : 0;
+
+        let liability = userLiability[0] ? (userLiability[0].totalMain + userLiability[0].totalPlay) : 0;
+        let totalUserCount = userLiability[0] ? userLiability[0].totalUsers : 0;
+
+        // Auto Deposit/Withdraw Bonuses calculation (Estimate based on rules to save memory)
+        let autoDepWitBonusAmt = 0;
+        let rawTxs = await Transaction.find({ ...dateQuery, status: 'Approved' }).select('type amount');
+        rawTxs.forEach(t => {
+            if (t.type === 'deposit' && t.amount >= (GLOBAL_SETTINGS.depBonusMinAmount || 100)) {
+                autoDepWitBonusAmt += t.amount * ((GLOBAL_SETTINGS.depBonusPercent || 0) / 100);
+            } else if (t.type === 'withdraw' && GLOBAL_SETTINGS.isWitBonusActive && t.amount >= (GLOBAL_SETTINGS.witBonusMinAmount || 100)) {
+                autoDepWitBonusAmt += t.amount * ((GLOBAL_SETTINGS.witBonusPercent || 0) / 100);
+            }
+        });
+
+        let totalBonusPaid = claimPromoBonusAmt + autoDepWitBonusAmt;
+        if (period === 'all') { totalBonusPaid += (totalUserCount * (GLOBAL_SETTINGS.registerBonus || 10)); }
+
+        let netProfit = tProf - totalBonusPaid - tPromoterPaid;
+
+        res.json({
+            success: true,
+            stats: {
+                tDep, tWit, netCash: tDep - tWit,
+                tProf, tWinnings, tTurnover: tProf + tWinnings,
+                totalBonusPaid, tPromoterPaid, liability, netProfit
+            }
+        });
+    } catch(e) {
+        console.log(e);
+        res.status(500).json({ success: false });
+    }
 });
 
 app.post('/api/admin/users', auth, async (req, res) => {
