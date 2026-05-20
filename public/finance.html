@@ -349,170 +349,50 @@
         filterData('range');
     }
 
-    async function loadFinancialData() {
+    async function fetchAndRenderData(period) {
         try {
-            document.getElementById('page-title').innerText = "Loading Data...";
+            document.getElementById('val-deposit').innerText = "Loading...";
+            let now = new Date(); let opts = { year: 'numeric', month: 'short', day: 'numeric' }; let displayStr = "All Time History";
+            if(period === 'daily') displayStr = `Date: ${now.toLocaleDateString('en-US', opts)}`;
+            else if(period === 'weekly') { let lw=new Date(); lw.setDate(now.getDate()-7); displayStr = `From: ${lw.toLocaleDateString('en-US', opts)} — To: ${now.toLocaleDateString('en-US', opts)}`;}
+            else if(period === 'monthly') displayStr = `Month: ${now.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
+            else if(period === 'custom') displayStr = `Selected Date: ${new Date(currentCustomDate).toLocaleDateString('en-US', opts)}`;
+            else if(period === 'range') displayStr = `From: ${new Date(currentStartDate).toLocaleDateString('en-US', opts)} — To: ${new Date(currentEndDate).toLocaleDateString('en-US', opts)}`;
+            document.getElementById('date-display').innerText = displayStr;
+
+            let payload = { adminPass: pass, period: period, customDate: currentCustomDate, rangeStart: currentStartDate, rangeEnd: currentEndDate };
+            let res = await fetch('/api/admin/finance-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
             
-            let res = await fetch('/api/admin/finance-raw-data', { 
-                method: 'POST', 
-                headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify({ adminPass: pass }) 
-            });
-            
-            if(res.status === 401) { alert("❌ Wrong Password!"); document.getElementById('page-title').innerText = "Finance Report"; return; }
+            if(res.status === 401) { alert("❌ Wrong Password!"); return; }
             let data = await res.json();
             
-            let resPromo = await fetch('/api/admin/promoters-data', { 
-                method: 'POST', 
-                headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify({ adminPass: pass }) 
-            });
-            let promoData = await resPromo.json();
-
             if(data.success) {
-                document.getElementById('login-sec').style.display = 'none'; 
-                document.getElementById('dash-sec').style.display = 'flex';
-                
-                rawData = data;
-                rawData.promoters = promoData.success ? promoData.promoters : [];
+                let s = data.stats;
+                let adminShare = s.netProfit > 0 ? s.netProfit * 0.70 : 0;
+                let partnerShare = s.netProfit > 0 ? s.netProfit * 0.30 : 0;
 
-                filterData(currentFilter);
+                document.getElementById('val-deposit').innerText = s.tDep.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-withdraw').innerText = s.tWit.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-net-cash').innerText = s.netCash.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-turnover').innerText = s.tTurnover.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-winnings').innerText = s.tWinnings.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-game-profit').innerText = s.tProf.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-bonus').innerText = s.totalBonusPaid.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-promoter-paid').innerText = s.tPromoterPaid.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('val-liability').innerText = s.liability.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+
+                let netEl = document.getElementById('net-profit'); netEl.innerText = s.netProfit.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('share-admin').innerText = adminShare.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+                document.getElementById('share-partner').innerText = partnerShare.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
+
+                if (s.netProfit < 0) { netEl.style.color = "var(--red)"; document.getElementById('share-admin').innerText = "0 ETB"; document.getElementById('share-partner').innerText = "0 ETB"; } 
+                else if (s.netProfit > 0) { netEl.style.color = "var(--faded-green)"; } 
+                else { netEl.style.color = "white"; }
             }
         } catch(e) { alert("Network Error! Is server running?"); }
     }
-
-    function filterData(period) {
-        let now = new Date();
-        let startTime = new Date(0); 
-        let endTime = new Date(); 
-        
-        let dateDisplayStr = "All Time History";
-        let options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
-        let todayStr = now.toLocaleDateString('en-US', options);
-
-        if(period === 'daily') { 
-            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
-            dateDisplayStr = `Date: ${todayStr}`;
-        } 
-        else if(period === 'weekly') { 
-            startTime = new Date();
-            startTime.setDate(now.getDate() - 7); 
-            let lastWeekStr = startTime.toLocaleDateString('en-US', options);
-            dateDisplayStr = `From: ${lastWeekStr} — To: ${todayStr}`;
-        } 
-        else if(period === 'monthly') { 
-            startTime = new Date(now.getFullYear(), now.getMonth(), 1); 
-            let monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-            dateDisplayStr = `Month: ${monthName}`;
-        }
-        else if (period === 'custom') {
-            if(!currentCustomDate) return;
-            let parts = currentCustomDate.split('-');
-            let y = parseInt(parts[0]);
-            let m = parseInt(parts[1]) - 1; 
-            let d = parseInt(parts[2]);
-
-            startTime = new Date(y, m, d, 0, 0, 0, 0);
-            endTime = new Date(y, m, d, 23, 59, 59, 999);
-            
-            dateDisplayStr = `Selected Date: ${startTime.toLocaleDateString('en-US', options)}`;
-        }
-        // 🔥 አዲሱ የ Date Range (ከ - እስከ) ማጣሪያ Logic 🔥
-        else if (period === 'range') {
-            if(!currentStartDate || !currentEndDate) return;
-            
-            let sParts = currentStartDate.split('-');
-            let eParts = currentEndDate.split('-');
-            
-            startTime = new Date(parseInt(sParts[0]), parseInt(sParts[1]) - 1, parseInt(sParts[2]), 0, 0, 0, 0);
-            endTime = new Date(parseInt(eParts[0]), parseInt(eParts[1]) - 1, parseInt(eParts[2]), 23, 59, 59, 999);
-            
-            dateDisplayStr = `From: ${startTime.toLocaleDateString('en-US', options)} — To: ${endTime.toLocaleDateString('en-US', options)}`;
-        }
-
-        document.getElementById('date-display').innerText = dateDisplayStr;
-
-        let filteredTxs = rawData.txs.filter(t => {
-            let d = new Date(t.date);
-            return (period === 'custom' || period === 'range') ? (d >= startTime && d <= endTime) : (d >= startTime);
-        });
-        
-        let filteredGames = rawData.games.filter(g => {
-            let d = new Date(g.date);
-            return (period === 'custom' || period === 'range') ? (d >= startTime && d <= endTime) : (d >= startTime);
-        });
-        
-        let filteredBonus = rawData.bonuses.filter(b => {
-            let bDate = b.date ? new Date(b.date) : new Date(b.expiresAt);
-            return (period === 'custom' || period === 'range') ? (bDate >= startTime && bDate <= endTime) : (bDate >= startTime);
-        });
-
-        let tDep = filteredTxs.filter(t => t.type === 'deposit' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
-        let tWit = filteredTxs.filter(t => t.type === 'withdraw' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
-        let netCash = tDep - tWit;
-
-        let tProf = filteredGames.reduce((sum, g) => sum + (g.adminProfit || 0), 0);
-        let tWinnings = filteredGames.reduce((sum, g) => sum + (g.prize || 0), 0);
-        let tTurnover = tProf + tWinnings;
-
-        let tPromoterPaid = filteredTxs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm' && t.status === 'Approved').reduce((sum, t) => sum + (t.amount || 0), 0);
-
-        // 🔥 CALCULATING ALL BONUSES 🔥
-        let claimPromoBonusAmt = filteredBonus.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
-        
-        let sysSet = rawData.settings || {};
-        let regBonusAmt = sysSet.registerBonus || 10;
-        let refBonusAmt = sysSet.inviteBonus || 10;
-        
-        let autoDepWitBonusAmt = 0;
-        filteredTxs.forEach(t => {
-            if (t.status === 'Approved') {
-                if (t.type === 'deposit' && t.amount >= (sysSet.depBonusMinAmount || 100)) {
-                    autoDepWitBonusAmt += t.amount * ((sysSet.depBonusPercent || 0) / 100);
-                } else if (t.type === 'withdraw' && sysSet.isWitBonusActive && t.amount >= (sysSet.witBonusMinAmount || 100)) {
-                    autoDepWitBonusAmt += t.amount * ((sysSet.witBonusPercent || 0) / 100);
-                }
-            }
-        });
-
-        let totalBonusPaid = claimPromoBonusAmt + autoDepWitBonusAmt; 
-        
-        let finalBonusDisplay = claimPromoBonusAmt + autoDepWitBonusAmt; 
-        if (period === 'all') { finalBonusDisplay += (rawData.users.length * regBonusAmt); }
-
-        let net = tProf - finalBonusDisplay - tPromoterPaid;
-        let adminShare = net > 0 ? net * 0.70 : 0;
-        let partnerShare = net > 0 ? net * 0.30 : 0;
-
-        let totalLiability = rawData.users.reduce((sum, u) => sum + (u.mainBalance || 0) + (u.playBalance || 0), 0);
-        
-        document.getElementById('val-deposit').innerText = tDep.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        document.getElementById('val-withdraw').innerText = tWit.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        document.getElementById('val-net-cash').innerText = netCash.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        
-        document.getElementById('val-turnover').innerText = tTurnover.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        document.getElementById('val-winnings').innerText = tWinnings.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        document.getElementById('val-game-profit').innerText = tProf.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        
-        document.getElementById('val-bonus').innerText = finalBonusDisplay.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        document.getElementById('val-promoter-paid').innerText = tPromoterPaid.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        
-        document.getElementById('val-liability').innerText = totalLiability.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-
-        let netEl = document.getElementById('net-profit');
-        netEl.innerText = net.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        
-        document.getElementById('share-admin').innerText = adminShare.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        document.getElementById('share-partner').innerText = partnerShare.toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB";
-        
-        if (net < 0) { 
-            netEl.style.color = "var(--red)"; 
-            document.getElementById('share-admin').innerText = "0 ETB";
-            document.getElementById('share-partner').innerText = "0 ETB";
-        } 
-        else if (net > 0) { netEl.style.color = "var(--faded-green)"; } 
-        else { netEl.style.color = "white"; }
-    }
+    
+    function loadFinancialData() { fetchAndRenderData(currentFilter); }
 </script>
 </body>
 </html>
