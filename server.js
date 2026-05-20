@@ -25,12 +25,12 @@ mongoose.connect(mongoURI, { autoIndex: true }).then(() => console.log("✅ Data
 // 🔵 MODELS (🔥 OPTIMIZED WITH INDEXES 🔥)
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
-    phone: { type: String, required: true, unique: true, index: true }, // Index added for fast search
+    phone: { type: String, required: true, unique: true, index: true },
     refCode: { type: String, default: "", index: true }, 
     telegramId: { type: String, default: "", index: true }, 
-    name: { type: String, index: true }, // Index added for fast search
+    name: { type: String, index: true },
     password: { type: String, required: true },
-    referredBy: { type: String, default: "", index: true }, // Index added for referrals
+    referredBy: { type: String, default: "", index: true },
     totalInvites: { type: Number, default: 0 }, 
     inviteBonusEarned: { type: Number, default: 0 },
     mainBalance: { type: Number, default: 0 }, 
@@ -58,7 +58,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     status: { type: String, default: 'Pending', index: true }, 
     date: { type: Date, default: Date.now, index: true }, 
     smsText: {type: String, default: ""},
-    txRef: { type: String, default: "", index: true }, // Index added for auto-approve speed
+    txRef: { type: String, default: "", index: true },
     hiddenFromAdmin: { type: Boolean, default: false } 
 }));
 
@@ -81,7 +81,7 @@ const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
     winningGrid: Array, 
     calledNumbers: Array, 
     playersData: Array, 
-    date: { type: Date, default: Date.now, index: true } // Index added for auto-delete cron job
+    date: { type: Date, default: Date.now, index: true }
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
@@ -129,7 +129,7 @@ loadSettings();
 
 function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '1000123456789', name: 'Yohannes aberham' } }; // ተስተካክሏል
+const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
 function getTxRef(text) {
@@ -398,6 +398,63 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
         let users = await User.find({}, 'mainBalance playBalance'); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS });
     } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// ==========================================
+// 🔥 የፋይናንስ ዳሽቦርድ አጠቃላይ ስሌት (Finance Stats) 🔥
+// ==========================================
+app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
+    try {
+        const { period, customDate, rangeStart, rangeEnd } = req.body;
+        let dateQuery = {};
+        let now = new Date();
+
+        if (period === 'daily') {
+            let start = new Date(); start.setHours(0, 0, 0, 0); dateQuery = { $gte: start };
+        } else if (period === 'weekly') {
+            let start = new Date(); start.setDate(now.getDate() - 7); start.setHours(0, 0, 0, 0); dateQuery = { $gte: start };
+        } else if (period === 'monthly') {
+            let start = new Date(now.getFullYear(), now.getMonth(), 1); dateQuery = { $gte: start };
+        } else if (period === 'custom' && customDate) {
+            let start = new Date(customDate); let end = new Date(customDate); end.setHours(23, 59, 59, 999); dateQuery = { $gte: start, $lte: end };
+        } else if (period === 'range' && rangeStart && rangeEnd) {
+            let start = new Date(rangeStart); let end = new Date(rangeEnd); end.setHours(23, 59, 59, 999); dateQuery = { $gte: start, $lte: end };
+        }
+
+        let txQuery = { status: 'Approved' };
+        let gameQuery = {};
+        let bonusQuery = {};
+        
+        if (Object.keys(dateQuery).length > 0) {
+            txQuery.date = dateQuery; gameQuery.date = dateQuery; bonusQuery.date = dateQuery;
+        }
+
+        let txs = await Transaction.find(txQuery);
+        let tDep = 0, tWit = 0, tPromoterPaid = 0;
+        txs.forEach(t => {
+            if (t.type === 'deposit') tDep += t.amount;
+            if (t.type === 'withdraw' && t.method !== 'Promoter Comm') tWit += t.amount;
+            if (t.type === 'withdraw' && t.method === 'Promoter Comm') tPromoterPaid += t.amount;
+        });
+        let netCash = tDep - (tWit + tPromoterPaid);
+
+        let games = await GameHistory.find(gameQuery);
+        let tWinnings = 0, tProf = 0, tTurnover = 0;
+        games.forEach(g => {
+            tWinnings += (g.prize || 0); tProf += (g.adminProfit || 0); tTurnover += ((g.prize || 0) + (g.adminProfit || 0));
+        });
+
+        let promos = await ActiveBonus.find(bonusQuery);
+        let totalBonusPaid = 0;
+        promos.forEach(p => { totalBonusPaid += ((p.amount || 0) * (p.currentClaims || 0)); });
+
+        let usersResult = await User.aggregate([{ $group: { _id: null, main: { $sum: "$mainBalance" }, play: { $sum: "$playBalance" } } }]);
+        let liability = usersResult.length > 0 ? usersResult[0].main + usersResult[0].play : 0;
+
+        let netProfit = tProf - totalBonusPaid - tPromoterPaid;
+
+        res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
+    } catch (e) { console.log(e); res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/users', auth, async (req, res) => {
@@ -1568,10 +1625,10 @@ const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
+    if (req.path.startsWith('/admin') && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
         return next(); 
     }
-    if (req.path === '/finance' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
+    if (req.path.startsWith('/finance') && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
         return next(); 
     }
     
