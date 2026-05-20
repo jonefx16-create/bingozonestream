@@ -406,7 +406,7 @@
         <div id="tab-dep-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--gold);">
-                    <h3 style="margin-top:0; color:var(--gold);">📥 Deposit Auto-Bonus</h3>
+                    <h3 style="margin-top:0; color:var(--gold);">📥 Deposit Auto-Bonus & Banner</h3>
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Minimum Deposit</label>
                     <input type="number" id="set-dep-min" placeholder="e.g. 100">
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
@@ -418,7 +418,17 @@
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label><input type="number" id="set-dep-start" placeholder="12"></div>
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label><input type="number" id="set-dep-end" placeholder="16"></div>
                     </div>
-                    <button class="action-btn" style="width: 100%; margin-top:10px;" onclick="updateSettings('dep_bonus')">Save Deposit Settings</button>
+
+                    <!-- 🔥 የ Deposit Banner Text 🔥 -->
+                    <hr style="border-color: var(--border); margin: 15px 0;">
+                    <h4 style="margin-top:0; margin-bottom: 10px; color:#f59e0b;">📣 Deposit Banner Text (የገቢ ማስታወቂያ)</h4>
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
+                    <textarea id="set-dep-banner-am" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="ለምሳሌ: ልዩ ስጦታ! ከ 100 ብር ጀምሮ..."></textarea>
+                    
+                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇺🇸 በእንግሊዝኛ (English Text)</label>
+                    <textarea id="set-dep-banner-en" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="e.g. Special Gift! Get 20% bonus..."></textarea>
+
+                    <button class="action-btn" style="width: 100%; margin-top:10px;" onclick="updateSettings('dep_bonus')">💾 Save Deposit Settings</button>
                 </div>
 
                 <div class="card" style="border-left: 4px solid var(--cyan);">
@@ -752,7 +762,8 @@
                     let el = document.getElementById(id);
                     if(el && document.activeElement !== el) el.value = val;
                 };
-
+                safeUpdate('set-dep-banner-am', data.settings.depBannerTextAm || '');
+                safeUpdate('set-dep-banner-en', data.settings.depBannerTextEn || '');
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
                 safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
@@ -1391,10 +1402,28 @@
         }
 
         if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
-        if(type === 'dep_bonus') {
-            let isRestricted = document.getElementById('set-dep-time-restrict').checked; let mAmt = document.getElementById('set-dep-min').value; let mPer = document.getElementById('set-dep-perc').value; let start = document.getElementById('set-dep-start').value; let end = document.getElementById('set-dep-end').value;
-            if(!mAmt || !mPer) return alert("Fill fields!"); if(isRestricted && (start==='' || end==='')) return alert("Enter time!");
-            payload.depBonusTimeRestricted = isRestricted; payload.depBonusMinAmount = Number(mAmt); payload.depBonusPercent = Number(mPer); payload.happyHourStart = start !== '' ? Number(start) : 0; payload.happyHourEnd = end !== '' ? Number(end) : 23;
+if(type === 'dep_bonus') {
+            let isRestricted = document.getElementById('set-dep-time-restrict').checked; 
+            let mAmt = document.getElementById('set-dep-min').value; 
+            let mPer = document.getElementById('set-dep-perc').value; 
+            let start = document.getElementById('set-dep-start').value; 
+            let end = document.getElementById('set-dep-end').value;
+            
+            // የባነር ፅሁፎች
+            let bam = document.getElementById('set-dep-banner-am').value; 
+            let ben = document.getElementById('set-dep-banner-en').value;
+
+            if(!mAmt || !mPer) return alert("Fill fields!"); 
+            if(isRestricted && (start==='' || end==='')) return alert("Enter time!");
+            
+            payload.depBonusTimeRestricted = isRestricted; 
+            payload.depBonusMinAmount = Number(mAmt); 
+            payload.depBonusPercent = Number(mPer); 
+            payload.happyHourStart = start !== '' ? Number(start) : 0; 
+            payload.happyHourEnd = end !== '' ? Number(end) : 23;
+            
+            payload.depBannerTextAm = bam; 
+            payload.depBannerTextEn = ben;
         }
         if(type === 'wit_bonus') {
             let isActive = document.getElementById('set-wit-active').checked; let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; let wMin = document.getElementById('set-wit-min').value; let wPerc = document.getElementById('set-wit-perc').value; let start = document.getElementById('set-wit-start').value; let end = document.getElementById('set-wit-end').value;
