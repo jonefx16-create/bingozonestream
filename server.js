@@ -129,7 +129,7 @@ loadSettings();
 
 function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
+const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '1000123456789', name: 'Yohannes aberham' } }; // ተስተካክሏል
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
 function getTxRef(text) {
@@ -400,9 +400,6 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// ==========================================
-// 🔥 የፋይናንስ ዳሽቦርድ አጠቃላይ ስሌት (Finance Stats) 🔥
-// ==========================================
 app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
     try {
         const { period, customDate, rangeStart, rangeEnd } = req.body;
@@ -1159,15 +1156,15 @@ function resetToWaiting() {
 }
 
 setInterval(() => {
-    if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit }); return; }
+    if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit }); return; }
     if (gameState === "WAITING") {
         gameClock--;
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = getRiggedSequence(); 
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
             }
@@ -1203,7 +1200,7 @@ setInterval(() => {
 let buyingLocks = {}; 
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
-    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
     socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
     socket.on('buy_tickets', async (data) => {
@@ -1339,7 +1336,7 @@ const t = {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
         btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back",
         share_contact: "📱 Share Contact", err_reg_first: "Register first by sending /start.", err_cancel: "❌ Action cancelled.",
-        profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.main Balance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>Wallet Balance:</b>\n\n🟢 Play Balance: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Main Balance: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Choose a bank to Deposit:</b>", wit_msg: "🏦 <b>Choose a bank to Withdraw:</b>",
         invite_msg: (l) => `🔗 <b>Invite & Earn</b>\n\nWhen a friend joins, <b>both YOU and YOUR FRIEND get special Play Bonus!</b>\n\n👇 Your Link:\n${l}`,
@@ -1625,10 +1622,10 @@ const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    if (req.path.startsWith('/admin') && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
+    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
         return next(); 
     }
-    if (req.path.startsWith('/finance') && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
+    if (req.path === '/finance' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
         return next(); 
     }
     
@@ -2054,6 +2051,14 @@ app.get('*', (req, res) => {
 
         <script>
             document.addEventListener("DOMContentLoaded", () => {
+                
+                // 🔥 የቴሌብር እና ሲቢኢ የገቢ ማሳሰቢያ ፅሁፍ (Deposit strict warning) 🔥
+                let depBanner = document.querySelector('.dep-banner');
+                if (depBanner && !document.getElementById('dep-strict-warn')) {
+                    let warnHTML = '<div id="dep-strict-warn" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 11px; color: #fde047; text-align: center;">⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።</div>';
+                    depBanner.insertAdjacentHTML('afterend', warnHTML);
+                }
+
                 if (typeof io !== 'undefined') {
                     const blurSocket = io();
                     
