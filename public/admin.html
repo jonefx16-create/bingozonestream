@@ -774,6 +774,11 @@
                 };
                 safeUpdate('set-dep-banner-am', data.settings.depBannerTextAm || '');
                 safeUpdate('set-dep-banner-en', data.settings.depBannerTextEn || '');
+                
+                // 🔥 ይህ አሁን የተጨመረ ነው (Withdraw Banners)
+                safeUpdate('set-wit-banner-am', data.settings.witBannerTextAm || '');
+                safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
+
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
                 safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
