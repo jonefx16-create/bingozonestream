@@ -1109,13 +1109,19 @@
         let bannerTextEn = data.depBannerTextEn || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
         let dynBanner = document.getElementById('dynamic-dep-banner');
         if(dynBanner) { dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>'); }
-        let witBannerAm = data.witBannerTextAm || "⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።";
-        let witBannerEn = data.witBannerTextEn || "⚠️ <b>Notice:</b> For security reasons, you can only withdraw to the <b>phone number you registered with</b>.";
-        
-        // የ Withdraw Modal ውስጥ ያለውን Warning Box መፈለግ (አይዲ ስላልነበረው id="dynamic-wit-banner" ብለህ ኤችቲኤምኤል ላይ ጨምርበት)
+        let bannerTextAm = data.depBannerTextAm || "ከቴሌብር ወደ ቴሌብር፣ ከ CBE Birr ወደ CBE Birr ብቻ ያስገቡ";
+        let bannerTextEn = data.depBannerTextEn || "Transfer Telebirr to Telebirr, CBE Birr to CBE Birr ONLY";
+        let dynBanner = document.getElementById('dynamic-dep-banner');
+        if(dynBanner) { 
+            dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>'); 
+        }
+
+        // --- የወጪ (Withdraw) ማስጠንቀቂያ መቀየሪያ ---
+        let witBannerAm = data.witBannerTextAm || "ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር ብቻ ነው።";
+        let witBannerEn = data.witBannerTextEn || "For security reasons, you can only withdraw using your registered phone number.";
         let dynWitBanner = document.getElementById('dynamic-wit-banner');
         if(dynWitBanner) { 
-            dynWitBanner.innerHTML = isAm ? witBannerAm.replace(/\n/g, '<br>') : witBannerEn.replace(/\n/g, '<br>'); 
+            dynWitBanner.innerHTML = isAm ? "⚠️ <b>ማሳሰቢያ:</b> " + witBannerAm.replace(/\n/g, '<br>') : "⚠️ <b>Notice:</b> " + witBannerEn.replace(/\n/g, '<br>'); 
         }
 
         document.getElementById('jp').innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2}); 
@@ -1462,6 +1468,7 @@
 </script>
 </body>
 </html>
+
 
 
 
