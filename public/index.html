@@ -300,7 +300,6 @@
             ⚠️ <b>ማሳሰቢያ:</b> ገንዘብ ገቢ ማድረግ እሚቻለዉ ከቴሌብር ወደ ቴሌብር እንዲሁም ከሲቢኢ ወደ ሲቢኢ ነዉ </b> ብቻ ነው።
         </div>
 
-
         <span class="trx-label">ባንክ ይምረጡ</span>
         <div class="bank-grid" id="dep-bank-grid">
             <div class="bank-btn active" data-bankname="telebirr" onclick="selectBank('telebirr', this, 'dep')"><div class="bank-logo logo-tb">t</div> TeleBirr</div>
@@ -338,6 +337,7 @@
         <div id="dynamic-wit-banner" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 11px; color: #fde047; text-align: center;">
             ⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።
         </div>
+
         <input type="tel" id="m-wit-phone" class="trx-input disabled-input" readonly style="opacity:0.6; pointer-events:none; background: #111827;">
         
         <span style="display: block; margin-bottom: 10px;">&nbsp;</span>
@@ -1110,19 +1110,13 @@
         let bannerTextEn = data.depBannerTextEn || "Special Gift<br>Get 20% bonus when you deposit 100 ETB or more!";
         let dynBanner = document.getElementById('dynamic-dep-banner');
         if(dynBanner) { dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>'); }
-        let bannerTextAm = data.depBannerTextAm || "ከቴሌብር ወደ ቴሌብር፣ ከ CBE Birr ወደ CBE Birr ብቻ ያስገቡ";
-        let bannerTextEn = data.depBannerTextEn || "Transfer Telebirr to Telebirr, CBE Birr to CBE Birr ONLY";
-        let dynBanner = document.getElementById('dynamic-dep-banner');
-        if(dynBanner) { 
-            dynBanner.innerHTML = isAm ? bannerTextAm.replace(/\n/g, '<br>') : bannerTextEn.replace(/\n/g, '<br>'); 
-        }
-
-        // --- የወጪ (Withdraw) ማስጠንቀቂያ መቀየሪያ ---
-        let witBannerAm = data.witBannerTextAm || "ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር ብቻ ነው።";
-        let witBannerEn = data.witBannerTextEn || "For security reasons, you can only withdraw using your registered phone number.";
+        let witBannerAm = data.witBannerTextAm || "⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።";
+        let witBannerEn = data.witBannerTextEn || "⚠️ <b>Notice:</b> For security reasons, you can only withdraw to the <b>phone number you registered with</b>.";
+        
+        // የ Withdraw Modal ውስጥ ያለውን Warning Box መፈለግ (አይዲ ስላልነበረው id="dynamic-wit-banner" ብለህ ኤችቲኤምኤል ላይ ጨምርበት)
         let dynWitBanner = document.getElementById('dynamic-wit-banner');
         if(dynWitBanner) { 
-            dynWitBanner.innerHTML = isAm ? "⚠️ <b>ማሳሰቢያ:</b> " + witBannerAm.replace(/\n/g, '<br>') : "⚠️ <b>Notice:</b> " + witBannerEn.replace(/\n/g, '<br>'); 
+            dynWitBanner.innerHTML = isAm ? witBannerAm.replace(/\n/g, '<br>') : witBannerEn.replace(/\n/g, '<br>'); 
         }
 
         document.getElementById('jp').innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2}); 
