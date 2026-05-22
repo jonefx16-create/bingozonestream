@@ -332,7 +332,6 @@
                 </div>
                 <p style="font-size:12px; color:var(--text-gray); margin-top:0;">ይህ ክፍል የሚያሳየው ሲስተሙ ላይ ያጋጠሙ ከበድ ያሉ ስህተቶችን፣ ክራሾችን፣ Negative የገቡ ሂሳቦችን እና ያልተፈቀዱ የማጭበርበር ሙከራዎችን (Fraud Attempts) ብቻ ነው።</p>
                 
-                <!-- 🔥 አዲሱ የ Search Bar 🔥 -->
                 <div class="search-container" style="margin-bottom: 15px;">
                     <input type="text" class="search-bar" id="search-logs" onkeyup="debounceSearch(() => loadSystemLogs(1))" placeholder="🔍 Search Phone or Issue Type...">
                 </div>
@@ -520,7 +519,7 @@
                             <input type="number" id="set-cb-amt" placeholder="e.g. 10">
                         </div>
                     </div>
-                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin-bottom:15px;">
+                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
                         <input type="checkbox" id="set-cb-active"> Is Active?
                     </label>
                     <div style="display:flex; gap:10px;">
@@ -582,6 +581,7 @@
                         <button class="action-btn" onclick="updateSettings('minwithdraw')">Save</button>
                     </div>
 
+                    <!-- 🔥 Win Popup Timer እና Forced Phone Numbers 🔥 -->
                     <hr style="border-color: var(--border);">
                     <h3 style="margin-top:10px; margin-bottom: 10px; color:white;">🎮 Game Manipulation & Timers</h3>
                     
@@ -725,7 +725,6 @@
             <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Play Balance:</span><br><b id="ui-play" style="color:var(--faded-green); font-size:16px;"></b> ETB</div>
         </div>
 
-        <!-- አዳዲስ ስታቲስቲክስ (Total Deposit, Withdrawn, Bonus, Tickets) -->
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; font-size:13px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #334155;">
             <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Deposited</span><br><b id="ui-tot-dep" style="color:var(--faded-green); font-size:14px;">0</b></div>
             <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Withdrawn</span><br><b id="ui-tot-wit" style="color:var(--red); font-size:14px;">0</b></div>
@@ -914,12 +913,13 @@
             let html = "";
             let bannedHtml = "";
             data.users.forEach(u => {
-                let safeName = (u.name || "Unknown").replace(/'/g, "\\'"); // Prevent JS error in onclick
+                let safeName = (u.name || "Unknown").replace(/'/g, "\\'"); 
                 if(u.status === 'banned') {
                     bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`;
                 } else {
                     html += `<tr>
-                        <td>${u.name}</td><td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td>
+                        <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${u.phone}'); return false;">${u.name}</a></td>
+                        <td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td>
                         <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--gold); font-weight:bold;">${Number(u.totalDeposited || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                         <td>
@@ -967,7 +967,9 @@
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'history', '${h._id}')">
                     <td><input type="checkbox" class="chk-history" value="${h._id}" ${isChecked} onchange="toggleIndiv(this, 'history')"></td>
                     <td>${d.toLocaleTimeString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
-                    <td>${h.winnerName}</td><td>${h.winnerPhone}</td><td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
+                    <td>${h.winnerName}</td>
+                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${h.winnerPhone}'); return false;">${h.winnerPhone}</a></td>
+                    <td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
                     <td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td>
@@ -1017,7 +1019,9 @@
 
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'tx', '${t._id}')">
                     <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
-                    <td>${d.toLocaleTimeString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td>
+                    <td>${d.toLocaleTimeString()}</td>
+                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td>
+                    <td style="text-transform:uppercase;">${t.type}</td>
                     <td>${t.method}</td>
                     <td style="font-weight:bold;">
                         ${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB<br>
@@ -1056,16 +1060,16 @@
             let proWits = data.txs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm');
             
             let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
-            document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm btn-purple" style="margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
+            document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm btn-purple" style="margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
             
             let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
             document.getElementById('pend-wit-body').innerHTML = wits.map(t => { 
                 let methodStr = (t.method || "").toUpperCase(); let methodBadge = ""; if (methodStr.includes("CBE")) { methodBadge = `<span style="background: #a855f7; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #d8b4fe;">🏦 CBE</span>`; } else if (methodStr.includes("TELEBIRR")) { methodBadge = `<span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #93c5fd;">📱 TELEBIRR</span>`; } else { methodBadge = `<span style="background: #475569; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; text-transform: uppercase;">${t.method}</span>`; }
-                return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="font-weight: 900; font-size: 15px; color: #ffffff; letter-spacing: 1px;">${t.phone}</td><td>${methodBadge}</td><td style="font-weight: 900; font-size: 16px; color: var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family: monospace; font-weight: 900; font-size: 15px; color: var(--cyan); letter-spacing: 1px;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`; 
+                return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="font-weight: 900; font-size: 15px; letter-spacing: 1px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td>${methodBadge}</td><td style="font-weight: 900; font-size: 16px; color: var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family: monospace; font-weight: 900; font-size: 15px; color: var(--cyan); letter-spacing: 1px;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`; 
             }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
 
             document.getElementById('promoter-pend-wit-body').innerHTML = proWits.map(t => {
-                return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="color:var(--cyan); font-weight:900; font-size:15px; letter-spacing:1px;">${t.phone}</td><td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`;
+                return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="color:var(--cyan); font-weight:900; font-size:15px; letter-spacing:1px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`;
             }).join('') || `<tr><td colspan="5" style="text-align:center;">No pending promoter withdrawals.</td></tr>`;
         }
     }
@@ -1084,7 +1088,7 @@
             data.referrals.forEach(r => {
                 let displayEarned = r.earned !== undefined ? r.earned : (r.count * invBonus);
                 html += `<tr>
-                    <td style="color:var(--cyan); font-weight:bold;">${r._id}</td>
+                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${r._id}'); return false;">${r._id}</a></td>
                     <td style="color:white; font-weight:bold; font-size:14px;">${r.count} People</td>
                     <td style="color:var(--faded-green); font-weight:bold;">${Number(displayEarned).toLocaleString('en-US')} ETB</td>
                     <td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${r._id}')">👁️ የጋበዛቸው ሰዎች (View)</button></td>
@@ -1110,7 +1114,7 @@
                     return `<div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
                         <div>
                             <div style="color:var(--faded-green); font-weight:bold;">${i+1}. ${u.name || 'Unknown'}</div>
-                            <div style="font-family:monospace; font-size:12px; color:#cbd5e1;">${u.phone}</div>
+                            <div style="font-family:monospace; font-size:12px; color:#cbd5e1;"><a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${u.phone}'); return false;">${u.phone}</a></div>
                         </div>
                         <div style="font-size:11px; color:gray;">${d}</div>
                     </div>`;
@@ -1194,7 +1198,7 @@
                     let sevColor = l.severity === 'High' ? 'var(--red)' : (l.severity === 'Medium' ? 'var(--orange)' : 'var(--blue)');
                     return `<tr>
                         <td style="font-size:11px;">${new Date(l.date).toLocaleString()}</td>
-                        <td style="color:var(--cyan);">${l.phone}</td>
+                        <td style="color:var(--cyan);"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${l.phone}'); return false;">${l.phone}</a></td>
                         <td style="font-weight:bold;">${l.actionType}</td>
                         <td style="color:${sevColor}; font-weight:bold;">${l.severity}</td>
                         <td style="font-size:12px; color:var(--text-gray);">${l.details}</td>
@@ -1216,7 +1220,7 @@
     }
 
     async function runDiagnostics() {
-        if(!confirm("የሲስተም ጤንነት (System Diagnostic) መጀመር ይፈልጋሉ?")) return;
+        if(!confirm("የሲስተም ጤንነት (System Diagnostic) መጀመር ይፈልጋሉ? ይህ ቼክ በማድረግ አደገኛ ዩዘሮችን ይለያል።")) return;
         try {
             let res = await fetch('/api/admin/run-diagnostics', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
             let data = await res.json();
@@ -1224,6 +1228,7 @@
             loadSystemLogs(1);
         } catch(e) { alert("Error connecting to server!"); }
     }
+
 
     function toggleSelectAll(type) {
         let isChecked = document.getElementById(`chk-all-${type}`).checked;
@@ -1293,7 +1298,7 @@
         document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `
             <tr>
                 <td>${p.name}</td>
-                <td>${p.phone}</td>
+                <td><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></td>
                 <td>${p.tickets}</td>
                 <td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                 <td>
@@ -1323,7 +1328,7 @@
                     let unpaid = p.unpaidBalance !== undefined ? p.unpaidBalance : 0; 
                     return `
                     <tr>
-                        <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;">${p.phone}</td><td>${p.percent}%</td>
+                        <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></td><td>${p.percent}%</td>
                         <td>${p.usersBrought} Users</td>
                         <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                         <td style="color:var(--orange); font-weight:bold;">${Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
@@ -1390,7 +1395,7 @@
                 document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
                 document.getElementById('pp-unpaid').innerText = Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2});
                 
-                let tableHtml = data.details.map(d => `<tr><td>${d.name}</td><td style="color:var(--cyan);">${d.phone}</td><td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
+                let tableHtml = data.details.map(d => `<tr><td>${d.name}</td><td style="color:var(--cyan);"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${d.phone}'); return false;">${d.phone}</a></td><td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
                 document.getElementById('pp-users-body').innerHTML = tableHtml; document.getElementById('promoter-profile-modal').style.display = 'flex';
             }
         } catch(e) { alert("Error loading profile"); }
@@ -1414,7 +1419,6 @@
             let tData = await tRes.json();
             
             if(tData.success) {
-                // አዲሱ የተሟላ መረጃ (Stats) ማሳያ
                 document.getElementById('ui-tot-dep').innerText = Number(tData.aggDep || u.totalDeposited || 0).toLocaleString();
                 document.getElementById('ui-tot-wit').innerText = Number(tData.aggWit || u.totalWithdrawn || 0).toLocaleString();
                 
@@ -1501,7 +1505,7 @@
     
     async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let photoUrl = document.getElementById('cb-photo-url').value.trim(); let fileInput = document.getElementById('cb-photo-file'); if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; let btn = document.getElementById('btn-send-promo'); btn.innerText = "Sending..."; let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl}; if (fileInput.files.length > 0) { let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]); reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); }; } else { sendPromoData(payload, btn); } }
     async function sendPromoData(payload, btn) { try { let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';} } catch(e) { alert("Error"); } btn.innerText = "Create Promo & Broadcast"; }
-    async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. ${p}</div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; } }
+    async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. <a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a></div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; } }
     
     async function sendTelegramPromo(type) { 
         let msg = document.getElementById('tg-msg').value; 
