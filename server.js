@@ -88,6 +88,24 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
 }));
 
+// 🔥 አዳዲስ ሞዴሎች ለ Promo Code እና ለ System Logs (Cheat Detection)
+const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
+    code: { type: String, unique: true, index: true },
+    amount: Number,
+    maxUses: Number,
+    currentUses: { type: Number, default: 0 },
+    expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, // 30 days
+    usedBy: [String]
+}));
+
+const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
+    phone: String,
+    actionType: String,
+    details: String,
+    severity: { type: String, default: 'Medium' }, // Low, Medium, High
+    date: { type: Date, default: Date.now }
+}));
+
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
     financePass: { type: String, default: "finance1234" }, 
@@ -129,7 +147,7 @@ loadSettings();
 
 function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '1000123456789', name: 'Yohannes aberham' } }; // ተስተካክሏል
+const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '1000123456789', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
 function getTxRef(text) {
@@ -264,6 +282,9 @@ app.post('/api/register', async (req, res) => {
         }
         let myRefCode = generateRefCode();
         await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
+        
+        // Log Registration
+        await SystemLog.create({ phone, actionType: "Registration", details: `Registered using ref: ${actualRef || 'None'}`, severity: "Low" });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -307,7 +328,10 @@ app.post('/api/request-tx', async (req, res) => {
         } else {
             let txRef = getTxRef(sms);
             if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) አልተገኘም!" });
-            if (await isSmsAlreadyUsed(sms)) return res.json({ success: false, message: "❌ ይህ SMS ቀድሞ ጥቅም ላይ ውሏል!" });
+            if (await isSmsAlreadyUsed(sms)) {
+                await SystemLog.create({ phone, actionType: "Fake Deposit Attempt", details: `Tried to use existing TxRef: ${txRef}`, severity: "High" });
+                return res.json({ success: false, message: "❌ ይህ SMS ቀድሞ ጥቅም ላይ ውሏል!" });
+            }
             await new Transaction({ phone, type, amount, method, smsText: sms, txRef: txRef }).save();
             await autoApprovePendingDeposits();
         }
@@ -352,6 +376,39 @@ app.get('/api/leaderboard', async (req, res) => {
         let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); 
         res.json({ success: true, leaderboard }); 
     } catch(e) { res.json({ success: false }); }
+});
+
+// 🔥 Promo Code Claim Logic
+app.post('/api/claim-promo-code', async (req, res) => {
+    try {
+        const { phone, pass, code } = req.body;
+        if (!code) return res.json({ success: false, message: "እባክዎ ኮድ ያስገቡ!" });
+        let user = await User.findOne({ phone, password: pass });
+        if(!user) return res.json({success: false, message: "User not found!"});
+        
+        let promo = await PromoCode.findOne({ code: code.toUpperCase() });
+        if (!promo) {
+            await SystemLog.create({ phone, actionType: "Invalid Promo Code", details: `Tried code: ${code}`, severity: "Low" });
+            return res.json({ success: false, message: "❌ ትክክለኛ ያልሆነ ኮድ!" });
+        }
+        
+        if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "❌ የዚህ ኩፖን ጊዜ አልፏል!" });
+        if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "❌ ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
+        if (promo.usedBy.includes(user.phone)) {
+            await SystemLog.create({ phone, actionType: "Promo Double Claim Attempt", details: `Tried to claim code: ${code} again.`, severity: "Medium" });
+            return res.json({ success: false, message: "❌ እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
+        }
+        
+        promo.usedBy.push(user.phone);
+        promo.currentUses += 1;
+        await promo.save();
+        
+        user.playBalance += promo.amount;
+        await user.save();
+        io.emit('balance_updated', user.phone);
+        
+        res.json({ success: true, message: `🎉 እንኳን ደስ አሎት! የ ${promo.amount} ETB ቦነስ አግኝተዋል!`, amount: promo.amount });
+    } catch(e) { res.json({success: false}); }
 });
 
 app.post('/api/claim-promo-web', async (req, res) => {
@@ -518,14 +575,14 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 የ History Pagination ተስተካክሏል (ሁሉንም ዳታ ያመጣል)
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
         let search = req.body.search || '';
         
-        let twelveHoursAgo = new Date(Date.now() - (12 * 60 * 60 * 1000));
-        let query = { date: { $gte: twelveHoursAgo } };
+        let query = {};
         
         if (search) {
             query.$or = [{ winnerPhone: new RegExp(search, 'i') }];
@@ -656,6 +713,39 @@ app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
     } catch(e) {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
     }
+});
+
+// 🔥 Promo Codes Endpoints
+app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
+    try {
+        let codes = await PromoCode.find().sort({ _id: -1 });
+        res.json({ success: true, codes });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/create-promo-code', auth, async (req, res) => {
+    try {
+        let exists = await PromoCode.findOne({ code: req.body.code });
+        if(exists) return res.json({ success: false, message: "Code already exists!" });
+        await new PromoCode({ code: req.body.code, amount: req.body.amount, maxUses: req.body.maxUses }).save();
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/delete-promo-code', auth, async (req, res) => {
+    try { await PromoCode.findByIdAndDelete(req.body.id); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
+
+// 🔥 System Logs Endpoint
+app.post('/api/admin/system-logs', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 50;
+        let total = await SystemLog.countDocuments();
+        let logs = await SystemLog.find().sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
+        res.json({ success: true, logs, total });
+    } catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/admin/delete-users', auth, async (req, res) => {
@@ -891,6 +981,8 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
         }
 
         if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
+        
+        await SystemLog.create({ phone: "ADMIN", actionType: "Manual Cashback", details: `Triggered ${cAmt} ETB to ${count} users.`, severity: "High" });
         res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
     } catch(e) {
         res.status(500).json({ success: false });
@@ -1315,7 +1407,7 @@ const botState = {};
 const t = {
     am: {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
-        btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 ድርጅቱን አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ",
+        btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 ድርጅቱን አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ", btn_promocode: "🎟️ ፕሮሞ ኮድ",
         share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።", err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
         profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
@@ -1334,7 +1426,7 @@ const t = {
     },
     en: {
         welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
-        btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back",
+        btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back", btn_promocode: "🎟️ Promo Code",
         share_contact: "📱 Share Contact", err_reg_first: "Register first by sending /start.", err_cancel: "❌ Action cancelled.",
         profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>Wallet Balance:</b>\n\n🟢 Play Balance: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Main Balance: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
@@ -1351,7 +1443,7 @@ const t = {
         play_msg: "Play and have fun at Bingo Habesha and win thousands!\nGood luck!"
     },
     or: {
-        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Baga nagaan dhuftan!</b> 🎉", btn_play: "🎮 Tapadhu", btn_profile: "👤 Pirofaayilii", btn_balance: "💰 Herrega", btn_deposit: "📥 Galchuu", btn_withdraw: "📤 Baasuu", btn_invite: "🔗 Afeeri", btn_promo: "🗣 Promote", btn_guide: "📖 Qajeelfama", btn_help: "🆘 Gargaarsa", btn_rules: "📜 Seera", btn_lang: "🌐 Afaan", btn_bonus: "🎁 Boonasii", btn_back: "🔙 Duubatti", share_contact: "📱 Lakkoofsa ergi", err_reg_first: "Dura /start tuqi.", err_cancel: "❌ Haqameera.",
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Baga nagaan dhuftan!</b> 🎉", btn_play: "🎮 Tapadhu", btn_profile: "👤 Pirofaayilii", btn_balance: "💰 Herrega", btn_deposit: "📥 Galchuu", btn_withdraw: "📤 Baasuu", btn_invite: "🔗 Afeeri", btn_promo: "🗣 Promote", btn_guide: "📖 Qajeelfama", btn_help: "🆘 Gargaarsa", btn_rules: "📜 Seera", btn_lang: "🌐 Afaan", btn_bonus: "🎁 Boonasii", btn_back: "🔙 Duubatti", btn_promocode: "🎟️ Promo Code", share_contact: "📱 Lakkoofsa ergi", err_reg_first: "Dura /start tuqi.", err_cancel: "❌ Haqameera.",
         profile_text: (u) => `👤 <b>Pirofaayilii</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Tapha: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Baankii filadhu:</b>", wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>", invite_msg: (l) => `🔗 <b>Afeeri</b>\n\nLachuun keessan Boonasii argattu!\n\n👇 Liinkii Kee:\n${l}`, guide_msg: `📖 <b>Akkaataa Tapha:</b> Sarara guutu BINGO!`, rules_msg: `📜 <b>Seera:</b> Telebirr gara Telebirr QOFA. CBEBirr gara CBEBirr QOFA.`, choose_lang: "Afaan filadhu:", lang_set: "✅ Jijjiirameera!", warn_telebirr: "⚠️ Telebirr gara Telebirr QOFA!\n\n", warn_cbebirr: "⚠️ CBEBirr gara CBEBirr QOFA!\n\n",
@@ -1360,7 +1452,7 @@ const t = {
         play_msg: "BINGO HABESHA irratti taphadhaa, bashannanaa, kumaatama mo'adhaa!\nCarraa Gaarii!"
     },
     ti: {
-        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንቋዕ ብደሓን መጻእኩም!</b> 🎉", btn_play: "🎮 ጻወት", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሕሳብ", btn_deposit: "📥 ኣእቱ", btn_withdraw: "📤 ኣውጽእ", btn_invite: "🔗 ዕደም", btn_promo: "🗣 Promote", btn_guide: "📖 መምርሒ", btn_help: "🆘 ሓገዝ", btn_rules: "📜 ሕግታት", btn_lang: "🌐 ቋንቋ", btn_bonus: "🎁 ቦነስ", btn_back: "🔙 ንድሕሪት", share_contact: "📱 ቁጽሪ ኣካፍል", err_reg_first: "ቅድም /start በሉ።", err_cancel: "❌ ተቋሪጹ።",
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንቋዕ ብደሓን መጻእኩም!</b> 🎉", btn_play: "🎮 ጻወት", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሕሳብ", btn_deposit: "📥 ኣእቱ", btn_withdraw: "📤 ኣውጽእ", btn_invite: "🔗 ዕደም", btn_promo: "🗣 Promote", btn_guide: "📖 መምርሒ", btn_help: "🆘 ሓገዝ", btn_rules: "📜 ሕግታት", btn_lang: "🌐 ቋንቋ", btn_bonus: "🎁 ቦነስ", btn_back: "🔙 ንድሕሪት", btn_promocode: "🎟️ Promo Code", share_contact: "📱 ቁጽሪ ኣካፍል", err_reg_first: "ቅድም /start በሉ።", err_cancel: "❌ ተቋሪጹ።",
         profile_text: (u) => `👤 <b>ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልኪ:</b> ${u.phone}\n\n💰 <b>መጻወቲ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ቀንዲ:</b> ${u.mainBalance.toFixed(2)} ETB`,
         balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>ባንኪ ምረጽ?</b>", wit_msg: "🏦 <b>ባንኪ ምረጽ?</b>", invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nንስኹም ሆነ ንሱ ፍሉይ ቦነስ ክትረኽቡ ኢኹም!\n\n👇 ሊንክ:\n${l}`, guide_msg: `📖 <b>መምርሒ:</b> ምሉእ መስመር እንተሰሪሖም BINGO!`, rules_msg: `📜 <b>ሕግታት:</b> ካብ ቴሌብር ናብ ቴሌብር ጥራይ። ካብ CBEBirr ናብ CBEBirr ጥራይ።`, choose_lang: "ቋንቋ ምረጹ:", lang_set: "✅ ተቐይሩ ኣሎ!", warn_telebirr: "⚠️ ካብ ቴሌብር ናብ ቴሌብር ጥራይ!\n\n", warn_cbebirr: "⚠️ ካብ CBEBirr ናብ CBEBirr ጥራይ!\n\n",
@@ -1373,7 +1465,7 @@ const t = {
 function getLang(user) { return user && user.language && t[user.language] ? t[user.language] : t['am']; }
 function getMainMenu(user) {
     let ln = getLang(user);
-    return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promo }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }], [{ text: ln.btn_lang }] ], resize_keyboard: true } };
+    return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promocode }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }], [{ text: ln.btn_lang }] ], resize_keyboard: true } };
 }
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
 
@@ -1425,6 +1517,8 @@ bot.on('contact', async (msg) => {
             let myRefCode = generateRefCode();
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
+            await SystemLog.create({ phone, actionType: "Registration", details: `Registered using ref: ${actualRef || 'None'}`, severity: "Low" });
+
             const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -1465,6 +1559,14 @@ bot.on('message', async (msg) => {
 
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
+    }
+    // 🔥 Promo Code WebApp Button Logic
+    else if (text === t.am.btn_promocode || text === t.en.btn_promocode || text === t.or.btn_promocode || text === t.ti.btn_promocode || text.includes('ፕሮሞ ኮድ') || text.includes('Promo Code') || text === '/promocode') {
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        bot.sendMessage(chatId, "🎟️ <b>ኩፖን (Promo Code)</b>\n\nከታች ያለውን ቁልፍ ተጭነው ኩፖንዎን ያስገቡ።", { 
+            parse_mode: "HTML", 
+            reply_markup: { inline_keyboard: [[{ text: "🎟️ ኩፖን አስገባ (Enter Code)", web_app: { url: `${WEB_URL}/promo_app?phone=${user.phone}&pass=${user.password}` } }]] } 
+        });
     }
     else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
@@ -1560,7 +1662,10 @@ bot.on('message', async (msg) => {
             let txRef = getTxRef(text);
             if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) }); }
             let isUsed = await isSmsAlreadyUsed(text);
-            if (isUsed) { return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); }
+            if (isUsed) { 
+                await SystemLog.create({ phone: user.phone, actionType: "Fake Deposit Attempt", details: `Tried to use existing TxRef: ${txRef}`, severity: "High" });
+                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); 
+            }
 
             await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
@@ -1992,6 +2097,73 @@ app.get('/promoter', async (req, res) => {
     res.send(html);
 });
 
+// 🔥 አዲሱ የ Promo Code WebApp
+app.get('/promo_app', async (req, res) => {
+    let phone = req.query.phone;
+    let pass = req.query.pass;
+    let user = await User.findOne({ phone, password: pass });
+    if(!user) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ Unauthorized</h1>");
+
+    let html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Promo Code</title>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
+            .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px 20px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+            h2 { color: #fbbf24; margin-top: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+            p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+            input { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid #475569; background: #000; color: white; box-sizing: border-box; font-size:20px; font-weight: bold; outline:none; text-align:center; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;}
+            input:focus { border-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+            .btn { background: #fbbf24; color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: 900; cursor: pointer; transition: 0.2s; text-transform: uppercase;}
+            .btn:active { transform: scale(0.95); }
+            .loader { display: none; margin-top: 15px; color: #fbbf24; font-size:14px; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>🎟️ Promo Code</h2>
+            <p>በተለያዩ መንገዶች ያገኙትን የፕሮሞ ኮድ (ኩፖን) እዚህ በማስገባት ቦነስዎን ይቀበሉ!</p>
+            <input type="text" id="pCode" placeholder="Enter Code Here">
+            <button class="btn" id="claimBtn" onclick="claimCode()">🎁 Claim Bonus</button>
+            <div class="loader" id="loader">እባክዎ ይጠብቁ (Processing)...</div>
+        </div>
+
+        <script>
+            async function claimCode() {
+                let code = document.getElementById('pCode').value.trim();
+                if(!code) return alert('እባክዎ ኮድ ያስገቡ!');
+                
+                document.getElementById('claimBtn').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+
+                try {
+                    let res = await fetch('/api/claim-promo-code', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ phone: '${phone}', pass: '${pass}', code: code })
+                    });
+                    let data = await res.json();
+                    alert(data.message);
+                    if(data.success) {
+                        document.getElementById('pCode').value = '';
+                    }
+                } catch(e) {
+                    alert('Connection Error!');
+                }
+                
+                document.getElementById('claimBtn').style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
+
 app.get('/admin', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
     if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>");
@@ -2161,7 +2333,7 @@ setInterval(async () => {
     } catch (error) {}
 }, 30000); 
 
-// 🔥 አዲሱ የ AUTO-CLEANUP CRON JOB (Memory እንዳይሞላ) 🔥
+// 🔥 የ AUTO-CLEANUP CRON JOB (Memory እንዳይሞላ) 🔥
 setInterval(async () => {
     try {
         let sixHoursAgo = new Date(Date.now() - (6 * 60 * 60 * 1000));
