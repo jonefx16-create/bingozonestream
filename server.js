@@ -54,6 +54,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: { type: String, index: true }, 
     type: { type: String, index: true }, 
     amount: Number, 
+    bonusGiven: { type: Number, default: 0 }, // 🔥 ይሄ አዲስ የተጨመረ ነው (ለቦነስ ሪፖርት)
     method: String, 
     status: { type: String, default: 'Pending', index: true }, 
     date: { type: Date, default: Date.now, index: true }, 
@@ -88,13 +89,12 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
 }));
 
-// 🔥 አዳዲስ ሞዴሎች ለ Promo Code እና ለ System Logs (Cheat Detection)
 const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     code: { type: String, unique: true, index: true },
     amount: Number,
     maxUses: Number,
     currentUses: { type: Number, default: 0 },
-    expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, // 30 days
+    expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
     usedBy: [String]
 }));
 
@@ -102,7 +102,7 @@ const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
     phone: String,
     actionType: String,
     details: String,
-    severity: { type: String, default: 'Medium' }, // Low, Medium, High
+    severity: { type: String, default: 'Medium' }, 
     date: { type: Date, default: Date.now }
 }));
 
@@ -202,6 +202,7 @@ async function autoApprovePendingDeposits() {
                     }
                     let totalCredit = actualReceivedAmount + bonus;
                     tx.amount = actualReceivedAmount; 
+                    tx.bonusGiven = bonus; // 🔥 ቦነሱን ሴቭ ያደርጋል
                     tx.status = 'Approved';
                     await tx.save();
                     matchedSMS.isUsed = true;
@@ -223,6 +224,11 @@ async function autoApprovePendingDeposits() {
                     if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true; 
                     await user.save();
                     io.emit('balance_updated', tx.phone);
+                    
+                    // 🔥 ለዩዘሩ ስክሪን ላይ ወርቃማ ፅሁፍ እንዲያወጣ ይልካል
+                    if(bonus > 0) {
+                        io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualReceivedAmount, bonusAmount: bonus });
+                    }
                 }
             }
         }
@@ -282,9 +288,6 @@ app.post('/api/register', async (req, res) => {
         }
         let myRefCode = generateRefCode();
         await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
-        
-        // Log Registration
-        await SystemLog.create({ phone, actionType: "Registration", details: `Registered using ref: ${actualRef || 'None'}`, severity: "Low" });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -389,14 +392,14 @@ app.post('/api/claim-promo-code', async (req, res) => {
         let promo = await PromoCode.findOne({ code: code.toUpperCase() });
         if (!promo) {
             await SystemLog.create({ phone, actionType: "Invalid Promo Code", details: `Tried code: ${code}`, severity: "Low" });
-            return res.json({ success: false, message: "❌ ትክክለኛ ያልሆነ ኮድ!" });
+            return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
         }
         
-        if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "❌ የዚህ ኩፖን ጊዜ አልፏል!" });
-        if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "❌ ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
+        if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "የዚህ ኩፖን ጊዜ አልፏል!" });
+        if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
         if (promo.usedBy.includes(user.phone)) {
             await SystemLog.create({ phone, actionType: "Promo Double Claim Attempt", details: `Tried to claim code: ${code} again.`, severity: "Medium" });
-            return res.json({ success: false, message: "❌ እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
+            return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
         }
         
         promo.usedBy.push(user.phone);
@@ -407,7 +410,7 @@ app.post('/api/claim-promo-code', async (req, res) => {
         await user.save();
         io.emit('balance_updated', user.phone);
         
-        res.json({ success: true, message: `🎉 እንኳን ደስ አሎት! የ ${promo.amount} ETB ቦነስ አግኝተዋል!`, amount: promo.amount });
+        res.json({ success: true, message: `እንኳን ደስ አሎት! የ ${promo.amount} ETB ቦነስ አግኝተዋል!`, amount: promo.amount });
     } catch(e) { res.json({success: false}); }
 });
 
@@ -575,7 +578,6 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 የ History Pagination ተስተካክሏል (ሁሉንም ዳታ ያመጣል)
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -877,6 +879,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
                 if (giveBonus) { bonus = actualAmount * (set.depBonusPercent / 100); }
             }
             let totalCredit = actualAmount + bonus;
+            tx.bonusGiven = bonus;
             user.playBalance += totalCredit;
             user.totalDeposited += actualAmount;
 
@@ -890,6 +893,11 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
                     user.promoterCommissionGenerated += commission;
                 }
             }
+            
+            if (bonus > 0) {
+                io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualAmount, bonusAmount: bonus });
+            }
+
         } else if (tx.type === 'withdraw') {
             let set = GLOBAL_SETTINGS;
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
@@ -991,12 +999,34 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
-        const { oldPhone, newPhone, userPass, mainBalance, playBalance, won } = req.body;
-        let updateData = { phone: newPhone, mainBalance: Number(mainBalance), playBalance: Number(playBalance), won: Number(won) };
-        if (userPass && userPass.trim() !== "") { updateData.password = userPass; }
-        await User.findOneAndUpdate({ phone: oldPhone }, updateData);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+        const { oldPhone, newPhone, name, userPass, mainBalance, playBalance, won } = req.body;
+        
+        let updateData = { 
+            phone: newPhone, 
+            name: name,
+            mainBalance: Number(mainBalance), 
+            playBalance: Number(playBalance), 
+            won: Number(won) 
+        };
+        
+        if (userPass && userPass.trim() !== "") { 
+            updateData.password = userPass.trim(); 
+        }
+        
+        let updatedUser = await User.findOneAndUpdate(
+            { phone: oldPhone }, 
+            { $set: updateData }, 
+            { new: true } 
+        );
+        
+        if(updatedUser) {
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, message: "User not found" });
+        }
+    } catch(e) { 
+        res.json({ success: false, message: "Error saving data." }); 
+    }
 });
 
 app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
@@ -1517,8 +1547,6 @@ bot.on('contact', async (msg) => {
             let myRefCode = generateRefCode();
             user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
             
-            await SystemLog.create({ phone, actionType: "Registration", details: `Registered using ref: ${actualRef || 'None'}`, severity: "Low" });
-
             const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
             try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
             catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
@@ -2109,34 +2137,76 @@ app.get('/promo_app', async (req, res) => {
     <html lang="en">
     <head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>Promo Code</title>
+        <title>Promo Code - Bingo Habesha</title>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
-            .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px 20px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-            h2 { color: #fbbf24; margin-top: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
-            p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
-            input { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid #475569; background: #000; color: white; box-sizing: border-box; font-size:20px; font-weight: bold; outline:none; text-align:center; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;}
-            input:focus { border-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
-            .btn { background: #fbbf24; color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: 900; cursor: pointer; transition: 0.2s; text-transform: uppercase;}
-            .btn:active { transform: scale(0.95); }
-            .loader { display: none; margin-top: 15px; color: #fbbf24; font-size:14px; font-weight: bold; }
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap');
+            body { font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden;}
+            
+            .brand-header { background: rgba(0,0,0,0.4); border: 1px solid #334155; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: inline-block;}
+            .brand-header span:first-child { color: #4ade80; font-weight: 900; font-size: 24px; letter-spacing: 2px;}
+            .brand-header span:last-child { color: #ffffff; font-weight: 900; font-size: 24px; letter-spacing: 2px;}
+
+            .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 20px; padding: 35px 25px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center;}
+            
+            .icon-gift { font-size: 50px; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5)); animation: bounce 2s infinite;}
+            @keyframes bounce { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+
+            h2 { color: #fbbf24; margin-top: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+            p { color: #94a3b8; font-size: 13px; margin-bottom: 25px; line-height: 1.6; }
+            
+            input { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #334155; background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-size:20px; font-weight: 900; outline:none; text-align:center; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px; transition: 0.3s;}
+            input:focus { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); background: rgba(0,0,0,0.8);}
+            
+            .btn { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4); margin-bottom: 10px;}
+            .btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);}
+            .btn:hover { background: linear-gradient(135deg, #fcd34d, #fbbf24); }
+
+            .btn-close { background: transparent; border: 2px solid #ef4444; color: #ef4444; box-shadow: none; margin-bottom: 0;}
+            .btn-close:hover { background: rgba(239, 68, 68, 0.1); }
+
+            .loader { display: none; margin-top: 15px; color: #4ade80; font-size:14px; font-weight: bold; animation: pulse 1s infinite;}
+            @keyframes pulse { 0% {opacity:0.5;} 100% {opacity:1;} }
         </style>
     </head>
     <body>
+        <div class="brand-header">
+            <span>ቢንጎ</span> <span>ሀበሻ</span>
+        </div>
+
         <div class="card">
-            <h2>🎟️ Promo Code</h2>
-            <p>በተለያዩ መንገዶች ያገኙትን የፕሮሞ ኮድ (ኩፖን) እዚህ በማስገባት ቦነስዎን ይቀበሉ!</p>
-            <input type="text" id="pCode" placeholder="Enter Code Here">
-            <button class="btn" id="claimBtn" onclick="claimCode()">🎁 Claim Bonus</button>
-            <div class="loader" id="loader">እባክዎ ይጠብቁ (Processing)...</div>
+            <div class="icon-gift">🎁</div>
+            <h2>ኩፖን (Promo Code)</h2>
+            <p>በተለያዩ መንገዶች ያገኙትን የፕሮሞ ኮድ እዚህ በማስገባት የተዘጋጀልዎትን ቦነስ ይቀበሉ!</p>
+            
+            <input type="text" id="pCode" placeholder="ኮድ ያስገቡ..." autocomplete="off">
+            
+            <button class="btn" id="claimBtn" onclick="claimCode()">🚀 ቦነስ ተቀበል</button>
+            <button class="btn btn-close" onclick="closeWebApp()">❌ ዝጋ (Close)</button>
+            <div class="loader" id="loader">እባክዎ ይጠብቁ...</div>
         </div>
 
         <script>
+            // Initialize Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+            }
+
+            function closeWebApp() {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    Telegram.WebApp.close();
+                } else {
+                    window.close(); // Fallback for browsers
+                }
+            }
+
             async function claimCode() {
                 let code = document.getElementById('pCode').value.trim();
                 if(!code) return alert('እባክዎ ኮድ ያስገቡ!');
                 
                 document.getElementById('claimBtn').style.display = 'none';
+                document.querySelector('.btn-close').style.display = 'none';
                 document.getElementById('loader').style.display = 'block';
 
                 try {
@@ -2146,15 +2216,19 @@ app.get('/promo_app', async (req, res) => {
                         body: JSON.stringify({ phone: '${phone}', pass: '${pass}', code: code })
                     });
                     let data = await res.json();
-                    alert(data.message);
+                    
                     if(data.success) {
+                        alert("✅ " + data.message);
                         document.getElementById('pCode').value = '';
+                    } else {
+                        alert("❌ " + data.message);
                     }
                 } catch(e) {
-                    alert('Connection Error!');
+                    alert('❌ Connection Error!');
                 }
                 
                 document.getElementById('claimBtn').style.display = 'block';
+                document.querySelector('.btn-close').style.display = 'block';
                 document.getElementById('loader').style.display = 'none';
             }
         </script>
@@ -2332,6 +2406,23 @@ setInterval(async () => {
         await autoApprovePendingDeposits();
     } catch (error) {}
 }, 30000); 
+
+// 🔥 አደገኛ ስህተቶችን (Negative Balance) የሚቆጣጠር ሲስተም
+setInterval(async () => {
+    try {
+        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}] });
+        for (let u of negativeUsers) {
+            await SystemLog.create({ 
+                phone: u.phone, 
+                actionType: "CRITICAL: Negative Balance Detected", 
+                details: `System Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
+                severity: "High" 
+            });
+        }
+    } catch (error) {
+        console.log("System Check Error:", error);
+    }
+}, 30 * 60 * 1000); // በየ 30 ደቂቃው ይፈትሻል
 
 // 🔥 የ AUTO-CLEANUP CRON JOB (Memory እንዳይሞላ) 🔥
 setInterval(async () => {
