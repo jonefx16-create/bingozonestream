@@ -330,7 +330,6 @@ app.post('/api/request-tx', async (req, res) => {
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
             
-            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ
             if (user.totalDeposited === 0 && user.played >= 5) {
                 await SystemLog.create({ 
                     phone: user.phone, 
@@ -393,7 +392,6 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 Promo Code Claim Logic
 app.post('/api/claim-promo-code', async (req, res) => {
     try {
         const { phone, pass, code } = req.body;
@@ -403,14 +401,12 @@ app.post('/api/claim-promo-code', async (req, res) => {
         
         let promo = await PromoCode.findOne({ code: code.toUpperCase() });
         if (!promo) {
-            await SystemLog.create({ phone, actionType: "Invalid Promo Code", details: `Tried code: ${code}`, severity: "Low" });
             return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
         }
         
         if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "የዚህ ኩፖን ጊዜ አልፏል!" });
         if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
         if (promo.usedBy.includes(user.phone)) {
-            await SystemLog.create({ phone, actionType: "Promo Double Claim Attempt", details: `Tried to claim code: ${code} again.`, severity: "Medium" });
             return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
         }
         
@@ -1532,7 +1528,14 @@ const t = {
 function getLang(user) { return user && user.language && t[user.language] ? t[user.language] : t['am']; }
 function getMainMenu(user) {
     let ln = getLang(user);
-    return { reply_markup: { keyboard: [ [{ text: ln.btn_play }], [{ text: ln.btn_profile }, { text: ln.btn_balance }], [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], [{ text: ln.btn_invite }, { text: ln.btn_promocode }], [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }], [{ text: ln.btn_lang }] ], resize_keyboard: true } };
+    return { reply_markup: { keyboard: [ 
+        [{ text: ln.btn_play }], 
+        [{ text: ln.btn_profile }, { text: ln.btn_balance }], 
+        [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], 
+        [{ text: ln.btn_invite }, { text: ln.btn_promo }], 
+        [{ text: ln.btn_promocode }, { text: ln.btn_lang }], 
+        [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }]
+    ], resize_keyboard: true } };
 }
 const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
 
@@ -1610,22 +1613,9 @@ bot.on('message', async (msg) => {
         return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
-    if (state.step === 'support_chat') {
-        if(!user) return;
-        await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
-        
-        io.emit('new_support_message'); 
-
-        bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
-        state.step = 'idle';
-        botState[chatId] = state;
-        return;
-    }
-
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
-    // 🔥 Promo Code WebApp Button Logic
     else if (text === t.am.btn_promocode || text === t.en.btn_promocode || text === t.or.btn_promocode || text === t.ti.btn_promocode || text.includes('ፕሮሞ ኮድ') || text.includes('Promo Code') || text === '/promocode') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, "🎟️ <b>ኩፖን (Promo Code)</b>\n\nከታች ያለውን ቁልፍ ተጭነው ኩፖንዎን ያስገቡ።", { 
@@ -1844,44 +1834,6 @@ app.get('/guide', (req, res) => {
             corner: "4. Four Corners",
             hint: "💡 The system detects winners automatically. You don't need to touch anything!",
             back: "🔙 Go Back"
-        },
-        or: {
-            title: "📖 Qajeelfama Taphaa fi Seera",
-            rule1_title: "1️⃣ Seera Herregaa:",
-            rule1_a: "🟢 <b>Herrega Taphaa (Play Balance):</b> Tikkeetii bituuf qofa tajaajila. Baasuu hin danda'amu.",
-            rule1_b: "🟡 <b>Herrega Muummee (Main Balance):</b> Mo'achuu keetiin kan galu. Yeroo barbaaddanitti baasuu dandeessu.",
-            rule2_title: "2️⃣ Seera Galchuu:",
-            rule2_a: "👉 Telebirr gara Telebirr QOFA!",
-            rule2_b: "👉 CBEBirr gara CBEBirr QOFA.",
-            rule3_title: "3️⃣ Haala Taphaa:",
-            rule3_a: "Tikkeetii yommuu bitattan, kaardii 5x5 lakkoofsa 1-75 qabu isiniif kennama. Sirnichumtuu lakkoofsa waamaa ofiisaatiin isiniif mara.",
-            win_title: "🏆 Akkaataa Mo'achuu (Winning Patterns)",
-            win_desc: "Bocoota arfan armaan gadii keessaa tokko yoo guuttan <b>BINGO</b> jettu!",
-            horiz: "1. Dalgee (Horizontal)",
-            vert: "2. Gadee (Vertical)",
-            diag: "3. Qaxxaamura (Diagonal / X)",
-            corner: "4. Kurna Arfan (Four Corners)",
-            hint: "💡 Sirnichumtuu mo'ataa waan adda baasuuf homaa tuquun isinirra hin eegamu!",
-            back: "🔙 Duubatti Deebi'i"
-        },
-        ti: {
-            title: "📖 መምርሒ ጸወታን ሕግታትን",
-            rule1_title: "1️⃣ ሕግታት ሕሳብ:",
-            rule1_a: "🟢 <b>መጻወቲ ሕሳብ (Play Balance):</b> ካርድ ንምግዛእ ጥራይ የገልግል። መውጽኢ (Withdraw) ክግበር ኣይክእልን።",
-            rule1_b: "🟡 <b>ቀንዲ ሕሳብ (Main Balance):</b> ክትዕወቱ ከለኹም ዝኣትወሉ ኮይኑ፣ ኣብ ዝደለኹሞ ግዜ ከተውጽእዎ ትኽእሉ ኢኹም።",
-            rule2_title: "2️⃣ ሕግታት ኣእታው (Deposit):",
-            rule2_a: "👉 ካብ ቴሌብር ናብ ቴሌብር ኣካውንት ጥራይ!",
-            rule2_b: "👉 ካብ CBEBirr ናብ CBEBirr ኣካውንት ጥራይ።",
-            rule3_title: "3️⃣ መስርሕ ጸወታ:",
-            rule3_a: "ካርድ ክትገዝኡ ከለኹም ካብ 1 ክሳብ 75 ቁጽርታት ዝሓዘ 5x5 ካርቴላ ይወሃበኩም። ጸወታ ክጅምር ከሎ ሲስተም ባዕሉ ቁጽርታት ይጽውዕን የጸልምልኩምን።",
-            win_title: "🏆 መገድታት ዓወት (Winning Patterns)",
-            win_desc: "በዞም ታሕቲ ዘለዉ ኣርባዕተ ቅርጽታት መሰረት ሓሙሽተ ቁጽርታት እንተረኺብኩም <b>BINGO</b> ኢልኩም ትዕወቱ!",
-            horiz: "1. ብኣግድም (Horizontal)",
-            vert: "2. ንታሕቲ (Vertical)",
-            diag: "3. ብማዕዘን (Diagonal / X)",
-            corner: "4. ኣርባዕቲኡ ኩርናዕ (Four Corners)",
-            hint: "💡 ሲስተም ባዕሉ ተዓዋቲ ስለዘለሊ ዝኾነ ነገር ምትንኻፍ ኣየድልየኩምን!",
-            back: "🔙 ንድሕሪት ተመለስ"
         }
     };
 
@@ -2162,7 +2114,6 @@ app.get('/promoter', async (req, res) => {
     res.send(html);
 });
 
-// 🔥 አዲሱ የ Promo Code WebApp 🔥
 app.get('/promo_app', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
@@ -2202,9 +2153,6 @@ app.get('/promo_app', async (req, res) => {
             .btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);}
             .btn:hover { background: linear-gradient(135deg, #fcd34d, #fbbf24); }
 
-            .btn-close { background: transparent; border: 2px solid #ef4444; color: #ef4444; box-shadow: none; margin-bottom: 0;}
-            .btn-close:hover { background: rgba(239, 68, 68, 0.1); }
-
             .loader { display: none; margin-top: 15px; color: #4ade80; font-size:14px; font-weight: bold; animation: pulse 1s infinite;}
             @keyframes pulse { 0% {opacity:0.5;} 100% {opacity:1;} }
         </style>
@@ -2228,12 +2176,6 @@ app.get('/promo_app', async (req, res) => {
         </div>
 
         <script>
-            // Initialize Telegram WebApp
-            if (window.Telegram && window.Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-            }
-
             async function claimCode() {
                 let code = document.getElementById('pCode').value.trim();
                 if(!code) return alert('እባክዎ ኮድ ያስገቡ!');
@@ -2328,8 +2270,6 @@ app.get('*', (req, res) => {
 
         <script>
             document.addEventListener("DOMContentLoaded", () => {
-                
-                // 🔥 የቴሌብር እና ሲቢኢ የገቢ ማሳሰቢያ ፅሁፍ (Deposit strict warning) 🔥
                 let depBanner = document.querySelector('.dep-banner');
                 if (depBanner && !document.getElementById('dep-strict-warn')) {
                     let warnHTML = '<div id="dep-strict-warn" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 11px; color: #fde047; text-align: center;">⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።</div>';
@@ -2438,10 +2378,8 @@ setInterval(async () => {
     } catch (error) {}
 }, 30000); 
 
-// 🔥 አደገኛ ስህተቶችን (Negative Balance እና ማጭበርበር) የሚቆጣጠር ሲስተም
 setInterval(async () => {
     try {
-        // 1. Negative Balance Check
         let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}] });
         for (let u of negativeUsers) {
             await SystemLog.create({ 
@@ -2452,8 +2390,7 @@ setInterval(async () => {
             });
         }
 
-        // 2. Fraud Detection (ብር ሳያስገቡ በ Invite Bonus ብቻ 15 ጊዜ እና ከዛ በላይ የተጫወቱትን ይይዛል)
-        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 15 } });
+        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 } });
         for (let u of fraudUsers) {
             let existingLog = await SystemLog.findOne({ phone: u.phone, actionType: "FRAUD ALERT: Bonus Exploiter" }).sort({ date: -1 });
             if (!existingLog || (new Date() - new Date(existingLog.date)) > (24 * 60 * 60 * 1000)) {
@@ -2468,9 +2405,8 @@ setInterval(async () => {
     } catch (error) {
         console.log("System Check Error:", error);
     }
-}, 15 * 60 * 1000); // በየ 15 ደቂቃው ይፈትሻል
+}, 15 * 60 * 1000); 
 
-// 🔥 የ AUTO-CLEANUP CRON JOB (Memory እንዳይሞላ) 🔥
 setInterval(async () => {
     try {
         let sixHoursAgo = new Date(Date.now() - (6 * 60 * 60 * 1000));
