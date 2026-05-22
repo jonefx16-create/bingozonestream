@@ -38,6 +38,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     played: { type: Number, default: 0 }, 
     won: { type: Number, default: 0 }, 
     totalDeposited: { type: Number, default: 0 }, 
+    totalWithdrawn: { type: Number, default: 0 }, 
+    totalTicketsBought: { type: Number, default: 0 }, 
     status: { type: String, default: 'active', index: true },
     language: { type: String, default: 'am' },
     isPromoter: { type: Boolean, default: false, index: true },
@@ -54,7 +56,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: { type: String, index: true }, 
     type: { type: String, index: true }, 
     amount: Number, 
-    bonusGiven: { type: Number, default: 0 }, // 🔥 ይሄ አዲስ የተጨመረ ነው (ለቦነስ ሪፖርት)
+    bonusGiven: { type: Number, default: 0 }, 
     method: String, 
     status: { type: String, default: 'Pending', index: true }, 
     date: { type: Date, default: Date.now, index: true }, 
@@ -202,7 +204,7 @@ async function autoApprovePendingDeposits() {
                     }
                     let totalCredit = actualReceivedAmount + bonus;
                     tx.amount = actualReceivedAmount; 
-                    tx.bonusGiven = bonus; // 🔥 ቦነሱን ሴቭ ያደርጋል
+                    tx.bonusGiven = bonus; 
                     tx.status = 'Approved';
                     await tx.save();
                     matchedSMS.isUsed = true;
@@ -225,7 +227,6 @@ async function autoApprovePendingDeposits() {
                     await user.save();
                     io.emit('balance_updated', tx.phone);
                     
-                    // 🔥 ለዩዘሩ ስክሪን ላይ ወርቃማ ፅሁፍ እንዲያወጣ ይልካል
                     if(bonus > 0) {
                         io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualReceivedAmount, bonusAmount: bonus });
                     }
@@ -328,6 +329,17 @@ app.post('/api/request-tx', async (req, res) => {
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
+            
+            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ
+            if (user.totalDeposited === 0 && user.played >= 5) {
+                await SystemLog.create({ 
+                    phone: user.phone, 
+                    actionType: "FRAUD ALERT: Bonus Exploiter", 
+                    details: `Tried to withdraw ${amount} ETB. Has ${user.played} games played but 0 total deposit.`, 
+                    severity: "High" 
+                });
+            }
+
         } else {
             let txRef = getTxRef(sms);
             if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) አልተገኘም!" });
@@ -600,7 +612,15 @@ app.post('/api/admin/history', auth, async (req, res) => {
 app.post('/api/admin/user-details', auth, async (req, res) => {
     try {
         let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
-        res.json({ success: true, txs });
+        
+        let allTxs = await Transaction.find({ phone: req.body.phone, status: 'Approved' });
+        let aggDep = 0, aggWit = 0, aggBonus = 0;
+        allTxs.forEach(t => {
+            if(t.type === 'deposit') { aggDep += t.amount; aggBonus += (t.bonusGiven || 0); }
+            if(t.type === 'withdraw') { aggWit += t.amount; }
+        });
+
+        res.json({ success: true, txs, aggDep, aggWit, aggBonus });
     } catch (e) { res.json({ success: false }); }
 });
 
@@ -717,7 +737,6 @@ app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
     }
 });
 
-// 🔥 Promo Codes Endpoints
 app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
     try {
         let codes = await PromoCode.find().sort({ _id: -1 });
@@ -739,7 +758,6 @@ app.post('/api/admin/delete-promo-code', auth, async (req, res) => {
     catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 System Logs Endpoint (With Search capability)
 app.post('/api/admin/system-logs', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -754,6 +772,13 @@ app.post('/api/admin/system-logs', auth, async (req, res) => {
         let total = await SystemLog.countDocuments(query);
         let logs = await SystemLog.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
         res.json({ success: true, logs, total });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/clear-logs', auth, async (req, res) => {
+    try {
+        await SystemLog.deleteMany({});
+        res.json({ success: true, message: "✅ ሁሉም ሎጎች (Logs) ተሰርዘዋል!" });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -901,12 +926,15 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
                 }
             }
             
+            user.totalWithdrawn = user.totalWithdrawn || 0;
+            
             if (bonus > 0) {
                 io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualAmount, bonusAmount: bonus });
             }
 
         } else if (tx.type === 'withdraw') {
             let set = GLOBAL_SETTINGS;
+            user.totalWithdrawn = (user.totalWithdrawn || 0) + tx.amount;
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
                 let giveBonus = true;
                 if (set.witBonusTimeRestricted) {
@@ -1363,6 +1391,7 @@ io.on('connection', (socket) => {
                 }
                 
                 user.played += 1; 
+                user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
                 await user.save();
 
                 let playPerTicket = playDeducted / data.ticketCount;
@@ -1414,6 +1443,7 @@ io.on('connection', (socket) => {
                     user.playBalance += refundPlay;
                     user.mainBalance += refundMain;
                     user.played = Math.max(0, user.played - 1);
+                    user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
                     await user.save();
 
                     p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
@@ -2168,9 +2198,12 @@ app.get('/promo_app', async (req, res) => {
             input { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #334155; background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-size:20px; font-weight: 900; outline:none; text-align:center; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px; transition: 0.3s;}
             input:focus { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); background: rgba(0,0,0,0.8);}
             
-            .btn { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);}
+            .btn { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4); margin-bottom: 10px;}
             .btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);}
             .btn:hover { background: linear-gradient(135deg, #fcd34d, #fbbf24); }
+
+            .btn-close { background: transparent; border: 2px solid #ef4444; color: #ef4444; box-shadow: none; margin-bottom: 0;}
+            .btn-close:hover { background: rgba(239, 68, 68, 0.1); }
 
             .loader { display: none; margin-top: 15px; color: #4ade80; font-size:14px; font-weight: bold; animation: pulse 1s infinite;}
             @keyframes pulse { 0% {opacity:0.5;} 100% {opacity:1;} }
@@ -2195,6 +2228,12 @@ app.get('/promo_app', async (req, res) => {
         </div>
 
         <script>
+            // Initialize Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+            }
+
             async function claimCode() {
                 let code = document.getElementById('pCode').value.trim();
                 if(!code) return alert('እባክዎ ኮድ ያስገቡ!');
@@ -2416,7 +2455,6 @@ setInterval(async () => {
         // 2. Fraud Detection (ብር ሳያስገቡ በ Invite Bonus ብቻ 15 ጊዜ እና ከዛ በላይ የተጫወቱትን ይይዛል)
         let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 15 } });
         for (let u of fraudUsers) {
-            // Already logged recently? Check to avoid spam
             let existingLog = await SystemLog.findOne({ phone: u.phone, actionType: "FRAUD ALERT: Bonus Exploiter" }).sort({ date: -1 });
             if (!existingLog || (new Date() - new Date(existingLog.date)) > (24 * 60 * 60 * 1000)) {
                 await SystemLog.create({ 
