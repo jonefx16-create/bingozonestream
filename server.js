@@ -739,13 +739,20 @@ app.post('/api/admin/delete-promo-code', auth, async (req, res) => {
     catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 System Logs Endpoint
+// 🔥 System Logs Endpoint (With Search capability)
 app.post('/api/admin/system-logs', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 50;
-        let total = await SystemLog.countDocuments();
-        let logs = await SystemLog.find().sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
+        let search = req.body.search || '';
+        
+        let query = {};
+        if(search) {
+            query = { $or: [{ phone: new RegExp(search, 'i') }, { actionType: new RegExp(search, 'i') }] };
+        }
+        
+        let total = await SystemLog.countDocuments(query);
+        let logs = await SystemLog.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
         res.json({ success: true, logs, total });
     } catch(e) { res.json({ success: false }); }
 });
@@ -2125,7 +2132,7 @@ app.get('/promoter', async (req, res) => {
     res.send(html);
 });
 
-// 🔥 አዲሱ የ Promo Code WebApp
+// 🔥 አዲሱ የ Promo Code WebApp 🔥
 app.get('/promo_app', async (req, res) => {
     let phone = req.query.phone;
     let pass = req.query.pass;
@@ -2141,8 +2148,11 @@ app.get('/promo_app', async (req, res) => {
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap');
-            body { font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden;}
+            body { font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden; position: relative;}
             
+            .btn-back { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.5); border: 1px solid #334155; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 14px; transition: 0.3s; z-index: 1000;}
+            .btn-back:hover { background: rgba(74, 222, 128, 0.2); border-color: #4ade80; }
+
             .brand-header { background: rgba(0,0,0,0.4); border: 1px solid #334155; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: inline-block;}
             .brand-header span:first-child { color: #4ade80; font-weight: 900; font-size: 24px; letter-spacing: 2px;}
             .brand-header span:last-child { color: #ffffff; font-weight: 900; font-size: 24px; letter-spacing: 2px;}
@@ -2158,18 +2168,17 @@ app.get('/promo_app', async (req, res) => {
             input { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #334155; background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-size:20px; font-weight: 900; outline:none; text-align:center; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px; transition: 0.3s;}
             input:focus { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); background: rgba(0,0,0,0.8);}
             
-            .btn { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4); margin-bottom: 10px;}
+            .btn { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);}
             .btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);}
             .btn:hover { background: linear-gradient(135deg, #fcd34d, #fbbf24); }
-
-            .btn-close { background: transparent; border: 2px solid #ef4444; color: #ef4444; box-shadow: none; margin-bottom: 0;}
-            .btn-close:hover { background: rgba(239, 68, 68, 0.1); }
 
             .loader { display: none; margin-top: 15px; color: #4ade80; font-size:14px; font-weight: bold; animation: pulse 1s infinite;}
             @keyframes pulse { 0% {opacity:0.5;} 100% {opacity:1;} }
         </style>
     </head>
     <body>
+        <a href="/?phone=${phone}&pass=${pass}" class="btn-back">🔙 ተመለስ</a>
+
         <div class="brand-header">
             <span>ቢንጎ</span> <span>ሀበሻ</span>
         </div>
@@ -2182,31 +2191,15 @@ app.get('/promo_app', async (req, res) => {
             <input type="text" id="pCode" placeholder="ኮድ ያስገቡ..." autocomplete="off">
             
             <button class="btn" id="claimBtn" onclick="claimCode()">🚀 ቦነስ ተቀበል</button>
-            <button class="btn btn-close" onclick="closeWebApp()">❌ ዝጋ (Close)</button>
             <div class="loader" id="loader">እባክዎ ይጠብቁ...</div>
         </div>
 
         <script>
-            // Initialize Telegram WebApp
-            if (window.Telegram && window.Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-            }
-
-            function closeWebApp() {
-                if (window.Telegram && window.Telegram.WebApp) {
-                    Telegram.WebApp.close();
-                } else {
-                    window.close(); // Fallback for browsers
-                }
-            }
-
             async function claimCode() {
                 let code = document.getElementById('pCode').value.trim();
                 if(!code) return alert('እባክዎ ኮድ ያስገቡ!');
                 
                 document.getElementById('claimBtn').style.display = 'none';
-                document.querySelector('.btn-close').style.display = 'none';
                 document.getElementById('loader').style.display = 'block';
 
                 try {
@@ -2228,7 +2221,6 @@ app.get('/promo_app', async (req, res) => {
                 }
                 
                 document.getElementById('claimBtn').style.display = 'block';
-                document.querySelector('.btn-close').style.display = 'block';
                 document.getElementById('loader').style.display = 'none';
             }
         </script>
@@ -2407,9 +2399,10 @@ setInterval(async () => {
     } catch (error) {}
 }, 30000); 
 
-// 🔥 አደገኛ ስህተቶችን (Negative Balance) የሚቆጣጠር ሲስተም
+// 🔥 አደገኛ ስህተቶችን (Negative Balance እና ማጭበርበር) የሚቆጣጠር ሲስተም
 setInterval(async () => {
     try {
+        // 1. Negative Balance Check
         let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}] });
         for (let u of negativeUsers) {
             await SystemLog.create({ 
@@ -2419,10 +2412,25 @@ setInterval(async () => {
                 severity: "High" 
             });
         }
+
+        // 2. Fraud Detection (ብር ሳያስገቡ በ Invite Bonus ብቻ 15 ጊዜ እና ከዛ በላይ የተጫወቱትን ይይዛል)
+        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 15 } });
+        for (let u of fraudUsers) {
+            // Already logged recently? Check to avoid spam
+            let existingLog = await SystemLog.findOne({ phone: u.phone, actionType: "FRAUD ALERT: Bonus Exploiter" }).sort({ date: -1 });
+            if (!existingLog || (new Date() - new Date(existingLog.date)) > (24 * 60 * 60 * 1000)) {
+                await SystemLog.create({ 
+                    phone: u.phone, 
+                    actionType: "FRAUD ALERT: Bonus Exploiter", 
+                    details: `Played ${u.played} times without making any deposit.`, 
+                    severity: "High" 
+                });
+            }
+        }
     } catch (error) {
         console.log("System Check Error:", error);
     }
-}, 30 * 60 * 1000); // በየ 30 ደቂቃው ይፈትሻል
+}, 15 * 60 * 1000); // በየ 15 ደቂቃው ይፈትሻል
 
 // 🔥 የ AUTO-CLEANUP CRON JOB (Memory እንዳይሞላ) 🔥
 setInterval(async () => {
@@ -2435,7 +2443,7 @@ setInterval(async () => {
     } catch (error) {
         console.log("Auto-Cleanup Error:", error);
     }
-}, 60 * 60 * 1000); // በየ 1 ሰዓቱ እየተነሳ ያጠፋል
+}, 60 * 60 * 1000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
