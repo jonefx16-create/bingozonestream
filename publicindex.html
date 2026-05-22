@@ -569,6 +569,7 @@
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📖</span> <span id="prof-guide-lbl">መመሪያ (Guide)</span></div><span style="color:var(--text-gray)">></span>
         </button>
         
+        <!-- 🔥 PROMO CODE BUTTON ON PROFILE 🔥 -->
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--gold);" onclick="window.location.href='/promo_app?phone=' + currentUser.phone + '&pass=' + currentUser.password">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🎟️</span> <span id="prof-promo-lbl" style="color:var(--gold);">ፕሮሞ ኮድ (Promo Code)</span></div><span style="color:var(--gold)">></span>
         </button>
@@ -945,6 +946,7 @@
         } catch(e) { content.innerHTML = `<p style="text-align:center; color:var(--red);">ስህተት አጋጥሟል</p>`; }
     }
 
+    // 🔥 አዲሱ Transaction History ኮድ (+ Bonus) 🔥
     async function loadTransactionHistory() {
         if(!currentUser) return;
         const hc = document.getElementById('wallet-history-list'); hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">እየጫነ ነው...</p>`;
@@ -961,7 +963,7 @@
                     let statusText = tx.status === 'Approved' ? '✅ Approved' : (tx.status === 'Pending' ? '⏳ Pending' : '❌ Rejected');
 
                     // 🔥 ቦነስ ካለ ጎን ላይ ያሳያል
-                    let bonusStr = (tx.bonusAwarded && tx.bonusAwarded > 0) ? `<br><span style="color:var(--gold); font-size:11px; font-weight:bold;">+ ${tx.bonusAwarded} Bonus</span>` : '';
+                    let bonusStr = (tx.bonusGiven && tx.bonusGiven > 0) ? `<br><span style="color:var(--gold); font-size:11px; font-weight:bold;">+ ${tx.bonusGiven} ETB (Bonus)</span>` : '';
 
                     hc.innerHTML += `
                     <div class="list-card" style="border-left: 3px solid ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
@@ -1152,7 +1154,6 @@
         let titleHtml = amIWinner ? "🎉 እንኳን ደስ አሎት! 🎉" : "አሸናፊ (WINNER)";
         let nameHtml = amIWinner ? "እርስዎ አሸንፈዋል! 👏" : data.winnerName;
 
-        // 🔥 Shared Winner Vertical List 🔥
         let sharedListHtml = "";
         if (data.isShared && data.winnerDetails) {
             sharedListHtml = `<div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid #4ade80; margin-top: 15px; width: 100%; box-sizing: border-box; max-height: 150px; overflow-y: auto;">
@@ -1206,7 +1207,6 @@
         html += `</div></div>`; 
         document.getElementById('win-ticket-display').innerHTML = html;
 
-        // 🔥 Coin Burst Animation (BINGO ሲል ወደ ላይ የሚበሩት ብሮች)
         for (let i = 0; i < 20; i++) {
             let coin = document.createElement('div');
             coin.className = 'coin';
