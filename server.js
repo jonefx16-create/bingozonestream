@@ -330,6 +330,7 @@ app.post('/api/request-tx', async (req, res) => {
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
             
+            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ
             if (user.totalDeposited === 0 && user.played >= 5) {
                 await SystemLog.create({ 
                     phone: user.phone, 
@@ -635,6 +636,8 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
     let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
+    // 24 Hour Reset Logic included in calculation
+
     res.json({ 
         totalUsers, livePlayers: Object.keys(activePlayers).length, 
         gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit: dailyTotalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
@@ -775,6 +778,35 @@ app.post('/api/admin/clear-logs', auth, async (req, res) => {
     try {
         await SystemLog.deleteMany({});
         res.json({ success: true, message: "✅ ሁሉም ሎጎች (Logs) ተሰርዘዋል!" });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
+    try {
+        let count = 0;
+        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 } });
+        for (let u of fraudUsers) {
+            await SystemLog.create({ 
+                phone: u.phone, 
+                actionType: "FRAUD ALERT: Bonus Exploiter", 
+                details: `System Diagnostic Found: Played ${u.played} times without making any deposit.`, 
+                severity: "High" 
+            });
+            count++;
+        }
+        
+        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}] });
+        for (let u of negativeUsers) {
+            await SystemLog.create({ 
+                phone: u.phone, 
+                actionType: "CRITICAL: Negative Balance Detected", 
+                details: `Diagnostic Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
+                severity: "High" 
+            });
+            count++;
+        }
+        
+        res.json({ success: true, message: `✅ ማጣራቱ ተጠናቋል። ${count} አደገኛ ሁኔታዎች ተገኝተዋል (Logs ውስጥ ይመልከቱ)።` });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -1613,9 +1645,22 @@ bot.on('message', async (msg) => {
         return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
+    if (state.step === 'support_chat') {
+        if(!user) return;
+        await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
+        
+        io.emit('new_support_message'); 
+
+        bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
+        state.step = 'idle';
+        botState[chatId] = state;
+        return;
+    }
+
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
+    // 🔥 Promo Code WebApp Button Logic
     else if (text === t.am.btn_promocode || text === t.en.btn_promocode || text === t.or.btn_promocode || text === t.ti.btn_promocode || text.includes('ፕሮሞ ኮድ') || text.includes('Promo Code') || text === '/promocode') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, "🎟️ <b>ኩፖን (Promo Code)</b>\n\nከታች ያለውን ቁልፍ ተጭነው ኩፖንዎን ያስገቡ።", { 
@@ -1623,6 +1668,9 @@ bot.on('message', async (msg) => {
             reply_markup: { inline_keyboard: [[{ text: "🎟️ ኩፖን አስገባ (Enter Code)", web_app: { url: `${WEB_URL}/promo_app?phone=${user.phone}&pass=${user.password}` } }]] } 
         });
     }
+    else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB
     else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
