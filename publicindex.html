@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BINGO HABESHA - LIVE ULTIMATE</title>
-    <!-- 🔥 የቴሌግራም አውቶ ሎጊን ስክሪፕት 🔥 -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg-dark: #0a0f18; --panel: #111827; --faded-green: #4ade80; --border-color: #1e293b; --orange: #ea580c; --text-gray: #94a3b8; --white: #ffffff; --blue: #3b82f6; --cyan: #38bdf8; --gold: #fbbf24; --purple: #a855f7; --red: #ef4444;}
@@ -65,13 +64,9 @@
         .num-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 0 auto; width: fit-content; padding-bottom: 200px; } 
         .num-btn { width: 30px; height: 30px; background: #0d1117; border: 1px solid var(--border-color); color: var(--text-gray); display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
         
-        /* 🔥 የገዙት (አረንጓዴ) 🔥 */
         .num-btn.bought-by-me { background: #059669; color: white; border-color: #4ade80; font-weight: bold; box-shadow: 0 0 10px rgba(16,185,129,0.8); }
-        
-        /* 🔥 ሌሎች የገዙት (የደበዘዘ) 🔥 */
         .num-btn.taken { opacity: 0.3; filter: blur(1.5px); background: rgba(255,255,255,0.05); color: #475569; pointer-events: none !important; border-color: transparent;}
 
-        /* 🔥 STRICT HIDE FOR BET SLIP POPUP 🔥 */
         .bet-slip-popup { position: fixed; bottom: 58px; left: 50%; transform: translate(-50%, 150%); width: 100%; max-width: 600px; background: rgba(11, 18, 31, 0.98); backdrop-filter: blur(10px); border-top: 2px solid var(--faded-green); border-radius: 12px 12px 0 0; padding: 8px 12px 10px 12px; box-shadow: 0 -10px 40px rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); box-sizing: border-box; opacity: 0; visibility: hidden; pointer-events: none; }
         .bet-slip-popup.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; } 
         
@@ -236,40 +231,6 @@
             transition: all 0.3s ease;
         }
 
-        /* 🔥 NEW MINI WEB PROMO POPUP CSS 🔥 */
-        .mini-promo-alert {
-            position: fixed; top: 65px; right: -150%; 
-            background: linear-gradient(135deg, #ea580c, #b45309);
-            border: 1px solid #fbbf24; border-right: none;
-            border-radius: 30px 0 0 30px; padding: 4px 8px 4px 4px;
-            color: white; box-shadow: 0 4px 15px rgba(234,88,12,0.6);
-            z-index: 99999; display: flex; align-items: center; gap: 8px;
-            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1);
-            cursor: pointer; animation: pulseGlow 1.2s infinite alternate;
-        }
-        .mini-promo-alert.show { right: 0; }
-        @keyframes pulseGlow {
-            0% { box-shadow: 0 0 5px rgba(251,191,36,0.4); filter: brightness(1); }
-            100% { box-shadow: 0 0 20px rgba(251,191,36,0.9); filter: brightness(1.2); transform: scale(1.02); }
-        }
-        .promo-icon-circle {
-            background: #fff; width: 28px; height: 28px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; animation: shakeGift 2s infinite; box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-        }
-        @keyframes shakeGift {
-            0%, 100% { transform: rotate(0deg); }
-            10%, 30%, 50% { transform: rotate(-15deg) scale(1.1); }
-            20%, 40% { transform: rotate(15deg) scale(1.1); }
-            60% { transform: rotate(0deg); }
-        }
-        .promo-text-cont { display: flex; flex-direction: column; line-height: 1.1; }
-        .promo-close-btn {
-            background: rgba(0,0,0,0.3); border: none; color: white; border-radius: 50%;
-            width: 16px; height: 16px; font-size: 8px; display: flex; align-items: center;
-            justify-content: center; cursor: pointer; margin-left: 5px;
-        }
-        .promo-close-btn:hover { background: rgba(239, 68, 68, 0.8); }
     </style>
 </head>
 <body>
@@ -277,15 +238,6 @@
 <div id="bingo-overlay" class="bingo-overlay">
     <div class="bling-text">✨ ሽልማት ገቢ እየተደረገ ነው... ✨</div>
     <div class="winner-card" id="winner-card-container"></div>
-</div>
-
-<div id="web-promo-popup" class="mini-promo-alert" onclick="claimWebPromo()">
-    <div class="promo-icon-circle">🎁</div>
-    <div class="promo-text-cont">
-        <span style="font-size: 9px; font-weight: bold; color: #fde68a;">ልዩ ስጦታ (CLAIM)</span>
-        <span id="web-promo-amt" style="font-size: 13px; font-weight: 900; text-shadow: 0 0 5px rgba(255,255,255,0.5);">0 ETB</span>
-    </div>
-    <button class="promo-close-btn" onclick="event.stopPropagation(); document.getElementById('web-promo-popup').classList.remove('show')">✖</button>
 </div>
 
 <div id="dep-modal-overlay" class="trx-modal-overlay" onclick="closeDepositModal(event)">
@@ -493,7 +445,12 @@
         <div class="right-panel-stack">
             <div class="caller-box" style="position: relative;">
                 <div id="caller-ball" class="caller-ball">--</div>
-                <div id="sound-toggle" onclick="toggleSound()" style="position: absolute; top: 8px; right: 8px; font-size: 16px; cursor: pointer; z-index: 10; background: #1e293b; border-radius: 50%; width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; border: 2px solid #4ade80; box-shadow: 0 0 8px rgba(0,0,0,0.7);">🔊</div>
+                
+                <div style="position: absolute; top: 5px; right: 5px; display: flex; flex-direction: column; gap: 5px;">
+                    <div id="sound-toggle" onclick="toggleSound()" style="font-size: 14px; cursor: pointer; z-index: 10; background: #1e293b; border-radius: 50%; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border: 1px solid #4ade80; box-shadow: 0 0 5px rgba(0,0,0,0.7);">🔊</div>
+                    <div onclick="window.location.href='/promo_app?phone=' + currentUser.phone + '&pass=' + currentUser.password" style="font-size: 14px; cursor: pointer; z-index: 10; background: #1e293b; border-radius: 50%; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border: 1px solid #fbbf24; box-shadow: 0 0 5px rgba(0,0,0,0.7);">🎟️</div>
+                </div>
+
             </div>
             
             <div class="tickets-history-box">
@@ -571,7 +528,7 @@
     <div id="rank-content"><p style="text-align:center; color:var(--text-gray); font-size:13px;">እየጫነ ነው...</p></div>
 </div>
 
-<!-- 7. PROFILE PAGE (በውስጡ መመሪያ ተጨምሯል) -->
+<!-- 7. PROFILE PAGE -->
 <div id="profile-page" class="page">
     <h3 id="prof-title" style="text-align:center; margin-top: 0; font-size: 16px;">👤 የእኔ ፕሮፋይል</h3>
     
@@ -610,6 +567,10 @@
         
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="window.location.href='/guide?lang=' + (document.getElementById('btn-en').style.background === 'white' ? 'en' : 'am')">
             <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">📖</span> <span id="prof-guide-lbl">መመሪያ (Guide)</span></div><span style="color:var(--text-gray)">></span>
+        </button>
+        
+        <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px; border-color: var(--gold);" onclick="window.location.href='/promo_app?phone=' + currentUser.phone + '&pass=' + currentUser.password">
+            <div style="display:flex; align-items:center;"><span class="icon-bg" style="padding: 6px; font-size: 14px; margin-right: 10px;">🎟️</span> <span id="prof-promo-lbl" style="color:var(--gold);">ፕሮሞ ኮድ (Promo Code)</span></div><span style="color:var(--gold)">></span>
         </button>
         
         <button class="prof-list-btn" style="padding: 12px 15px; font-size: 12px; margin-bottom: 8px;" onclick="document.getElementById('pw-modal-overlay').style.display='flex'">
@@ -671,7 +632,7 @@
             document.getElementById('nav-txt-home').innerText = "Home"; document.getElementById('nav-txt-ticket').innerText = "Ticket"; document.getElementById('nav-txt-wallet').innerText = "Wallet"; document.getElementById('nav-txt-rank').innerText = "Rank"; document.getElementById('nav-txt-profile').innerText = "Profile";
             document.getElementById('wal-title').innerText = "የእኔ ሂሳብ (Wallet)"; document.getElementById('wal-main-lbl').innerHTML = "ዋና ሂሳብ <span style='font-size:9px; color:#fbbf24;'>(ያሸነፉት/ወጪ የሚደረግ)</span>"; document.getElementById('wal-play-lbl').innerText = "መጫወቻ ሂሳብ:"; document.getElementById('wal-hist-lbl').innerText = "የሂሳብ ዝውውር ታሪክ (History)"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
             document.getElementById('rnk-title').innerText = "🏆 አሸናፊዎች (Top 10 Rank)";
-            document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል"; document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)"; document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)"; document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)"; document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?"; document.getElementById('prof-guide-lbl').innerText = "መመሪያ (Guide)"; document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር"; document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
+            document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል"; document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)"; document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)"; document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)"; document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?"; document.getElementById('prof-guide-lbl').innerText = "መመሪያ (Guide)"; document.getElementById('prof-promo-lbl').innerText = "ፕሮሞ ኮድ (Promo Code)"; document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር"; document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
             document.getElementById('t-page-title').innerText = "የእኔ ካርቴላዎች"; document.getElementById('t-btn-mb-txt').innerText = "ሙሉ ቦርድ እይ (Master Board)";
             
             document.getElementById('dep-title').innerText = "Deposit Funds"; document.getElementById('wit-title').innerText = "Withdraw Funds";
@@ -697,7 +658,7 @@
             document.getElementById('nav-txt-home').innerText = "Home"; document.getElementById('nav-txt-ticket').innerText = "Tickets"; document.getElementById('nav-txt-wallet').innerText = "Wallet"; document.getElementById('nav-txt-rank').innerText = "Rank"; document.getElementById('nav-txt-profile').innerText = "Profile";
             document.getElementById('wal-title').innerText = "My Wallet"; document.getElementById('wal-main-lbl').innerHTML = "Main Balance <span style='font-size:9px; color:#fbbf24;'>(Withdrawable)</span>"; document.getElementById('wal-play-lbl').innerText = "Play Balance:"; document.getElementById('wal-hist-lbl').innerText = "Transaction History"; document.getElementById('wal-btn-dep').innerText = "➕ Deposit"; document.getElementById('wal-btn-wit').innerText = "💸 Withdraw";
             document.getElementById('rnk-title').innerText = "🏆 Leaderboard (Top 10)";
-            document.getElementById('prof-title').innerText = "👤 My Profile"; document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)"; document.getElementById('prof-played-lbl').innerText = "Games Played"; document.getElementById('prof-won-lbl').innerText = "Total Won"; document.getElementById('prof-help-lbl').innerText = "Need Help?"; document.getElementById('prof-guide-lbl').innerText = "Game Guide"; document.getElementById('prof-pw-lbl').innerText = "Change Password"; document.getElementById('prof-out-lbl').innerText = "Logout";
+            document.getElementById('prof-title').innerText = "👤 My Profile"; document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)"; document.getElementById('prof-played-lbl').innerText = "Games Played"; document.getElementById('prof-won-lbl').innerText = "Total Won"; document.getElementById('prof-help-lbl').innerText = "Need Help?"; document.getElementById('prof-guide-lbl').innerText = "Game Guide"; document.getElementById('prof-promo-lbl').innerText = "Promo Code"; document.getElementById('prof-pw-lbl').innerText = "Change Password"; document.getElementById('prof-out-lbl').innerText = "Logout";
             document.getElementById('t-page-title').innerText = "My Tickets"; document.getElementById('t-btn-mb-txt').innerText = "View Master Board";
             
             document.getElementById('dep-title').innerText = "Deposit Funds"; document.getElementById('wit-title').innerText = "Withdraw Funds";
@@ -849,7 +810,7 @@
                 document.getElementById('m-dep-amt').value = ''; 
                 document.getElementById('m-dep-sms').value = ''; 
                 closeDepositModal(); 
-                loadTransactionHistory(); // 🔥 ይህ ነው አዲሱን ሂስቶሪ ሪፍሬሽ ሳያደርግ የሚያመጣው
+                loadTransactionHistory();
             }
         } catch(e) {}
         btn.innerText = document.getElementById('btn-en').style.background === 'white' ? "Submit" : "ላክ";
@@ -869,7 +830,7 @@
                 document.getElementById('m-wit-amt').value = ''; 
                 document.getElementById('m-wit-phone').value = ''; 
                 closeWithdrawModal(); 
-                loadTransactionHistory(); // 🔥 ይህ ነው አዲሱን ሂስቶሪ ሪፍሬሽ ሳያደርግ የሚያመጣው
+                loadTransactionHistory();
             } else { 
                 alert(data.message); 
             } 
@@ -999,6 +960,9 @@
                     let statusColor = tx.status === 'Approved' ? '#34d399' : (tx.status === 'Pending' ? '#fbbf24' : '#ef4444');
                     let statusText = tx.status === 'Approved' ? '✅ Approved' : (tx.status === 'Pending' ? '⏳ Pending' : '❌ Rejected');
 
+                    // 🔥 ቦነስ ካለ ጎን ላይ ያሳያል
+                    let bonusStr = (tx.bonusAwarded && tx.bonusAwarded > 0) ? `<br><span style="color:var(--gold); font-size:11px; font-weight:bold;">+ ${tx.bonusAwarded} Bonus</span>` : '';
+
                     hc.innerHTML += `
                     <div class="list-card" style="border-left: 3px solid ${color}; padding: 10px 15px; background: linear-gradient(90deg, #0b111a, #111827); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -1006,7 +970,7 @@
                             <span style="font-size: 10px; font-weight: bold; color: ${statusColor};">${statusText}</span><br>
                             <small style="color:var(--text-gray); font-size: 9px;">${time}</small>
                         </div>
-                        <b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color};">${sign}${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</b>
+                        <b style="color:${color}; font-size:14px; text-shadow: 0 0 5px ${color}; text-align:right;">${sign}${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB ${bonusStr}</b>
                     </div>`;
                 });
             } else { hc.innerHTML = `<p style="text-align:center; color:var(--text-gray); font-size:11px;">ታሪክ የለም</p>`; }
@@ -1024,13 +988,11 @@
 
     socket.on('balance_updated', async (phone) => { if(currentUser && phone === currentUser.phone) { await fetchUpdatedBalance(); if(document.getElementById('wallet-page').classList.contains('active-page')) loadTransactionHistory(); } });
 
-    // ቤቱ ካልተሳካ (ብሩ ካነሰ)
     socket.on('bet_error', (msg) => {
         alert(msg);
-        socket.emit('get_initial_data', currentUser.phone); // መረጃ እንደገና ማደስ
+        socket.emit('get_initial_data', currentUser.phone);
     });
 
-    // ገንዘብ ሲመለስ (Refund ሲሳካ)
     socket.on('ticket_cancelled_success', (tid) => {
         userTicketsData = userTicketsData.filter(t => t.id !== tid);
         renderGridTakenStates();
@@ -1038,28 +1000,6 @@
         updateBetPreview();
         fetchUpdatedBalance();
     });
-
-    // 🔥 WEB APP MINI PROMO POPUP HANDLER 🔥
-    socket.on('new_promo_alert', (data) => {
-        if(!currentUser) return;
-        document.getElementById('web-promo-amt').innerText = data.amount + " ETB";
-        document.getElementById('web-promo-popup').classList.add('show');
-    });
-
-    async function claimWebPromo() {
-        if(!currentUser) return;
-        try {
-            let res = await fetch('/api/claim-promo-web', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: currentUser.phone }) });
-            let data = await res.json();
-            if(data.success) {
-                alert(`🎉 እንኳን ደስ አሎት! የ ${data.amount} ETB ቦነስ አግኝተዋል! ሂሳብዎ ላይ ተደምሯል።`);
-                document.getElementById('web-promo-popup').classList.remove('show');
-            } else {
-                alert(data.message);
-                document.getElementById('web-promo-popup').classList.remove('show');
-            }
-        } catch(e) { alert("Network Error"); }
-    }
 
     socket.on('sync_data', (data) => {
         globalTakenTickets = data.globalTakenTickets || []; called = data.calledNumbers || []; userTicketsData = data.myTickets || [];
@@ -1113,7 +1053,6 @@
         let witBannerAm = data.witBannerTextAm || "⚠️ <b>ማሳሰቢያ:</b> ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው <b>ሲመዘገቡ በተጠቀሙበት ስልክ ቁጥር</b> ብቻ ነው።";
         let witBannerEn = data.witBannerTextEn || "⚠️ <b>Notice:</b> For security reasons, you can only withdraw to the <b>phone number you registered with</b>.";
         
-        // የ Withdraw Modal ውስጥ ያለውን Warning Box መፈለግ (አይዲ ስላልነበረው id="dynamic-wit-banner" ብለህ ኤችቲኤምኤል ላይ ጨምርበት)
         let dynWitBanner = document.getElementById('dynamic-wit-banner');
         if(dynWitBanner) { 
             dynWitBanner.innerHTML = isAm ? witBannerAm.replace(/\n/g, '<br>') : witBannerEn.replace(/\n/g, '<br>'); 
@@ -1210,24 +1149,23 @@
         let amIWinner = false;
         if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) { amIWinner = true; }
 
-        let titleHtml = ""; let nameHtml = ""; let alertHtml = "";
+        let titleHtml = amIWinner ? "🎉 እንኳን ደስ አሎት! 🎉" : "አሸናፊ (WINNER)";
+        let nameHtml = amIWinner ? "እርስዎ አሸንፈዋል! 👏" : data.winnerName;
 
-        if (amIWinner) {
-            titleHtml = "🎉 እንኳን ደስ አሎት! 🎉";
-            nameHtml = "የዚህን ዙር ሽልማት አሸንፈዋል! 👏";
-            
-            if (data.isShared) {
-                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል ተካፍሏል! ✨<br><span style='font-size:14px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>የደረሶት መጠን: ${data.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</span></div>`;
-            } else {
-                alertHtml = `<div style="background: linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3)); border: 2px solid #fbbf24; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(251,191,36,0.5); width: 100%; box-sizing: border-box; animation: blinker 1.5s infinite alternate;">✨ የደራሽ ሽልማት: ${data.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>ሂሳብዎ ላይ ገቢ ተደርጓል!</span></div>`;
-            }
-        } else {
-            titleHtml = "አሸናፊ (WINNER)";
-            nameHtml = data.winnerName;
-
-            if (data.isShared) {
-                alertHtml = `<div style="background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3)); border: 2px solid #4ade80; color: #ffffff; padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(74,222,128,0.5); width: 100%; box-sizing: border-box;">✨ የዚህን ዙር ሽልማት በእነዚህ <b>${data.winnerCount}</b> ተጫዋቾች መካከል እኩል ተካፍሏል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: ${data.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB አግኝተዋል</span></div>`;
-            }
+        // 🔥 Shared Winner Vertical List 🔥
+        let sharedListHtml = "";
+        if (data.isShared && data.winnerDetails) {
+            sharedListHtml = `<div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid #4ade80; margin-top: 15px; width: 100%; box-sizing: border-box; max-height: 150px; overflow-y: auto;">
+                <h4 style="margin:0 0 10px 0; color:#4ade80; font-size:13px; text-align:center;">✨ አሸናፊዎች (${data.winnerCount}) ✨</h4>
+                <ul style="list-style:none; padding:0; margin:0; text-align:left;">`;
+            data.winnerDetails.forEach(w => {
+                sharedListHtml += `<li style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 12px; color: white; display: flex; justify-content: space-between;">
+                    <span>👤 <b>${w.name}</b> <span style="color:#94a3b8; font-size:10px;">(#${w.ticket})</span></span>
+                    <span style="color:#fbbf24; font-weight:bold;">${w.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</span>
+                </li>`;
+            });
+            sharedListHtml += `</ul></div>`;
+            nameHtml = "በጋራ አሸንፈዋል!";
         }
 
         let winnerCard = document.querySelector('.winner-card');
@@ -1235,13 +1173,16 @@
             <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '16px' : '12px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
             <h1 class="bingo-text">B I N G O !</h1>
             <div id="win-ticket-display"></div>
-            <h2 id="win-name" style="margin:10px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:18px; font-weight:900;">${nameHtml}</h2>
-            <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
+            ${!data.isShared ? `
+                <h2 id="win-name" style="margin:10px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:18px; font-weight:900;">${nameHtml}</h2>
+                <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
+            ` : `<h2 style="margin:10px 0 0 0; color:#fbbf24; font-size:16px;">${nameHtml}</h2>`}
+            
             <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
-                <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
+                <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">${data.isShared ? "ጠቅላላ የደራሽ ሽልማት" : "የገንዘብ ሽልማት (Prize)"}</p>
                 <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
             </div>
-            ${alertHtml}
+            ${sharedListHtml}
         `;
 
         let g = data.ticketGrid; let cld = data.calledNumbers;
@@ -1265,6 +1206,18 @@
         html += `</div></div>`; 
         document.getElementById('win-ticket-display').innerHTML = html;
 
+        // 🔥 Coin Burst Animation (BINGO ሲል ወደ ላይ የሚበሩት ብሮች)
+        for (let i = 0; i < 20; i++) {
+            let coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.innerText = '💰';
+            coin.style.left = Math.random() * 100 + 'vw';
+            coin.style.top = '100vh';
+            coin.style.animation = `floatUp ${1.5 + Math.random()}s ease-out forwards`;
+            document.body.appendChild(coin);
+            setTimeout(() => coin.remove(), 2500);
+        }
+
         if(amIWinner) fetchUpdatedBalance(); 
     });
 
@@ -1278,19 +1231,17 @@
             d.setAttribute('data-num', i);
             
             d.onclick = () => { 
-                if(isProcessingTicket) return; // ሁለት ጊዜ እንዳይነካ (Double click)
+                if(isProcessingTicket) return; 
 
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
                 if(d.classList.contains('taken') && !d.classList.contains('bought-by-me')) return; 
 
-                // 1. መመለስ (Refund) ከፈለገ
                 if(d.classList.contains('bought-by-me')) {
                     isProcessingTicket = true;
                     d.innerText = "...";
                     socket.emit('cancel_ticket', { phone: currentUser.phone, ticketId: i });
                     setTimeout(() => isProcessingTicket = false, 800);
                 } 
-                // 2. መግዛት (Buy) ከፈለገ
                 else { 
                     if(userTicketsData.length >= maxTicketsLimit) { 
                         alert("በአጠቃላይ ከ " + maxTicketsLimit + " ካርቴላ በላይ መግዛት አይቻልም!"); 
@@ -1311,7 +1262,6 @@
                     let marksObj = [[0,0,0,0,0], [0,0,0,0,0], [0,0,1,0,0], [0,0,0,0,0], [0,0,0,0,0]]; 
                     let singleTicket = [{ id: i, grid: cols, marks: marksObj }];
                     
-                    // ወዲያውኑ በስክሪኑ ላይ እንዲያየው
                     userTicketsData.push(singleTicket[0]);
                     renderGridTakenStates();
                     renderConfirmedTickets();
