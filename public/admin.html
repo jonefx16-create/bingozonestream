@@ -134,7 +134,7 @@
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-promo-codes', this); loadPromoCodes();" style="color:var(--gold);"><div>🎟️ Promo Codes (ኩፖን)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-cheat-logs', this); loadSystemLogs(1);" style="color:var(--red);"><div>🚨 System Monitor (Logs)</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-cheat-logs', this); loadSystemLogs(1);" style="color:var(--red);"><div>🚨 System Health & Error Logs</div></button>
 
         <button class="nav-btn" onclick="switchTab('tab-promoters', this); loadPromoters();" style="color:var(--cyan);"><div>📈 Promoters (አስተዋዋቂዎች)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this); loadRefPage(1);"><div>🤝 Invite & Earn (ጋባዦች)</div></button>
@@ -283,7 +283,7 @@
             </div>
         </div>
 
-        <!-- PLAYERS/GAME INFO (Paginated based on loaded history) -->
+        <!-- PLAYERS/GAME INFO -->
         <div id="tab-players" class="tab-content">
             <div class="card">
                 <p style="font-size: 12px; color: var(--gold); margin-top:0;">⚠️ ጌም መምረጫው የሚያሳየው History ታብ ላይ ሎድ የሆኑትን 50 ጌሞች ነው። (Next እያሉ History ላይ ማየት ይቻላል)</p>
@@ -323,11 +323,14 @@
         <!-- CHEAT & SYSTEM LOGS TAB -->
         <div id="tab-cheat-logs" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--red);">
-                <h3 style="margin-top:0; color:var(--red);">🚨 System Monitor & Error Logs</h3>
-                <p style="font-size:12px; color:var(--text-gray); margin-top:0;">ይህ ታብ ሲስተሙ ላይ ያልተለመደ ነገር (ለምሳሌ የባንክ API ችግር፣ DB error፣ ወይም ከባድ ማጭበርበር) ሲያጋጥም ብቻ ሪፖርት የሚያደርግበት ነው።</p>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
+                    <h3 style="margin-top:0; margin-bottom:0; color:var(--red);">🚨 System Health & Error Logs</h3>
+                    <button class="action-btn btn-orange" style="padding:8px 15px;" onclick="runDiagnostics()">🔍 Run System Diagnostic Now</button>
+                </div>
+                <p style="font-size:12px; color:var(--text-gray); margin-top:0;">ይህ ክፍል የሚያሳየው ሲስተሙ ላይ ያጋጠሙ ከበድ ያሉ ስህተቶችን፣ ክራሾችን፣ Negative የገቡ ሂሳቦችን እና ያልተፈቀዱ የማጭበርበር ሙከራዎችን (Fraud Attempts) ብቻ ነው።</p>
                 <div class="table-responsive">
                     <table id="table-system-logs">
-                        <thead><tr><th>Date</th><th>Origin / Phone</th><th>Action Type</th><th>Severity</th><th>Details</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Phone/System</th><th>Issue Type</th><th>Severity</th><th>Details</th></tr></thead>
                         <tbody id="system-logs-body"></tbody>
                     </table>
                 </div>
@@ -645,17 +648,26 @@
     <div class="modal-content">
         <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
         <input type="hidden" id="eu-oldPhone">
-        <label>Name</label><input type="text" id="eu-name">
-        <label>Phone Number</label><input type="text" id="eu-phone">
-        <label>Password</label><input type="text" id="eu-password">
+        
+        <label>Name (ስም)</label>
+        <input type="text" id="eu-name" placeholder="User Name">
+
+        <label>Phone Number (ስልክ)</label>
+        <input type="text" id="eu-phone">
+
+        <label>Password</label>
+        <input type="text" id="eu-password">
+        
         <div style="display:flex; gap:10px;">
             <div style="flex:1;"><label>Main Balance</label><input type="number" id="eu-main"></div>
             <div style="flex:1;"><label>Play Balance</label><input type="number" id="eu-play"></div>
         </div>
+        
         <label style="color:var(--gold); font-weight:bold;">🏆 Rank Edit (Won)</label>
         <input type="number" id="eu-won" style="border-color:var(--gold); background:rgba(251, 191, 36, 0.1);">
+        
         <div style="display:flex; gap:10px; margin-top: 10px;">
-            <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save</button>
+            <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save Edit</button>
             <button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
         </div>
     </div>
@@ -694,7 +706,7 @@
 </div>
 
 <div class="modal" id="user-info-modal">
-    <div class="modal-content" style="max-width: 700px; text-align: left;">
+    <div class="modal-content" style="max-width: 750px; text-align: left;">
         <h3 style="color: var(--cyan); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">👤 User Information & History</h3>
         <div style="display:flex; flex-wrap:wrap; gap:15px; margin-bottom:15px; font-size:14px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
             <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Name:</span><br><b id="ui-name" style="color:white; font-size:16px;"></b></div>
@@ -884,6 +896,7 @@
             let html = "";
             let bannedHtml = "";
             data.users.forEach(u => {
+                let safeName = (u.name || "Unknown").replace(/'/g, "\\'"); // Prevent JS error in onclick
                 if(u.status === 'banned') {
                     bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`;
                 } else {
@@ -892,8 +905,8 @@
                         <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--gold); font-weight:bold;">${Number(u.totalDeposited || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                         <td>
-                            <button class="btn-sm btn-blue" onclick="openEditModal('${u.name}', '${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
-                            <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${u.phone}')">Tx Info</button>
+                            <button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${safeName}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
+                            <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${u.phone}')">TXs</button>
                             <button class="btn-sm btn-orange" onclick="banUser('${u.phone}')">Ban</button>
                         </td>
                     </tr>`;
@@ -977,25 +990,30 @@
                 let d = new Date(t.date);
                 let dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 
-                let bonusStr = (t.bonusAwarded > 0) ? `<br><span style="color:var(--gold); font-size:10px;">+${t.bonusAwarded} Bonus</span>` : '';
+                // አዲሱ - ዲፖዚት ሲያደርግ የተሰጠውን ቦነስ ቀጥታ ያሳያል
+                let bonusDisplay = (t.bonusGiven && t.bonusGiven > 0) ? `<span style="color:var(--gold); font-weight:bold;">+${Number(t.bonusGiven).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB (Bonus)</span>` : `<span style="color:var(--text-gray);">-</span>`;
 
                 if (dateStr !== lastDateStr) {
-                    html += `<tr style="pointer-events:none;"><td colspan="8" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
+                    html += `<tr style="pointer-events:none;"><td colspan="9" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
                     lastDateStr = dateStr;
                 }
 
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'tx', '${t._id}')">
                     <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
                     <td>${d.toLocaleTimeString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td>
-                    <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB ${bonusStr}</td>
+                    <td>${t.method}</td>
+                    <td style="font-weight:bold;">
+                        ${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB<br>
+                        <span style="font-size:10px;">${bonusDisplay}</span>
+                    </td>
                     <td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td>
                     <td>
-                        <button class="btn-sm btn-purple" style="margin-bottom:5px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button>
+                        <button class="btn-sm btn-purple" style="margin-bottom:5px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User TXs</button>
                         <button class="btn-sm btn-red" onclick="singleDelete('transactions', '${t._id}')">Delete</button>
                     </td>
                 </tr>`;
             });
-            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="8" style="text-align:center;">No transactions found.</td></tr>`;
+            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found.</td></tr>`;
             document.getElementById('chk-all-tx').checked = false;
             
             renderPagination('pag-tx', data.total, p_tx, 'loadTxPage');
@@ -1100,7 +1118,6 @@
         }
     }
 
-    // 🔥 Promo Codes Function
     async function loadPromoCodes() {
         try {
             let res = await fetch('/api/admin/list-promo-codes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -1149,7 +1166,6 @@
         } catch(e) {}
     }
 
-    // 🔥 System Logs (Cheat Alert)
     async function loadSystemLogs(page) {
         p_logs = page;
         try {
@@ -1165,11 +1181,22 @@
                         <td style="color:${sevColor}; font-weight:bold;">${l.severity}</td>
                         <td style="font-size:12px; color:var(--text-gray);">${l.details}</td>
                     </tr>`;
-                }).join('') || `<tr><td colspan="5" style="text-align:center;">No logs found.</td></tr>`;
+                }).join('') || `<tr><td colspan="5" style="text-align:center;">ምንም አይነት አደገኛ (Error) አልተገኘም (All Good!)</td></tr>`;
                 renderPagination('pag-logs', data.total, p_logs, 'loadSystemLogs');
             }
         } catch(e) {}
     }
+
+    async function runDiagnostics() {
+        if(!confirm("የሲስተም ጤንነት (System Diagnostic) መጀመር ይፈልጋሉ?")) return;
+        try {
+            let res = await fetch('/api/admin/run-diagnostics', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
+            let data = await res.json();
+            alert(data.message);
+            loadSystemLogs(1);
+        } catch(e) { alert("Error connecting to server!"); }
+    }
+
 
     function toggleSelectAll(type) {
         let isChecked = document.getElementById(`chk-all-${type}`).checked;
@@ -1362,12 +1389,13 @@
             if(tData.success) {
                 let txHtml = tData.txs.map(t => {
                     let statusColor = t.status === 'Approved' ? 'color:var(--faded-green);' : (t.status === 'Pending' ? 'color:var(--orange);' : 'color:var(--red);');
-                    let bonusStr = (t.bonusAwarded > 0) ? `<br><span style="color:var(--gold); font-size:10px;">+${t.bonusAwarded} Bonus</span>` : '';
+                    let bonusDis = (t.bonusGiven && t.bonusGiven > 0) ? `<br><span style="color:var(--gold); font-size:10px;">+${t.bonusGiven} Bonus</span>` : "";
+                    
                     return `<tr>
                         <td style="font-size:11px;">${new Date(t.date).toLocaleString()}</td>
                         <td style="text-transform:uppercase; font-size:12px;">${t.type}</td>
                         <td style="font-size:12px;">${t.method}</td>
-                        <td style="font-weight:bold; font-size:12px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ${bonusStr}</td>
+                        <td style="font-weight:bold; font-size:12px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ${bonusDis}</td>
                         <td style="font-weight:bold; font-size:11px; ${statusColor}">${t.status}</td>
                     </tr>`;
                 }).join('');
@@ -1475,11 +1503,10 @@
     async function triggerCashbackNow() { if(!confirm("⚠️ Send Cashback NOW?")) return; try { let res = await fetch('/api/admin/trigger-cashback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message); } catch(e) { alert("Error triggering cashback."); } }
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadPendingTxs(); loadTxPage(p_tx); } }
     
-    // 🔥 የተስተካከለ ስም የሚቀበል
-    function openEditModal(name, phone, passw, main, play, won) { 
+    function openEditModal(phone, name, passw, main, play, won) { 
         document.getElementById('eu-oldPhone').value = phone; 
-        document.getElementById('eu-name').value = name;
         document.getElementById('eu-phone').value = phone; 
+        document.getElementById('eu-name').value = name; // አዲሱ Name Input
         document.getElementById('eu-password').value = passw; 
         document.getElementById('eu-main').value = main; 
         document.getElementById('eu-play').value = play; 
@@ -1491,8 +1518,8 @@
         let payload = { 
             adminPass: pass, 
             oldPhone: document.getElementById('eu-oldPhone').value, 
-            newName: document.getElementById('eu-name').value,
             newPhone: document.getElementById('eu-phone').value, 
+            name: document.getElementById('eu-name').value, // አዲሱ Name Payload
             userPass: document.getElementById('eu-password').value, 
             mainBalance: document.getElementById('eu-main').value, 
             playBalance: document.getElementById('eu-play').value, 
@@ -1611,5 +1638,4 @@
 </script>
 </body>
 </html>
-
 
