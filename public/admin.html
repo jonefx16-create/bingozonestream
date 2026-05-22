@@ -328,6 +328,12 @@
                     <button class="action-btn btn-orange" style="padding:8px 15px;" onclick="runDiagnostics()">🔍 Run System Diagnostic Now</button>
                 </div>
                 <p style="font-size:12px; color:var(--text-gray); margin-top:0;">ይህ ክፍል የሚያሳየው ሲስተሙ ላይ ያጋጠሙ ከበድ ያሉ ስህተቶችን፣ ክራሾችን፣ Negative የገቡ ሂሳቦችን እና ያልተፈቀዱ የማጭበርበር ሙከራዎችን (Fraud Attempts) ብቻ ነው።</p>
+                
+                <!-- 🔥 አዲሱ የ Search Bar 🔥 -->
+                <div class="search-container" style="margin-bottom: 15px;">
+                    <input type="text" class="search-bar" id="search-logs" onkeyup="debounceSearch(() => loadSystemLogs(1))" placeholder="🔍 Search Phone or Issue Type...">
+                </div>
+
                 <div class="table-responsive">
                     <table id="table-system-logs">
                         <thead><tr><th>Date</th><th>Phone/System</th><th>Issue Type</th><th>Severity</th><th>Details</th></tr></thead>
@@ -990,6 +996,7 @@
                 let d = new Date(t.date);
                 let dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 
+                // አዲሱ - ዲፖዚት ሲያደርግ የተሰጠውን ቦነስ ቀጥታ ያሳያል
                 let bonusDisplay = (t.bonusGiven && t.bonusGiven > 0) ? `<span style="color:var(--gold); font-weight:bold;">+${Number(t.bonusGiven).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB (Bonus)</span>` : `<span style="color:var(--text-gray);">-</span>`;
 
                 if (dateStr !== lastDateStr) {
@@ -1167,8 +1174,9 @@
 
     async function loadSystemLogs(page) {
         p_logs = page;
+        let search = document.getElementById('search-logs') ? document.getElementById('search-logs').value.trim() : '';
         try {
-            let res = await fetch('/api/admin/system-logs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, page: p_logs, limit: limitPerPage})});
+            let res = await fetch('/api/admin/system-logs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, page: p_logs, limit: limitPerPage, search: search})});
             let data = await res.json();
             if(data.success) {
                 document.getElementById('system-logs-body').innerHTML = data.logs.map(l => {
