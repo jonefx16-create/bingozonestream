@@ -133,9 +133,8 @@
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
         
-        <!-- አዲሱ የ Promo Codes እና Cheat Logs ታብ -->
         <button class="nav-btn" onclick="switchTab('tab-promo-codes', this); loadPromoCodes();" style="color:var(--gold);"><div>🎟️ Promo Codes (ኩፖን)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-cheat-logs', this); loadSystemLogs(1);" style="color:var(--red);"><div>🚨 Cheat & System Logs</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-cheat-logs', this); loadSystemLogs(1);" style="color:var(--red);"><div>🚨 System Monitor (Logs)</div></button>
 
         <button class="nav-btn" onclick="switchTab('tab-promoters', this); loadPromoters();" style="color:var(--cyan);"><div>📈 Promoters (አስተዋዋቂዎች)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-referral', this); loadRefPage(1);"><div>🤝 Invite & Earn (ጋባዦች)</div></button>
@@ -275,7 +274,7 @@
                     <table id="table-history-tx">
                         <thead><tr>
                             <th style="width: 30px;"><input type="checkbox" id="chk-all-tx" onchange="toggleSelectAll('tx')"></th>
-                            <th>Time</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Bonus</th><th>Status & Details</th><th>Action</th>
+                            <th>Time</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th><th>Action</th>
                         </tr></thead>
                         <tbody id="history-tx-body"></tbody>
                     </table>
@@ -324,11 +323,11 @@
         <!-- CHEAT & SYSTEM LOGS TAB -->
         <div id="tab-cheat-logs" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--red);">
-                <h3 style="margin-top:0; color:var(--red);">🚨 Cheat & System Alert Logs</h3>
-                <p style="font-size:12px; color:var(--text-gray); margin-top:0;">ይህ ታብ ሲስተሙ ላይ ያልተለመደ ነገር (ለምሳሌ Promo Code ደጋግሞ መሞከር፣ ማጭበርበር) ሲያጋጥም ሪፖርት የሚያደርግበት ነው።</p>
+                <h3 style="margin-top:0; color:var(--red);">🚨 System Monitor & Error Logs</h3>
+                <p style="font-size:12px; color:var(--text-gray); margin-top:0;">ይህ ታብ ሲስተሙ ላይ ያልተለመደ ነገር (ለምሳሌ የባንክ API ችግር፣ DB error፣ ወይም ከባድ ማጭበርበር) ሲያጋጥም ብቻ ሪፖርት የሚያደርግበት ነው።</p>
                 <div class="table-responsive">
                     <table id="table-system-logs">
-                        <thead><tr><th>Date</th><th>Phone</th><th>Action Type</th><th>Severity</th><th>Details</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Origin / Phone</th><th>Action Type</th><th>Severity</th><th>Details</th></tr></thead>
                         <tbody id="system-logs-body"></tbody>
                     </table>
                 </div>
@@ -646,6 +645,7 @@
     <div class="modal-content">
         <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
         <input type="hidden" id="eu-oldPhone">
+        <label>Name</label><input type="text" id="eu-name">
         <label>Phone Number</label><input type="text" id="eu-phone">
         <label>Password</label><input type="text" id="eu-password">
         <div style="display:flex; gap:10px;">
@@ -892,7 +892,8 @@
                         <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--gold); font-weight:bold;">${Number(u.totalDeposited || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                         <td>
-                            <button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
+                            <button class="btn-sm btn-blue" onclick="openEditModal('${u.name}', '${u.phone}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
+                            <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${u.phone}')">Tx Info</button>
                             <button class="btn-sm btn-orange" onclick="banUser('${u.phone}')">Ban</button>
                         </td>
                     </tr>`;
@@ -905,7 +906,6 @@
         }
     }
 
-    // 🔥 ይህ Paginated ሆኗል - ሁሉንም ጌሞች ያመጣል
     async function loadHistoryPage(page) {
         p_hist = page;
         let search = document.getElementById('search-history').value.trim();
@@ -977,26 +977,17 @@
                 let d = new Date(t.date);
                 let dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 
-                let bonusAmt = 0;
-                if (sysSettings && t.status === 'Approved') {
-                    if (t.type === 'deposit' && t.amount >= (sysSettings.depBonusMinAmount || 100)) {
-                        bonusAmt = t.amount * ((sysSettings.depBonusPercent || 0) / 100);
-                    } else if (t.type === 'withdraw' && sysSettings.isWitBonusActive && t.amount >= (sysSettings.witBonusMinAmount || 100)) {
-                        bonusAmt = t.amount * ((sysSettings.witBonusPercent || 0) / 100);
-                    }
-                }
-                let bonusDisplay = bonusAmt > 0 ? `<span style="color:var(--gold); font-weight:bold;">+${Number(bonusAmt).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</span>` : `<span style="color:var(--text-gray);">-</span>`;
+                let bonusStr = (t.bonusAwarded > 0) ? `<br><span style="color:var(--gold); font-size:10px;">+${t.bonusAwarded} Bonus</span>` : '';
 
                 if (dateStr !== lastDateStr) {
-                    html += `<tr style="pointer-events:none;"><td colspan="9" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
+                    html += `<tr style="pointer-events:none;"><td colspan="8" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
                     lastDateStr = dateStr;
                 }
 
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'tx', '${t._id}')">
                     <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
                     <td>${d.toLocaleTimeString()}</td><td>${t.phone}</td><td style="text-transform:uppercase;">${t.type}</td>
-                    <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                    <td>${bonusDisplay}</td>
+                    <td>${t.method}</td><td style="font-weight:bold;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB ${bonusStr}</td>
                     <td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td>
                     <td>
                         <button class="btn-sm btn-purple" style="margin-bottom:5px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button>
@@ -1004,7 +995,7 @@
                     </td>
                 </tr>`;
             });
-            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found.</td></tr>`;
+            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="8" style="text-align:center;">No transactions found.</td></tr>`;
             document.getElementById('chk-all-tx').checked = false;
             
             renderPagination('pag-tx', data.total, p_tx, 'loadTxPage');
@@ -1109,7 +1100,7 @@
         }
     }
 
-    // 🔥 አዲሱ Promo Codes Function
+    // 🔥 Promo Codes Function
     async function loadPromoCodes() {
         try {
             let res = await fetch('/api/admin/list-promo-codes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -1158,7 +1149,7 @@
         } catch(e) {}
     }
 
-    // 🔥 አዲሱ System Logs (Cheat Alert)
+    // 🔥 System Logs (Cheat Alert)
     async function loadSystemLogs(page) {
         p_logs = page;
         try {
@@ -1179,7 +1170,6 @@
             }
         } catch(e) {}
     }
-
 
     function toggleSelectAll(type) {
         let isChecked = document.getElementById(`chk-all-${type}`).checked;
@@ -1372,11 +1362,12 @@
             if(tData.success) {
                 let txHtml = tData.txs.map(t => {
                     let statusColor = t.status === 'Approved' ? 'color:var(--faded-green);' : (t.status === 'Pending' ? 'color:var(--orange);' : 'color:var(--red);');
+                    let bonusStr = (t.bonusAwarded > 0) ? `<br><span style="color:var(--gold); font-size:10px;">+${t.bonusAwarded} Bonus</span>` : '';
                     return `<tr>
                         <td style="font-size:11px;">${new Date(t.date).toLocaleString()}</td>
                         <td style="text-transform:uppercase; font-size:12px;">${t.type}</td>
                         <td style="font-size:12px;">${t.method}</td>
-                        <td style="font-weight:bold; font-size:12px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td style="font-weight:bold; font-size:12px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ${bonusStr}</td>
                         <td style="font-weight:bold; font-size:11px; ${statusColor}">${t.status}</td>
                     </tr>`;
                 }).join('');
@@ -1483,8 +1474,35 @@
 
     async function triggerCashbackNow() { if(!confirm("⚠️ Send Cashback NOW?")) return; try { let res = await fetch('/api/admin/trigger-cashback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message); } catch(e) { alert("Error triggering cashback."); } }
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadPendingTxs(); loadTxPage(p_tx); } }
-    function openEditModal(phone, passw, main, play, won) { document.getElementById('eu-oldPhone').value = phone; document.getElementById('eu-phone').value = phone; document.getElementById('eu-password').value = passw; document.getElementById('eu-main').value = main; document.getElementById('eu-play').value = play; document.getElementById('eu-won').value = won; document.getElementById('edit-user-modal').style.display = 'flex'; }
-    async function saveUserEdit() { let payload = { adminPass: pass, oldPhone: document.getElementById('eu-oldPhone').value, newPhone: document.getElementById('eu-phone').value, userPass: document.getElementById('eu-password').value, mainBalance: document.getElementById('eu-main').value, playBalance: document.getElementById('eu-play').value, won: document.getElementById('eu-won').value }; let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); let data = await res.json(); if(data.success) { document.getElementById('edit-user-modal').style.display='none'; loadUsersPage(p_users); alert("✅ Saved!"); } else { alert("❌ Failed."); } }
+    
+    // 🔥 የተስተካከለ ስም የሚቀበል
+    function openEditModal(name, phone, passw, main, play, won) { 
+        document.getElementById('eu-oldPhone').value = phone; 
+        document.getElementById('eu-name').value = name;
+        document.getElementById('eu-phone').value = phone; 
+        document.getElementById('eu-password').value = passw; 
+        document.getElementById('eu-main').value = main; 
+        document.getElementById('eu-play').value = play; 
+        document.getElementById('eu-won').value = won; 
+        document.getElementById('edit-user-modal').style.display = 'flex'; 
+    }
+    
+    async function saveUserEdit() { 
+        let payload = { 
+            adminPass: pass, 
+            oldPhone: document.getElementById('eu-oldPhone').value, 
+            newName: document.getElementById('eu-name').value,
+            newPhone: document.getElementById('eu-phone').value, 
+            userPass: document.getElementById('eu-password').value, 
+            mainBalance: document.getElementById('eu-main').value, 
+            playBalance: document.getElementById('eu-play').value, 
+            won: document.getElementById('eu-won').value 
+        }; 
+        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
+        let data = await res.json(); 
+        if(data.success) { document.getElementById('edit-user-modal').style.display='none'; loadUsersPage(p_users); alert("✅ Saved!"); } else { alert("❌ Failed."); } 
+    }
+    
     async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadUsersPage(p_users); } }
     async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadUsersPage(1); } }
     async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
