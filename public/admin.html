@@ -964,15 +964,27 @@
                     lastDateStr = dateStr;
                 }
 
+                // 🌟 FIX: Handle multiple comma-separated winners 🌟
+                let phonesArr = (h.winnerPhone || "").toString().split(',').map(p => p.trim()).filter(p => p);
+                
+                // ስልኮቹን ለየብቻ Clickable ማድረግ
+                let phonesLinks = phonesArr.map(p => `<a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold; display:block; padding: 2px 0;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a>`).join('');
+                
+                // ለእያንዳንዱ አሸናፊ የ TXs Button መፍጠር
+                let txButtons = phonesArr.map(p => `<button class="btn-sm btn-purple" style="margin-bottom:4px; margin-right:4px;" onclick="fetchAndShowUserInfo('${p}')">👁️ TXs (${p})</button>`).join('');
+
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'history', '${h._id}')">
                     <td><input type="checkbox" class="chk-history" value="${h._id}" ${isChecked} onchange="toggleIndiv(this, 'history')"></td>
                     <td>${d.toLocaleTimeString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
                     <td>${h.winnerName}</td>
-                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${h.winnerPhone}'); return false;">${h.winnerPhone}</a></td>
+                    <td>${phonesLinks}</td>
                     <td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
                     <td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td>
+                        <div style="display:flex; flex-wrap:wrap; gap:2px; margin-bottom:5px;">
+                            ${txButtons}
+                        </div>
                         <button class="btn-sm btn-blue" onclick="viewHistory(${idx})">Cards</button>
                         <button class="btn-sm btn-red" onclick="singleDelete('history', '${h._id}')">Delete</button>
                     </td>
