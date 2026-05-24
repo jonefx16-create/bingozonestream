@@ -56,9 +56,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
     promoterCommissionGenerated: { type: Number, default: 0 },
     referredViaPromo: { type: Boolean, default: false }, 
-    compensatedInvites: { type: Number, default: 0 },
-    diagnosticFraudReported: { type: Boolean, default: false },
-    diagnosticNegativeReported: { type: Boolean, default: false }
+    compensatedInvites: { type: Number, default: 0 }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -109,14 +107,6 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     usedBy: [String]
 }));
 
-const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
-    phone: String,
-    actionType: String,
-    details: String,
-    severity: { type: String, default: 'Medium' }, 
-    date: { type: Date, default: Date.now }
-}));
-
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
     financePass: { type: String, default: "finance1234" }, 
@@ -125,7 +115,6 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     depBannerTextAm: { type: String, default: "" }, depBannerTextEn: { type: String, default: "" },
     witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false }, witBonusTimeRestricted: { type: Boolean, default: false }, witHappyHourStart: { type: Number, default: 0 }, witHappyHourEnd: { type: Number, default: 23 },
     witBannerTextAm: { type: String, default: "" }, witBannerTextEn: { type: String, default: "" },
-    cashbackMinLoss: { type: Number, default: 200 }, cashbackAmount: { type: Number, default: 10 }, isCashbackActive: { type: Boolean, default: false },
     registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
@@ -146,7 +135,6 @@ async function loadSettings() {
         witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, isWitBonusActive: s.isWitBonusActive || false,
         witBonusTimeRestricted: s.witBonusTimeRestricted || false, witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
         witBannerTextAm: s.witBannerTextAm || "", witBannerTextEn: s.witBannerTextEn || "",
-        cashbackMinLoss: s.cashbackMinLoss !== undefined ? s.cashbackMinLoss : 200, cashbackAmount: s.cashbackAmount !== undefined ? s.cashbackAmount : 10, isCashbackActive: s.isCashbackActive || false,
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
@@ -339,24 +327,10 @@ app.post('/api/request-tx', async (req, res) => {
             if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
-            
-            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ
-            if (user.totalDeposited === 0 && user.played >= 5 && !user.diagnosticFraudReported) {
-                await SystemLog.create({ 
-                    phone: user.phone, 
-                    actionType: "FRAUD ALERT: Bonus Exploiter", 
-                    details: `Tried to withdraw ${amount} ETB. Has ${user.played} games played but 0 total deposit.`, 
-                    severity: "High" 
-                });
-                user.diagnosticFraudReported = true;
-                await user.save();
-            }
-
         } else {
             let txRef = getTxRef(sms);
             if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) አልተገኘም!" });
             if (await isSmsAlreadyUsed(sms)) {
-                await SystemLog.create({ phone, actionType: "Fake Deposit Attempt", details: `Tried to use existing TxRef: ${txRef}`, severity: "High" });
                 return res.json({ success: false, message: "❌ ይህ SMS ቀድሞ ጥቅም ላይ ውሏል!" });
             }
             await new Transaction({ phone, type, amount, method, smsText: sms, txRef: txRef }).save();
@@ -538,7 +512,7 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
 app.post('/api/admin/users', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
-        let limit = parseInt(req.body.limit) || 50;
+        let limit = parseInt(req.body.limit) || 30;
         let search = req.body.search || '';
         let query = {};
         if (search) {
@@ -583,7 +557,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
             return res.json({ success: true, txs });
         }
         let page = parseInt(req.body.page) || 1;
-        let limit = parseInt(req.body.limit) || 50;
+        let limit = parseInt(req.body.limit) || 30;
         let search = req.body.search || '';
         let type = req.body.type || 'deposit';
         
@@ -602,7 +576,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
-        let limit = parseInt(req.body.limit) || 50;
+        let limit = parseInt(req.body.limit) || 30;
         let search = req.body.search || '';
         
         let query = {};
@@ -657,7 +631,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
 app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
-        let limit = parseInt(req.body.limit) || 50;
+        let limit = parseInt(req.body.limit) || 30;
         let search = req.body.search || '';
 
         let query = { $or: [{ totalInvites: { $gt: 0 } }, { inviteBonusEarned: { $gt: 0 } }] };
@@ -767,66 +741,6 @@ app.post('/api/admin/delete-promo-code', auth, async (req, res) => {
     catch(e) { res.json({ success: false }); }
 });
 
-app.post('/api/admin/system-logs', auth, async (req, res) => {
-    try {
-        let page = parseInt(req.body.page) || 1;
-        let limit = parseInt(req.body.limit) || 50;
-        let search = req.body.search || '';
-        
-        let query = {};
-        if(search) {
-            query = { $or: [{ phone: new RegExp(search, 'i') }, { actionType: new RegExp(search, 'i') }] };
-        }
-        
-        let total = await SystemLog.countDocuments(query);
-        let logs = await SystemLog.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
-        res.json({ success: true, logs, total });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/clear-logs', auth, async (req, res) => {
-    try {
-        await SystemLog.deleteMany({});
-        res.json({ success: true, message: "✅ ሁሉም ሎጎች (Logs) ተሰርዘዋል!" });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
-    try {
-        await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
-        await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
-
-        let count = 0;
-        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 }, diagnosticFraudReported: { $ne: true } });
-        for (let u of fraudUsers) {
-            await SystemLog.create({ 
-                phone: u.phone, 
-                actionType: "FRAUD ALERT: Bonus Exploiter", 
-                details: `System Diagnostic Found: Played ${u.played} times without making any deposit.`, 
-                severity: "High" 
-            });
-            u.diagnosticFraudReported = true;
-            await u.save();
-            count++;
-        }
-        
-        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}], diagnosticNegativeReported: { $ne: true } });
-        for (let u of negativeUsers) {
-            await SystemLog.create({ 
-                phone: u.phone, 
-                actionType: "CRITICAL: Negative Balance Detected", 
-                details: `Diagnostic Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
-                severity: "High" 
-            });
-            u.diagnosticNegativeReported = true;
-            await u.save();
-            count++;
-        }
-        
-        res.json({ success: true, message: `✅ ማጣራቱ ተጠናቋል። ${count} አዲስ አደገኛ ሁኔታዎች ተገኝተዋል (Logs ውስጥ ይመልከቱ)።` });
-    } catch(e) { res.json({ success: false }); }
-});
-
 app.post('/api/admin/delete-users', auth, async (req, res) => {
     try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
@@ -928,15 +842,6 @@ app.post('/api/admin/pay-promoter', auth, async (req, res) => {
 
             res.json({ success: true, message: `✅ ለ ${p.name} በተሳካ ሁኔታ ${deductAmt} ETB ተቀንሷል።` });
         } else res.json({ success: false, message: "Promoter not found" });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Admin manual endpoint to delete history explicitly if they want to
-app.post('/api/admin/delete-old-history', auth, async (req, res) => {
-    try {
-        let twelveHoursAgo = new Date(Date.now() - (12 * 60 * 60 * 1000));
-        await GameHistory.deleteMany({ date: { $lt: twelveHoursAgo } });
-        res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -1071,7 +976,6 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
 
         if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
         
-        await SystemLog.create({ phone: "ADMIN", actionType: "Manual Cashback", details: `Triggered ${cAmt} ETB to ${count} users.`, severity: "High" });
         res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
     } catch(e) {
         res.status(500).json({ success: false });
@@ -1224,6 +1128,9 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
+// 🔥 Mid-game locking mechanism for Forced Winners 🔥
+let midGameChosenRigged = null;
+
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     for(let c=0; c<5; c++) {
@@ -1242,75 +1149,7 @@ function serverCheckBingo(grid, called) {
 }
 
 function getRiggedSequence() {
-    // 1. ምንም አሸናፊ ካልተመረጠ ኖርማል (Random) ይሰራል
-    if (!GLOBAL_SETTINGS.forcedWinnerPhones || GLOBAL_SETTINGS.forcedWinnerPhones.trim() === "") {
-        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    }
-
-    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p);
-
-    // 2. የተመረጡት ስልኮች አሁን ጌም ውስጥ (Online) መኖራቸውን ማረጋገጥ
-    let activeRiggedPhones = [];
-    for (let phone in activePlayers) {
-        if (riggedPhones.includes(phone)) {
-            activeRiggedPhones.push(phone);
-        }
-    }
-
-    // 3. ጌም ውስጥ ካልገቡ ኖርማል (Random) ይጫወታል
-    if (activeRiggedPhones.length === 0) {
-        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    }
-
-    // 4. የተመረጡት ስልኮች አሁን ጌም ውስጥ ካሉ (10 ቢሆኑም እንኳ) አንዱን በእጣ (Randomly) መምረጥ! 🎯
-    let chosenWinnerPhone = activeRiggedPhones[Math.floor(Math.random() * activeRiggedPhones.length)];
-    let chosenWinnerTicket = activePlayers[chosenWinnerPhone].ticketsData[0]; 
-
-    console.log(`🎯 RIGGING GAME FOR (1 Random Pick): ${chosenWinnerPhone}`);
-
-    // 5. የተመረጠው ሰው (ብቻውን) እንዲያሸንፍ ሲሙሌት (Simulate) ማድረግ
-    let allTickets = [];
-    for (let phone in activePlayers) {
-        activePlayers[phone].ticketsData.forEach(t => {
-            allTickets.push({ phone: phone, grid: t.grid });
-        });
-    }
-
-    for (let attempt = 0; attempt < 3000; attempt++) {
-        let testSequence = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-        let testCalled = [];
-        
-        for (let i = 0; i < 75; i++) {
-            testCalled.push(testSequence[i]);
-            
-            let currentWinners = [];
-            for (let t of allTickets) {
-                if (serverCheckBingo(t.grid, testCalled)) {
-                    currentWinners.push(t.phone);
-                }
-            }
-
-            if (currentWinners.length > 0) {
-                // ያሰብነው ሰው ብቻውን አሸናፊ ሆኖ ከወጣ
-                if (currentWinners.includes(chosenWinnerPhone) && currentWinners.length === 1) {
-                    return testSequence; // ፐርፌክት!
-                } else {
-                    break; // ካልሆነ ሌላ ዙር ሞክር
-                }
-            }
-        }
-    }
-
-    // 6. ሲሙሌሽኑ ካልሰራ (Fallback) እሱ የያዘውን ቁጥር አስገድዶ ቶሎ ማውጣት
-    console.log("⚠️ SIMULATION FAILED. DOING FORCED INSTANT WIN.");
-    let neededNumbers = [
-        chosenWinnerTicket.grid[0][2],
-        chosenWinnerTicket.grid[1][2],
-        chosenWinnerTicket.grid[3][2],
-        chosenWinnerTicket.grid[4][2]
-    ];
-    let restOfNumbers = Array.from({length: 75}, (_, i) => i + 1).filter(n => !neededNumbers.includes(n)).sort(() => Math.random() - 0.5);
-    return [...neededNumbers, ...restOfNumbers];
+    return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
 }
 
 async function declareWinners(winners) {
@@ -1331,7 +1170,7 @@ async function declareWinners(winners) {
         let latestName = w.player.name; 
         
         if(user) { 
-            latestName = user.name; // አዲሱን ስም ተጠቀም
+            latestName = user.name; 
             user.mainBalance += splitPrize; 
             user.won += splitPrize; 
             await user.save(); 
@@ -1385,6 +1224,7 @@ function resetToWaiting() {
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
+    midGameChosenRigged = null; // Reset mid-game rig lock
 }
 
 setInterval(() => {
@@ -1395,7 +1235,9 @@ setInterval(() => {
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; currentDrawSequence = getRiggedSequence(); 
+                gameState = "PLAYING"; gameClock = 3; 
+                currentDrawSequence = getRiggedSequence(); 
+                midGameChosenRigged = null;
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
@@ -1407,6 +1249,43 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
+            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC 🌟
+            let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
+            if (riggedPhones.length > 0) {
+                let activeRigged = riggedPhones.filter(p => activePlayers[p]);
+                if (activeRigged.length > 0) {
+                    
+                    if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
+                        midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
+                    }
+                    
+                    let targetTicket = activePlayers[midGameChosenRigged].ticketsData[0]; 
+                    
+                    let neededNumbers = [
+                        targetTicket.grid[0][2],
+                        targetTicket.grid[1][2],
+                        targetTicket.grid[3][2],
+                        targetTicket.grid[4][2]
+                    ];
+                    
+                    let remainingNeeded = neededNumbers.filter(n => !calledNumbers.includes(n));
+                    
+                    if (remainingNeeded.length > 0) {
+                        let forceBall = remainingNeeded[0];
+                        let idx = currentDrawSequence.indexOf(forceBall);
+                        if (idx > -1) {
+                            currentDrawSequence.splice(idx, 1);
+                            currentDrawSequence.unshift(forceBall);
+                        }
+                    }
+                } else {
+                    midGameChosenRigged = null;
+                }
+            } else {
+                midGameChosenRigged = null;
+            }
+            // 🌟 END MID-GAME RIGGING 🌟
+
             let num = currentDrawSequence.shift(); 
             calledNumbers.push(num); 
             io.emit('new_number', num);
