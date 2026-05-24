@@ -50,8 +50,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     promoterCommissionGenerated: { type: Number, default: 0 },
     referredViaPromo: { type: Boolean, default: false }, 
     compensatedInvites: { type: Number, default: 0 },
-    diagnosticFraudReported: { type: Boolean, default: false, index: true }, // 🔥 For fast tracking
-    diagnosticNegativeReported: { type: Boolean, default: false, index: true } // 🔥 For fast tracking
+    diagnosticFraudReported: { type: Boolean, default: false },
+    diagnosticNegativeReported: { type: Boolean, default: false }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -103,11 +103,11 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
 }));
 
 const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
-    phone: { type: String, index: true },
+    phone: String,
     actionType: String,
     details: String,
     severity: { type: String, default: 'Medium' }, 
-    date: { type: Date, default: Date.now, index: true }
+    date: { type: Date, default: Date.now }
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -128,7 +128,7 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
 
 let GLOBAL_SETTINGS = {};
 async function loadSettings() {
-    let s = await SystemSettings.findOne().lean(); // Use lean for performance
+    let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
     GLOBAL_SETTINGS = { 
         adminPass: s.adminPass, financePass: s.financePass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
@@ -177,16 +177,15 @@ function getBankAmount(text) {
 async function isSmsAlreadyUsed(userInputSms) {
     let txRef = getTxRef(userInputSms);
     if (!txRef) return false; 
-    let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true }).lean();
+    let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
     if (inBankSms) return true;
-    let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } }).lean();
+    let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
     return !!inTxRef;
 }
 
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
-        if(pendingTxs.length === 0) return;
         const unusedSMS = await BankSMS.find({ isUsed: false });
         for (let tx of pendingTxs) {
             if (!tx.txRef) continue; 
@@ -210,10 +209,8 @@ async function autoApprovePendingDeposits() {
                     tx.bonusGiven = bonus; 
                     tx.status = 'Approved';
                     await tx.save();
-                    
                     matchedSMS.isUsed = true;
                     await matchedSMS.save();
-                    
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
 
@@ -251,10 +248,10 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
         let txRef = getTxRef(message);
         let amount = getBankAmount(message);
         if(amount > 0 && txRef) {
-            const exists = await BankSMS.findOne({ txRef: txRef }).lean();
+            const exists = await BankSMS.findOne({ txRef: txRef });
             if (!exists) {
                 await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
-                autoApprovePendingDeposits(); // Async without blocking
+                await autoApprovePendingDeposits(); 
             }
             res.json({ success: true, amount, txRef });
         } else { res.json({ success: false }); }
@@ -264,7 +261,7 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
 app.post('/api/register', async (req, res) => {
     try {
         const { phone, name, password, refCode } = req.body;
-        if (await User.findOne({ phone }).lean()) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
+        if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         let actualRef = "";
         
         let cleanRefCode = refCode || "";
@@ -322,8 +319,7 @@ app.post('/api/user/change-password', async (req, res) => {
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
-    const user = await User.findOne({ phone: req.params.phone }).lean(); 
-    res.json(user ? { success: true, user } : { success: false });
+    const user = await User.findOne({ phone: req.params.phone }); res.json(user ? { success: true, user } : { success: false });
 });
 
 app.post('/api/request-tx', async (req, res) => {
@@ -354,7 +350,7 @@ app.post('/api/request-tx', async (req, res) => {
                 return res.json({ success: false, message: "❌ ይህ SMS ቀድሞ ጥቅም ላይ ውሏል!" });
             }
             await new Transaction({ phone, type, amount, method, smsText: sms, txRef: txRef }).save();
-            autoApprovePendingDeposits();
+            await autoApprovePendingDeposits();
         }
         res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል!" });
     } catch(e) { res.status(500).json({ success: false }); }
@@ -383,7 +379,7 @@ app.get('/api/user/transactions/:phone', async (req, res) => {
     const txs = await Transaction.find({ 
         phone: req.params.phone, 
         method: { $ne: 'Promoter Comm' }
-    }).sort({ date: -1 }).limit(30).lean();
+    }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
 });
 
@@ -394,7 +390,7 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => { 
     try {
-        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won').lean(); 
+        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); 
         res.json({ success: true, leaderboard }); 
     } catch(e) { res.json({ success: false }); }
 });
@@ -467,10 +463,10 @@ const financeAuth = (req, res, next) => {
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500).lean();
-        let games = await GameHistory.find().sort({date: -1}).limit(100).lean();
-        let bonuses = await ActiveBonus.find().sort({date: -1}).limit(50).lean();
-        let users = await User.find({}, 'mainBalance playBalance').lean(); 
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500);
+        let games = await GameHistory.find().sort({date: -1}).limit(100);
+        let bonuses = await ActiveBonus.find().sort({date: -1}).limit(50);
+        let users = await User.find({}, 'mainBalance playBalance'); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS });
     } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -501,7 +497,7 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
             txQuery.date = dateQuery; gameQuery.date = dateQuery; bonusQuery.date = dateQuery;
         }
 
-        let txs = await Transaction.find(txQuery).lean();
+        let txs = await Transaction.find(txQuery);
         let tDep = 0, tWit = 0, tPromoterPaid = 0;
         txs.forEach(t => {
             if (t.type === 'deposit') tDep += t.amount;
@@ -510,13 +506,13 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
         });
         let netCash = tDep - (tWit + tPromoterPaid);
 
-        let games = await GameHistory.find(gameQuery).lean();
+        let games = await GameHistory.find(gameQuery);
         let tWinnings = 0, tProf = 0, tTurnover = 0;
         games.forEach(g => {
             tWinnings += (g.prize || 0); tProf += (g.adminProfit || 0); tTurnover += ((g.prize || 0) + (g.adminProfit || 0));
         });
 
-        let promos = await ActiveBonus.find(bonusQuery).lean();
+        let promos = await ActiveBonus.find(bonusQuery);
         let totalBonusPaid = 0;
         promos.forEach(p => { totalBonusPaid += ((p.amount || 0) * (p.currentClaims || 0)); });
 
@@ -540,7 +536,7 @@ app.post('/api/admin/users', auth, async (req, res) => {
         }
 
         let total = await User.countDocuments(query);
-        let users = await User.find(query).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit).lean();
+        let users = await User.find(query).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit);
 
         let phoneList = users.map(u => u.phone);
         let actualInviteCounts = await User.aggregate([
@@ -551,7 +547,8 @@ app.post('/api/admin/users', auth, async (req, res) => {
         actualInviteCounts.forEach(i => inviteMap[i._id] = i.count);
 
         let updatedUsers = [];
-        for (let userObj of users) {
+        for (let u of users) {
+            let userObj = u.toObject();
             let trueCount = inviteMap[userObj.phone] || 0;
             
             userObj.totalInvites = Math.max(userObj.totalInvites || 0, trueCount);
@@ -560,8 +557,8 @@ app.post('/api/admin/users', auth, async (req, res) => {
             }
             updatedUsers.push(userObj);
             
-            if ((userObj.totalInvites || 0) < trueCount || (!userObj.isPromoter && (userObj.inviteBonusEarned || 0) < (trueCount * GLOBAL_SETTINGS.inviteBonus))) {
-                User.updateOne({ phone: userObj.phone }, { $set: { totalInvites: userObj.totalInvites, inviteBonusEarned: userObj.inviteBonusEarned } }).exec();
+            if ((u.totalInvites || 0) < trueCount || (!u.isPromoter && (u.inviteBonusEarned || 0) < (trueCount * GLOBAL_SETTINGS.inviteBonus))) {
+                User.updateOne({ phone: u.phone }, { $set: { totalInvites: userObj.totalInvites, inviteBonusEarned: userObj.inviteBonusEarned } }).exec();
             }
         }
 
@@ -572,7 +569,7 @@ app.post('/api/admin/users', auth, async (req, res) => {
 app.post('/api/admin/transactions', auth, async (req, res) => {
     try {
         if (req.body.isPending) {
-            let txs = await Transaction.find({ status: 'Pending', hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).lean();
+            let txs = await Transaction.find({ status: 'Pending', hiddenFromAdmin: { $ne: true } }).sort({ date: -1 });
             return res.json({ success: true, txs });
         }
         let page = parseInt(req.body.page) || 1;
@@ -587,7 +584,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
         if (search) query.phone = new RegExp(search, 'i');
         
         let total = await Transaction.countDocuments(query);
-        let txs = await Transaction.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit).lean();
+        let txs = await Transaction.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
         res.json({ success: true, txs, total });
     } catch(e) { res.json({ success: false }); }
 });
@@ -606,16 +603,16 @@ app.post('/api/admin/history', auth, async (req, res) => {
         }
         
         let total = await GameHistory.countDocuments(query);
-        let history = await GameHistory.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit).lean();
+        let history = await GameHistory.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
         res.json({ success: true, history, total });
     } catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/admin/user-details', auth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100).lean();
+        let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
         
-        let allTxs = await Transaction.find({ phone: req.body.phone, status: 'Approved' }).lean();
+        let allTxs = await Transaction.find({ phone: req.body.phone, status: 'Approved' });
         let aggDep = 0, aggWit = 0, aggBonus = 0;
         allTxs.forEach(t => {
             if(t.type === 'deposit') { aggDep += t.amount; aggBonus += (t.bonusGiven || 0); }
@@ -631,15 +628,17 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     let startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' }).lean();
+    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' });
     let dailyDeposit = todayTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
     let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
 
-    let history = await GameHistory.find({ date: { $gte: startOfDay } }).select('adminProfit').lean();
+    let history = await GameHistory.find({ date: { $gte: startOfDay } });
     let dailyTotalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0); 
 
-    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } }).lean();
+    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
     let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+
+    // 24 Hour Reset Logic included in calculation
 
     res.json({ 
         totalUsers, livePlayers: Object.keys(activePlayers).length, 
@@ -663,7 +662,7 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
         let referrers = await User.find(query)
             .sort({ totalInvites: -1 })
             .skip((page - 1) * limit)
-            .limit(limit).lean();
+            .limit(limit);
 
         let mappedData = referrers.map(r => {
             let actualInvites = r.totalInvites || 0;
@@ -686,7 +685,7 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
 
 app.post('/api/admin/referral-details', auth, async (req, res) => {
     try {
-        let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 }).lean();
+        let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 });
         let mappedUsers = users.map(u => ({
             name: u.name,
             phone: u.phone,
@@ -700,7 +699,7 @@ app.post('/api/admin/referral-details', auth, async (req, res) => {
 
 app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
     try {
-        let users = await User.find({ referredBy: { $ne: "" } }).lean();
+        let users = await User.find({ referredBy: { $ne: "" } });
         let inviteCounts = {};
         
         users.forEach(u => {
@@ -741,14 +740,14 @@ app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
 
 app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
     try {
-        let codes = await PromoCode.find().sort({ _id: -1 }).lean();
+        let codes = await PromoCode.find().sort({ _id: -1 });
         res.json({ success: true, codes });
     } catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/admin/create-promo-code', auth, async (req, res) => {
     try {
-        let exists = await PromoCode.findOne({ code: req.body.code }).lean();
+        let exists = await PromoCode.findOne({ code: req.body.code });
         if(exists) return res.json({ success: false, message: "Code already exists!" });
         await new PromoCode({ code: req.body.code, amount: req.body.amount, maxUses: req.body.maxUses }).save();
         res.json({ success: true });
@@ -772,7 +771,7 @@ app.post('/api/admin/system-logs', auth, async (req, res) => {
         }
         
         let total = await SystemLog.countDocuments(query);
-        let logs = await SystemLog.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit).lean();
+        let logs = await SystemLog.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
         res.json({ success: true, logs, total });
     } catch(e) { res.json({ success: false }); }
 });
@@ -791,7 +790,6 @@ app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
         await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
 
         let count = 0;
-        // ጥፋተኛ ሆነው ገና ያልተመዘገቡትን ብቻ ፈልግ (diagnosticFraudReported: { $ne: true })
         let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 }, diagnosticFraudReported: { $ne: true } });
         for (let u of fraudUsers) {
             await SystemLog.create({ 
@@ -800,7 +798,7 @@ app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
                 details: `System Diagnostic Found: Played ${u.played} times without making any deposit.`, 
                 severity: "High" 
             });
-            u.diagnosticFraudReported = true; // 🔥 ፍላጉን True አድርግ!
+            u.diagnosticFraudReported = true;
             await u.save();
             count++;
         }
@@ -813,7 +811,7 @@ app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
                 details: `Diagnostic Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
                 severity: "High" 
             });
-            u.diagnosticNegativeReported = true; // 🔥 ፍላጉን True አድርግ!
+            u.diagnosticNegativeReported = true;
             await u.save();
             count++;
         }
@@ -850,14 +848,14 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
 
 app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
     try {
-        let promoters = await User.find({ isPromoter: true }).lean();
+        let promoters = await User.find({ isPromoter: true });
         let data = [];
         for (let p of promoters) {
-            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true }).lean();
+            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
             let refPhones = refUsers.map(u => u.phone);
             let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
 
-            let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' }).lean();
+            let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
             
             data.push({
@@ -887,13 +885,13 @@ app.post('/api/admin/set-promoter', auth, async (req, res) => {
 
 app.post('/api/admin/promoter-details', auth, async (req, res) => {
     try {
-        let p = await User.findOne({ phone: req.body.phone, isPromoter: true }).lean();
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
         if(!p) return res.json({ success: false });
 
-        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true }).lean();
+        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
         let details = [];
         for(let u of refUsers) {
-            let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' }).lean();
+            let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
             let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
             details.push({
                 name: u.name, phone: u.phone, totalDeposit: totalDep, commission: u.promoterCommissionGenerated || 0
@@ -1126,7 +1124,7 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
 
 app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     try {
-        let activeBonus = await ActiveBonus.findOne({ isActive: true }).lean();
+        let activeBonus = await ActiveBonus.findOne({ isActive: true });
         if(!activeBonus) return res.json({ success: false, message: "No active promo." });
         res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
     } catch(e) { res.status(500).json({ success: false }); }
@@ -1142,7 +1140,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         io.emit('new_promo_alert', { amount: amount, msg: message });
 
         if (message) {
-            const users = await User.find({ telegramId: { $ne: "" } }).lean();
+            const users = await User.find({ telegramId: { $ne: "" } });
             lastBroadcasts = []; 
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
@@ -1178,7 +1176,7 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
         const { message, photoUrl } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
-        const users = await User.find({ telegramId: { $ne: "" } }).lean();
+        const users = await User.find({ telegramId: { $ne: "" } });
         lastBroadcasts = []; let count = 0;
         for (let u of users) {
             try {
@@ -1205,7 +1203,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE (🔥 HIGHLY OPTIMIZED 🔥)
+// 🟢 LIVE BINGO GAME ENGINE 
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -1213,67 +1211,83 @@ let activePlayers = {};
 let totalPrizePool = 0; 
 let totalCollectedMoney = 0; 
 let totalTickets = 0;
-let calledNumbers = new Set(); // 🔥 Set for O(1) Lookup Speed
-let calledNumbersArray = []; 
+let calledNumbers = []; 
 let currentDrawSequence = []; 
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
-// 🔥 Ultra-Fast Bingo Checker (No nested Array creations)
-function serverCheckBingo(grid, calledSet) {
-    // Check rows (Horizontal)
-    for (let r = 0; r < 5; r++) {
-        if ((calledSet.has(grid[0][r]) || (0===2&&r===2)) &&
-            (calledSet.has(grid[1][r]) || (1===2&&r===2)) &&
-            (calledSet.has(grid[2][r]) || (2===2&&r===2)) &&
-            (calledSet.has(grid[3][r]) || (3===2&&r===2)) &&
-            (calledSet.has(grid[4][r]) || (4===2&&r===2))) return true;
+function serverCheckBingo(grid, called) {
+    let m = Array(5).fill().map(() => Array(5).fill(false));
+    for(let c=0; c<5; c++) {
+        for(let r=0; r<5; r++) {
+            if((c===2 && r===2) || called.includes(grid[c][r])) {
+                m[c][r] = true;
+            }
+        }
     }
-    // Check cols (Vertical)
-    for (let c = 0; c < 5; c++) {
-        if ((calledSet.has(grid[c][0]) || (c===2&&0===2)) &&
-            (calledSet.has(grid[c][1]) || (c===2&&1===2)) &&
-            (calledSet.has(grid[c][2]) || (c===2&&2===2)) &&
-            (calledSet.has(grid[c][3]) || (c===2&&3===2)) &&
-            (calledSet.has(grid[c][4]) || (c===2&&4===2))) return true;
-    }
-    // Check Diagonals
-    if ((calledSet.has(grid[0][0])) && (calledSet.has(grid[1][1])) && (true) && (calledSet.has(grid[3][3])) && (calledSet.has(grid[4][4]))) return true;
-    if ((calledSet.has(grid[0][4])) && (calledSet.has(grid[1][3])) && (true) && (calledSet.has(grid[3][1])) && (calledSet.has(grid[4][0]))) return true;
-    // Check Corners
-    if (calledSet.has(grid[0][0]) && calledSet.has(grid[0][4]) && calledSet.has(grid[4][0]) && calledSet.has(grid[4][4])) return true;
-
+    for(let c=0; c<5; c++) if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; 
+    for(let r=0; r<5; r++) if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; 
+    if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
+    if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
+    if(m[0][0] && m[0][4] && m[4][0] && m[4][4]) return true;
     return false;
 }
 
-// 🔥 O(1) Instant Win Rigged Generator (Zero Server Load)
 function getRiggedSequence() {
-    let fullDeck = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-
     if (!GLOBAL_SETTINGS.forcedWinnerPhones || GLOBAL_SETTINGS.forcedWinnerPhones.trim() === "") {
-        return fullDeck;
+        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     }
 
     let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim());
-    let forcedTicket = null;
+    let isRiggedPlayerActive = false;
 
-    // Find if any forced phone bought a ticket
+    let allTickets = [];
     for (let phone in activePlayers) {
-        if (riggedPhones.includes(phone)) {
-            forcedTicket = activePlayers[phone].ticketsData[0];
-            break;
+        if (riggedPhones.includes(phone)) isRiggedPlayerActive = true;
+        activePlayers[phone].ticketsData.forEach(t => {
+            allTickets.push({ phone: phone, grid: t.grid });
+        });
+    }
+
+    if (!isRiggedPlayerActive) {
+        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    }
+
+    for (let attempt = 0; attempt < 2000; attempt++) {
+        let testSequence = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+        let testCalled = [];
+        
+        for (let i = 0; i < 75; i++) {
+            testCalled.push(testSequence[i]);
+            
+            let currentWinners = [];
+            for (let t of allTickets) {
+                if (serverCheckBingo(t.grid, testCalled)) {
+                    currentWinners.push(t.phone);
+                }
+            }
+
+            if (currentWinners.length > 0) {
+                let isPerfectRig = currentWinners.every(w => riggedPhones.includes(w));
+                if (isPerfectRig) {
+                    console.log(`🔥 RIGGED SUCCESS (Attempt ${attempt}) FOR:`, currentWinners);
+                    return testSequence;
+                } else {
+                    break; 
+                }
+            }
         }
     }
 
-    if (!forcedTicket) return fullDeck;
-
-    // Grab the top row of their ticket to make them win INSTANTLY on the 5th draw
-    let winNumbers = [
-        forcedTicket.grid[0][0], forcedTicket.grid[1][0], forcedTicket.grid[2][0], forcedTicket.grid[3][0], forcedTicket.grid[4][0]
-    ];
-    
-    let remaining = fullDeck.filter(n => !winNumbers.includes(n));
-    return [...winNumbers, ...remaining];
+    console.log("⚠️ SIMULATION FAILED. DOING FORCED INSTANT WIN.");
+    for (let phone in activePlayers) {
+        if (riggedPhones.includes(phone)) {
+            let targetTicket = activePlayers[phone].ticketsData[0];
+            let neededNumbers = [targetTicket.grid[0][2], targetTicket.grid[1][2], targetTicket.grid[3][2], targetTicket.grid[4][2]];
+            let fallbackSeq = Array.from({length: 75}, (_, i) => i + 1).filter(n => !neededNumbers.includes(n)).sort(() => Math.random() - 0.5);
+            return [...neededNumbers, ...fallbackSeq];
+        }
+    }
 }
 
 async function declareWinners(winners) {
@@ -1312,7 +1326,7 @@ async function declareWinners(winners) {
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
-        calledNumbers: calledNumbersArray, 
+        calledNumbers: [...calledNumbers], 
         playersData: Object.values(activePlayers) 
     });
 
@@ -1323,7 +1337,7 @@ async function declareWinners(winners) {
         totalPrize: totalPrizePool, 
         phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
-        calledNumbers: calledNumbersArray,
+        calledNumbers: [...calledNumbers],
         isShared: winners.length > 1,
         winnerCount: winners.length
     });
@@ -1332,7 +1346,7 @@ async function declareWinners(winners) {
 function resetToWaiting() {
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
-    calledNumbers.clear(); calledNumbersArray = []; currentDrawSequence = [];
+    calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -1340,12 +1354,12 @@ setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit }); return; }
     if (gameState === "WAITING") {
         gameClock--;
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: calledNumbersArray, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; currentDrawSequence = getRiggedSequence(); 
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: calledNumbersArray, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
             }
@@ -1357,8 +1371,7 @@ setInterval(() => {
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
             let num = currentDrawSequence.shift(); 
-            calledNumbers.add(num);
-            calledNumbersArray.push(num); 
+            calledNumbers.push(num); 
             io.emit('new_number', num);
             
             let winnersThisRound = [];
@@ -1382,8 +1395,8 @@ setInterval(() => {
 let buyingLocks = {}; 
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
-    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: calledNumbersArray, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
-    socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers: calledNumbersArray, myTickets: myData ? myData.ticketsData : [] }); });
+    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+    socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
@@ -1766,7 +1779,7 @@ bot.on('message', async (msg) => {
 
             await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
-            autoApprovePendingDeposits(); 
+            await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
     } 
@@ -2416,13 +2429,12 @@ app.get('*', (req, res) => {
 
 setInterval(async () => {
     try {
-        autoApprovePendingDeposits();
+        await autoApprovePendingDeposits();
     } catch (error) {}
 }, 30000); 
 
 setInterval(async () => {
     try {
-        // 🔥 አዲስ፡ ጥፋታቸውን ለቀነሱ እና ብራቸውን ላስተካከሉ ዩዘሮች ፍላጉን (Flag) ከላይ ማንሳት (ያጠፉትን መልሶ እንዳያመጣ)
         await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
         await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
 
@@ -2434,7 +2446,7 @@ setInterval(async () => {
                 details: `System Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
                 severity: "High" 
             });
-            u.diagnosticNegativeReported = true; // 🔥 ፍላጉን True አድርግ!
+            u.diagnosticNegativeReported = true;
             await u.save();
         }
 
@@ -2446,7 +2458,7 @@ setInterval(async () => {
                 details: `Played ${u.played} times without making any deposit.`, 
                 severity: "High" 
             });
-            u.diagnosticFraudReported = true; // 🔥 ፍላጉን True አድርግ!
+            u.diagnosticFraudReported = true;
             await u.save();
         }
     } catch (error) {
