@@ -1152,7 +1152,17 @@
         if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) { amIWinner = true; }
 
         let titleHtml = amIWinner ? "🎉 እንኳን ደስ አሎት! 🎉" : "አሸናፊ (WINNER)";
-        let nameHtml = amIWinner ? "እርስዎ አሸንፈዋል! 👏" : data.winnerName;
+        
+        // 🔥 ስልክ ቁጥርን መደበቂያ (Masking): 09XXXXXXXX ያደርገዋል
+        function maskPhone(p) {
+            if(!p) return "";
+            let s = p.toString().trim();
+            if(s.length >= 2) return s.substring(0, 2) + "XXXXXXXX";
+            return s;
+        }
+
+        let firstPhoneMasked = maskPhone(data.phone.split(',')[0]);
+        let nameHtml = amIWinner ? `እርስዎ አሸንፈዋል! 👏 <span style="font-size:14px; color:#94a3b8;">(${firstPhoneMasked})</span>` : `${data.winnerName} <span style="font-size:14px; color:#94a3b8;">(${firstPhoneMasked})</span>`;
 
         let sharedListHtml = "";
         if (data.isShared && data.winnerDetails) {
@@ -1160,8 +1170,9 @@
                 <h4 style="margin:0 0 10px 0; color:#4ade80; font-size:13px; text-align:center;">✨ አሸናፊዎች (${data.winnerCount}) ✨</h4>
                 <ul style="list-style:none; padding:0; margin:0; text-align:left;">`;
             data.winnerDetails.forEach(w => {
-                sharedListHtml += `<li style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 12px; color: white; display: flex; justify-content: space-between;">
-                    <span>👤 <b>${w.name}</b> <span style="color:#94a3b8; font-size:10px;">(#${w.ticket})</span></span>
+                let mPh = maskPhone(w.phone);
+                sharedListHtml += `<li style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 12px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <span>👤 <b>${w.name}</b> <span style="color:#94a3b8; font-size:11px;">(${mPh})</span><br><span style="color:#fbbf24; font-size:11px; font-weight:bold;">🎫 ካርቴላ: #${w.ticket}</span></span>
                     <span style="color:#fbbf24; font-weight:bold;">${w.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</span>
                 </li>`;
             });
@@ -1169,19 +1180,23 @@
             nameHtml = "በጋራ አሸንፈዋል!";
         }
 
+        // 🔥 ካርቴላ ቁጥርን ትልቅ አድርጎ ማሳያ
+        let bigTicketHtml = !data.isShared ? `<div style="font-size: 28px; font-weight: 900; color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.9); margin: 10px 0; letter-spacing: 2px; padding: 5px; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px dashed #fbbf24; display: inline-block;">🎫 ካርቴላ: #${data.ticketId}</div>` : "";
+
         let winnerCard = document.querySelector('.winner-card');
         winnerCard.innerHTML = `
-            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '16px' : '12px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
+            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '18px' : '14px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
             <h1 class="bingo-text">B I N G O !</h1>
-            <div id="win-ticket-display"></div>
-            ${!data.isShared ? `
-                <h2 id="win-name" style="margin:10px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:18px; font-weight:900;">${nameHtml}</h2>
-                <p style="margin:2px 0 15px 0; font-size:12px; color:var(--text-gray);">አሸናፊ ካርቴላ: <b id="win-ticket">#${data.ticketId}</b></p>
-            ` : `<h2 style="margin:10px 0 0 0; color:#fbbf24; font-size:16px;">${nameHtml}</h2>`}
             
-            <div style="background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
-                <p style="margin:0; font-size:10px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">${data.isShared ? "ጠቅላላ የደራሽ ሽልማት" : "የገንዘብ ሽልማት (Prize)"}</p>
-                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 22px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
+            ${bigTicketHtml}
+
+            <div id="win-ticket-display"></div>
+            
+            <h2 id="win-name" style="margin:15px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:20px; font-weight:900;">${nameHtml}</h2>
+            
+            <div style="background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 15px auto 0 auto; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);">
+                <p style="margin:0; font-size:11px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">${data.isShared ? "ጠቅላላ የደራሽ ሽልማት" : "የገንዘብ ሽልማት (Prize)"}</p>
+                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 24px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
             </div>
             ${sharedListHtml}
         `;
@@ -1205,7 +1220,7 @@
             }
         }
         html += `</div></div>`; 
-        document.getElementById('win-ticket-display').innerHTML = html;
+        document.getElementById('win-ticket-display').innerHTML += html;
 
         for (let i = 0; i < 20; i++) {
             let coin = document.createElement('div');
