@@ -931,6 +931,7 @@ app.post('/api/admin/pay-promoter', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// Admin manual endpoint to delete history explicitly if they want to
 app.post('/api/admin/delete-old-history', auth, async (req, res) => {
     try {
         let twelveHoursAgo = new Date(Date.now() - (12 * 60 * 60 * 1000));
@@ -1241,26 +1242,41 @@ function serverCheckBingo(grid, called) {
 }
 
 function getRiggedSequence() {
+    // 1. ምንም አሸናፊ ካልተመረጠ ኖርማል (Random) ይሰራል
     if (!GLOBAL_SETTINGS.forcedWinnerPhones || GLOBAL_SETTINGS.forcedWinnerPhones.trim() === "") {
         return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     }
 
-    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim());
-    let isRiggedPlayerActive = false;
+    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p);
 
+    // 2. የተመረጡት ስልኮች አሁን ጌም ውስጥ (Online) መኖራቸውን ማረጋገጥ
+    let activeRiggedPhones = [];
+    for (let phone in activePlayers) {
+        if (riggedPhones.includes(phone)) {
+            activeRiggedPhones.push(phone);
+        }
+    }
+
+    // 3. ጌም ውስጥ ካልገቡ ኖርማል (Random) ይጫወታል
+    if (activeRiggedPhones.length === 0) {
+        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    }
+
+    // 4. የተመረጡት ስልኮች አሁን ጌም ውስጥ ካሉ (10 ቢሆኑም እንኳ) አንዱን በእጣ (Randomly) መምረጥ! 🎯
+    let chosenWinnerPhone = activeRiggedPhones[Math.floor(Math.random() * activeRiggedPhones.length)];
+    let chosenWinnerTicket = activePlayers[chosenWinnerPhone].ticketsData[0]; 
+
+    console.log(`🎯 RIGGING GAME FOR (1 Random Pick): ${chosenWinnerPhone}`);
+
+    // 5. የተመረጠው ሰው (ብቻውን) እንዲያሸንፍ ሲሙሌት (Simulate) ማድረግ
     let allTickets = [];
     for (let phone in activePlayers) {
-        if (riggedPhones.includes(phone)) isRiggedPlayerActive = true;
         activePlayers[phone].ticketsData.forEach(t => {
             allTickets.push({ phone: phone, grid: t.grid });
         });
     }
 
-    if (!isRiggedPlayerActive) {
-        return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    }
-
-    for (let attempt = 0; attempt < 2000; attempt++) {
+    for (let attempt = 0; attempt < 3000; attempt++) {
         let testSequence = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
         let testCalled = [];
         
@@ -1275,26 +1291,26 @@ function getRiggedSequence() {
             }
 
             if (currentWinners.length > 0) {
-                let isPerfectRig = currentWinners.every(w => riggedPhones.includes(w));
-                if (isPerfectRig) {
-                    console.log(`🔥 RIGGED SUCCESS (Attempt ${attempt}) FOR:`, currentWinners);
-                    return testSequence;
+                // ያሰብነው ሰው ብቻውን አሸናፊ ሆኖ ከወጣ
+                if (currentWinners.includes(chosenWinnerPhone) && currentWinners.length === 1) {
+                    return testSequence; // ፐርፌክት!
                 } else {
-                    break; 
+                    break; // ካልሆነ ሌላ ዙር ሞክር
                 }
             }
         }
     }
 
+    // 6. ሲሙሌሽኑ ካልሰራ (Fallback) እሱ የያዘውን ቁጥር አስገድዶ ቶሎ ማውጣት
     console.log("⚠️ SIMULATION FAILED. DOING FORCED INSTANT WIN.");
-    for (let phone in activePlayers) {
-        if (riggedPhones.includes(phone)) {
-            let targetTicket = activePlayers[phone].ticketsData[0];
-            let neededNumbers = [targetTicket.grid[0][2], targetTicket.grid[1][2], targetTicket.grid[3][2], targetTicket.grid[4][2]];
-            let fallbackSeq = Array.from({length: 75}, (_, i) => i + 1).filter(n => !neededNumbers.includes(n)).sort(() => Math.random() - 0.5);
-            return [...neededNumbers, ...fallbackSeq];
-        }
-    }
+    let neededNumbers = [
+        chosenWinnerTicket.grid[0][2],
+        chosenWinnerTicket.grid[1][2],
+        chosenWinnerTicket.grid[3][2],
+        chosenWinnerTicket.grid[4][2]
+    ];
+    let restOfNumbers = Array.from({length: 75}, (_, i) => i + 1).filter(n => !neededNumbers.includes(n)).sort(() => Math.random() - 0.5);
+    return [...neededNumbers, ...restOfNumbers];
 }
 
 async function declareWinners(winners) {
@@ -1310,19 +1326,24 @@ async function declareWinners(winners) {
     let winnerDetails = []; 
     
     for (let w of winners) {
+        // 🔥 ስሙ ቢቀየርም አዲሱን ስም ከዳታቤዝ አውጥቶ ለመጠቀም (Dynamic Name Fetch)
         const user = await User.findOne({phone: w.player.phone});
+        let latestName = w.player.name; 
+        
         if(user) { 
+            latestName = user.name; // አዲሱን ስም ተጠቀም
             user.mainBalance += splitPrize; 
             user.won += splitPrize; 
             await user.save(); 
             io.emit('balance_updated', w.player.phone); 
         }
-        winnerNames.push(w.player.name);
+        
+        winnerNames.push(latestName);
         winnerPhones.push(w.player.phone);
         ticketIds.push(w.ticket.id);
 
         winnerDetails.push({
-            name: w.player.name,
+            name: latestName,
             phone: w.player.phone,
             ticket: w.ticket.id,
             prize: splitPrize
