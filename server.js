@@ -49,7 +49,9 @@ const User = mongoose.model('User', new mongoose.Schema({
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
     promoterCommissionGenerated: { type: Number, default: 0 },
     referredViaPromo: { type: Boolean, default: false }, 
-    compensatedInvites: { type: Number, default: 0 }
+    compensatedInvites: { type: Number, default: 0 },
+    diagnosticFraudReported: { type: Boolean, default: false },
+    diagnosticNegativeReported: { type: Boolean, default: false }
 }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -149,7 +151,7 @@ loadSettings();
 
 function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
+const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '1000123456789', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
 function getTxRef(text) {
@@ -783,8 +785,12 @@ app.post('/api/admin/clear-logs', auth, async (req, res) => {
 
 app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
     try {
+        // 🔥 አዲስ፡ ጥፋታቸውን ለቀነሱ እና ብራቸውን ላስተካከሉ ዩዘሮች ፍላጉን (Flag) ከላይ ማንሳት (ያጠፉትን መልሶ እንዳያመጣ)
+        await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
+        await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
+
         let count = 0;
-        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 } });
+        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 }, diagnosticFraudReported: { $ne: true } });
         for (let u of fraudUsers) {
             await SystemLog.create({ 
                 phone: u.phone, 
@@ -792,10 +798,12 @@ app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
                 details: `System Diagnostic Found: Played ${u.played} times without making any deposit.`, 
                 severity: "High" 
             });
+            u.diagnosticFraudReported = true;
+            await u.save();
             count++;
         }
         
-        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}] });
+        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}], diagnosticNegativeReported: { $ne: true } });
         for (let u of negativeUsers) {
             await SystemLog.create({ 
                 phone: u.phone, 
@@ -803,10 +811,12 @@ app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
                 details: `Diagnostic Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
                 severity: "High" 
             });
+            u.diagnosticNegativeReported = true;
+            await u.save();
             count++;
         }
         
-        res.json({ success: true, message: `✅ ማጣራቱ ተጠናቋል። ${count} አደገኛ ሁኔታዎች ተገኝተዋል (Logs ውስጥ ይመልከቱ)።` });
+        res.json({ success: true, message: `✅ ማጣራቱ ተጠናቋል። ${count} አዲስ አደገኛ ሁኔታዎች ተገኝተዋል (Logs ውስጥ ይመልከቱ)።` });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -2425,7 +2435,10 @@ setInterval(async () => {
 
 setInterval(async () => {
     try {
-        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}] });
+        await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
+        await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
+
+        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}], diagnosticNegativeReported: { $ne: true } });
         for (let u of negativeUsers) {
             await SystemLog.create({ 
                 phone: u.phone, 
@@ -2433,19 +2446,20 @@ setInterval(async () => {
                 details: `System Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
                 severity: "High" 
             });
+            u.diagnosticNegativeReported = true;
+            await u.save();
         }
 
-        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 } });
+        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 }, diagnosticFraudReported: { $ne: true } });
         for (let u of fraudUsers) {
-            let existingLog = await SystemLog.findOne({ phone: u.phone, actionType: "FRAUD ALERT: Bonus Exploiter" }).sort({ date: -1 });
-            if (!existingLog || (new Date() - new Date(existingLog.date)) > (24 * 60 * 60 * 1000)) {
-                await SystemLog.create({ 
-                    phone: u.phone, 
-                    actionType: "FRAUD ALERT: Bonus Exploiter", 
-                    details: `Played ${u.played} times without making any deposit.`, 
-                    severity: "High" 
-                });
-            }
+            await SystemLog.create({ 
+                phone: u.phone, 
+                actionType: "FRAUD ALERT: Bonus Exploiter", 
+                details: `Played ${u.played} times without making any deposit.`, 
+                severity: "High" 
+            });
+            u.diagnosticFraudReported = true;
+            await u.save();
         }
     } catch (error) {
         console.log("System Check Error:", error);
