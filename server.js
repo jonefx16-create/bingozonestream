@@ -8,18 +8,25 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const server = http.createServer(app);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-const io = new Server(server, { cors: { origin: "*" } });
+
+// 🔥 40K Users: Increased payload limit to avoid crash on heavy traffic
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// 🔥 40K Users: Socket.io Compression enabled to save bandwidth and prevent lag
+const io = new Server(server, { 
+    cors: { origin: "*" },
+    perMessageDeflate: { threshold: 1024 } 
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
 // ==========================================
-// 🔵 DATABASE CONNECTION
+// 🔵 DATABASE CONNECTION (🔥 MAX POOL SIZE ADDED FOR 40K USERS)
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-mongoose.connect(mongoURI, { autoIndex: true }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
+mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
 // 🔵 MODELS (🔥 OPTIMIZED WITH INDEXES 🔥)
@@ -183,10 +190,11 @@ async function isSmsAlreadyUsed(userInputSms) {
     return !!inTxRef;
 }
 
+// 🔥 40k Users Limit implemented to avoid crash
 async function autoApprovePendingDeposits() {
     try {
-        const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' });
-        const unusedSMS = await BankSMS.find({ isUsed: false });
+        const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' }).limit(500);
+        const unusedSMS = await BankSMS.find({ isUsed: false }).limit(500);
         for (let tx of pendingTxs) {
             if (!tx.txRef) continue; 
             let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
@@ -332,14 +340,16 @@ app.post('/api/request-tx', async (req, res) => {
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
             
-            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ
-            if (user.totalDeposited === 0 && user.played >= 5) {
+            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ (Logs Spam እንዳያደርግ flag ተጨምሮበታል)
+            if (user.totalDeposited === 0 && user.played >= 5 && !user.diagnosticFraudReported) {
                 await SystemLog.create({ 
                     phone: user.phone, 
                     actionType: "FRAUD ALERT: Bonus Exploiter", 
                     details: `Tried to withdraw ${amount} ETB. Has ${user.played} games played but 0 total deposit.`, 
                     severity: "High" 
                 });
+                user.diagnosticFraudReported = true;
+                await user.save();
             }
 
         } else {
@@ -638,8 +648,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
     let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
 
-    // 24 Hour Reset Logic included in calculation
-
     res.json({ 
         totalUsers, livePlayers: Object.keys(activePlayers).length, 
         gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit: dailyTotalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
@@ -776,6 +784,7 @@ app.post('/api/admin/system-logs', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 Clear Logs Only Deletes Logs. It does NOT reset the user's flag.
 app.post('/api/admin/clear-logs', auth, async (req, res) => {
     try {
         await SystemLog.deleteMany({});
@@ -783,9 +792,9 @@ app.post('/api/admin/clear-logs', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 Diagnostics ONLY bring New users who break rules, does NOT spam old ones
 app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
     try {
-        // 🔥 አዲስ፡ ጥፋታቸውን ለቀነሱ እና ብራቸውን ላስተካከሉ ዩዘሮች ፍላጉን (Flag) ከላይ ማንሳት (ያጠፉትን መልሶ እንዳያመጣ)
         await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
         await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
 
@@ -1216,6 +1225,7 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
+// 🔥 Check Bingo ምንም አልተነካም!! ልክ ድሮ እንደነበረው ቀርቷል (ORIGINAL)
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     for(let c=0; c<5; c++) {
@@ -1670,7 +1680,6 @@ bot.on('message', async (msg) => {
     if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
         bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
     }
-    // 🔥 Promo Code WebApp Button Logic
     else if (text === t.am.btn_promocode || text === t.en.btn_promocode || text === t.or.btn_promocode || text === t.ti.btn_promocode || text.includes('ፕሮሞ ኮድ') || text.includes('Promo Code') || text === '/promocode') {
         if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
         bot.sendMessage(chatId, "🎟️ <b>ኩፖን (Promo Code)</b>\n\nከታች ያለውን ቁልፍ ተጭነው ኩፖንዎን ያስገቡ።", { 
