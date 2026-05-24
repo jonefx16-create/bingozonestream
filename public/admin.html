@@ -611,7 +611,7 @@
                         <input type="text" id="set-finance-pass" placeholder="Enter new finance password">
                         <button class="action-btn btn-purple" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('finance_password')">Change Finance Password</button>
                         <hr style="border-color: var(--border);">
-                        <button class="action-btn btn-red" style="width:100%;" onclick="location.reload()">🚪 Logout Admin</button>
+                        <button class="action-btn btn-red" style="width:100%;" onclick="logoutAdmin()">🚪 Logout Admin</button>
                     </div>
 
                     <div class="card" style="border-left: 4px solid var(--red);">
@@ -770,8 +770,29 @@
     
     let loadedGames = [];
 
+    // አዲሱ የማስነሻ ኮድ 
+    window.addEventListener('DOMContentLoaded', () => {
+        let savedPass = localStorage.getItem('bingo_admin_pass');
+        if (savedPass) {
+            pass = savedPass;
+            document.getElementById('adminPass').value = savedPass;
+            fullRefresh();
+        }
+    });
+
+    function logoutAdmin() {
+        localStorage.removeItem('bingo_admin_pass');
+        location.reload();
+    }
+
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
-    function login() { pass = document.getElementById('adminPass').value; if(!pass) return; fullRefresh(); }
+    function login() { 
+        let inputPass = document.getElementById('adminPass').value; 
+        if(!inputPass) return; 
+        pass = inputPass;
+        localStorage.setItem('bingo_admin_pass', pass);
+        fullRefresh(); 
+    }
     
     function switchTab(tabId, btn) { 
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
@@ -808,7 +829,9 @@
     async function loadLiveStats() {
         if(!pass) return;
         try {
-            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json();
+            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); 
+            if(res.status === 401) { logoutAdmin(); return; }
+            let data = await res.json();
             
             sysSettings = data.settings;
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
@@ -907,7 +930,7 @@
         let payload = { adminPass: pass, page: p_users, limit: limitPerPage, search: search };
         
         let res = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        if(res.status === 401) return alert("Wrong Password!");
+        if(res.status === 401) { alert("Wrong Password!"); logoutAdmin(); return; }
         let data = await res.json();
         if(data.success) {
             let html = "";
