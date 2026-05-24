@@ -340,7 +340,7 @@ app.post('/api/request-tx', async (req, res) => {
             user.mainBalance -= amount; await user.save();
             await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
             
-            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ (Logs Spam እንዳያደርግ flag ተጨምሮበታል)
+            // 🔥 ማጭበርበርን ለመያዝ፡ ዜሮ ዲፖዚት፣ 5 እና ከዚያ በላይ ጌም ተጫውቶ ዊዝድሮው ሲጠይቅ
             if (user.totalDeposited === 0 && user.played >= 5 && !user.diagnosticFraudReported) {
                 await SystemLog.create({ 
                     phone: user.phone, 
@@ -784,7 +784,6 @@ app.post('/api/admin/system-logs', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 Clear Logs Only Deletes Logs. It does NOT reset the user's flag.
 app.post('/api/admin/clear-logs', auth, async (req, res) => {
     try {
         await SystemLog.deleteMany({});
@@ -792,7 +791,6 @@ app.post('/api/admin/clear-logs', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 Diagnostics ONLY bring New users who break rules, does NOT spam old ones
 app.post('/api/admin/run-diagnostics', auth, async (req, res) => {
     try {
         await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
@@ -1225,7 +1223,6 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
-// 🔥 Check Bingo ምንም አልተነካም!! ልክ ድሮ እንደነበረው ቀርቷል (ORIGINAL)
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     for(let c=0; c<5; c++) {
@@ -1310,7 +1307,7 @@ async function declareWinners(winners) {
     let winnerNames = [];
     let winnerPhones = [];
     let ticketIds = [];
-    let winnerDetails = []; // 🔥 አዲስ የተጨመረ (የካርቴላ ቁጥርን እና ስልክን ለየብቻ ለመላክ)
+    let winnerDetails = []; 
     
     for (let w of winners) {
         const user = await User.findOne({phone: w.player.phone});
@@ -1323,9 +1320,13 @@ async function declareWinners(winners) {
         winnerNames.push(w.player.name);
         winnerPhones.push(w.player.phone);
         ticketIds.push(w.ticket.id);
-        
-        // 🔥 የየብቻ መረጃ (ስም፣ ስልክ፣ ካርቴላ፣ እና ያሸነፉት ብር)
-        winnerDetails.push({ name: w.player.name, phone: w.player.phone, ticket: w.ticket.id, prize: splitPrize });
+
+        winnerDetails.push({
+            name: w.player.name,
+            phone: w.player.phone,
+            ticket: w.ticket.id,
+            prize: splitPrize
+        });
     }
 
     let uniqueNames = [...new Set(winnerNames)];
@@ -1344,7 +1345,6 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
-    // 🔥 አዲሱ ዳታ (winnerDetails) ወደ ፊት ለፊት ይላካል (ከዛ publicindex.html ላይ 09XXXXXX ሆኖ ይደበቃል)
     io.emit('game_winner', { 
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
@@ -1355,7 +1355,7 @@ async function declareWinners(winners) {
         calledNumbers: [...calledNumbers],
         isShared: winners.length > 1,
         winnerCount: winners.length,
-        winnerDetails: winnerDetails 
+        winnerDetails: winnerDetails
     });
 }
 
@@ -2481,17 +2481,7 @@ setInterval(async () => {
     }
 }, 15 * 60 * 1000); 
 
-setInterval(async () => {
-    try {
-        let sixHoursAgo = new Date(Date.now() - (6 * 60 * 60 * 1000));
-        let result = await GameHistory.deleteMany({ date: { $lt: sixHoursAgo } });
-        if (result.deletedCount > 0) {
-            console.log(`🧹 Auto-Cleanup: ${result.deletedCount} የቆዩ ጌሞች ከዳታቤዝ ጠፍተዋል።`);
-        }
-    } catch (error) {
-        console.log("Auto-Cleanup Error:", error);
-    }
-}, 60 * 60 * 1000); 
+// (የታሪክ ማጥፊያው 코ድ ሙሉ በሙሉ ተሰርዟል! አሁን GameHistory ዳታቤዝ ላይ አይጠፋም።)
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
