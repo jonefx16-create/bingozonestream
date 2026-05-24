@@ -1310,6 +1310,7 @@ async function declareWinners(winners) {
     let winnerNames = [];
     let winnerPhones = [];
     let ticketIds = [];
+    let winnerDetails = []; // 🔥 አዲስ የተጨመረ (የካርቴላ ቁጥርን እና ስልክን ለየብቻ ለመላክ)
     
     for (let w of winners) {
         const user = await User.findOne({phone: w.player.phone});
@@ -1322,6 +1323,9 @@ async function declareWinners(winners) {
         winnerNames.push(w.player.name);
         winnerPhones.push(w.player.phone);
         ticketIds.push(w.ticket.id);
+        
+        // 🔥 የየብቻ መረጃ (ስም፣ ስልክ፣ ካርቴላ፣ እና ያሸነፉት ብር)
+        winnerDetails.push({ name: w.player.name, phone: w.player.phone, ticket: w.ticket.id, prize: splitPrize });
     }
 
     let uniqueNames = [...new Set(winnerNames)];
@@ -1340,6 +1344,7 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
+    // 🔥 አዲሱ ዳታ (winnerDetails) ወደ ፊት ለፊት ይላካል (ከዛ publicindex.html ላይ 09XXXXXX ሆኖ ይደበቃል)
     io.emit('game_winner', { 
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
@@ -1349,7 +1354,8 @@ async function declareWinners(winners) {
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
         isShared: winners.length > 1,
-        winnerCount: winners.length
+        winnerCount: winners.length,
+        winnerDetails: winnerDetails 
     });
 }
 
