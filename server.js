@@ -1159,7 +1159,7 @@ let globalTakenTickets = [];
 // 🔥 Mid-game locking mechanism for Forced Winners 🔥
 let midGameChosenRigged = null;
 let recentRiggedWinners = []; 
-let targetWinTurn = 0; // 🔥 Random Win Turn between 18 and 35 🔥
+let targetWinTurn = 0; // 🔥 Random Win Turn between 15 and 35 🔥
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1212,7 +1212,7 @@ async function declareWinners(winners) {
 
         if (riggedPhones.includes(latestPhone)) {
             recentRiggedWinners.push(latestPhone);
-            if (recentRiggedWinners.length > 20) recentRiggedWinners.shift();
+            if (recentRiggedWinners.length > 50) recentRiggedWinners.shift();
         }
         
         winnerNames.push(latestName);
@@ -1277,8 +1277,8 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 midGameChosenRigged = null;
-                // 🔥 Pick a random turn between 18 and 35 for the rigged win 🔥
-                targetWinTurn = Math.floor(Math.random() * (35 - 18 + 1)) + 18;
+                // 🔥 Pick a random turn between 15 and 35 for the rigged win 🔥
+                targetWinTurn = Math.floor(Math.random() * (35 - 15 + 1)) + 15;
                 
                 io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
             } else { 
@@ -1308,7 +1308,7 @@ setInterval(() => {
                     midGameChosenRigged = availableRigged[Math.floor(Math.random() * availableRigged.length)];
                 }
 
-                // TIME TO WIN? (Randomly between 18 and 35 draws)
+                // TIME TO WIN? (Randomly between 15 and 35 draws)
                 let timeToWin = calledNumbers.length >= targetWinTurn;
 
                 // STRICT SOLO-WIN NUMBER SELECTION
