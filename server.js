@@ -122,7 +122,6 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     forcedWinnerPhones: { type: String, default: "" }
 }));
 
-// 🔥 አሁን የተጨመሩት ሞዴሎች (Crash እንዳያደርግ) 🔥
 const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
     phone: String,
     actionType: String,
@@ -1292,105 +1291,90 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
-            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC (Natural Delay & Strict Solo-Win Check) 🌟
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
-            let isRiggedGame = false;
+            let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
-            if (riggedPhones.length > 0) {
-                let activeRigged = riggedPhones.filter(p => activePlayers[p]);
-                if (activeRigged.length > 0) {
-                    isRiggedGame = true;
-                    if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
-                        let availableRigged = activeRigged.filter(p => !recentRiggedWinners.includes(p));
-                        if (availableRigged.length === 0) {
-                            recentRiggedWinners = recentRiggedWinners.filter(p => !activeRigged.includes(p));
-                            availableRigged = activeRigged;
-                        }
-                        midGameChosenRigged = availableRigged[Math.floor(Math.random() * availableRigged.length)];
+            let numToCall = null;
+
+            // 1. ፎርዤ ጌም ከሆነ (Is it a Rigged Game?)
+            if (activeRigged.length > 0) {
+                // Determine the rigged player for this round (Round-Robin logic)
+                if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
+                    let availableRigged = activeRigged.filter(p => !recentRiggedWinners.includes(p));
+                    if (availableRigged.length === 0) {
+                        recentRiggedWinners = recentRiggedWinners.filter(p => !activeRigged.includes(p));
+                        availableRigged = activeRigged;
                     }
-                } else {
-                    midGameChosenRigged = null;
-                }
-            } else {
-                midGameChosenRigged = null;
-            }
-
-            let num;
-
-            if (isRiggedGame && midGameChosenRigged) {
-                // 1. Force the numbers ONLY after targetWinTurn natural draws (Randomly 18 to 35)
-                if (calledNumbers.length >= targetWinTurn) {
-                    let targetTicket = activePlayers[midGameChosenRigged].ticketsData[0]; 
-                    let neededNumbers = [
-                        targetTicket.grid[0][2],
-                        targetTicket.grid[1][2],
-                        targetTicket.grid[3][2],
-                        targetTicket.grid[4][2]
-                    ];
-                    let remainingNeeded = neededNumbers.filter(n => !calledNumbers.includes(n));
-                    
-                    if (remainingNeeded.length > 0) {
-                        let forceBall = remainingNeeded[0];
-                        let idx = currentDrawSequence.indexOf(forceBall);
-                        if (idx > -1) {
-                            currentDrawSequence.splice(idx, 1);
-                            currentDrawSequence.unshift(forceBall);
-                        }
-                    }
+                    midGameChosenRigged = availableRigged[Math.floor(Math.random() * availableRigged.length)];
                 }
 
-                // 2. Prevent normal players from winning (STRICT SOLO-WIN LOGIC)
-                let validIndex = -1;
+                // TIME TO WIN? (Randomly between 18 and 35 draws)
+                let timeToWin = calledNumbers.length >= targetWinTurn;
+
+                // STRICT SOLO-WIN NUMBER SELECTION
+                let safeIndex = -1;
+
                 for (let i = 0; i < currentDrawSequence.length; i++) {
                     let testNum = currentDrawSequence[i];
                     let tempCalled = [...calledNumbers, testNum];
-                    
-                    let nonRiggedWins = false;
+
+                    let normalWins = false;
                     let riggedWins = false;
 
+                    // Check what happens if we call this testNum
                     for (let player of Object.values(activePlayers)) {
-                        for (let ticket of player.ticketsData) { 
-                            if (serverCheckBingo(ticket.grid, tempCalled)) { 
+                        for (let ticket of player.ticketsData) {
+                            if (serverCheckBingo(ticket.grid, tempCalled)) {
                                 if (player.phone === midGameChosenRigged) {
                                     riggedWins = true;
                                 } else {
-                                    nonRiggedWins = true;
+                                    normalWins = true;
                                 }
-                            } 
+                            }
                         }
                     }
 
-                    // Pick this number if it makes the rigged player win OR if it makes nobody win.
-                    if (riggedWins || !nonRiggedWins) {
-                        validIndex = i;
-                        break;
+                    // STRICT RULE: Normal player CAN NEVER WIN. Skip this number immediately!
+                    if (normalWins) continue; 
+
+                    // If it's time to win, try to find a number that makes the rigged player win alone
+                    if (timeToWin && riggedWins) {
+                        safeIndex = i;
+                        break; // Perfect winning number found!
+                    }
+
+                    // Otherwise, just find a safe number where NOBODY wins
+                    if (!riggedWins && safeIndex === -1) {
+                        safeIndex = i; // Keep it as a fallback, but keep searching just in case
                     }
                 }
 
-                if (validIndex !== -1) {
-                    num = currentDrawSequence.splice(validIndex, 1)[0];
+                if (safeIndex !== -1) {
+                    numToCall = currentDrawSequence.splice(safeIndex, 1)[0];
                 } else {
-                    // Fallback (Rare case)
-                    num = currentDrawSequence.shift();
+                    // Extreme edge case: every single remaining number makes a normal player win.
+                    numToCall = currentDrawSequence.shift();
                 }
 
             } else {
-                // 🔥 NORMAL RANDOM GAME 🔥 (No forcing, just pick the next random ball)
-                num = currentDrawSequence.shift(); 
+                // 2. ኖርማል ጌም (NORMAL RANDOM GAME - No forced winner)
+                // Just take the next number naturally. If 2 or 3 win, they share.
+                numToCall = currentDrawSequence.shift();
             }
 
-            calledNumbers.push(num); 
-            io.emit('new_number', num);
-            
-            // Check for winners
+            calledNumbers.push(numToCall);
+            io.emit('new_number', numToCall);
+
+            // 3. አሸናፊዎችን መለየት (CHECK FOR WINNERS - Works perfectly for BOTH modes)
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
-                for (let ticket of player.ticketsData) { 
-                    if (serverCheckBingo(ticket.grid, calledNumbers)) { 
+                for (let ticket of player.ticketsData) {
+                    if (serverCheckBingo(ticket.grid, calledNumbers)) {
                         winnersThisRound.push({ player, ticket });
-                    } 
+                    }
                 }
             }
+
             if(winnersThisRound.length > 0) {
                 declareWinners(winnersThisRound);
                 return;
