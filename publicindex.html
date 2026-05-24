@@ -109,8 +109,8 @@
         #game-page .game-mini-tickets { flex-grow: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px; overflow: hidden; align-content: stretch; min-height: 0; padding-bottom: 2px; }
         .mini-t-card { background: white; border-radius: 8px; border: 1px solid #ddd; padding: 2px; display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; }
         
-        .t-id-badge { text-align: center; font-size: 14px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; letter-spacing: 1px; }
-        .mini-t-id-badge { text-align: center; font-size: 12px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; letter-spacing: 1px; }
+        .t-id-badge { text-align: center; font-size: 11px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
+        .mini-t-id-badge { text-align: center; font-size: 10px; font-weight: 900; color: #1e293b; margin-bottom: 2px; flex-shrink: 0; }
         .t-grid-wrapper { display: flex; flex-grow: 1; min-height: 0; align-items: stretch; }
         
         .t-side-text { writing-mode: vertical-rl; transform: rotate(180deg); color: #94a3b8; opacity: 0.5; font-weight: normal; font-size: 4px !important; margin-right: 2px; letter-spacing: 0.5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
@@ -161,7 +161,7 @@
         @keyframes blinker { 50% { opacity: 0.3; } }
         .bingo-text { font-size: 50px; font-weight: 900; color: #ffffff; margin: 0; text-shadow: 0 0 15px #ffffff, 0 0 30px rgba(255,255,255,0.8); animation: pulseWin 0.8s infinite alternate; letter-spacing: 5px; font-family: 'Arial Black', sans-serif;}
         @keyframes pulseWin { from { transform: scale(1); text-shadow: 0 0 15px #ffffff; } to { transform: scale(1.05); text-shadow: 0 0 25px #ffffff, 0 0 40px rgba(255,255,255,0.9); } }
-        .winner-card { background: transparent; padding: 10px; width: 90%; max-width: 400px;}
+        .winner-card { background: transparent; padding: 10px; width: 90%; max-width: 450px;}
         #win-ticket-display { margin: 15px auto; width: 100%; display: flex; justify-content: center;}
 
         /* Ranks */
@@ -1152,51 +1152,43 @@
         if (currentUser && currentUser.phone && data.phone.includes(currentUser.phone)) { amIWinner = true; }
 
         let titleHtml = amIWinner ? "🎉 እንኳን ደስ አሎት! 🎉" : "አሸናፊ (WINNER)";
-        
-        // 🔥 ስልክ ቁጥርን መደበቂያ (Masking): 09XXXXXXXX ያደርገዋል
-        function maskPhone(p) {
-            if(!p) return "";
-            let s = p.toString().trim();
-            if(s.length >= 2) return s.substring(0, 2) + "XXXXXXXX";
-            return s;
-        }
-
-        let firstPhoneMasked = maskPhone(data.phone.split(',')[0]);
-        let nameHtml = amIWinner ? `እርስዎ አሸንፈዋል! 👏 <span style="font-size:14px; color:#94a3b8;">(${firstPhoneMasked})</span>` : `${data.winnerName} <span style="font-size:14px; color:#94a3b8;">(${firstPhoneMasked})</span>`;
+        let nameHtml = amIWinner ? "እርስዎ አሸንፈዋል! 👏" : data.winnerName;
 
         let sharedListHtml = "";
         if (data.isShared && data.winnerDetails) {
-            sharedListHtml = `<div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid #4ade80; margin-top: 15px; width: 100%; box-sizing: border-box; max-height: 150px; overflow-y: auto;">
-                <h4 style="margin:0 0 10px 0; color:#4ade80; font-size:13px; text-align:center;">✨ አሸናፊዎች (${data.winnerCount}) ✨</h4>
+            sharedListHtml = `<div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; border: 1px solid #4ade80; margin-top: 15px; width: 100%; box-sizing: border-box; max-height: 250px; overflow-y: auto;">
+                <h4 style="margin:0 0 15px 0; color:#4ade80; font-size:16px; text-align:center;">✨ አሸናፊዎች (${data.winnerCount}) ✨</h4>
                 <ul style="list-style:none; padding:0; margin:0; text-align:left;">`;
             data.winnerDetails.forEach(w => {
-                let mPh = maskPhone(w.phone);
-                sharedListHtml += `<li style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 12px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                    <span>👤 <b>${w.name}</b> <span style="color:#94a3b8; font-size:11px;">(${mPh})</span><br><span style="color:#fbbf24; font-size:11px; font-weight:bold;">🎫 ካርቴላ: #${w.ticket}</span></span>
-                    <span style="color:#fbbf24; font-weight:bold;">${w.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</span>
+                sharedListHtml += `<li style="margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 20px; font-weight: 900; color: #ffffff;">👤 ${w.name}</div>
+                        <div style="color:#94a3b8; font-size:14px; font-weight:bold; margin-top:3px;">ስልክ: <span style="color:white;">09XXXXXX</span></div>
+                        <div style="color:#94a3b8; font-size:14px; font-weight:bold; margin-top:3px;">ካርቴላ: <b style="color:#38bdf8; font-size:22px; text-shadow: 0 0 8px rgba(56,189,248,0.5);">#${w.ticket}</b></div>
+                    </div>
+                    <div style="color:#fbbf24; font-weight:900; font-size: 20px;">${w.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div>
                 </li>`;
             });
             sharedListHtml += `</ul></div>`;
             nameHtml = "በጋራ አሸንፈዋል!";
         }
 
-        // 🔥 ካርቴላ ቁጥርን ትልቅ አድርጎ ማሳያ
-        let bigTicketHtml = !data.isShared ? `<div style="font-size: 28px; font-weight: 900; color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.9); margin: 10px 0; letter-spacing: 2px; padding: 5px; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px dashed #fbbf24; display: inline-block;">🎫 ካርቴላ: #${data.ticketId}</div>` : "";
-
         let winnerCard = document.querySelector('.winner-card');
         winnerCard.innerHTML = `
-            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '18px' : '14px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
+            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '20px' : '16px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
             <h1 class="bingo-text">B I N G O !</h1>
-            
-            ${bigTicketHtml}
-
             <div id="win-ticket-display"></div>
+            ${!data.isShared ? `
+                <h2 id="win-name" style="margin:15px 0 10px 0; color:${amIWinner ? '#fbbf24' : '#ffffff'}; font-size:28px; font-weight:900; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${nameHtml}</h2>
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size:16px; color:var(--text-gray); font-weight:bold; margin-bottom:5px;">ስልክ: <span style="color:#fff;">09XXXXXX</span></div>
+                    <div style="font-size:16px; color:var(--text-gray); font-weight:bold;">አሸናፊ ካርቴላ: <b id="win-ticket" style="font-size:28px; color:#38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5);">#${data.ticketId}</b></div>
+                </div>
+            ` : `<h2 style="margin:15px 0 10px 0; color:#fbbf24; font-size:24px; font-weight: 900; text-shadow: 0 0 15px rgba(251,191,36,0.5);">${nameHtml}</h2>`}
             
-            <h2 id="win-name" style="margin:15px 0 0 0; color:${amIWinner ? '#fbbf24' : 'white'}; font-size:20px; font-weight:900;">${nameHtml}</h2>
-            
-            <div style="background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 8px; border: 1px solid #fbbf24; width: fit-content; margin: 15px auto 0 auto; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);">
-                <p style="margin:0; font-size:11px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">${data.isShared ? "ጠቅላላ የደራሽ ሽልማት" : "የገንዘብ ሽልማት (Prize)"}</p>
-                <h1 style="margin:2px 0 0 0; color:#fff; font-size: 24px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
+            <div style="background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 12px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
+                <p style="margin:0; font-size:12px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">${data.isShared ? "ጠቅላላ የደራሽ ሽልማት" : "የገንዘብ ሽልማት (Prize)"}</p>
+                <h1 style="margin:5px 0 0 0; color:#fff; font-size: 28px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
             </div>
             ${sharedListHtml}
         `;
@@ -1220,7 +1212,7 @@
             }
         }
         html += `</div></div>`; 
-        document.getElementById('win-ticket-display').innerHTML += html;
+        document.getElementById('win-ticket-display').innerHTML = html;
 
         for (let i = 0; i < 20; i++) {
             let coin = document.createElement('div');
