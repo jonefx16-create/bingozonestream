@@ -450,9 +450,9 @@
             </div>
 
             <!-- Bonus Boost (Right - Animated) -->
-            <div class="new-timer-box pulse-bonus-box" id="boost-box-wrapper" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; background: rgba(251, 191, 36, 0.05); transition: 0.4s;">
-                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 8px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold; text-align: center; line-height: 1.2;">🔥 ደራሽ ላይ የተጨመረ ቦነስ</div>
-                <div class="nt-value" style="font-size: 16px; color: var(--gold); text-shadow: 0 0 10px rgba(251,191,36,0.6);"><span id="h-boost-amt">+0</span></div>
+            <div class="new-timer-box pulse-bonus-box" id="boost-box-wrapper" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; background: rgba(251, 191, 36, 0.05); transition: 0.4s; opacity: 0.6; filter: grayscale(70%);">
+                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 8px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold; text-align: center; line-height: 1.2;">የደራሽ ቦነስ በቅርቡ ይጠብቁ</div>
+                <div class="nt-value" style="font-size: 16px; color: var(--gold); text-shadow: 0 0 10px rgba(251,191,36,0.6);"><span id="h-boost-amt"><span class="waiting-hourglass">⏳</span></span></div>
             </div>
         </div>
 
@@ -1178,8 +1178,8 @@
         } else {
             if(boostBoxWrapper) {
                 boostBoxWrapper.classList.remove('pulse-bonus-box');
-                boostBoxWrapper.style.opacity = '0.9';
-                boostBoxWrapper.style.filter = 'grayscale(68%)';
+                boostBoxWrapper.style.opacity = '0.6';
+                boostBoxWrapper.style.filter = 'grayscale(70%)';
             }
             if(hBoostLbl) hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
             if(boostAmtBox) boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
