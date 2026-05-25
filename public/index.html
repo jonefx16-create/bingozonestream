@@ -49,9 +49,9 @@
 
         /* 🔥 አዲሱ የቦነስ መውሰጃ አኒሜሽን (NEW ANIMATION FOR CLAIM) 🔥 */
         @keyframes pulseClaimFloat {
-            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); }
-            50% { transform: scale(1.1); box-shadow: 0 4px 25px rgba(251, 191, 36, 1); }
-            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); }
+            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 4px 25px rgba(251, 191, 36, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
         }
 
         /* 🔥 ወርቃማው የቦነስ ቦክስ አኒሜሽን (Pulse Box) 🔥 */
@@ -436,8 +436,8 @@
             </div>
 
             <!-- Bonus Boost (Right - Animated) -->
-            <div class="new-timer-box pulse-bonus-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 5px; background: rgba(251, 191, 36, 0.05);">
-                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 9px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold;">🔥 ቦነስ</div>
+            <div class="new-timer-box pulse-bonus-box" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; background: rgba(251, 191, 36, 0.05);">
+                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 8px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold; text-align: center; line-height: 1.2;">🔥 ደራሽ ላይ የተጨመረ ቦነስ</div>
                 <div class="nt-value" style="font-size: 16px; color: var(--gold); text-shadow: 0 0 10px rgba(251,191,36,0.6);"><span id="h-boost-amt">+0</span></div>
             </div>
         </div>
@@ -666,7 +666,7 @@
             document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; 
             
             let hBoost = document.getElementById('h-lbl-boost');
-            if(hBoost) hBoost.innerText = "🔥 ቦነስ";
+            if(hBoost) hBoost.innerText = "🔥 ደራሽ ላይ የተጨመረ ቦነስ";
 
             document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
             document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
@@ -696,7 +696,7 @@
             document.getElementById('h-lbl-derash').innerText = "JACKPOT"; document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT"; 
             
             let hBoost = document.getElementById('h-lbl-boost');
-            if(hBoost) hBoost.innerText = "🔥 BONUS";
+            if(hBoost) hBoost.innerText = "🔥 ADDED TO JACKPOT";
 
             document.getElementById('h-lbl-select').innerText = `Select Tickets (${currentTicketPrice} ETB)`; 
             document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
