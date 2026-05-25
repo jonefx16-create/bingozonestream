@@ -961,7 +961,7 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
-    if(req.body.jackpotBoost !== undefined) s.jackpotBoostAmount = req.body.jackpotBoost; // 🔥 አዲሱ የጌም መፈንዳያ ቦነስ
+    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount; // 🔥 ፊደሉ ተስተካክሏል
     
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
