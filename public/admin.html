@@ -143,6 +143,10 @@
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit % & Withdraw Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
+        
+        <!-- 🔥 አዲሱ የጌም ማኒፑሌሽን ታብ በተን 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-manipulation', this)" style="color:var(--gold);"><div>🎮 Game Manipulation & Jackpot</div></button>
+        
         <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
     </div>
 
@@ -415,6 +419,7 @@
             </div>
         </div>
 
+        <!-- ADMIN PROFIT -->
         <div id="tab-admin-profit" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--cyan); max-width: 500px; margin: 0 auto;">
                 <h3 style="margin-top:0; color:var(--cyan);">📉 Admin Profit (% - የድርጅት ትርፍ)</h3>
@@ -423,6 +428,7 @@
             </div>
         </div>
 
+        <!-- DEPOSIT & WITHDRAW BONUS -->
         <div id="tab-dep-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--gold);">
@@ -503,6 +509,7 @@
             </div>
         </div>
 
+        <!-- TELEGRAM BROADCAST -->
         <div id="tab-telegram" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--blue);">
@@ -533,6 +540,35 @@
             </div>
         </div>
 
+        <!-- 🔥 አዲሱ GAME MANIPULATION TAB 🔥 -->
+        <div id="tab-manipulation" class="tab-content">
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                
+                <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width: 280px;">
+                    <h3 style="margin-top:0; color:var(--gold);">🔥 የጌም መፈንዳያ ቦነስ (Jackpot Boost)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ይህ ብር በየዙሩ መነሻ ደራሽ (Jackpot) ላይ ይደመራል።</p>
+                    <input type="number" id="set-jackpot-boost" placeholder="e.g. 500" style="margin-bottom: 15px;">
+                    <button class="action-btn btn-orange" style="width: 100%;" onclick="updateSettings('jackpot_boost')">💾 Save Jackpot Boost</button>
+                </div>
+
+                <div class="card" style="flex: 1; border-left: 4px solid var(--purple); min-width: 280px;">
+                    <h3 style="margin-top:0; color:var(--purple);">🏆 Win Popup Timer (Seconds)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ (Home page ላይ)</p>
+                    <input type="number" id="set-win-timer" placeholder="e.g. 12" style="margin-bottom: 15px;">
+                    <button class="action-btn btn-purple" style="width: 100%;" onclick="updateSettings('win_timer')">💾 Save Win Timer</button>
+                </div>
+
+                <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
+                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (Forced Winners)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ለምሳሌ: 0911..., 0922...<br><b style="color:var(--gold);">ይህ ባዶ ከሆነ ማንም ሰው በእድሉ (Randomly) ያሸንፋል።</b></p>
+                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911223344, 0988776655" style="border-color: var(--red); margin-bottom: 15px;">
+                    <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SETTINGS & CONTROL -->
         <div id="tab-settings" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
@@ -553,24 +589,6 @@
                         <input type="number" id="set-min-withdraw" placeholder="e.g. 50">
                         <button class="action-btn" onclick="updateSettings('minwithdraw')">Save</button>
                     </div>
-
-                    <!-- 🔥 Game Manipulation, Jackpot Boost & Forced Winners 🔥 -->
-                    <hr style="border-color: var(--border);">
-                    <h3 style="margin-top:10px; margin-bottom: 15px; color:white;">🎮 Game Manipulation & Jackpot</h3>
-                    
-                    <label style="font-weight:bold; color:var(--gold);">🔥 የጌም መፈንዳያ ቦነስ (Jackpot Boost ETB)</label>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ይህ ብር በየዙሩ መነሻ ደራሽ (Jackpot) ላይ ይደመራል።</p>
-                    <input type="number" id="set-jackpot-boost" placeholder="e.g. 500" style="margin-bottom: 15px;">
-
-                    <label style="font-weight:bold; color:var(--purple);">🏆 Win Popup Timer (Seconds)</label>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ (Home page ላይ)</p>
-                    <input type="number" id="set-win-timer" placeholder="e.g. 12" style="margin-bottom: 15px;">
-
-                    <label style="font-weight:bold; color:var(--red);">🎯 አሸናፊ እንዲሆኑ የተመረጡ ስልኮች (Forced Winners)</label>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ስልክ ቁጥሮቹን በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ለምሳሌ: 0911..., 0922...<br><b style="color:var(--gold);">ይህ ባዶ ከሆነ ጌሙ ማንም ሰው በእድሉ (Randomly) እንዲያሸንፍ ይፈቅዳል።</b></p>
-                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911223344, 0988776655" style="border-color: var(--red); margin-bottom: 15px;">
-
-                    <button class="action-btn btn-purple" style="width: 100%;" onclick="updateSettings('manipulation')">💾 Save Manipulation & Jackpot</button>
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
@@ -1561,14 +1579,18 @@
             payload.minWithdrawLimit = Number(mw); 
         }
 
-        // 🔥 አዲሱ የተቀላቀለው ሎጂክ 🔥
-        if(type === 'manipulation') {
+        // 🔥 አዲሶቹ የተነጠሉት የጌም ማኒፑሌሽን ቁልፎች 🔥
+        if(type === 'jackpot_boost') {
             let jb = document.getElementById('set-jackpot-boost').value; 
+            payload.jackpotBoostAmount = (jb !== '' && Number(jb) >= 0) ? Number(jb) : 0;
+        }
+        if(type === 'win_timer') {
             let wt = document.getElementById('set-win-timer').value; 
-            let fp = document.getElementById('set-forced-phones').value; 
-            
-            if(jb !== '' && Number(jb) >= 0) payload.jackpotBoostAmount = Number(jb);
             if(wt !== '' && Number(wt) >= 1) payload.winPopupTimer = Number(wt);
+            else return alert("Please enter a valid time (e.g., 12)");
+        }
+        if(type === 'forced_winners') {
+            let fp = document.getElementById('set-forced-phones').value; 
             payload.forcedWinnerPhones = fp;
         }
 
