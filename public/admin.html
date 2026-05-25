@@ -128,7 +128,7 @@
         <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
         
-        <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Users & Passwords</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Data Base User</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this); loadHistoryPage(1);"><div>🏆 Winners History (All Time)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
@@ -140,7 +140,7 @@
         
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Auto-Bonuses & Settings</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit % & Withdraw Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
         <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
@@ -541,13 +541,6 @@
                     <hr style="border-color: var(--border);">
                     <label style="font-weight:bold; color:var(--cyan);">🎟️ Ticket Price (ETB)</label>
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
-                    
-                    <label style="font-weight:bold; color:var(--gold);">🔥 የጌም መፈንዳያ ቦነስ (Jackpot Boost ETB)</label>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ይህ ብር በየዙሩ መነሻ ደራሽ (Jackpot) ላይ ይደመራል።</p>
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                        <input type="number" id="set-jackpot-boost" placeholder="e.g. 500">
-                        <button class="action-btn" onclick="updateSettings('jackpot_boost')">Save</button>
-                    </div>
 
                     <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds)</label>
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
@@ -561,23 +554,23 @@
                         <button class="action-btn" onclick="updateSettings('minwithdraw')">Save</button>
                     </div>
 
-                    <!-- 🔥 Win Popup Timer እና Forced Phone Numbers 🔥 -->
+                    <!-- 🔥 Game Manipulation, Jackpot Boost & Forced Winners 🔥 -->
                     <hr style="border-color: var(--border);">
-                    <h3 style="margin-top:10px; margin-bottom: 10px; color:white;">🎮 Game Manipulation & Timers</h3>
+                    <h3 style="margin-top:10px; margin-bottom: 15px; color:white;">🎮 Game Manipulation & Jackpot</h3>
                     
+                    <label style="font-weight:bold; color:var(--gold);">🔥 የጌም መፈንዳያ ቦነስ (Jackpot Boost ETB)</label>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ይህ ብር በየዙሩ መነሻ ደራሽ (Jackpot) ላይ ይደመራል።</p>
+                    <input type="number" id="set-jackpot-boost" placeholder="e.g. 500" style="margin-bottom: 15px;">
+
                     <label style="font-weight:bold; color:var(--purple);">🏆 Win Popup Timer (Seconds)</label>
                     <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ (Home page ላይ)</p>
-                    <div style="display:flex; gap:10px; margin-bottom: 15px;">
-                        <input type="number" id="set-win-timer" placeholder="e.g. 12">
-                        <button class="action-btn btn-purple" onclick="updateSettings('win_timer')">Save</button>
-                    </div>
+                    <input type="number" id="set-win-timer" placeholder="e.g. 12" style="margin-bottom: 15px;">
 
                     <label style="font-weight:bold; color:var(--red);">🎯 አሸናፊ እንዲሆኑ የተመረጡ ስልኮች (Forced Winners)</label>
                     <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ስልክ ቁጥሮቹን በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ለምሳሌ: 0911..., 0922...<br><b style="color:var(--gold);">ይህ ባዶ ከሆነ ጌሙ ማንም ሰው በእድሉ (Randomly) እንዲያሸንፍ ይፈቅዳል።</b></p>
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                        <input type="text" id="set-forced-phones" placeholder="e.g. 0911223344, 0988776655" style="border-color: var(--red);">
-                        <button class="action-btn btn-red" onclick="updateSettings('forced_phones')">Save Force</button>
-                    </div>
+                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911223344, 0988776655" style="border-color: var(--red); margin-bottom: 15px;">
+
+                    <button class="action-btn btn-purple" style="width: 100%;" onclick="updateSettings('manipulation')">💾 Save Manipulation & Jackpot</button>
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
@@ -848,11 +841,11 @@
                 safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
 
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
-                safeUpdate('set-jackpot-boost', data.settings.jackpotBoostAmount !== undefined ? data.settings.jackpotBoostAmount : 0);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
                 safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
                 safeUpdate('set-min-withdraw', data.settings.minWithdrawLimit !== undefined ? data.settings.minWithdrawLimit : 50);
                 
+                safeUpdate('set-jackpot-boost', data.settings.jackpotBoostAmount !== undefined ? data.settings.jackpotBoostAmount : 0);
                 safeUpdate('set-win-timer', data.settings.winPopupTimer !== undefined ? data.settings.winPopupTimer : 12);
                 safeUpdate('set-forced-phones', data.settings.forcedWinnerPhones || '');
 
@@ -1560,11 +1553,6 @@
         }
         if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
-        if(type === 'jackpot_boost') { 
-            let jb = document.getElementById('set-jackpot-boost').value; 
-            if(!jb || jb < 0) return alert("Enter valid boost amount!"); 
-            payload.jackpotBoostAmount = Number(jb); 
-        }
         if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
         if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
         if(type === 'minwithdraw') { 
@@ -1573,14 +1561,15 @@
             payload.minWithdrawLimit = Number(mw); 
         }
 
-        if(type === 'win_timer') { 
+        // 🔥 አዲሱ የተቀላቀለው ሎጂክ 🔥
+        if(type === 'manipulation') {
+            let jb = document.getElementById('set-jackpot-boost').value; 
             let wt = document.getElementById('set-win-timer').value; 
-            if(!wt || wt < 1) return alert("Enter valid seconds!"); 
-            payload.winPopupTimer = Number(wt); 
-        }
-        if(type === 'forced_phones') { 
             let fp = document.getElementById('set-forced-phones').value; 
-            payload.forcedWinnerPhones = fp; 
+            
+            if(jb !== '' && Number(jb) >= 0) payload.jackpotBoostAmount = Number(jb);
+            if(wt !== '' && Number(wt) >= 1) payload.winPopupTimer = Number(wt);
+            payload.forcedWinnerPhones = fp;
         }
 
         if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
