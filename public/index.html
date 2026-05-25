@@ -408,11 +408,12 @@
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <!-- Title -->
-            <div style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
-                <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 1px;">
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1;">
+                <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 1px; text-align: center;">
                     <span style="color: #4ade80; text-shadow: 0px 0px 10px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
                     <span style="color: #ffffff; text-shadow: 0px 0px 10px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
                 </h1>
+                <div style="color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 4px; margin-top: 2px; text-transform: uppercase;">BINGO HABESHA</div>
             </div>
             <!-- Lang Toggle -->
             <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
@@ -1146,13 +1147,15 @@
         let boostBox = document.getElementById('h-boost-amt');
         if(boostBox) boostBox.innerText = "+" + boostAmt;
 
-        document.getElementById('jp').innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2}); 
-        let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2});
-        let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2});
-        let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        let actualJackpot = data.totalPrizePool + boostAmt;
+
+        document.getElementById('jp').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}); 
+        let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
+        let jpAmtBox = document.getElementById('g-jp-amt'); if(jpAmtBox) jpAmtBox.innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
+        let tPagePrize = document.getElementById('t-page-prize'); if(tPagePrize) tPagePrize.innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
         
         if(data.gameId) document.getElementById('g-id').innerText = "#" + data.gameId; 
-        document.getElementById('g-prize').innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('g-prize').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
         
         if(data.maxTickets) {
             maxTicketsLimit = data.maxTickets;
@@ -1506,6 +1509,7 @@
 </script>
 </body>
 </html>
+
 
 
 
