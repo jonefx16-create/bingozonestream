@@ -1219,7 +1219,7 @@ async function declareWinners(winners) {
     let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
     let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
     
-    let adminProfit = totalCollectedMoney - totalPrizePool - (GLOBAL_SETTINGS.jackpotBoostAmount || 0); 
+    let adminProfit = totalCollectedMoney - totalPrizePool; 
     
     let winnerNames = [];
     let winnerPhones = [];
