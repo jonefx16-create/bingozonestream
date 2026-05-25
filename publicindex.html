@@ -437,7 +437,7 @@
             </div>
 
             <!-- Bonus Boost (Right - Animated) -->
-            <div class="new-timer-box pulse-bonus-box" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; background: rgba(251, 191, 36, 0.05);">
+            <div class="new-timer-box pulse-bonus-box" id="boost-box-wrapper" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; background: rgba(251, 191, 36, 0.05); transition: 0.4s;">
                 <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 8px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold; text-align: center; line-height: 1.2;">🔥 ደራሽ ላይ የተጨመረ ቦነስ</div>
                 <div class="nt-value" style="font-size: 16px; color: var(--gold); text-shadow: 0 0 10px rgba(251,191,36,0.6);"><span id="h-boost-amt">+0</span></div>
             </div>
@@ -651,6 +651,8 @@
     let isPlayingAudio = false;
     let currentAudioObj = null;
 
+    let currentJackpotBoost = 0; // 🔥 Added for dynamic text tracking
+
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
@@ -667,7 +669,9 @@
             document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; 
             
             let hBoost = document.getElementById('h-lbl-boost');
-            if(hBoost) hBoost.innerText = "🔥 ደራሽ ላይ የተጨመረ ቦነስ";
+            if(hBoost) {
+                hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "ቦነስ በቅርቡ ይጠብቁ";
+            }
 
             document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
             document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
@@ -697,7 +701,9 @@
             document.getElementById('h-lbl-derash').innerText = "JACKPOT"; document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT"; 
             
             let hBoost = document.getElementById('h-lbl-boost');
-            if(hBoost) hBoost.innerText = "🔥 ADDED TO JACKPOT";
+            if(hBoost) {
+                hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ADDED TO JACKPOT" : "BONUS COMING SOON";
+            }
 
             document.getElementById('h-lbl-select').innerText = `Select Tickets (${currentTicketPrice} ETB)`; 
             document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
@@ -1143,11 +1149,30 @@
         }
 
         // 🔥 አዲሱ የጃክፖት እና ቦነስ ማዘመኛ
-        let boostAmt = data.jackpotBoost || 0;
-        let boostBox = document.getElementById('h-boost-amt');
-        if(boostBox) boostBox.innerText = "+" + boostAmt;
+        currentJackpotBoost = data.jackpotBoost || 0;
+        let boostBoxWrapper = document.getElementById('boost-box-wrapper');
+        let boostAmtBox = document.getElementById('h-boost-amt');
+        let hBoostLbl = document.getElementById('h-lbl-boost');
 
-        let actualJackpot = data.totalPrizePool + boostAmt;
+        if (currentJackpotBoost > 0) {
+            if(boostBoxWrapper) {
+                boostBoxWrapper.classList.add('pulse-bonus-box');
+                boostBoxWrapper.style.opacity = '1';
+                boostBoxWrapper.style.filter = 'none';
+            }
+            if(hBoostLbl) hBoostLbl.innerText = isAm ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "🔥 ADDED TO JACKPOT";
+            if(boostAmtBox) boostAmtBox.innerText = "+" + currentJackpotBoost;
+        } else {
+            if(boostBoxWrapper) {
+                boostBoxWrapper.classList.remove('pulse-bonus-box');
+                boostBoxWrapper.style.opacity = '0.6';
+                boostBoxWrapper.style.filter = 'grayscale(80%) blur(0.5px)';
+            }
+            if(hBoostLbl) hBoostLbl.innerText = isAm ? "ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
+            if(boostAmtBox) boostAmtBox.innerText = "⏳";
+        }
+
+        let actualJackpot = data.totalPrizePool + currentJackpotBoost;
 
         document.getElementById('jp').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
