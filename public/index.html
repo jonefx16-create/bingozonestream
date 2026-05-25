@@ -65,6 +65,19 @@
             z-index: 2;
         }
 
+        /* 🔥 የሰዓት (Hourglass) ተንቀሳቃሽ አኒሜሽን 🔥 */
+        @keyframes hourglassRock {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(20deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-20deg); }
+        }
+        .waiting-hourglass {
+            display: inline-block;
+            animation: hourglassRock 1.2s infinite ease-in-out;
+            transform-origin: center;
+        }
+
         /* Game & Home Page Badge */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
@@ -670,7 +683,7 @@
             
             let hBoost = document.getElementById('h-lbl-boost');
             if(hBoost) {
-                hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "ቦነስ በቅርቡ ይጠብቁ";
+                hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "የደራሽ ቦነስ በቅርቡ ይጠብቁ";
             }
 
             document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
@@ -1165,11 +1178,11 @@
         } else {
             if(boostBoxWrapper) {
                 boostBoxWrapper.classList.remove('pulse-bonus-box');
-                boostBoxWrapper.style.opacity = '0.6';
-                boostBoxWrapper.style.filter = 'grayscale(70%) blur(0.5px)';
+                boostBoxWrapper.style.opacity = '0.9';
+                boostBoxWrapper.style.filter = 'grayscale(68%)';
             }
             if(hBoostLbl) hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
-            if(boostAmtBox) boostAmtBox.innerText = "⏳";
+            if(boostAmtBox) boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
         }
 
         let actualJackpot = data.totalPrizePool + currentJackpotBoost;
