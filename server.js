@@ -110,12 +110,28 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
     financePass: { type: String, default: "finance1234" }, 
-    ticketPrice: { type: Number, default: 10 }, isGamePaused: { type: Boolean, default: false }, gameTimer: { type: Number, default: 40 },
-    depBonusMinAmount: { type: Number, default: 100 }, depBonusPercent: { type: Number, default: 20 }, depBonusTimeRestricted: { type: Boolean, default: false }, happyHourStart: { type: Number, default: 0 }, happyHourEnd: { type: Number, default: 23 },
-    depBannerTextAm: { type: String, default: "" }, depBannerTextEn: { type: String, default: "" },
-    witBonusMinAmount: { type: Number, default: 100 }, witBonusPercent: { type: Number, default: 5 }, isWitBonusActive: { type: Boolean, default: false }, witBonusTimeRestricted: { type: Boolean, default: false }, witHappyHourStart: { type: Number, default: 0 }, witHappyHourEnd: { type: Number, default: 23 },
-    witBannerTextAm: { type: String, default: "" }, witBannerTextEn: { type: String, default: "" },
-    registerBonus: { type: Number, default: 10 }, inviteBonus: { type: Number, default: 10 }, adminProfitPercent: { type: Number, default: 15 },
+    ticketPrice: { type: Number, default: 10 }, 
+    isGamePaused: { type: Boolean, default: false }, 
+    gameTimer: { type: Number, default: 40 },
+    jackpotBoostAmount: { type: Number, default: 0 }, // 🔥 አዲሱ የጌም መፈንዳያ ቦነስ
+    depBonusMinAmount: { type: Number, default: 100 }, 
+    depBonusPercent: { type: Number, default: 20 }, 
+    depBonusTimeRestricted: { type: Boolean, default: false }, 
+    happyHourStart: { type: Number, default: 0 }, 
+    happyHourEnd: { type: Number, default: 23 },
+    depBannerTextAm: { type: String, default: "" }, 
+    depBannerTextEn: { type: String, default: "" },
+    witBonusMinAmount: { type: Number, default: 100 }, 
+    witBonusPercent: { type: Number, default: 5 }, 
+    isWitBonusActive: { type: Boolean, default: false }, 
+    witBonusTimeRestricted: { type: Boolean, default: false }, 
+    witHappyHourStart: { type: Number, default: 0 }, 
+    witHappyHourEnd: { type: Number, default: 23 },
+    witBannerTextAm: { type: String, default: "" }, 
+    witBannerTextEn: { type: String, default: "" },
+    registerBonus: { type: Number, default: 10 }, 
+    inviteBonus: { type: Number, default: 10 }, 
+    adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
     winPopupTimer: { type: Number, default: 12 },
@@ -145,16 +161,31 @@ async function loadSettings() {
     let s = await SystemSettings.findOne();
     if(!s) { s = await new SystemSettings({}).save(); }
     GLOBAL_SETTINGS = { 
-        adminPass: s.adminPass, financePass: s.financePass, ticketPrice: s.ticketPrice, isGamePaused: s.isGamePaused, gameTimer: s.gameTimer || 40, 
-        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
-        depBonusTimeRestricted: s.depBonusTimeRestricted || false, happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
+        adminPass: s.adminPass, 
+        financePass: s.financePass, 
+        ticketPrice: s.ticketPrice, 
+        isGamePaused: s.isGamePaused, 
+        gameTimer: s.gameTimer || 40, 
+        jackpotBoostAmount: s.jackpotBoostAmount || 0, // 🔥 እዚህ ጋር ሎድ ይደረጋል
+        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, 
+        depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
+        depBonusTimeRestricted: s.depBonusTimeRestricted || false, 
+        happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
         happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
-        depBannerTextAm: s.depBannerTextAm || "", depBannerTextEn: s.depBannerTextEn || "",
-        witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, isWitBonusActive: s.isWitBonusActive || false,
-        witBonusTimeRestricted: s.witBonusTimeRestricted || false, witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
-        witBannerTextAm: s.witBannerTextAm || "", witBannerTextEn: s.witBannerTextEn || "",
-        registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
-        adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
+        depBannerTextAm: s.depBannerTextAm || "", 
+        depBannerTextEn: s.depBannerTextEn || "",
+        witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, 
+        witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, 
+        isWitBonusActive: s.isWitBonusActive || false,
+        witBonusTimeRestricted: s.witBonusTimeRestricted || false, 
+        witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, 
+        witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
+        witBannerTextAm: s.witBannerTextAm || "", 
+        witBannerTextEn: s.witBannerTextEn || "",
+        registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, 
+        inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
+        adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, 
+        maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
         winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
         forcedWinnerPhones: s.forcedWinnerPhones || ""
@@ -930,6 +961,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
+    if(req.body.jackpotBoost !== undefined) s.jackpotBoostAmount = req.body.jackpotBoost; // 🔥 አዲሱ የጌም መፈንዳያ ቦነስ
+    
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
     if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
@@ -1017,7 +1050,6 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
         );
         
         if(updatedUser) {
-            // 🔥 UPDATE ACTIVE PLAYERS ON THE FLY (Dynamic Name/Phone change during game) 🔥
             if (activePlayers[oldPhone]) {
                 if (oldPhone !== newPhone) {
                     activePlayers[newPhone] = activePlayers[oldPhone];
@@ -1027,7 +1059,6 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
                 activePlayers[newPhone].name = name;
             }
 
-            // 🔥 UPDATE FORCED WINNERS LIST IF PHONE CHANGED 🔥
             if (oldPhone !== newPhone && GLOBAL_SETTINGS.forcedWinnerPhones.includes(oldPhone)) {
                 GLOBAL_SETTINGS.forcedWinnerPhones = GLOBAL_SETTINGS.forcedWinnerPhones.replace(oldPhone, newPhone);
                 await SystemSettings.updateOne({}, {forcedWinnerPhones: GLOBAL_SETTINGS.forcedWinnerPhones});
@@ -1156,7 +1187,6 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
-// 🔥 Mid-game locking mechanism for Forced Winners 🔥
 let midGameChosenRigged = null;
 let recentRiggedWinners = []; 
 let targetWinTurn = 0; 
@@ -1186,8 +1216,12 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
-    let adminProfit = totalCollectedMoney - totalPrizePool; 
+    // 🔥 እውነተኛው የሽልማት ገንዘብ ቦነሱን ያካተተ ይሆናል 🔥
+    let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
+    let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
+    
+    // የድርጅት ትርፍ (Admin Profit) ቦነሱ ተቀንሶ ነው የሚሰላው
+    let adminProfit = totalCollectedMoney - totalPrizePool - (GLOBAL_SETTINGS.jackpotBoostAmount || 0); 
     
     let winnerNames = [];
     let winnerPhones = [];
@@ -1235,7 +1269,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: totalPrizePool,
+        prize: actualJackpot,
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -1247,7 +1281,7 @@ async function declareWinners(winners) {
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
-        totalPrize: totalPrizePool, 
+        totalPrize: actualJackpot, 
         phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
@@ -1267,19 +1301,35 @@ function resetToWaiting() {
 }
 
 setInterval(() => {
-    if(GLOBAL_SETTINGS.isGamePaused) { io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit }); return; }
+    if(GLOBAL_SETTINGS.isGamePaused) { 
+        io.emit('game_status', { 
+            state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+            totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        }); 
+        return; 
+    }
+    
     if (gameState === "WAITING") {
         gameClock--;
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+        io.emit('game_status', { 
+            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        });
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 midGameChosenRigged = null;
-                targetWinTurn = 0; // Will be calculated dynamically based on player count
+                targetWinTurn = 0; 
                 
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+                io.emit('game_status', { 
+                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+                    totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+                    maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+                });
             } else { 
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
             }
@@ -1295,9 +1345,7 @@ setInterval(() => {
 
             let numToCall = null;
 
-            // 1. ፎርዤ ጌም ከሆነ (Is it a Rigged Game?)
             if (activeRigged.length > 0) {
-                // Determine the rigged player for this round
                 if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
                     let availableRigged = activeRigged.filter(p => !recentRiggedWinners.includes(p));
                     if (availableRigged.length === 0) {
@@ -1307,20 +1355,13 @@ setInterval(() => {
                     midGameChosenRigged = availableRigged[Math.floor(Math.random() * availableRigged.length)];
                 }
 
-                // 🔥 DYNAMIC WIN TURN LOGIC based on player count 🔥
                 if (targetWinTurn === 0) {
                     let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
-                    if (totalTkts >= 10) {
-                        // ብዙ ተጫዋች ሲኖር ቶሎ እንዲያልቅ (ከ 20 እስከ 28)
-                        targetWinTurn = Math.floor(Math.random() * (28 - 20 + 1)) + 20;
-                    } else {
-                        // ትንሽ ተጫዋች ሲኖር ዘግየት ብሎ እንዲያልቅ (ከ 25 እስከ 35)
-                        targetWinTurn = Math.floor(Math.random() * (35 - 25 + 1)) + 25;
-                    }
+                    if (totalTkts >= 10) { targetWinTurn = Math.floor(Math.random() * (28 - 20 + 1)) + 20; } 
+                    else { targetWinTurn = Math.floor(Math.random() * (35 - 25 + 1)) + 25; }
                 }
 
                 let timeToWin = calledNumbers.length >= targetWinTurn;
-                
                 let bestNumberIndex = 0;
                 let bestScore = -999999;
 
@@ -1330,7 +1371,7 @@ setInterval(() => {
 
                     let normalWins = false;
                     let riggedWins = false;
-                    let normalHitsCount = 0; // How many normal tickets does this number hit?
+                    let normalHitsCount = 0; 
 
                     for (let player of Object.values(activePlayers)) {
                         let isRiggedPlayer = (player.phone === midGameChosenRigged);
@@ -1347,22 +1388,13 @@ setInterval(() => {
                         }
                     }
 
-                    // STRICT RULE: Normal player CAN NEVER WIN. Skip immediately!
                     if (normalWins) continue; 
 
                     let currentScore = 0;
 
-                    if (timeToWin && riggedWins) {
-                        currentScore = 10000; // Perfect winning number found!
-                    } else if (!timeToWin && riggedWins) {
-                        currentScore = -10000; // Disqualify early rigged wins
-                        continue;
-                    } else {
-                        // 🔥 NATURAL BOARD SCATTERING ALGORITHM 🔥
-                        // Give points if the number exists on normal players' cards.
-                        // Add a random weight so they don't uniformly reach "4 out of 5" at the exact same time.
-                        currentScore = (normalHitsCount * 0.5) + (Math.random() * 5);
-                    }
+                    if (timeToWin && riggedWins) { currentScore = 10000; } 
+                    else if (!timeToWin && riggedWins) { currentScore = -10000; continue; } 
+                    else { currentScore = (normalHitsCount * 0.5) + (Math.random() * 5); }
 
                     if (currentScore > bestScore) {
                         bestScore = currentScore;
@@ -1370,22 +1402,16 @@ setInterval(() => {
                     }
                 }
 
-                if (bestScore !== -999999) {
-                    numToCall = currentDrawSequence.splice(bestNumberIndex, 1)[0];
-                } else {
-                    // Extreme fallback
-                    numToCall = currentDrawSequence.shift();
-                }
+                if (bestScore !== -999999) { numToCall = currentDrawSequence.splice(bestNumberIndex, 1)[0]; } 
+                else { numToCall = currentDrawSequence.shift(); }
 
             } else {
-                // 2. ኖርማል ጌም (NORMAL RANDOM GAME - No forced winner)
                 numToCall = currentDrawSequence.shift();
             }
 
             calledNumbers.push(numToCall);
             io.emit('new_number', numToCall);
 
-            // 3. አሸናፊዎችን መለየት (CHECK FOR WINNERS)
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) {
@@ -1408,12 +1434,16 @@ setInterval(() => {
 let buyingLocks = {}; 
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
-    socket.emit('game_status', { state: stateToSend, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit });
+    socket.emit('game_status', { 
+        state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+        totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+        maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+    });
+    
     socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-        
         if (buyingLocks[data.phone]) return; 
         buyingLocks[data.phone] = true;
 
