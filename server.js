@@ -113,7 +113,7 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
-    jackpotBoostAmount: { type: Number, default: 0 }, // 🔥 አዲሱ የጌም መፈንዳያ ቦነስ
+    jackpotBoostAmount: { type: Number, default: 0 }, 
     depBonusMinAmount: { type: Number, default: 100 }, 
     depBonusPercent: { type: Number, default: 20 }, 
     depBonusTimeRestricted: { type: Boolean, default: false }, 
@@ -166,7 +166,7 @@ async function loadSettings() {
         ticketPrice: s.ticketPrice, 
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
-        jackpotBoostAmount: s.jackpotBoostAmount || 0, // 🔥 እዚህ ጋር ሎድ ይደረጋል
+        jackpotBoostAmount: s.jackpotBoostAmount || 0,
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, 
         depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
         depBonusTimeRestricted: s.depBonusTimeRestricted || false, 
@@ -961,7 +961,7 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
-    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount; // 🔥 ፊደሉ ተስተካክሏል
+    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount;
     
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
@@ -1216,11 +1216,9 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    // 🔥 እውነተኛው የሽልማት ገንዘብ ቦነሱን ያካተተ ይሆናል 🔥
     let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
     let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
     
-    // የድርጅት ትርፍ (Admin Profit) ቦነሱ ተቀንሶ ነው የሚሰላው
     let adminProfit = totalCollectedMoney - totalPrizePool - (GLOBAL_SETTINGS.jackpotBoostAmount || 0); 
     
     let winnerNames = [];
@@ -2509,7 +2507,6 @@ setInterval(async () => {
 }, 15 * 60 * 1000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
-
 
 
 
