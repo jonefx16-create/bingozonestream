@@ -542,6 +542,13 @@
                     <label style="font-weight:bold; color:var(--cyan);">🎟️ Ticket Price (ETB)</label>
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
                     
+                    <label style="font-weight:bold; color:var(--gold);">🔥 የጌም መፈንዳያ ቦነስ (Jackpot Boost ETB)</label>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ይህ ብር በየዙሩ መነሻ ደራሽ (Jackpot) ላይ ይደመራል።</p>
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                        <input type="number" id="set-jackpot-boost" placeholder="e.g. 500">
+                        <button class="action-btn" onclick="updateSettings('jackpot_boost')">Save</button>
+                    </div>
+
                     <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds)</label>
                     <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
 
@@ -841,6 +848,7 @@
                 safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
 
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
+                safeUpdate('set-jackpot-boost', data.settings.jackpotBoostAmount !== undefined ? data.settings.jackpotBoostAmount : 0);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
                 safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
                 safeUpdate('set-min-withdraw', data.settings.minWithdrawLimit !== undefined ? data.settings.minWithdrawLimit : 50);
@@ -1552,6 +1560,11 @@
         }
         if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
+        if(type === 'jackpot_boost') { 
+            let jb = document.getElementById('set-jackpot-boost').value; 
+            if(!jb || jb < 0) return alert("Enter valid boost amount!"); 
+            payload.jackpotBoostAmount = Number(jb); 
+        }
         if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
         if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
         if(type === 'minwithdraw') { 
