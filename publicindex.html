@@ -47,6 +47,24 @@
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         #timer { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); font-size: 26px; }
 
+        /* 🔥 አዲሱ የቦነስ መውሰጃ አኒሜሽን (NEW ANIMATION FOR CLAIM) 🔥 */
+        @keyframes pulseClaimFloat {
+            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); }
+            50% { transform: scale(1.1); box-shadow: 0 4px 25px rgba(251, 191, 36, 1); }
+            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); }
+        }
+
+        /* 🔥 ወርቃማው የቦነስ ቦክስ አኒሜሽን (Pulse Box) 🔥 */
+        @keyframes goldPulseBox {
+            0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); border-color: rgba(251, 191, 36, 1); transform: scale(1.03); }
+            100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
+        }
+        .pulse-bonus-box {
+            animation: goldPulseBox 1.5s infinite alternate;
+            z-index: 2;
+        }
+
         /* Game & Home Page Badge */
         .live-circle-badge { width: 75px; height: 75px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, rgba(14, 165, 233, 0.2)); border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 15px rgba(56, 189, 248, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .live-indicator { color: #ef4444; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
@@ -55,13 +73,6 @@
         #game-page .live-circle-badge { width: 90px !important; height: 90px !important; margin: 0 auto; position: relative !important; border-width: 3px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
         #game-page .jp-amount { font-size: 16px !important; }
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-
-        /* 🔥 አዲሱ የቦነስ መውሰጃ አኒሜሽን (NEW ANIMATION FOR CLAIM) 🔥 */
-        @keyframes pulseClaimFloat {
-            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); }
-            50% { transform: scale(1.1); box-shadow: 0 4px 25px rgba(251, 191, 36, 1); }
-            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); }
-        }
 
         .grid-subtitle-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 10px; }
         .gs-left { color: white; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
@@ -392,32 +403,51 @@
 <!-- 2. HOME PAGE -->
 <div id="home-page" class="page">
     
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 5px;">
-        <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
-            <div id="btn-am" onclick="setLang('AM')" style="background: white; color: black; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">AM</div>
-            <div id="btn-en" onclick="setLang('EN')" style="background: black; color: white; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">EN</div>
+    <!-- 🔥 ከፔጅ ጋር አብሮ የሚሄደው (Sticky) የላይኛው ክፍል (Timer, Jackpot, Bonus) 🔥 -->
+    <div style="position: sticky; top: 0; z-index: 1500; background: var(--bg-dark); padding: 5px 0 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <!-- Title -->
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
+                <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 1px;">
+                    <span style="color: #4ade80; text-shadow: 0px 0px 10px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
+                    <span style="color: #ffffff; text-shadow: 0px 0px 10px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
+                </h1>
+            </div>
+            <!-- Lang Toggle -->
+            <div style="display: flex; border: 1px solid #4ade80; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+                <div id="btn-am" onclick="setLang('AM')" style="background: white; color: black; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">AM</div>
+                <div id="btn-en" onclick="setLang('EN')" style="background: black; color: white; padding: 4px 12px; font-size: 11px; font-weight: 900; cursor: pointer;">EN</div>
+            </div>
         </div>
-    </div>
 
-    <div style="text-align: center; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 2px;">
-            <span style="color: #4ade80; text-shadow: 0px 0px 15px rgba(74, 222, 128, 0.6);">ቢንጎ</span> 
-            <span style="color: #ffffff; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.6);">ሀበሻ</span>
-        </h1>
-        <div style="color: rgba(255, 255, 255, 0.4); font-size: 14px; font-weight: bold; letter-spacing: 4px; margin-top: 2px;">BINGO HABESHA</div>
-    </div>
+        <!-- 3 BOXES: Timer (Left) | Jackpot (Center) | Bonus (Right) -->
+        <div style="display: flex; gap: 8px;">
+            <!-- Timer (Left) -->
+            <div class="new-timer-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 5px;">
+                <div class="nt-status" style="margin-bottom: 5px; font-size: 9px; text-align: center;">ጨዋታው ሊጀምር ነው</div>
+                <div class="nt-value" id="timer" style="font-size: 18px;">00:40</div> 
+            </div>
+            
+            <!-- Jackpot (Middle/Center) -->
+            <div class="new-timer-box" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 5px; border-color: var(--cyan); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);">
+                <div class="nt-badge" id="h-lbl-derash" style="margin-bottom: 5px; font-size: 10px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56,189,248,0.4); font-weight: bold;">ደራሽ</div>
+                <div class="nt-value" style="font-size: 18px; color: var(--cyan); text-shadow: 0 0 10px rgba(56,189,248,0.5);"><span id="jp">0.00</span> <span style="font-size: 9px; color: #94a3b8;">ETB</span></div>
+            </div>
 
-    <!-- 🔥 SPLIT TIMER AND JACKPOT UI 🔥 -->
-    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <div class="new-timer-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px;">
-            <div class="nt-status" style="margin-bottom: 5px;">ጨዋታው ሊጀምር ነው</div>
-            <div class="nt-value" id="timer">00:40</div> 
+            <!-- Bonus Boost (Right - Animated) -->
+            <div class="new-timer-box pulse-bonus-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 5px; background: rgba(251, 191, 36, 0.05);">
+                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 9px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold;">🔥 ቦነስ</div>
+                <div class="nt-value" style="font-size: 16px; color: var(--gold); text-shadow: 0 0 10px rgba(251,191,36,0.6);"><span id="h-boost-amt">+0</span></div>
+            </div>
         </div>
-        <div class="new-timer-box" style="flex: 1; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px; border-color: var(--cyan); box-shadow: 0 4px 15px rgba(56, 189, 248, 0.05);">
-            <div class="nt-badge" id="h-lbl-derash" style="margin-bottom: 5px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">ደራሽ</div>
-            <div class="nt-value"><span id="jp">0.00</span> <span class="nt-currency" style="font-size: 12px; color: #94a3b8;">ETB</span></div>
+
+        <div class="grid-subtitle-row" style="margin-top: 10px; margin-bottom: 0;">
+            <div class="gs-left" id="h-lbl-select">ካርቴላ ይምረጡ (10 ብር)</div>
+            <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div>
         </div>
     </div>
+    <!-- 🟢 እዚህ ጋር Sticky Top አብቅቷል 🟢 -->
 
     <div class="live-circle-badge" style="position: fixed; bottom: 75px; right: 15px; z-index: 1000;">
         <div class="live-indicator"><span class="dot"></span> <span id="live-text-bottom">LIVE</span></div>
@@ -426,12 +456,7 @@
         <div style="font-size:8px; font-weight:normal; color:#38bdf8;">ETB</div>
     </div>
     
-    <div class="grid-subtitle-row" style="margin-top: 15px;">
-        <div class="gs-left" id="h-lbl-select">ካርቴላ ይምረጡ (10 ብር)</div>
-        <div class="gs-right"><span id="grid-sel-count">0</span><span class="slash">/ 4</span></div>
-    </div>
-
-    <div id="grid-box" class="num-grid"></div>
+    <div id="grid-box" class="num-grid" style="padding-top: 15px;"></div>
 </div>
 
 <!-- COMPACT FIXED BET SLIP POPUP -->
@@ -639,6 +664,10 @@
             
             document.getElementById('g-lbl-round').innerText = "#ዙር (Round)"; document.getElementById('g-lbl-bet').innerText = "መወራረጃ"; document.getElementById('g-lbl-prize').innerText = "ሽልማት (Prize)"; document.getElementById('g-lbl-balls').innerText = "እጣ (Balls)"; document.getElementById('lbl-my-ticket').innerText = "የእኔ ካርቴላ (My Ticket)"; document.getElementById('lbl-derash-game').innerText = "ደራሽ";
             document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; 
+            
+            let hBoost = document.getElementById('h-lbl-boost');
+            if(hBoost) hBoost.innerText = "🔥 ቦነስ";
+
             document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
             document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
             
@@ -652,7 +681,7 @@
             document.getElementById('t-page-title').innerText = "የእኔ ካርቴላዎች"; document.getElementById('t-btn-mb-txt').innerText = "ሙሉ ቦርድ እይ (Master Board)";
             
             document.getElementById('dep-title').innerText = "Deposit Funds"; document.getElementById('wit-title').innerText = "Withdraw Funds";
-            document.getElementById('dep-strict-warn').innerHTML = "⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።";
+            let warnEl = document.getElementById('dep-strict-warn'); if(warnEl) warnEl.innerHTML = "⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።";
             document.getElementById('lbl-dep-sms').innerText = "የከፈሉበት ማረጋገጫ (SMS)";
             document.getElementById('m-dep-sms').placeholder = "ከባንክ የተላከሎትን SMS በሙሉ እዚህ Paste ያድርጉ (ትክክለኛ የከፈሉበትን ደረሰኝ)";
             document.getElementById('dep-sms-hint').innerHTML = "💡 <b>ማሳሰቢያ:</b> ከባንክ የተላከሎትን SMS <b>ሙሉውን</b> ኮፒ በማድረግ እዚህ ይለጥፉ። በተለይ በ <b>CBE Birr</b> ሲያስገቡ የባንኩን ሙሉ ደረሰኝ (SMS) ማካተትዎን አይርሱ።";
@@ -665,6 +694,10 @@
             
             document.getElementById('g-lbl-round').innerText = "Game Round"; document.getElementById('g-lbl-bet').innerText = "Bet Amount"; document.getElementById('g-lbl-prize').innerText = "Prize Pool"; document.getElementById('g-lbl-balls').innerText = "Called Balls"; document.getElementById('lbl-my-ticket').innerText = "My Tickets"; document.getElementById('lbl-derash-game').innerText = "JACKPOT";
             document.getElementById('h-lbl-derash').innerText = "JACKPOT"; document.getElementById('h-lbl-derash-badge').innerText = "JACKPOT"; 
+            
+            let hBoost = document.getElementById('h-lbl-boost');
+            if(hBoost) hBoost.innerText = "🔥 BONUS";
+
             document.getElementById('h-lbl-select').innerText = `Select Tickets (${currentTicketPrice} ETB)`; 
             document.getElementById('lbl-sel-tickets').innerText = "Selected Tickets: ";
             
@@ -678,7 +711,7 @@
             document.getElementById('t-page-title').innerText = "My Tickets"; document.getElementById('t-btn-mb-txt').innerText = "View Master Board";
             
             document.getElementById('dep-title').innerText = "Deposit Funds"; document.getElementById('wit-title').innerText = "Withdraw Funds";
-            document.getElementById('dep-strict-warn').innerHTML = "⚠️ <b>Notice:</b> Please transfer Telebirr to Telebirr ONLY, and CBE Birr to CBE Birr ONLY.";
+            let warnEl = document.getElementById('dep-strict-warn'); if(warnEl) warnEl.innerHTML = "⚠️ <b>Notice:</b> Please transfer Telebirr to Telebirr ONLY, and CBE Birr to CBE Birr ONLY.";
             document.getElementById('lbl-dep-sms').innerText = "Payment Confirmation (SMS)";
             document.getElementById('m-dep-sms').placeholder = "Paste the full SMS receipt from your bank here";
             document.getElementById('dep-sms-hint').innerHTML = "💡 <b>Hint:</b> Copy and paste the <b>full</b> SMS message you received from the bank. Especially for <b>CBE Birr</b>, make sure to include the entire receipt.";
@@ -1107,6 +1140,11 @@
         if(dynWitBanner) { 
             dynWitBanner.innerHTML = isAm ? witBannerAm.replace(/\n/g, '<br>') : witBannerEn.replace(/\n/g, '<br>'); 
         }
+
+        // 🔥 አዲሱ የጃክፖት እና ቦነስ ማዘመኛ
+        let boostAmt = data.jackpotBoost || 0;
+        let boostBox = document.getElementById('h-boost-amt');
+        if(boostBox) boostBox.innerText = "+" + boostAmt;
 
         document.getElementById('jp').innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2}); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = data.totalPrizePool.toLocaleString('en-US', {minimumFractionDigits: 2});
