@@ -670,7 +670,7 @@
             
             let hBoost = document.getElementById('h-lbl-boost');
             if(hBoost) {
-                hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "የደራሽ ቦነስ በቅርቡ ይጠብቁ";
+                hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "ቦነስ በቅርቡ ይጠብቁ";
             }
 
             document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
@@ -1165,8 +1165,8 @@
         } else {
             if(boostBoxWrapper) {
                 boostBoxWrapper.classList.remove('pulse-bonus-box');
-                boostBoxWrapper.style.opacity = '0.9';
-                boostBoxWrapper.style.filter = 'grayscale(40%)';
+                boostBoxWrapper.style.opacity = '0.6';
+                boostBoxWrapper.style.filter = 'grayscale(70%) blur(0.5px)';
             }
             if(hBoostLbl) hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
             if(boostAmtBox) boostAmtBox.innerText = "⏳";
