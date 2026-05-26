@@ -47,14 +47,12 @@
         .nt-value { color: white; font-size: 20px; font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
         #timer { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); font-size: 26px; }
 
-        /* 🔥 አዲሱ የቦነስ መውሰጃ አኒሜሽን (NEW ANIMATION FOR CLAIM) 🔥 */
         @keyframes pulseClaimFloat {
             0% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
             50% { transform: scale(1.05); box-shadow: 0 4px 25px rgba(251, 191, 36, 0.8); }
             100% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
         }
 
-        /* 🔥 ወርቃማው የቦነስ ቦክስ አኒሜሽን (Pulse Box) 🔥 */
         @keyframes goldPulseBox {
             0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
             50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); border-color: rgba(251, 191, 36, 1); transform: scale(1.03); }
@@ -65,7 +63,6 @@
             z-index: 2;
         }
 
-        /* 🔥 የሰዓት (Hourglass) ተንቀሳቃሽ አኒሜሽን 🔥 */
         @keyframes hourglassRock {
             0%, 100% { transform: rotate(0deg); }
             25% { transform: rotate(20deg); }
@@ -265,6 +262,14 @@
         /* 🔥 አዲሱ የመመሪያ (Guide) Modal ዲዛይን 🔥 */
         .guide-section { background: rgba(0,0,0,0.3); border: 1px solid #334155; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: left; }
         .chance-alert { background: rgba(234, 88, 12, 0.15); border: 1px solid #ea580c; border-left: 4px solid #ea580c; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: #fed7aa; text-align: left; line-height: 1.5; }
+        
+        /* 🔥 የመመሪያ (Pattern) ዲዛይን (አዲስ የተጨመረ) 🔥 */
+        .pat-wrap { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 10px; }
+        .pat-box { text-align: center; }
+        .pat-title { font-size: 10px; color: white; margin-bottom: 5px; font-weight: bold;}
+        .pat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 70px; margin: 0 auto; }
+        .pc { height: 12px; border-radius: 2px; background: #1e293b; }
+        .pc.hl { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
 
     </style>
 </head>
@@ -379,12 +384,55 @@
             </div>
             
             <div class="guide-section" id="guide-win-text">
-                <b style="color:var(--cyan); font-size:15px;">🏆 ማሸነፊያ መንገዶች</b><br><br>
-                ከተጠሩት ቁጥሮች ውስጥ የሚከተሉትን ቅርፆች (5 ቁጥሮች) ከሰሩ <b>BINGO</b> ብለው ያሸንፋሉ፡<br><br>
-                👉 <b>በአግድም (Horizontal)</b><br>
-                👉 <b>ወደ ታች (Vertical)</b><br>
-                👉 <b>በማዕዘን (Diagonal / X ቅርፅ)</b><br>
-                👉 <b>አራቱ ጥግ (Four Corners)</b>
+                <b style="color:var(--cyan); font-size:15px;" id="gw-title">🏆 ማሸነፊያ መንገዶች (Winning Patterns)</b><br>
+                <span style="font-size:11px; color:var(--text-gray);" id="gw-desc">ከታች ባሉት አራት ቅርፆች መሰረት አምስት ቁጥሮችን ካገኙ BINGO ብለው ያሸንፋሉ።</span>
+                
+                <div class="pat-wrap">
+                    <!-- 1. Horizontal -->
+                    <div class="pat-box">
+                        <div class="pat-title" id="pt-1">1. በአግድም (Horizontal)</div>
+                        <div class="pat-grid">
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc hl"></div><div class="pc hl"></div><div class="pc hl"></div><div class="pc hl"></div><div class="pc hl"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                        </div>
+                    </div>
+                    <!-- 2. Vertical -->
+                    <div class="pat-box">
+                        <div class="pat-title" id="pt-2">2. ወደ ታች (Vertical)</div>
+                        <div class="pat-grid">
+                            <div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div>
+                        </div>
+                    </div>
+                    <!-- 3. Diagonal -->
+                    <div class="pat-box">
+                        <div class="pat-title" id="pt-3">3. በማዕዘን (Diagonal)</div>
+                        <div class="pat-grid">
+                            <div class="pc hl"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc hl"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc hl"></div>
+                        </div>
+                    </div>
+                    <!-- 4. Corners -->
+                    <div class="pat-box">
+                        <div class="pat-title" id="pt-4">4. አራቱ ጥግ (Corners)</div>
+                        <div class="pat-grid">
+                            <div class="pc hl"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc hl"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div>
+                            <div class="pc hl"></div><div class="pc"></div><div class="pc"></div><div class="pc"></div><div class="pc hl"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <button class="trx-submit-btn" onclick="closeGuideModal()" id="guide-close-btn">ተረዳሁ (I Understand)</button>
@@ -638,7 +686,6 @@
             <div id="prof-ref-text" style="font-size: 11px; color: white; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">t.me/bingo_habesha_bot</div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <!-- የክፈት በተን ተሰርዟል -->
             <button id="prof-btn-copy" style="background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;">Copy</button>
         </div>
     </div>
@@ -750,7 +797,14 @@
             document.getElementById('guide-title').innerText = "የጨዋታው መመሪያ እና ደንብ";
             document.getElementById('guide-chance-text').innerHTML = "⚠️ <b>ማሳሰቢያ (Disclaimer):</b><br>ቢንጎ (Bingo) ሙሉ በሙሉ <b>በእድል ላይ የተመሰረተ ጨዋታ (Game of Chance)</b> ነው። ማንኛውም አሸናፊ የሚለየው ሲስተሙ በዘፈቀደ (Randomly) በሚያወጣቸው ቁጥሮች ብቻ ነው። ስለዚህ ሲጫወቱ ይህንን ተረድተው በኃላፊነት እንዲጫወቱ እናሳስባለን።";
             document.getElementById('guide-rules-text').innerHTML = "<b style='color:var(--faded-green); font-size:15px;'>📌 አጨዋወት እና ህጎች</b><br><br>1️⃣ <b>መጫወቻ ሂሳብ:</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን ወጪ ማድረግ አይቻልም።<br><br>2️⃣ <b>ዋና ሂሳብ:</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።<br><br>3️⃣ <b>የጨዋታው ሂደት:</b> ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል። ሲስተሙ ራሱ ስለሚያጠቁርልዎት ምንም መንካት አይጠበቅብዎትም።";
-            document.getElementById('guide-win-text').innerHTML = "<b style='color:var(--cyan); font-size:15px;'>🏆 ማሸነፊያ መንገዶች</b><br><br>ከተጠሩት ቁጥሮች ውስጥ የሚከተሉትን ቅርፆች ከሰሩ <b>BINGO</b> ብለው ያሸንፋሉ፡<br><br>👉 <b>በአግድም (Horizontal)</b><br>👉 <b>ወደ ታች (Vertical)</b><br>👉 <b>በማዕዘን (Diagonal / X ቅርፅ)</b><br>👉 <b>አራቱ ጥግ (Four Corners)</b>";
+            
+            document.getElementById('gw-title').innerText = "🏆 ማሸነፊያ መንገዶች (Winning Patterns)";
+            document.getElementById('gw-desc').innerText = "ከታች ባሉት አራት ቅርፆች መሰረት አምስት ቁጥሮችን ካገኙ BINGO ብለው ያሸንፋሉ።";
+            document.getElementById('pt-1').innerText = "1. በአግድም (Horizontal)";
+            document.getElementById('pt-2').innerText = "2. ወደ ታች (Vertical)";
+            document.getElementById('pt-3').innerText = "3. በማዕዘን (Diagonal / X)";
+            document.getElementById('pt-4').innerText = "4. አራቱ ጥግ (Four Corners)";
+
             document.getElementById('guide-close-btn').innerText = "ተረዳሁ (I Understand)";
 
             document.getElementById('prof-promo-lbl').innerText = "ፕሮሞ ኮድ (Promo Code)"; document.getElementById('prof-pw-lbl').innerText = "የይለፍ ቃል ቀይር"; document.getElementById('prof-out-lbl').innerText = "ከሲስተም ውጣ";
@@ -790,7 +844,14 @@
             document.getElementById('guide-title').innerText = "Game Guide & Rules";
             document.getElementById('guide-chance-text').innerHTML = "⚠️ <b>Disclaimer:</b><br>Bingo is purely a <b>Game of Chance</b>. Winners are determined completely randomly by the system's drawn numbers. Please play responsibly understanding this fact.";
             document.getElementById('guide-rules-text').innerHTML = "<b style='color:var(--faded-green); font-size:15px;'>📌 How to Play & Rules</b><br><br>1️⃣ <b>Play Balance:</b> Used only for buying tickets. Cannot be withdrawn.<br><br>2️⃣ <b>Main Balance:</b> Your winnings go here. Can be withdrawn at any time.<br><br>3️⃣ <b>Gameplay:</b> The system calls a number every 3 seconds and automatically marks it for you. You don't need to do anything manually.";
-            document.getElementById('guide-win-text').innerHTML = "<b style='color:var(--cyan); font-size:15px;'>🏆 Winning Patterns</b><br><br>Match 5 numbers based on the following patterns to win <b>BINGO</b>:<br><br>👉 <b>Horizontal</b><br>👉 <b>Vertical</b><br>👉 <b>Diagonal (X Shape)</b><br>👉 <b>Four Corners</b>";
+            
+            document.getElementById('gw-title').innerText = "🏆 Winning Patterns";
+            document.getElementById('gw-desc').innerText = "Match 5 numbers based on the following patterns to win BINGO:";
+            document.getElementById('pt-1').innerText = "1. Horizontal";
+            document.getElementById('pt-2').innerText = "2. Vertical";
+            document.getElementById('pt-3').innerText = "3. Diagonal (X Shape)";
+            document.getElementById('pt-4').innerText = "4. Four Corners";
+
             document.getElementById('guide-close-btn').innerText = "Got it (Close)";
 
             document.getElementById('prof-promo-lbl').innerText = "Promo Code"; document.getElementById('prof-pw-lbl').innerText = "Change Password"; document.getElementById('prof-out-lbl').innerText = "Logout";
