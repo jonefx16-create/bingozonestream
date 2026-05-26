@@ -44,9 +44,11 @@
         .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase;}
         .stat-card h2 { margin: 10px 0 0 0; font-size: 20px; font-weight: 900;}
         
+        /* አዲስ የ Live players በተን hover */
+        .live-player-box:hover { background: rgba(168, 85, 247, 0.1); border-color: var(--purple) !important; }
+
         input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
         
-        /* Checkbox, Row Select & Pagination Styles */
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--faded-green); margin:0; }
         tbody tr.selectable-row { transition: 0.2s; cursor: pointer; }
         tbody tr.selectable-row:hover { background: rgba(74, 222, 128, 0.05); }
@@ -125,8 +127,8 @@
         <button class="close-sidebar" onclick="toggleSidebar()">✖</button>
         <div class="sidebar-header">BINGO HABESHA<br><span style="font-size:12px; color:var(--text-gray);">Admin Panel</span></div>
         <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();"><div>📊 Live & Analytics</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this)"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this)"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
+        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this); loadPendingTxs();"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
+        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this); loadPendingTxs();"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
         
         <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Data Base User</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this); loadHistoryPage(1);"><div>🏆 Winners History (All Time)</div></button>
@@ -142,9 +144,8 @@
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit % & Withdraw Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-banned', this)" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
+        <button class="nav-btn" onclick="switchTab('tab-banned', this); loadUsersPage(1);" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
         
-        <!-- 🔥 አዲሱ የጌም ማኒፑሌሽን ታብ በተን 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-manipulation', this)" style="color:var(--gold);"><div>🎮 Game Manipulation & Jackpot</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
@@ -171,7 +172,14 @@
                         <span>Partner (30%): <b style="color:#fbbf24;" id="split-partner">0.00</b></span>
                     </div>
                 </div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--purple);"><h3>Live Players Now</h3><h2 style="color: var(--purple);" id="stat-live-players">0</h2></div>
+                
+                <!-- 🔥 የተስተካከለው የ Live Players Box 🔥 -->
+                <div class="stat-card live-player-box" style="border-bottom: 4px solid var(--purple); cursor: pointer; transition: 0.3s;" onclick="openLivePlayersModal()">
+                    <h3>Live Players Now</h3>
+                    <h2 style="color: var(--purple);" id="stat-live-players">0</h2>
+                    <div style="font-size:11px; font-weight:bold; color:var(--purple); margin-top:8px; background:rgba(168, 85, 247, 0.15); padding:6px; border-radius:4px; display:inline-block;">👁️ View List (እዚህ ይጫኑ)</div>
+                </div>
+                
                 <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
                 
                 <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit (Today)</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
@@ -616,6 +624,19 @@
 </div>
 
 <!-- ================= MODALS ================= -->
+
+<!-- 🔥 አዲሱ የ Live Players ሊስት ማሳያ ሞዳል 🔥 -->
+<div class="modal" id="live-players-modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <h3 style="color: var(--purple); margin-top:0; text-align: center;">🎮 Currently Live Players</h3>
+        <p style="font-size: 13px; text-align: center; margin-bottom: 10px; color: var(--text-gray);">በአሁን ሰዓት ላይቭ እየተጫወቱ ያሉ ተጠቃሚዎች</p>
+        <div id="live-players-list" style="background: #000; padding: 15px; border-radius: 6px; border: 1px solid var(--border); max-height: 350px; overflow-y: auto;">
+            <div style="text-align:center; color:gray;">Loading list...</div>
+        </div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('live-players-modal').style.display='none'">Close List</button>
+    </div>
+</div>
+
 <div class="modal" id="promoter-profile-modal">
     <div class="modal-content" style="max-width: 600px; padding:0;">
         <div class="promoter-header">
@@ -704,7 +725,6 @@
     </div>
 </div>
 
-<!-- 🔥 አዲሱ የ User Info Modal ዲዛይን (Stats አለው) 🔥 -->
 <div class="modal" id="user-info-modal">
     <div class="modal-content" style="max-width: 750px; text-align: left;">
         <h3 style="color: var(--cyan); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">👤 User Information & History</h3>
@@ -761,7 +781,6 @@
     
     let loadedGames = [];
 
-    // አዲሱ የማስነሻ ኮድ 
     window.addEventListener('DOMContentLoaded', () => {
         let savedPass = localStorage.getItem('bingo_admin_pass');
         if (savedPass) {
@@ -816,6 +835,33 @@
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
+
+    // 🔥 አዲሱ የ Live Players List ማምጫ ፈንክሽን 🔥
+    async function openLivePlayersModal() {
+        document.getElementById('live-players-modal').style.display = 'flex';
+        document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:gray;">Loading list...</div>`;
+        try {
+            let res = await fetch('/api/admin/live-players-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
+            let data = await res.json();
+            
+            if(data.success && data.players.length > 0) {
+                let html = data.players.map((p, i) => `
+                    <div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="color:white; font-weight:bold;">${i+1}. ${p.name || 'Unknown'}</div>
+                            <div style="font-family:monospace; font-size:13px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></div>
+                        </div>
+                        <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${p.phone}')">👁️ View</button>
+                    </div>
+                `).join('');
+                document.getElementById('live-players-list').innerHTML = html;
+            } else {
+                document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:gray;">No players are currently live.</div>`;
+            }
+        } catch(e) {
+            document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:red;">Failed to load data. The list is empty or API is not ready.</div>`;
+        }
+    }
 
     async function loadLiveStats() {
         if(!pass) return;
@@ -894,15 +940,37 @@
     }
     setInterval(loadLiveStats, 5000);
 
+    // 🔥 አዲሱ የተስተካከለው fullRefresh (ገፅ ላለማዝገየት) 🔥
     function fullRefresh() {
+        // ሁልግዜም Live Stats መጀመርያ ሎድ ያደርጋል
         loadLiveStats();
-        loadUsersPage(p_users);
-        loadHistoryPage(p_hist);
-        loadTxPage(p_tx);
-        loadPendingTxs();
-        loadPromoters();
-        loadRefPage(p_ref);
-        document.getElementById('login-sec').style.display = 'none'; document.getElementById('dash-sec').style.display = 'flex';
+        
+        // አሁን ስክሪኑ ላይ የትኛው Tab እንደተመረጠ (Active እንደሆነ) ይለያል
+        let activeTabContent = document.querySelector('.tab-content.active');
+        if (!activeTabContent) return;
+        
+        let activeTabId = activeTabContent.id;
+        
+        // የተመረጠውን Tab ብቻ ዳታ ሎድ ያደርጋል እንጂ ሁሉንም በአንድ ጊዜ ጠርቶ አያጨናንቅም
+        if (activeTabId === 'tab-pend-dep' || activeTabId === 'tab-pend-wit') {
+            loadPendingTxs();
+        } else if (activeTabId === 'tab-users') {
+            loadUsersPage(p_users);
+        } else if (activeTabId === 'tab-history') {
+            loadHistoryPage(p_hist);
+        } else if (activeTabId === 'tab-history-tx') {
+            loadTxPage(p_tx);
+        } else if (activeTabId === 'tab-promo-codes') {
+            loadPromoCodes();
+        } else if (activeTabId === 'tab-promoters') {
+            loadPromoters();
+        } else if (activeTabId === 'tab-referral') {
+            loadRefPage(p_ref);
+        }
+
+        // Login ስክሪኑን ደብቆ ዳሽቦርዱን ያሳያል
+        document.getElementById('login-sec').style.display = 'none'; 
+        document.getElementById('dash-sec').style.display = 'flex';
     }
 
     function renderPagination(containerId, totalItems, currentPage, funcName) {
@@ -1579,7 +1647,6 @@
             payload.minWithdrawLimit = Number(mw); 
         }
 
-        // 🔥 አዲሶቹ የተነጠሉት የጌም ማኒፑሌሽን ቁልፎች 🔥
         if(type === 'jackpot_boost') {
             let jb = document.getElementById('set-jackpot-boost').value; 
             payload.jackpotBoostAmount = (jb !== '' && Number(jb) >= 0) ? Number(jb) : 0;
@@ -1658,4 +1725,3 @@
 </script>
 </body>
 </html>
-
