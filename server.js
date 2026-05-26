@@ -650,25 +650,69 @@ app.post('/api/admin/user-details', auth, async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
+// 🔥 አዲሱ የ Live Players List API (ለ View List በተን) 🔥
+app.post('/api/admin/live-players-list', auth, (req, res) => {
+    try {
+        // activePlayers ውስጥ ያሉትን ተጫዋቾች ስም፣ ስልክ እና የገዙትን ካርቴላ ብዛት ያወጣል
+        let playersArray = Object.values(activePlayers).map(p => ({
+            name: p.name,
+            phone: p.phone,
+            tickets: p.tickets
+        }));
+        res.json({ success: true, players: playersArray });
+    } catch (e) {
+        res.json({ success: false, message: "Error fetching live players" });
+    }
+});
+
+// 🔥 የተስተካከለው እና የፈጠነው Live Stats ማውጫ (Aggregated Optimization) 🔥
 app.post('/api/admin/live-stats', auth, async (req, res) => {
-    const totalUsers = await User.countDocuments();
-    let startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    try {
+        const totalUsers = await User.countDocuments();
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-    let todayTxs = await Transaction.find({ date: { $gte: startOfDay }, status: 'Approved' });
-    let dailyDeposit = todayTxs.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
-    let dailyWithdraw = todayTxs.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + t.amount, 0);
+        // 1. የዛሬን ገቢ እና ወጪ በአንድ ጊዜ መደመር (Aggregation) - የሰርቨር RAM አያጨናንቅም!
+        let txStats = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved' } },
+            { $group: { _id: "$type", total: { $sum: "$amount" } } }
+        ]);
+        let dailyDeposit = 0;
+        let dailyWithdraw = 0;
+        txStats.forEach(t => {
+            if (t._id === 'deposit') dailyDeposit = t.total;
+            if (t._id === 'withdraw') dailyWithdraw = t.total;
+        });
 
-    let history = await GameHistory.find({ date: { $gte: startOfDay } });
-    let dailyTotalProfit = history.reduce((sum, h) => sum + (h.adminProfit || 0), 0); 
+        // 2. የዛሬን የድርጅት ትርፍ በአንድ ጊዜ መደመር
+        let histStats = await GameHistory.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalProfit: { $sum: "$adminProfit" } } }
+        ]);
+        let dailyTotalProfit = histStats.length > 0 ? histStats[0].totalProfit : 0;
 
-    let todayBonuses = await ActiveBonus.find({ date: { $gte: startOfDay } });
-    let dailyBonus = todayBonuses.reduce((sum, b) => sum + ((b.amount || 0) * (b.currentClaims || 0)), 0);
+        // 3. የዛሬን ቦነስ ክፍያ በአንድ ጊዜ መደመር
+        let bonusStats = await ActiveBonus.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
+        ]);
+        let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
-    res.json({ 
-        totalUsers, livePlayers: Object.keys(activePlayers).length, 
-        gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, gameId, totalProfit: dailyTotalProfit, currentJackpot: totalPrizePool, settings: GLOBAL_SETTINGS, dailyDeposit, dailyWithdraw, dailyBonus
-    });
+        res.json({ 
+            totalUsers, 
+            livePlayers: Object.keys(activePlayers).length, 
+            gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+            gameId, 
+            totalProfit: dailyTotalProfit, 
+            currentJackpot: totalPrizePool, 
+            settings: GLOBAL_SETTINGS, 
+            dailyDeposit, 
+            dailyWithdraw, 
+            dailyBonus
+        });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
 });
 
 app.post('/api/admin/referrals', auth, async (req, res) => {
@@ -1294,7 +1338,7 @@ setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
         io.emit('game_status', { 
             state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
-            totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: 0, gameId, 
+            totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
         }); 
         return; 
@@ -1383,7 +1427,6 @@ setInterval(() => {
                         if (riggedWins) {
                             safeWinningBalls.push({ index: i, num: testNum });
                         } else if (riggedHits) {
-                            // Only "feed" if not everyone is close (Add randomness)
                             if (Math.random() > 0.3) safeFeedingBalls.push({ index: i, num: testNum });
                             else otherSafeBalls.push({ index: i, num: testNum });
                         } else {
