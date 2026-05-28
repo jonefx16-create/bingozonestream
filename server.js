@@ -1352,6 +1352,7 @@ function resetToWaiting() {
     targetWinTurn = 0; 
 }
 
+// በ server.js ውስጥ ያለውን የ setInterval ክፍል በዚህ ቀይሩት
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
         io.emit('game_status', { 
@@ -1365,17 +1366,15 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🔥 አዲስ፡ ቀስ እያለ ከ 1 እስከ 550 ባሉት ውስጥ ነጠል ነጠል እያደረገ የሚገዛበት ኮድ 🔥
+        // 🔥 አዲስ ማስተካከያ፡ Bot Boost ከ 0 በላይ ከሆነ ብቻ ነው የሚሰራው!
         let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
-        if (botInjectedAmount < targetBotAmount) {
-            // በየሰከንዱ 30% ዕድል አለው ካርቴላ ለመግዛት (ሰው እንደገዛው ለማስመሰል)
+        if (targetBotAmount > 0 && botInjectedAmount < targetBotAmount) {
             if (Math.random() < 0.3) {
                 let diff = targetBotAmount - botInjectedAmount;
                 let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
-                
                 let maxTix = Math.floor(diff / ticketPrice);
+                
                 if (maxTix > 0) {
-                    // በአንድ ጊዜ ከ 1 እስከ 3 ካርቴላ ይገዛል
                     let ticketsToBuy = Math.floor(Math.random() * 3) + 1;
                     if (ticketsToBuy > maxTix) ticketsToBuy = maxTix;
                     
@@ -1387,7 +1386,6 @@ setInterval(() => {
                     totalTickets += ticketsToBuy;
 
                     for(let i=0; i<ticketsToBuy; i++) {
-                        // ከ 1 እስከ 550 ባለው ውስጥ ያልተያዘውን ይመርጣል
                         let fakeId = getUnusedFakeTicketId();
                         globalTakenTickets.push(fakeId);
                     }
@@ -1399,6 +1397,7 @@ setInterval(() => {
                 }
             }
         }
+        // ... የቀረው ኮድ እንዳለ ይሁን (ከዚህ በታች ያለው)
 
         io.emit('game_status', { 
             state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
