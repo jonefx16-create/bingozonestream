@@ -1,1721 +1,2609 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin Dashboard - Bingo Habesha</title>
-    <style>
-        :root { --bg-dark: #050810; --panel: #161b22; --faded-green: #4ade80; --text-gray: #94a3b8; --border: #30363d; --red: #ef4444; --blue: #3b82f6; --orange: #ea580c; --purple: #a855f7; --cyan: #06b6d4; --gold: #fbbf24; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
-        
-        #login-sec { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #161b22 0%, #050810 100%); z-index: 9999; }
-        .login-card { background: rgba(22, 27, 34, 0.7); backdrop-filter: blur(15px); padding: 50px 40px; border-radius: 24px; border: 1px solid rgba(74, 222, 128, 0.3); text-align: center; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(74, 222, 128, 0.1); box-sizing: border-box;}
-        .login-card h2 { color: var(--faded-green); margin-top: 0; margin-bottom: 30px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(74,222,128,0.5); }
-        .login-card input { background: rgba(0,0,0,0.6); border: 1px solid var(--border); padding: 16px; font-size: 16px; border-radius: 12px; transition: 0.3s; text-align: center; letter-spacing: 2px; color: white;}
-        .login-card input:focus { border-color: var(--faded-green); box-shadow: 0 0 15px rgba(74,222,128,0.3); outline: none; }
-        .login-card button { padding: 16px; font-size: 16px; border-radius: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; box-shadow: 0 5px 15px rgba(74,222,128,0.4); }
-        .login-card button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74,222,128,0.6); }
+const express = require('express');
+const path = require('path');
+const mongoose = require('mongoose');
+const http = require('http');
+const fs = require('fs');
+const { Server } = require('socket.io');
+const TelegramBot = require('node-telegram-bot-api'); 
 
-        #dash-sec { display: none; width: 100%; height: 100%; flex-direction: row; position: relative; }
-        
-        .sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); display: block; padding: 20px 0 80px 0; flex-shrink: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; transition: 0.3s ease; z-index: 1000; height: 100%; box-sizing: border-box;}
-        .sidebar-header { text-align: center; color: var(--faded-green); font-size: 18px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;}
-        .nav-btn { width: 100%; background: transparent; color: var(--text-gray); border: none; padding: 15px 20px; text-align: left; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: bold; border-left: 4px solid transparent; white-space: nowrap; box-sizing: border-box;}
-        .nav-btn:hover { background: rgba(74, 222, 128, 0.05); color: white; }
-        .nav-btn.active { background: rgba(74, 222, 128, 0.1); color: var(--faded-green); border-left-color: var(--faded-green); }
-        .close-sidebar { display: none; background: transparent; border: none; color: white; font-size: 24px; position: absolute; top: 10px; right: 15px; cursor: pointer; }
+const app = express();
+const server = http.createServer(app);
 
-        .badge-alert { background: var(--red); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: none; font-weight: 900; box-shadow: 0 0 8px var(--red); animation: pulseAlert 1.5s infinite; }
-        @keyframes pulseAlert { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-        .main-content { flex: 1; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg-dark); width: 100%; box-sizing: border-box;}
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
-        .menu-toggle-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 15px;}
-        
-        .tab-content { display: none; animation: fadeIn 0.3s; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+const io = new Server(server, { 
+    cors: { origin: "*" },
+    perMessageDeflate: { threshold: 1024 } 
+});
 
-        .card { background: var(--panel); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden; box-sizing: border-box;}
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px;}
-        
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat-card { background: var(--panel); padding: 20px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
-        .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase;}
-        .stat-card h2 { margin: 10px 0 0 0; font-size: 20px; font-weight: 900;}
-        
-        .live-player-box:hover { background: rgba(168, 85, 247, 0.1); border-color: var(--purple) !important; }
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
-        input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
-        
-        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--faded-green); margin:0; }
-        tbody tr.selectable-row { transition: 0.2s; cursor: pointer; }
-        tbody tr.selectable-row:hover { background: rgba(74, 222, 128, 0.05); }
-        tbody tr.selectable-row.selected { background: rgba(74, 222, 128, 0.15) !important; border-left: 3px solid var(--faded-green); }
+// ==========================================
+// 🔵 DATABASE CONNECTION
+// ==========================================
+const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
-        .bulk-action-bar { display: none; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.1); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--red); margin-bottom: 15px; }
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; flex-wrap: wrap;}
-        .page-btn { background: var(--border); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .page-btn:hover:not(:disabled) { background: var(--blue); }
-        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .page-info { color: var(--gold); font-weight: bold; font-size: 14px; }
+// ==========================================
+// 🔵 MODELS
+// ==========================================
+const User = mongoose.model('User', new mongoose.Schema({
+    phone: { type: String, required: true, unique: true, index: true },
+    refCode: { type: String, default: "", index: true }, 
+    telegramId: { type: String, default: "", index: true }, 
+    name: { type: String, index: true },
+    password: { type: String, required: true },
+    referredBy: { type: String, default: "", index: true },
+    totalInvites: { type: Number, default: 0 }, 
+    inviteBonusEarned: { type: Number, default: 0 },
+    mainBalance: { type: Number, default: 0 }, 
+    playBalance: { type: Number, default: 0 }, 
+    played: { type: Number, default: 0 }, 
+    won: { type: Number, default: 0 }, 
+    totalDeposited: { type: Number, default: 0 }, 
+    totalWithdrawn: { type: Number, default: 0 }, 
+    totalTicketsBought: { type: Number, default: 0 }, 
+    status: { type: String, default: 'active', index: true },
+    language: { type: String, default: 'am' },
+    isPromoter: { type: Boolean, default: false, index: true },
+    promoterPercent: { type: Number, default: 10 },
+    promoterEarned: { type: Number, default: 0 },
+    promoterUnpaidBalance: { type: Number, default: 0 }, 
+    hasMadeFirstDeposit: { type: Boolean, default: false }, 
+    promoterCommissionGenerated: { type: Number, default: 0 },
+    referredViaPromo: { type: Boolean, default: false }, 
+    compensatedInvites: { type: Number, default: 0 }
+}));
 
-        .search-bar { background-color: #050810; border: 1px solid var(--blue); flex: 1; min-width: 200px;}
-        .search-container { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;}
-        
-        button.action-btn { background: var(--faded-green); color: black; border: none; padding: 12px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        button.btn-red { background: var(--red); color: white; } 
-        button.btn-blue { background: var(--blue); color: white; } 
-        button.btn-purple { background: var(--purple); color: white; }
-        button.btn-orange { background: var(--orange); color: white; }
-        button.btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; white-space: nowrap;}
+const Transaction = mongoose.model('Transaction', new mongoose.Schema({
+    phone: { type: String, index: true }, 
+    type: { type: String, index: true }, 
+    amount: Number, 
+    bonusGiven: { type: Number, default: 0 }, 
+    method: String, 
+    status: { type: String, default: 'Pending', index: true }, 
+    date: { type: Date, default: Date.now, index: true }, 
+    smsText: {type: String, default: ""},
+    txRef: { type: String, default: "", index: true },
+    hiddenFromAdmin: { type: Boolean, default: false } 
+}));
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle;}
-        th { color: var(--text-gray); font-size: 11px; text-transform: uppercase; white-space: nowrap; background: rgba(0,0,0,0.2);}
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
-        .bg-pending { background: rgba(234, 88, 12, 0.2); color: var(--orange); border: 1px solid var(--orange); }
-        .bg-approved { background: rgba(74, 222, 128, 0.2); color: var(--faded-green); border: 1px solid var(--faded-green); }
-        .bg-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box;}
-        .modal-content { background: var(--panel); padding: 20px; border-radius: 10px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: white; position: relative;}
-        .grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; background: #000; padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0;}
-        .grid-preview div { background: var(--border); padding: 8px 0; border-radius: 4px; font-weight: bold; font-family: monospace;}
-        .grid-preview .highlight { background: var(--faded-green); color: black; }
+const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
+    rawText: String, 
+    txRef: { type: String, index: true }, 
+    amount: Number, 
+    isUsed: { type: Boolean, default: false, index: true }, 
+    dateReceived: { type: Date, default: Date.now }
+}));
 
-        .tx-tab-btn { background: transparent; color: var(--text-gray); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight:bold; white-space: nowrap;}
-        .tx-tab-btn.active { background: var(--border); color: white;}
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
-        
-        #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
-        .disabled-input { opacity: 0.4; pointer-events: none; }
+const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
+    gameId: { type: Number, index: true }, 
+    ticketId: String, 
+    winnerName: String, 
+    winnerPhone: { type: String, index: true }, 
+    prize: Number,
+    adminProfit: { type: Number, default: 0 }, 
+    ticketPrice: Number, 
+    winningGrid: Array, 
+    calledNumbers: Array, 
+    playersData: Array, 
+    date: { type: Date, default: Date.now, index: true }
+}));
 
-        .promoter-header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; border: 1px solid var(--cyan); margin-bottom: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .promoter-stats { display: flex; justify-content: space-between; background: #000; padding: 15px; border-radius: 8px; margin-top: 15px; }
-        .p-stat-box { text-align: center; flex: 1; }
-        .p-stat-title { font-size: 10px; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .p-stat-val { font-size: 18px; font-weight: 900; color: white; }
+const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
+    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
+}));
 
-        @media (max-width: 768px) {
-            .menu-toggle-btn { display: inline-block; }
-            .sidebar { position: fixed; top: 0; left: -260px; bottom: 0; width: 250px; height: 100vh; height: 100dvh; box-shadow: 2px 0 15px rgba(0,0,0,0.9); overflow-y: auto !important; -webkit-overflow-scrolling: touch; z-index: 10000; }
-            .sidebar.open { left: 0; }
-            .close-sidebar { display: block; }
-            .main-content { padding: 15px; width: 100vw; overflow-x: hidden; }
-            .header-top h2 { font-size: 16px; }
-            .search-container { flex-direction: column; align-items: stretch; }
-            .login-card { padding: 40px 20px; }
+const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
+    code: { type: String, unique: true, index: true },
+    amount: Number,
+    maxUses: Number,
+    currentUses: { type: Number, default: 0 },
+    expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
+    usedBy: [String]
+}));
+
+const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
+    adminPass: { type: String, default: "bingo1234" }, 
+    financePass: { type: String, default: "finance1234" }, 
+    ticketPrice: { type: Number, default: 10 }, 
+    isGamePaused: { type: Boolean, default: false }, 
+    gameTimer: { type: Number, default: 40 },
+    jackpotBoostAmount: { type: Number, default: 0 }, 
+    botBoostAmount: { type: Number, default: 0 },
+    depBonusMinAmount: { type: Number, default: 100 }, 
+    depBonusPercent: { type: Number, default: 20 }, 
+    depBonusTimeRestricted: { type: Boolean, default: false }, 
+    happyHourStart: { type: Number, default: 0 }, 
+    happyHourEnd: { type: Number, default: 23 },
+    depBannerTextAm: { type: String, default: "" }, 
+    depBannerTextEn: { type: String, default: "" },
+    witBonusMinAmount: { type: Number, default: 100 }, 
+    witBonusPercent: { type: Number, default: 5 }, 
+    isWitBonusActive: { type: Boolean, default: false }, 
+    witBonusTimeRestricted: { type: Boolean, default: false }, 
+    witHappyHourStart: { type: Number, default: 0 }, 
+    witHappyHourEnd: { type: Number, default: 23 },
+    witBannerTextAm: { type: String, default: "" }, 
+    witBannerTextEn: { type: String, default: "" },
+    registerBonus: { type: Number, default: 10 }, 
+    inviteBonus: { type: Number, default: 10 }, 
+    adminProfitPercent: { type: Number, default: 15 },
+    maxTicketsPerUser: { type: Number, default: 4 },
+    minWithdrawLimit: { type: Number, default: 50 },
+    winPopupTimer: { type: Number, default: 12 },
+    forcedWinnerPhones: { type: String, default: "" }
+}));
+
+const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
+    phone: String,
+    actionType: String,
+    details: String,
+    severity: String,
+    date: { type: Date, default: Date.now }
+}));
+
+const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
+    telegramId: String,
+    phone: String,
+    name: String,
+    text: String,
+    sender: String,
+    isRead: { type: Boolean, default: false },
+    date: { type: Date, default: Date.now }
+}));
+
+let GLOBAL_SETTINGS = {};
+async function loadSettings() {
+    let s = await SystemSettings.findOne();
+    if(!s) { s = await new SystemSettings({}).save(); }
+    GLOBAL_SETTINGS = { 
+        adminPass: s.adminPass, 
+        financePass: s.financePass, 
+        ticketPrice: s.ticketPrice, 
+        isGamePaused: s.isGamePaused, 
+        gameTimer: s.gameTimer || 40, 
+        jackpotBoostAmount: s.jackpotBoostAmount || 0,
+        botBoostAmount: s.botBoostAmount || 0,
+        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, 
+        depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
+        depBonusTimeRestricted: s.depBonusTimeRestricted || false, 
+        happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
+        happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
+        depBannerTextAm: s.depBannerTextAm || "", 
+        depBannerTextEn: s.depBannerTextEn || "",
+        witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, 
+        witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, 
+        isWitBonusActive: s.isWitBonusActive || false,
+        witBonusTimeRestricted: s.witBonusTimeRestricted || false, 
+        witHappyHourStart: s.witHappyHourStart !== undefined ? s.witHappyHourStart : 0, 
+        witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
+        witBannerTextAm: s.witBannerTextAm || "", 
+        witBannerTextEn: s.witBannerTextEn || "",
+        registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, 
+        inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
+        adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, 
+        maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
+        minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
+        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
+        forcedWinnerPhones: s.forcedWinnerPhones || ""
+    };
+}
+loadSettings();
+
+function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
+
+const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
+const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
+
+function getTxRef(text) {
+    if (!text || typeof text !== 'string') return null;
+    let msg = text.toUpperCase().replace(/\n/g, ' ');
+    let ftMatch = msg.match(/\b(FT[0-9A-Z]{5,15})\b/);
+    if (ftMatch) return ftMatch[1];
+    let matches = msg.match(/\b(?![A-Z]+\b)(?!\d+\b)[A-Z0-9]{6,15}\b/g);
+    if (matches && matches.length > 0) return matches[0];
+    let exact = msg.replace(/\s+/g, '');
+    if (exact.length >= 6 && exact.length <= 15 && !/^\d+$/.test(exact)) return exact;
+    return null;
+}
+
+function getBankAmount(text) {
+    if (!text || typeof text !== 'string') return 0;
+    let msg = text.toUpperCase().replace(/\n/g, ' ');
+    let amtMatch = msg.match(/(?:ETB|BIRR|BR|ብር)\s*([\d,]+(?:\.\d+)?)/i) || msg.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|BIRR|BR|ብር)/i);
+    if (amtMatch) return parseFloat(amtMatch[1].replace(/,/g, ''));
+    return 0;
+}
+
+async function isSmsAlreadyUsed(userInputSms) {
+    let txRef = getTxRef(userInputSms);
+    if (!txRef) return false; 
+    let inBankSms = await BankSMS.findOne({ txRef: txRef, isUsed: true });
+    if (inBankSms) return true;
+    let inTxRef = await Transaction.findOne({ txRef: txRef, status: { $in: ['Approved', 'Pending'] } });
+    return !!inTxRef;
+}
+
+async function autoApprovePendingDeposits() {
+    try {
+        const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' }).limit(500);
+        const unusedSMS = await BankSMS.find({ isUsed: false }).limit(500);
+        for (let tx of pendingTxs) {
+            if (!tx.txRef) continue; 
+            let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
+            if (matchedSMS) {
+                let user = await User.findOne({ phone: tx.phone });
+                if (user) {
+                    let actualReceivedAmount = matchedSMS.amount;
+                    let bonus = 0;
+                    let set = GLOBAL_SETTINGS;
+                    if (actualReceivedAmount >= set.depBonusMinAmount) {
+                        let giveBonus = true;
+                        if (set.depBonusTimeRestricted) {
+                            let currentHour = new Date().getHours();
+                            if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
+                        }
+                        if (giveBonus) { bonus = actualReceivedAmount * (set.depBonusPercent / 100); }
+                    }
+                    let totalCredit = actualReceivedAmount + bonus;
+                    tx.amount = actualReceivedAmount; 
+                    tx.bonusGiven = bonus; 
+                    tx.status = 'Approved';
+                    await tx.save();
+                    matchedSMS.isUsed = true;
+                    await matchedSMS.save();
+                    user.playBalance += totalCredit;
+                    user.totalDeposited += actualReceivedAmount;
+
+                    if(user.referredBy && user.referredViaPromo) {
+                        let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                        if(promoter) {
+                            let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
+                            promoter.promoterUnpaidBalance += commission; 
+                            promoter.promoterEarned += commission;
+                            await promoter.save();
+                            user.promoterCommissionGenerated += commission; 
+                            io.emit('balance_updated', promoter.phone);
+                        }
+                    }
+                    if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true; 
+                    await user.save();
+                    io.emit('balance_updated', tx.phone);
+                    
+                    if(bonus > 0) {
+                        io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualReceivedAmount, bonusAmount: bonus });
+                    }
+                }
+            }
         }
-    </style>
-</head>
-<body>
+    } catch (err) {}
+}
 
-<div id="login-sec">
-    <div class="login-card">
-        <h2>🛡️ Admin Panel</h2>
-        <input type="password" id="adminPass" placeholder="Enter Password" onkeyup="if(event.key === 'Enter') login()">
-        <button class="action-btn" style="width: 100%;" onclick="login()">Access Dashboard</button>
-    </div>
-</div>
+app.post('/api/webhook/iphone-sms', async (req, res) => {
+    try {
+        const { secret, message } = req.body;
+        if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
+        if (!message) return res.json({ success: false, msg: "Empty message" });
+        let isReceivingMsg = /received|credited|transfer|gebi|into your account/i.test(message);
+        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
+        let txRef = getTxRef(message);
+        let amount = getBankAmount(message);
+        if(amount > 0 && txRef) {
+            const exists = await BankSMS.findOne({ txRef: txRef });
+            if (!exists) {
+                await BankSMS.create({ rawText: message, txRef: txRef, amount: amount });
+                await autoApprovePendingDeposits(); 
+            }
+            res.json({ success: true, amount, txRef });
+        } else { res.json({ success: false }); }
+    } catch (e) { res.status(500).json({ error: "Server Error" }); }
+});
 
-<div class="overlay" id="mobile-overlay" onclick="toggleSidebar()" style="z-index: 9999;"></div>
-
-<div id="dash-sec">
-    <div class="sidebar" id="sidebar">
-        <button class="close-sidebar" onclick="toggleSidebar()">✖</button>
-        <div class="sidebar-header">BINGO HABESHA<br><span style="font-size:12px; color:var(--text-gray);">Admin Panel</span></div>
-        <button class="nav-btn active" onclick="switchTab('tab-live', this); loadLiveStats();"><div>📊 Live & Analytics</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-dep', this); loadPendingTxs();"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
-        <button class="nav-btn" onclick="switchTab('tab-pend-wit', this); loadPendingTxs();"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
+app.post('/api/register', async (req, res) => {
+    try {
+        const { phone, name, password, refCode } = req.body;
+        if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
+        let actualRef = "";
+        let cleanRefCode = refCode || "";
+        let isPromoLink = false;
         
-        <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Data Base User</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-history', this); loadHistoryPage(1);"><div>🏆 Winners History (All Time)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
-        
-        <button class="nav-btn" onclick="switchTab('tab-promo-codes', this); loadPromoCodes();" style="color:var(--gold);"><div>🎟️ Promo Codes (ኩፖን)</div></button>
+        if (cleanRefCode.startsWith('promo_')) {
+            cleanRefCode = cleanRefCode.replace('promo_', '');
+            isPromoLink = true;
+        }
 
-        <button class="nav-btn" onclick="switchTab('tab-promoters', this); loadPromoters();" style="color:var(--cyan);"><div>📈 Promoters (አስተዋዋቂዎች)</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-referral', this); loadRefPage(1);"><div>🤝 Invite & Earn (ጋባዦች)</div></button>
-        
-        <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit % & Withdraw Bonus</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-banned', this); loadUsersPage(1);" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
-        
-        <button class="nav-btn" onclick="switchTab('tab-manipulation', this)" style="color:var(--gold);"><div>🎮 Game Manipulation & Jackpot</div></button>
-        
-        <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
-    </div>
-
-    <div class="main-content">
-        <div class="header-top">
-            <div style="display: flex; align-items: center;">
-                <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
-                <h2 id="page-title" style="margin: 0;">📊 Live & Analytics</h2>
-            </div>
-            <button class="action-btn btn-blue btn-sm" onclick="fullRefresh()" style="padding: 8px 12px;">🔄 Refresh Data</button>
-        </div>
-
-        <!-- LIVE TAB -->
-        <div id="tab-live" class="tab-content active">
-            <div class="stats-grid">
-                <div class="stat-card" style="border-bottom: 4px solid var(--gold);"><h3>💰 Current Jackpot</h3><h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--blue);"><h3>Daily Admin Profit (Today)</h3>
-                    <h2 style="color: var(--blue); margin-bottom:5px;" id="stat-total-profit">0.00 ETB</h2>
-                    <div style="font-size:10px; color:var(--text-gray); display:flex; justify-content:space-around; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
-                        <span>Admin (70%): <b style="color:#4ade80;" id="split-admin">0.00</b></span>
-                        <span>Partner (30%): <b style="color:#fbbf24;" id="split-partner">0.00</b></span>
-                    </div>
-                </div>
+        if (cleanRefCode) { 
+            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
+            if (refUser) { 
+                actualRef = refUser.phone;
+                refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                 
-                <div class="stat-card live-player-box" style="border-bottom: 4px solid var(--purple); cursor: pointer; transition: 0.3s;" onclick="openLivePlayersModal()">
-                    <h3>Live Players Now</h3>
-                    <h2 style="color: var(--purple);" id="stat-live-players">0</h2>
-                    <div style="font-size:11px; font-weight:bold; color:var(--purple); margin-top:8px; background:rgba(168, 85, 247, 0.15); padding:6px; border-radius:4px; display:inline-block;">👁️ View List (እዚህ ይጫኑ)</div>
-                </div>
-                
-                <div class="stat-card" style="border-bottom: 4px solid var(--orange);"><h3>Game Status</h3><h2 style="color: var(--orange); font-size:18px; margin-top:18px;" id="stat-game-state">WAITING</h2></div>
-                
-                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit (Today)</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--red);"><h3>📤 Daily Withdraw (Today)</h3><h2 style="color: var(--red);" id="stat-daily-wit">0.00 ETB</h2></div>
-                <div class="stat-card" style="border-bottom: 4px solid #fca5a5;"><h3>🎁 Daily Bonus (Today)</h3><h2 style="color: #fca5a5;" id="stat-daily-bon">0.00 ETB</h2></div>
-            </div>
-        </div>
+                if (isPromoLink && refUser.isPromoter) {
+                    await refUser.save();
+                } else {
+                    refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                    refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
+                    await refUser.save(); 
+                    io.emit('balance_updated', refUser.phone); 
+                    isPromoLink = false; 
+                }
+            } 
+        }
+        let myRefCode = generateRefCode();
+        await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
 
-        <!-- PENDING DEPOSITS -->
-        <div id="tab-pend-dep" class="tab-content">
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-pend-dep" onkeyup="simpleSearch('search-pend-dep', 'table-pend-dep')" placeholder="🔍 Search Phone, Bank, or Amount...">
-            </div>
-            <div class="card"><div class="table-responsive">
-                <table id="table-pend-dep">
-                    <thead><tr><th>Date</th><th>Phone</th><th>Bank</th><th>Amount</th><th>SMS Detail (ማረጋገጫ)</th><th>Action</th></tr></thead>
-                    <tbody id="pend-dep-body"></tbody>
-                </table>
-            </div></div>
-        </div>
+app.post('/api/login', async (req, res) => {
+    let user = await User.findOne({ phone: req.body.phone, password: req.body.password });
+    if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
+    res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
+});
 
-        <!-- PENDING WITHDRAWS -->
-        <div id="tab-pend-wit" class="tab-content">
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-pend-wit" onkeyup="simpleSearch('search-pend-wit', 'table-pend-wit')" placeholder="🔍 Search Phone, Bank, or Amount...">
-            </div>
-            <div class="card"><div class="table-responsive">
-                <table id="table-pend-wit">
-                    <thead><tr><th>Date</th><th>Phone</th><th>Bank Option</th><th>Amount</th><th>Sent To (Account)</th><th>Action</th></tr></thead>
-                    <tbody id="pend-wit-body"></tbody>
-                </table>
-            </div></div>
-        </div>
+app.post('/api/telegram-login', async (req, res) => {
+    let user = await User.findOne({ telegramId: req.body.telegramId.toString() });
+    if(user && user.status === 'banned') return res.json({ success: false, message: "❌ የታገደ አካውንት!" });
+    if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
+    if(user) res.json({ success: true, user });
+    else res.json({ success: false, message: "Share contact in bot first." });
+});
 
-        <!-- USERS -->
-        <div id="tab-users" class="tab-content">
-            <div class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card" style="border-color: var(--faded-green);"><h3>Daily Active</h3><h2 id="u-daily" style="color:var(--faded-green);">0</h2></div>
-                <div class="stat-card" style="border-color: var(--blue);"><h3>Weekly Active</h3><h2 id="u-weekly" style="color:var(--blue);">0</h2></div>
-                <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
-                <div class="stat-card" style="border-color: var(--orange);"><h3>Total Users</h3><h2 id="box-total-reg" style="color:var(--orange);">0</h2></div>
-            </div>
+app.post('/api/user/change-password', async (req, res) => {
+    const { phone, oldPass, newPass } = req.body;
+    let user = await User.findOne({ phone, password: oldPass });
+    if (!user) return res.json({ success: false, message: "❌ የድሮው ፓስወርድ ትክክል አይደለም!" });
+    user.password = newPass; await user.save();
+    res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!" });
+});
 
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-user" onkeyup="debounceSearch(() => loadUsersPage(1))" placeholder="🔍 Search Name or Phone...">
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table id="table-users">
-                        <thead><tr>
-                            <th>Name</th><th>Phone</th><th>Password</th><th>Play Bal</th><th>Main Bal</th><th>Total Deposited</th><th>Action</th>
-                        </tr></thead>
-                        <tbody id="users-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination" id="pag-users"></div>
-            </div>
-        </div>
+app.get('/api/getUser/:phone', async (req, res) => {
+    const user = await User.findOne({ phone: req.params.phone }); res.json(user ? { success: true, user } : { success: false });
+});
 
-        <!-- HISTORY (Paginated All Time) -->
-        <div id="tab-history" class="tab-content">
-            <div class="bulk-action-bar" id="bulk-history">
-                <div><span style="font-weight:bold; color:white;">🏆 Winners History Action: </span><span id="sel-count-history" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
-                <button class="action-btn btn-red btn-sm" onclick="bulkDelete('history')">🗑️ Delete Selected History</button>
-            </div>
+app.post('/api/request-tx', async (req, res) => {
+    try {
+        const { phone, type, amount, method, sms, destinationPhone } = req.body; 
+        let user = await User.findOne({phone}); if(!user) return res.json({success: false});
+        if(type === 'withdraw') {
+            if(amount < GLOBAL_SETTINGS.minWithdrawLimit) return res.json({success: false, message: `❌ ማውጣት የሚችሉት ቢያንስ ${GLOBAL_SETTINGS.minWithdrawLimit} ብር ነው!`});
+            if(user.mainBalance < amount) return res.json({success: false, message: "በቂ ብር የለም!"});
+            user.mainBalance -= amount; await user.save();
+            await new Transaction({ phone, type, amount, method, smsText: `Transfer to: ${destinationPhone || phone}` }).save();
+        } else {
+            let txRef = getTxRef(sms);
+            if (!txRef) return res.json({ success: false, message: "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) አልተገኘም!" });
+            if (await isSmsAlreadyUsed(sms)) {
+                return res.json({ success: false, message: "❌ ይህ SMS ቀድሞ ጥቅም ላይ ውሏል!" });
+            }
+            await new Transaction({ phone, type, amount, method, smsText: sms, txRef: txRef }).save();
+            await autoApprovePendingDeposits();
+        }
+        res.json({ success: true, message: "✅ ጥያቄዎ ደርሶናል!" });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
 
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-history" onkeyup="debounceSearch(() => loadHistoryPage(1))" placeholder="🔍 Search Winner Phone or Game ID...">
-                <button class="action-btn btn-red" onclick="deleteOldGames()" style="padding: 10px; margin-left: 10px; display:none;">🗑️ የቆዩትን አጥፋ (Delete Older Than 6 Hours)</button>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table id="table-winners">
-                        <thead><tr>
-                            <th style="width: 30px;"><input type="checkbox" id="chk-all-history" onchange="toggleSelectAll('history')"></th>
-                            <th>Time</th><th>Game ID</th><th>Winner Name</th><th>Phone</th><th>Ticket ID</th><th>Prize</th><th>Profit</th><th>Action</th>
-                        </tr></thead>
-                        <tbody id="game-history-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination" id="pag-history"></div>
-            </div>
-        </div>
+app.post('/api/promoter/withdraw', async (req, res) => {
+    try {
+        const { phone, pass, amount, account } = req.body;
+        let user = await User.findOne({ phone, password: pass });
+        if (!user || !user.isPromoter) return res.json({ success: false, message: "Unauthorized" });
 
-        <!-- FINANCE HISTORY (All Time Paginated) -->
-        <div id="tab-history-tx" class="tab-content">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
-                <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTxType('deposit')">⬇️ Deposits</button>
-                <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTxType('withdraw')">⬆️ Withdrawals</button>
-                <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTxType('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
-            </div>
+        let reqAmt = Number(amount);
+        if (isNaN(reqAmt) || reqAmt < 1000) return res.json({ success: false, message: "❌ ቢያንስ 1000 ብር መሆን አለበት!" });
+        if (user.promoterUnpaidBalance < reqAmt) return res.json({ success: false, message: "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!" });
+
+        user.promoterUnpaidBalance -= reqAmt;
+        await user.save();
+
+        await new Transaction({ phone: user.phone, type: 'withdraw', amount: reqAmt, method: "Promoter Comm", smsText: `Transfer to: ${account}` }).save();
+
+        res.json({ success: true, message: `✅ የወጪ ጥያቄዎ ለአድሚን ተልኳል!\nበቅርቡ ${reqAmt} ETB ወደ ${account} ይላካል።` });
+    } catch (e) { res.json({ success: false, message: "ስህተት አጋጥሟል" }); }
+});
+
+app.get('/api/user/transactions/:phone', async (req, res) => { 
+    const txs = await Transaction.find({ 
+        phone: req.params.phone, 
+        method: { $ne: 'Promoter Comm' }
+    }).sort({ date: -1 }).limit(30);
+    res.json({ success: true, txs }); 
+});
+
+app.get('/api/user/my-active-tickets/:phone', (req, res) => {
+    let p = activePlayers[req.params.phone];
+    res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
+});
+
+app.get('/api/leaderboard', async (req, res) => { 
+    try {
+        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); 
+        res.json({ success: true, leaderboard }); 
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/claim-promo-code', async (req, res) => {
+    try {
+        const { phone, pass, code } = req.body;
+        if (!code) return res.json({ success: false, message: "እባክዎ ኮድ ያስገቡ!" });
+        let user = await User.findOne({ phone, password: pass });
+        if(!user) return res.json({success: false, message: "User not found!"});
+        
+        let promo = await PromoCode.findOne({ code: code.toUpperCase() });
+        if (!promo) return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
+        
+        if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "የዚህ ኩፖን ጊዜ አልፏል!" });
+        if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
+        if (promo.usedBy.includes(user.phone)) return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
+        
+        promo.usedBy.push(user.phone);
+        promo.currentUses += 1;
+        await promo.save();
+        
+        user.playBalance += promo.amount;
+        await user.save();
+        io.emit('balance_updated', user.phone);
+        
+        res.json({ success: true, message: `እንኳን ደስ አሎት! የ ${promo.amount} ETB ቦነስ አግኝተዋል!`, amount: promo.amount });
+    } catch(e) { res.json({success: false}); }
+});
+
+app.post('/api/claim-promo-web', async (req, res) => {
+    try {
+        let user = await User.findOne({ phone: req.body.phone });
+        if(!user) return res.json({success: false, message: "User not found!"});
+        
+        let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
+        if (!activeBonus) return res.json({ success: false, message: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!" });
+        if (activeBonus.currentClaims >= activeBonus.maxUsers) return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" });
+        if (activeBonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" });
+        
+        activeBonus.claimedBy.push(user.phone);
+        activeBonus.currentClaims += 1;
+        await activeBonus.save();
+        
+        user.playBalance += activeBonus.amount;
+        await user.save();
+        io.emit('balance_updated', user.phone);
+        
+        res.json({ success: true, amount: activeBonus.amount });
+    } catch(e) { res.json({success: false}); }
+});
+
+const auth = (req, res, next) => { 
+    const pass = req.body.adminPass; 
+    if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
+    next(); 
+};
+
+const financeAuth = (req, res, next) => { 
+    const pass = req.body.adminPass || req.body.financePass; 
+    if(pass !== GLOBAL_SETTINGS.financePass && pass !== GLOBAL_SETTINGS.adminPass) {
+        return res.status(401).json({error:"Unauthorized"}); 
+    }
+    next(); 
+};
+
+app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
+    try {
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500);
+        let games = await GameHistory.find().sort({date: -1}).limit(100);
+        let bonuses = await ActiveBonus.find().sort({date: -1}).limit(50);
+        let users = await User.find({}, 'mainBalance playBalance'); 
+        res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
+    try {
+        const { period, customDate, rangeStart, rangeEnd } = req.body;
+        let dateQuery = {};
+        let now = new Date();
+
+        if (period === 'daily') {
+            let start = new Date(); start.setHours(0, 0, 0, 0); dateQuery = { $gte: start };
+        } else if (period === 'weekly') {
+            let start = new Date(); start.setDate(now.getDate() - 7); start.setHours(0, 0, 0, 0); dateQuery = { $gte: start };
+        } else if (period === 'monthly') {
+            let start = new Date(now.getFullYear(), now.getMonth(), 1); dateQuery = { $gte: start };
+        } else if (period === 'custom' && customDate) {
+            let start = new Date(customDate); let end = new Date(customDate); end.setHours(23, 59, 59, 999); dateQuery = { $gte: start, $lte: end };
+        } else if (period === 'range' && rangeStart && rangeEnd) {
+            let start = new Date(rangeStart); let end = new Date(rangeEnd); end.setHours(23, 59, 59, 999); dateQuery = { $gte: start, $lte: end };
+        }
+
+        let txQuery = { status: 'Approved' };
+        let gameQuery = {};
+        let bonusQuery = {};
+        
+        if (Object.keys(dateQuery).length > 0) {
+            txQuery.date = dateQuery; gameQuery.date = dateQuery; bonusQuery.date = dateQuery;
+        }
+
+        let txs = await Transaction.find(txQuery);
+        let tDep = 0, tWit = 0, tPromoterPaid = 0;
+        txs.forEach(t => {
+            if (t.type === 'deposit') tDep += t.amount;
+            if (t.type === 'withdraw' && t.method !== 'Promoter Comm') tWit += t.amount;
+            if (t.type === 'withdraw' && t.method === 'Promoter Comm') tPromoterPaid += t.amount;
+        });
+        let netCash = tDep - (tWit + tPromoterPaid);
+
+        let games = await GameHistory.find(gameQuery);
+        let tWinnings = 0, tProf = 0, tTurnover = 0;
+        games.forEach(g => {
+            tWinnings += (g.prize || 0); tProf += (g.adminProfit || 0); tTurnover += ((g.prize || 0) + (g.adminProfit || 0));
+        });
+
+        let promos = await ActiveBonus.find(bonusQuery);
+        let totalBonusPaid = 0;
+        promos.forEach(p => { totalBonusPaid += ((p.amount || 0) * (p.currentClaims || 0)); });
+
+        let usersResult = await User.aggregate([{ $group: { _id: null, main: { $sum: "$mainBalance" }, play: { $sum: "$playBalance" } } }]);
+        let liability = usersResult.length > 0 ? usersResult[0].main + usersResult[0].play : 0;
+
+        let netProfit = tProf - totalBonusPaid - tPromoterPaid;
+
+        res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/users', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 30;
+        let search = req.body.search || '';
+        let query = {};
+        if (search) {
+            query = { $or: [{ phone: new RegExp(search, 'i') }, { name: new RegExp(search, 'i') }] };
+        }
+
+        let total = await User.countDocuments(query);
+        let users = await User.find(query).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit);
+
+        let phoneList = users.map(u => u.phone);
+        let actualInviteCounts = await User.aggregate([
+            { $match: { referredBy: { $in: phoneList } } },
+            { $group: { _id: "$referredBy", count: { $sum: 1 } } }
+        ]);
+        let inviteMap = {};
+        actualInviteCounts.forEach(i => inviteMap[i._id] = i.count);
+
+        let updatedUsers = [];
+        for (let u of users) {
+            let userObj = u.toObject();
+            let trueCount = inviteMap[userObj.phone] || 0;
             
-            <div class="bulk-action-bar" id="bulk-tx">
-                <div><span style="font-weight:bold; color:white;">💸 Transactions Action: </span><span id="sel-count-tx" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
-                <button class="action-btn btn-red btn-sm" onclick="bulkDelete('transactions')">🗑️ Delete Selected Tx</button>
-            </div>
-
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-tx" onkeyup="debounceSearch(() => loadTxPage(1))" placeholder="🔍 Search by Phone Number...">
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table id="table-history-tx">
-                        <thead><tr>
-                            <th style="width: 30px;"><input type="checkbox" id="chk-all-tx" onchange="toggleSelectAll('tx')"></th>
-                            <th>Time</th><th>Phone</th><th>Type</th><th>Method</th><th>Amount</th><th>Status & Details</th><th>Action</th>
-                        </tr></thead>
-                        <tbody id="history-tx-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination" id="pag-tx"></div>
-            </div>
-        </div>
-
-        <!-- PLAYERS/GAME INFO -->
-        <div id="tab-players" class="tab-content">
-            <div class="card">
-                <p style="font-size: 12px; color: var(--gold); margin-top:0;">⚠️ ጌም መምረጫው የሚያሳየው History ታብ ላይ ሎድ የሆኑትን 30 ጌሞች ነው። (Next እያሉ History ላይ ማየት ይቻላል)</p>
-                <select id="game-details-select" onchange="renderGamePlayers(this.value)" style="border-color: var(--purple); font-weight: bold;">
-                    <option value="">-- Select a Game to View Details --</option>
-                </select>
-                <div class="table-responsive">
-                    <table>
-                        <thead><tr><th>Name</th><th>Phone</th><th>Tickets</th><th>Bet Amount</th><th>Action</th></tr></thead>
-                        <tbody id="game-players-body"><tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- PROMO CODES TAB -->
-        <div id="tab-promo-codes" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 20px;">
-                <h3 style="margin-top:0; color:var(--gold);">🎟️ Add New Promo Code (አዲስ ኩፖን)</h3>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <input type="text" id="add-promo-code" placeholder="ኩፖን ስም (e.g. BONUS50)" style="flex:1; margin-bottom:0; text-transform:uppercase;">
-                    <input type="number" id="add-promo-amount" placeholder="Amount (ETB)" style="flex:1; margin-bottom:0;">
-                    <input type="number" id="add-promo-max" placeholder="Max Users" style="flex:1; margin-bottom:0;">
-                    <button class="action-btn" onclick="createPromoCode()" style="background:var(--gold); color:black; font-weight:bold;">✅ Create Promo Code</button>
-                </div>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table id="table-promo-codes">
-                        <thead><tr><th>Code</th><th>Amount</th><th>Usage (Used/Max)</th><th>Status</th><th>Action</th></tr></thead>
-                        <tbody id="promo-codes-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- PROMOTERS TAB -->
-        <div id="tab-promoters" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--red); margin-bottom: 20px;">
-                <h3 style="margin-top:0; color:var(--red);">📤 Pending Promoter Withdrawals (የአስተዋዋቂዎች ወጪ ጥያቄ)</h3>
-                <div class="table-responsive">
-                    <table>
-                        <thead><tr><th>Date</th><th>Promoter Phone</th><th>Amount</th><th>Sent To</th><th>Action</th></tr></thead>
-                        <tbody id="promoter-pend-wit-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
-                <h3 style="margin-top:0; color:var(--cyan);">➕ Add Promoter (አዲስ አስተዋዋቂ)</h3>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <input type="text" id="add-promoter-phone" placeholder="ስልክ ቁጥር ያስገቡ (e.g. 0911...)" style="flex:2; margin-bottom:0;">
-                    <input type="number" id="add-promoter-percent" placeholder="Commission % (e.g. 10)" style="flex:1; margin-bottom:0;">
-                    <button class="action-btn btn-blue" onclick="setPromoterAction(true)" style="flex:1;">✅ Set as Promoter</button>
-                </div>
-            </div>
-
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-promoter" onkeyup="simpleSearch('search-promoter', 'table-promoters')" placeholder="🔍 Search Promoter...">
-            </div>
-            <div class="card"><div class="table-responsive">
-                <table id="table-promoters">
-                    <thead><tr><th>Name</th><th>Phone</th><th>Comm %</th><th>People</th><th>Total Earned (አጠቃላይ)</th><th>Unpaid Balance (ቀሪ)</th><th>Action</th></tr></thead>
-                    <tbody id="promoters-body"></tbody>
-                </table>
-            </div></div>
-        </div>
-
-        <!-- REFERRALS (Invite & Earn) -->
-        <div id="tab-referral" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
-                <h3 style="color:var(--gold); margin-top:0;">🔧 Fix Missing Invite Bonuses</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የሚያገለግለው ቀደም ብሎ ሰው ጋብዘው <b>(Play Balance)</b> ላልተሰጣቸው ሰዎች ለማስተካከል እና ለመክፈል ነው። (ያልተከፈላቸውን ብቻ አጣርቶ ይከፍላል፣ ሁለት ጊዜ አይከፍልም)።</p>
-                <button class="action-btn btn-orange" onclick="fixMissingReferralBonuses()">🔍 ላልተከፈላቸው ጋባዦች ቦነስ ክፈል (Fix Missing)</button>
-            </div>
+            userObj.totalInvites = Math.max(userObj.totalInvites || 0, trueCount);
+            if (!userObj.isPromoter) {
+                userObj.inviteBonusEarned = Math.max(userObj.inviteBonusEarned || 0, trueCount * GLOBAL_SETTINGS.inviteBonus);
+            }
+            updatedUsers.push(userObj);
             
-            <div class="search-container">
-                <input type="text" class="search-bar" id="search-ref" onkeyup="debounceSearch(() => loadRefPage(1))" placeholder="🔍 Search Referrer Phone...">
-            </div>
+            if ((u.totalInvites || 0) < trueCount || (!u.isPromoter && (u.inviteBonusEarned || 0) < (trueCount * GLOBAL_SETTINGS.inviteBonus))) {
+                User.updateOne({ phone: u.phone }, { $set: { totalInvites: userObj.totalInvites, inviteBonusEarned: userObj.inviteBonusEarned } }).exec();
+            }
+        }
+
+        res.json({ success: true, users: updatedUsers, total, settings: GLOBAL_SETTINGS });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/transactions', auth, async (req, res) => {
+    try {
+        if (req.body.isPending) {
+            let txs = await Transaction.find({ status: 'Pending', hiddenFromAdmin: { $ne: true } }).sort({ date: -1 });
+            return res.json({ success: true, txs });
+        }
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 30;
+        let search = req.body.search || '';
+        let type = req.body.type || 'deposit';
+        
+        let query = { hiddenFromAdmin: { $ne: true } }; 
+        if (type === 'rejected') { query.status = 'Rejected'; } 
+        else { query.type = type; query.status = 'Approved'; }
+        
+        if (search) query.phone = new RegExp(search, 'i');
+        
+        let total = await Transaction.countDocuments(query);
+        let txs = await Transaction.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
+        res.json({ success: true, txs, total });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/history', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 30;
+        let search = req.body.search || '';
+        
+        let query = {};
+        
+        if (search) {
+            query.$or = [{ winnerPhone: new RegExp(search, 'i') }];
+            if(!isNaN(search)) query.$or.push({ gameId: Number(search) });
+        }
+        
+        let total = await GameHistory.countDocuments(query);
+        let history = await GameHistory.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
+        res.json({ success: true, history, total });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/user-details', auth, async (req, res) => {
+    try {
+        let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
+        
+        let allTxs = await Transaction.find({ phone: req.body.phone, status: 'Approved' });
+        let aggDep = 0, aggWit = 0, aggBonus = 0;
+        allTxs.forEach(t => {
+            if(t.type === 'deposit') { aggDep += t.amount; aggBonus += (t.bonusGiven || 0); }
+            if(t.type === 'withdraw') { aggWit += t.amount; }
+        });
+
+        res.json({ success: true, txs, aggDep, aggWit, aggBonus });
+    } catch (e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/live-players-list', auth, (req, res) => {
+    try {
+        let playersArray = Object.values(activePlayers).map(p => ({
+            name: p.name,
+            phone: p.phone,
+            tickets: p.tickets
+        }));
+        res.json({ success: true, players: playersArray });
+    } catch (e) {
+        res.json({ success: false, message: "Error fetching live players" });
+    }
+});
+
+app.post('/api/admin/live-stats', auth, async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        let txStats = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved' } },
+            { $group: { _id: "$type", total: { $sum: "$amount" } } }
+        ]);
+        let dailyDeposit = 0;
+        let dailyWithdraw = 0;
+        txStats.forEach(t => {
+            if (t._id === 'deposit') dailyDeposit = t.total;
+            if (t._id === 'withdraw') dailyWithdraw = t.total;
+        });
+
+        let histStats = await GameHistory.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalProfit: { $sum: "$adminProfit" } } }
+        ]);
+        let dailyTotalProfit = histStats.length > 0 ? histStats[0].totalProfit : 0;
+
+        let bonusStats = await ActiveBonus.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
+        ]);
+        let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
+
+        res.json({ 
+            totalUsers, 
+            livePlayers: Object.keys(activePlayers).length, 
+            gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
+            gameId, 
+            totalProfit: dailyTotalProfit, 
+            currentJackpot: totalPrizePool, 
+            settings: GLOBAL_SETTINGS, 
+            dailyDeposit, 
+            dailyWithdraw, 
+            dailyBonus
+        });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
+
+app.post('/api/admin/referrals', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 30;
+        let search = req.body.search || '';
+
+        let query = { $or: [{ totalInvites: { $gt: 0 } }, { inviteBonusEarned: { $gt: 0 } }] };
+
+        if (search) {
+            query.phone = new RegExp(search, 'i');
+        }
+
+        let total = await User.countDocuments(query);
+        let referrers = await User.find(query)
+            .sort({ totalInvites: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        let mappedData = referrers.map(r => {
+            let actualInvites = r.totalInvites || 0;
+            let bonusAmount = GLOBAL_SETTINGS.inviteBonus || 10; 
+            let expectedEarned = actualInvites * bonusAmount;
+            let alreadyEarned = r.inviteBonusEarned || 0;
+
+            return {
+                _id: r.phone,
+                count: actualInvites,
+                earned: Math.max(expectedEarned, alreadyEarned)
+            };
+        });
+
+        res.json({ success: true, referrals: mappedData, total });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+app.post('/api/admin/referral-details', auth, async (req, res) => {
+    try {
+        let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 });
+        let mappedUsers = users.map(u => ({
+            name: u.name,
+            phone: u.phone,
+            date: u._id.getTimestamp()
+        }));
+        res.json({ success: true, users: mappedUsers });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+app.post('/api/admin/fix-missing-invites', auth, async (req, res) => {
+    try {
+        let users = await User.find({ referredBy: { $ne: "" } });
+        let inviteCounts = {};
+        
+        users.forEach(u => {
+            inviteCounts[u.referredBy] = (inviteCounts[u.referredBy] || 0) + 1;
+        });
+
+        let fixedCount = 0;
+        let totalPaid = 0;
+
+        for (let phone in inviteCounts) {
+            let actualInvites = inviteCounts[phone];
+            let referrer = await User.findOne({ phone: phone, isPromoter: false }); 
             
-            <div class="card">
-                <div class="table-responsive">
-                    <table id="table-referrals">
-                        <thead><tr><th>Referrer Phone (ጋባዥ)</th><th>Total Invited (ያመጣቸው)</th><th>Total Expected Bonus</th><th>Action</th></tr></thead>
-                        <tbody id="ref-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination" id="pag-ref"></div>
-            </div>
-        </div>
-
-        <!-- BANNED USERS -->
-        <div id="tab-banned" class="tab-content">
-            <div class="card"><div class="table-responsive">
-                <table><thead><tr><th>Name</th><th>Phone Number</th><th>Status</th><th>Action</th></tr></thead><tbody id="banned-body"></tbody></table>
-            </div></div>
-        </div>
-
-        <!-- BONUS TAB -->
-        <div id="tab-bonus" class="tab-content">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <div class="card" style="border-left: 4px solid var(--faded-green);">
-                    <h3 style="margin-top:0; color:var(--faded-green);">👤 Single User Bonus</h3>
-                    <input type="text" id="sb-phone" placeholder="User Phone (e.g. 0911...)">
-                    <input type="number" id="sb-amt" placeholder="Amount (ETB)">
-                    <button class="action-btn" style="width:100%;" onclick="sendSingleBonus()">Send Bonus</button>
-                </div>
+            if (referrer) {
+                let paidSoFar = referrer.compensatedInvites || 0;
                 
-                <div class="card" style="border-left: 4px solid var(--purple);">
-                    <h3 style="margin-top:0; color:var(--purple);">🎁 Bulk List Bonus</h3>
-                    <textarea id="b-phones" rows="3" style="width: 100%; background: #000; color: white; border: 1px solid var(--border); border-radius: 6px; padding: 10px;" placeholder="0911..., 0922... OR type 'ALL' for everyone"></textarea>
-                    <input type="number" id="mb-amt-bulk" placeholder="Amount per person">
-                    <button class="action-btn btn-purple" style="width:100%;" onclick="sendBulkBonus()">Send Bulk Bonus</button>
-                </div>
-            </div>
-
-            <div class="card" style="border-left: 4px solid var(--orange); margin-top: 20px;">
-                <h3 style="margin-top:0; color:var(--orange);">🎁 Registration & Invite Bonus</h3>
-                <div style="display:flex; gap:15px; flex-wrap:wrap;">
-                    <div style="flex:1;">
-                        <label style="font-weight:bold; color:white; font-size:13px;">🆕 Welcome Bonus (ETB)</label>
-                        <input type="number" id="set-reg-bonus" placeholder="e.g. 10">
-                    </div>
-                    <div style="flex:1;">
-                        <label style="font-weight:bold; color:white; font-size:13px;">🤝 Referral/Invite Bonus (ETB)</label>
-                        <input type="number" id="set-inv-bonus" placeholder="e.g. 10">
-                    </div>
-                </div>
-                <button class="action-btn btn-orange" style="width: 100%; margin-top:10px;" onclick="updateSettings('reg_bonus')">💾 Save Bonus Amounts</button>
-            </div>
-        </div>
-
-        <!-- ADMIN PROFIT -->
-        <div id="tab-admin-profit" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--cyan); max-width: 500px; margin: 0 auto;">
-                <h3 style="margin-top:0; color:var(--cyan);">📉 Admin Profit (% - የድርጅት ትርፍ)</h3>
-                <input type="number" id="set-admin-profit" placeholder="e.g. 15" min="0" max="100" style="font-size: 20px; font-weight: bold; text-align: center;">
-                <button class="action-btn btn-blue" style="width:100%; margin-top:10px; padding: 15px; font-size: 16px;" onclick="updateSettings('profit')">💾 Save Admin Profit %</button>
-            </div>
-        </div>
-
-        <!-- DEPOSIT & WITHDRAW BONUS -->
-        <div id="tab-dep-bonus" class="tab-content">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <div class="card" style="border-left: 4px solid var(--gold);">
-                    <h3 style="margin-top:0; color:var(--gold);">📥 Deposit Auto-Bonus & Banner</h3>
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Minimum Deposit</label>
-                    <input type="number" id="set-dep-min" placeholder="e.g. 100">
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
-                    <input type="number" id="set-dep-perc" placeholder="e.g. 20">
-                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
-                        <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs('dep')"> Happy Hour (በተወሰነ ሰዓት ብቻ)
-                    </label>
-                    <div id="time-inputs-container-dep" style="display:flex; gap:10px; transition:0.3s; margin-bottom:15px;" class="disabled-input">
-                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour (0-23)</label><input type="number" id="set-dep-start" placeholder="12"></div>
-                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label><input type="number" id="set-dep-end" placeholder="16"></div>
-                    </div>
-
-                    <hr style="border-color: var(--border); margin: 15px 0;">
-                    <h4 style="margin-top:0; margin-bottom: 10px; color:#f59e0b;">📣 Deposit Banner Text (የገቢ ማስታወቂያ)</h4>
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
-                    <textarea id="set-dep-banner-am" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="ለምሳሌ: ልዩ ስጦታ! ከ 100 ብር ጀምሮ..."></textarea>
+                if (actualInvites > paidSoFar) {
+                    let unpaidCount = actualInvites - paidSoFar;
+                    let bonusAmount = unpaidCount * GLOBAL_SETTINGS.inviteBonus;
                     
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇺🇸 በእንግሊዝኛ (English Text)</label>
-                    <textarea id="set-dep-banner-en" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="e.g. Special Gift! Get 20% bonus..."></textarea>
-
-                    <button class="action-btn" style="width: 100%; margin-top:10px;" onclick="updateSettings('dep_bonus')">💾 Save Deposit Settings</button>
-                </div>
-
-                <div class="card" style="border-left: 4px solid var(--cyan);">
-                    <h3 style="margin-top:0; color:var(--cyan);">📤 Withdraw Auto-Bonus & Banner</h3>
-                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin-bottom:15px; border:1px solid var(--cyan); padding:10px; border-radius:8px;">
-                        <input type="checkbox" id="set-wit-active"> ማበረታቻው ክፍት ይሁን? (Is Active?)
-                    </label>
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Minimum Withdraw</label>
-                    <input type="number" id="set-wit-min" placeholder="e.g. 100">
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
-                    <input type="number" id="set-wit-perc" placeholder="e.g. 5">
-                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
-                        <input type="checkbox" id="set-wit-time-restrict" onchange="toggleTimeInputs('wit')"> Happy Hour
-                    </label>
-                    <div id="time-inputs-container-wit" style="display:flex; gap:10px; transition:0.3s;" class="disabled-input">
-                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">Start Hour</label><input type="number" id="set-wit-start" placeholder="12"></div>
-                        <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour</label><input type="number" id="set-wit-end" placeholder="16"></div>
-                    </div>
-
-                    <hr style="border-color: var(--border); margin: 15px 0;">
-                    <h4 style="margin-top:0; margin-bottom: 10px; color:var(--cyan);">📣 Withdraw Warning (የወጪ ማስጠንቀቂያ)</h4>
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
-                    <textarea id="set-wit-banner-am" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="ለምሳሌ: ለደህንነት ሲባል ገንዘብ ወጪ ማድረግ የሚቻለው..."></textarea>
+                    referrer.playBalance += bonusAmount;
+                    referrer.compensatedInvites = actualInvites; 
+                    referrer.totalInvites = actualInvites;
+                    referrer.inviteBonusEarned = (referrer.inviteBonusEarned || 0) + bonusAmount;
+                    await referrer.save();
                     
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇺🇸 በእንግሊዝኛ (English Text)</label>
-                    <textarea id="set-wit-banner-en" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="e.g. For security reasons, withdrawals..."></textarea>
+                    fixedCount++;
+                    totalPaid += bonusAmount;
+                    io.emit('balance_updated', referrer.phone);
+                }
+            }
+        }
+        res.json({ success: true, message: `✅ በተሳካ ሁኔታ ተስተካክሏል!\n\nለ ${fixedCount} ሰዎች አጠቃላይ ${totalPaid} ETB ቦነስ ተከፍሏል።` });
+    } catch(e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
 
-                    <button class="action-btn btn-blue" style="width: 100%; margin-top:10px;" onclick="updateSettings('wit_bonus')">💾 Save Withdraw Settings</button>
-                </div>
+app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
+    try {
+        let codes = await PromoCode.find().sort({ _id: -1 });
+        res.json({ success: true, codes });
+    } catch(e) { res.json({ success: false }); }
+});
 
-                <div class="card" style="border-left: 4px solid var(--purple); grid-column: 1 / -1;">
-                    <h3 style="margin-top:0; color:var(--purple);">🔄 Cashback (ካሽባክ)</h3>
-                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
-                        <div style="flex:1; min-width: 200px;">
-                            <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Min Loss Amount</label>
-                            <input type="number" id="set-cb-min" placeholder="e.g. 200">
-                        </div>
-                        <div style="flex:1; min-width: 200px;">
-                            <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Cashback Amount</label>
-                            <input type="number" id="set-cb-amt" placeholder="e.g. 10">
-                        </div>
-                    </div>
-                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
-                        <input type="checkbox" id="set-cb-active"> Is Active?
-                    </label>
-                    <div style="display:flex; gap:10px;">
-                        <button class="action-btn btn-purple" style="flex:1;" onclick="updateSettings('cashback')">💾 Save Settings</button>
-                        <button class="action-btn btn-orange" style="flex:1;" onclick="triggerCashbackNow()">🚀 Send Cashback NOW</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+app.post('/api/admin/create-promo-code', auth, async (req, res) => {
+    try {
+        let exists = await PromoCode.findOne({ code: req.body.code });
+        if(exists) return res.json({ success: false, message: "Code already exists!" });
+        await new PromoCode({ code: req.body.code, amount: req.body.amount, maxUses: req.body.maxUses }).save();
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
 
-        <!-- TELEGRAM BROADCAST -->
-        <div id="tab-telegram" class="tab-content">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <div class="card" style="border-left: 4px solid var(--blue);">
-                    <h3 style="margin-top:0; color:var(--blue);">✈️ Normal Telegram Broadcast</h3>
-                    <label style="color:var(--cyan); font-weight:bold; font-size:12px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
-                    <input type="text" id="tg-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
-                    <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
-                    <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write message here..."></textarea>
-                    <div style="display:flex; gap:10px;">
-                        <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast</button>
-                        <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
-                    </div>
-                </div>
+app.post('/api/admin/delete-promo-code', auth, async (req, res) => {
+    try { await PromoCode.findByIdAndDelete(req.body.id); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
 
-                <div class="card" style="border-left: 4px solid var(--orange);">
-                    <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <input type="number" id="cb-max-users" placeholder="ለስንት ሰው?" style="flex:1;">
-                        <input type="number" id="cb-amount" placeholder="የብር መጠን" style="flex:1;">
-                        <input type="number" id="cb-minutes" placeholder="ለስንት ደቂቃ?" style="flex:1;">
-                    </div>
-                    <input type="text" id="cb-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
-                    <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
-                    <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ..."></textarea>
-                    <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast</button>
-                    <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ View Claimed Users</button>
-                </div>
-            </div>
-        </div>
+app.post('/api/admin/delete-users', auth, async (req, res) => {
+    try { await User.deleteMany({ phone: { $in: req.body.phones } }); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
+app.post('/api/admin/delete-history', auth, async (req, res) => {
+    try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
+    catch(e) { res.json({ success: false }); }
+});
+app.post('/api/admin/delete-transactions', auth, async (req, res) => {
+    try { 
+        await Transaction.updateMany({ _id: { $in: req.body.ids } }, { hiddenFromAdmin: true }); 
+        res.json({ success: true }); 
+    } 
+    catch(e) { res.json({ success: false }); }
+});
+app.post('/api/admin/delete-game-player', auth, async (req, res) => {
+    try {
+        let h = await GameHistory.findById(req.body.id);
+        if(h) {
+            h.playersData = h.playersData.filter(p => p.phone !== req.body.phone);
+            await h.save();
+            res.json({ success: true });
+        } else { res.json({ success: false }); }
+    } catch(e) { res.json({ success: false }); }
+});
 
-        <!-- 🔥 አዲሱ GAME MANIPULATION TAB 🔥 -->
-        <div id="tab-manipulation" class="tab-content">
-            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
+    try {
+        let promoters = await User.find({ isPromoter: true });
+        let data = [];
+        for (let p of promoters) {
+            let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
+            let refPhones = refUsers.map(u => u.phone);
+            let activeDepositors = refUsers.filter(u => u.totalDeposited > 0).length;
+
+            let deps = await Transaction.find({ phone: { $in: refPhones }, type: 'deposit', status: 'Approved' });
+            let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
+            
+            data.push({
+                name: p.name, phone: p.phone, percent: p.promoterPercent,
+                earned: p.promoterEarned, unpaidBalance: p.promoterUnpaidBalance, 
+                usersBrought: refUsers.length, activeDepositors: activeDepositors, totalDeposits: totalDep
+            });
+        }
+        res.json({ success: true, promoters: data });
+    } catch (e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/set-promoter', auth, async (req, res) => {
+    try {
+        const { phone, isPromoter, percent } = req.body;
+        let user = await User.findOne({ phone });
+        if (user) {
+            user.isPromoter = isPromoter;
+            if (percent !== undefined) user.promoterPercent = percent;
+            await user.save();
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, message: "User not found" });
+        }
+    } catch (e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/promoter-details', auth, async (req, res) => {
+    try {
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        if(!p) return res.json({ success: false });
+
+        let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
+        let details = [];
+        for(let u of refUsers) {
+            let deps = await Transaction.find({ phone: u.phone, type: 'deposit', status: 'Approved' });
+            let totalDep = deps.reduce((sum, tx) => sum + tx.amount, 0);
+            details.push({
+                name: u.name, phone: u.phone, totalDeposit: totalDep, commission: u.promoterCommissionGenerated || 0
+            });
+        }
+        res.json({ success: true, promoter: p, details });
+    } catch (e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/pay-promoter', auth, async (req, res) => {
+    try {
+        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        if(p) {
+            let deductAmt = Number(req.body.amount);
+            p.promoterUnpaidBalance -= deductAmt;
+            if(p.promoterUnpaidBalance < 0) p.promoterUnpaidBalance = 0;
+            await p.save();
+            
+            await new Transaction({ 
+                phone: p.phone, 
+                type: 'withdraw', 
+                amount: deductAmt, 
+                method: "Promoter Comm", 
+                smsText: "Manual Admin Payment",
+                status: "Approved"
+            }).save();
+
+            res.json({ success: true, message: `✅ ለ ${p.name} በተሳካ ሁኔታ ${deductAmt} ETB ተቀንሷል።` });
+        } else res.json({ success: false, message: "Promoter not found" });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/action-tx', auth, async (req, res) => {
+    const tx = await Transaction.findById(req.body.txId); const user = await User.findOne({phone: tx.phone});
+    if (req.body.action === 'Approve') { 
+        tx.status = 'Approved'; 
+        if(tx.type === 'deposit') {
+            let actualAmount = tx.amount;
+            let bonus = 0;
+            let set = GLOBAL_SETTINGS;
+            if (actualAmount >= set.depBonusMinAmount) {
+                let giveBonus = true;
+                if (set.depBonusTimeRestricted) {
+                    let currentHour = new Date().getHours();
+                    if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
+                }
+                if (giveBonus) { bonus = actualAmount * (set.depBonusPercent / 100); }
+            }
+            let totalCredit = actualAmount + bonus;
+            tx.bonusGiven = bonus;
+            user.playBalance += totalCredit;
+            user.totalDeposited += actualAmount;
+
+            if(user.referredBy && user.referredViaPromo) {
+                let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                if(promoter) {
+                    let commission = actualAmount * (promoter.promoterPercent / 100);
+                    promoter.promoterUnpaidBalance += commission; 
+                    promoter.promoterEarned += commission;
+                    await promoter.save();
+                    user.promoterCommissionGenerated += commission;
+                }
+            }
+            
+            user.totalWithdrawn = user.totalWithdrawn || 0;
+            
+            if (bonus > 0) {
+                io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualAmount, bonusAmount: bonus });
+            }
+
+        } else if (tx.type === 'withdraw') {
+            let set = GLOBAL_SETTINGS;
+            user.totalWithdrawn = (user.totalWithdrawn || 0) + tx.amount;
+            if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
+                let giveBonus = true;
+                if (set.witBonusTimeRestricted) {
+                    let currentHour = new Date().getHours();
+                    if (currentHour < set.witHappyHourStart || currentHour > set.witHappyHourEnd) { giveBonus = false; }
+                }
+                if(giveBonus) {
+                    let wBonus = tx.amount * (set.witBonusPercent / 100);
+                    user.playBalance += wBonus; 
+                }
+            }
+        }
+    } else { 
+        tx.status = 'Rejected'; 
+        if(tx.type === 'withdraw' && tx.method === 'Promoter Comm') {
+            user.promoterUnpaidBalance += tx.amount;
+        } else if(tx.type === 'withdraw') {
+            user.mainBalance += tx.amount; 
+        }
+    }
+    await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
+});
+
+app.post('/api/admin/update-settings', auth, async (req, res) => {
+    let s = await SystemSettings.findOne();
+    if(req.body.newPass) s.adminPass = req.body.newPass;
+    if(req.body.newFinancePass) s.financePass = req.body.newFinancePass;
+    
+    if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
+    if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
+    if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
+    
+    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount;
+    if(req.body.botBoostAmount !== undefined) s.botBoostAmount = req.body.botBoostAmount;
+    
+    if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
+    if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
+    if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
+    if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
+    if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
+    
+    if(req.body.depBannerTextAm !== undefined) s.depBannerTextAm = req.body.depBannerTextAm;
+    if(req.body.depBannerTextEn !== undefined) s.depBannerTextEn = req.body.depBannerTextEn;
+    
+    if(req.body.witBonusMinAmount !== undefined) s.witBonusMinAmount = req.body.witBonusMinAmount;
+    if(req.body.witBonusPercent !== undefined) s.witBonusPercent = req.body.witBonusPercent;
+    if(req.body.isWitBonusActive !== undefined) s.isWitBonusActive = req.body.isWitBonusActive;
+    if(req.body.witBonusTimeRestricted !== undefined) s.witBonusTimeRestricted = req.body.witBonusTimeRestricted;
+    if(req.body.witHappyHourStart !== undefined) s.witHappyHourStart = req.body.witHappyHourStart;
+    if(req.body.witHappyHourEnd !== undefined) s.witHappyHourEnd = req.body.witHappyHourEnd;
+    if(req.body.witBannerTextAm !== undefined) s.witBannerTextAm = req.body.witBannerTextAm;
+    if(req.body.witBannerTextEn !== undefined) s.witBannerTextEn = req.body.witBannerTextEn;
+    
+    if(req.body.cashbackMinLoss !== undefined) s.cashbackMinLoss = req.body.cashbackMinLoss;
+    if(req.body.cashbackAmount !== undefined) s.cashbackAmount = req.body.cashbackAmount;
+    if(req.body.isCashbackActive !== undefined) s.isCashbackActive = req.body.isCashbackActive;
+
+    if(req.body.registerBonus !== undefined) s.registerBonus = req.body.registerBonus;
+    if(req.body.inviteBonus !== undefined) s.inviteBonus = req.body.inviteBonus;
+    if(req.body.adminProfitPercent !== undefined) s.adminProfitPercent = req.body.adminProfitPercent; 
+    if(req.body.maxTicketsPerUser !== undefined) s.maxTicketsPerUser = req.body.maxTicketsPerUser; 
+    
+    if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
+    
+    if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
+    if(req.body.forcedWinnerPhones !== undefined) s.forcedWinnerPhones = req.body.forcedWinnerPhones;
+
+    await s.save(); await loadSettings();
+    res.json({ success: true });
+});
+
+app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
+    try {
+        const minL = GLOBAL_SETTINGS.cashbackMinLoss;
+        const cAmt = GLOBAL_SETTINGS.cashbackAmount;
+        
+        let users = await User.find();
+        let count = 0;
+
+        for(let u of users) {
+            let totalLoss = (u.played * GLOBAL_SETTINGS.ticketPrice) - u.won;
+            if(totalLoss >= minL) {
+                u.playBalance += cAmt;
+                u.played = 0; 
+                u.won = 0;    
+                await u.save();
+                io.emit('balance_updated', u.phone);
+                count++;
+            }
+        }
+
+        if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
+        
+        res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
+    } catch(e) {
+        res.status(500).json({ success: false });
+    }
+});
+
+app.post('/api/admin/edit-user', auth, async (req, res) => {
+    try {
+        const { oldPhone, newPhone, name, userPass, mainBalance, playBalance, won } = req.body;
+        
+        let updateData = { 
+            phone: newPhone, 
+            name: name,
+            mainBalance: Number(mainBalance), 
+            playBalance: Number(playBalance), 
+            won: Number(won) 
+        };
+        
+        if (userPass && userPass.trim() !== "") { 
+            updateData.password = userPass.trim(); 
+        }
+        
+        let updatedUser = await User.findOneAndUpdate(
+            { phone: oldPhone }, 
+            { $set: updateData }, 
+            { new: true } 
+        );
+        
+        if(updatedUser) {
+            if (activePlayers[oldPhone]) {
+                if (oldPhone !== newPhone) {
+                    activePlayers[newPhone] = activePlayers[oldPhone];
+                    delete activePlayers[oldPhone];
+                    activePlayers[newPhone].phone = newPhone;
+                }
+                activePlayers[newPhone].name = name;
+            }
+
+            if (oldPhone !== newPhone && GLOBAL_SETTINGS.forcedWinnerPhones.includes(oldPhone)) {
+                GLOBAL_SETTINGS.forcedWinnerPhones = GLOBAL_SETTINGS.forcedWinnerPhones.replace(oldPhone, newPhone);
+                await SystemSettings.updateOne({}, {forcedWinnerPhones: GLOBAL_SETTINGS.forcedWinnerPhones});
+            }
+
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, message: "User not found" });
+        }
+    } catch(e) { 
+        res.json({ success: false, message: "Error saving data." }); 
+    }
+});
+
+app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
+app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
+
+app.post('/api/admin/factory-reset', auth, async (req, res) => {
+    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({}); 
+    res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
+});
+
+app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
+    let user = await User.findOne({ phone: req.body.phone });
+    if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); }
+    res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
+});
+
+app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
+    if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
+    else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
+});
+
+app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
+    try {
+        let activeBonus = await ActiveBonus.findOne({ isActive: true });
+        if(!activeBonus) return res.json({ success: false, message: "No active promo." });
+        res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
+    try {
+        const { maxUsers, amount, minutes, message, photoUrl } = req.body;
+        let expires = new Date(Date.now() + (minutes * 60000));
+        await ActiveBonus.updateMany({}, { isActive: false });
+        await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
+        
+        io.emit('new_promo_alert', { amount: amount, msg: message });
+
+        if (message) {
+            const users = await User.find({ telegramId: { $ne: "" } });
+            lastBroadcasts = []; 
+            const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
+
+            for (let u of users) {
+                try {
+                    let sentMsg;
+                    if (photoUrl && photoUrl.startsWith('data:image')) {
+                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                        let photoBuffer = Buffer.from(base64Data, 'base64');
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
+                    } else if (photoUrl && photoUrl.startsWith('http')) { 
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
+                    } else { 
+                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                    }
+                    lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
+                } catch(e) {} 
+            }
+        }
+        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram & Web App!` });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Error processing promo." });
+    }
+});
+
+// 🔥 TELEGRAM BOT INTEGRATION 🔥
+const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+const bot = new TelegramBot(telegramToken, { polling: false }); 
+const WEB_URL = "https://bingohabesha.onrender.com";
+let lastBroadcasts = []; 
+
+app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    try {
+        const { message, photoUrl } = req.body;
+        if (!message) return res.json({ success: false, message: "No message entered." });
+        const users = await User.find({ telegramId: { $ne: "" } });
+        lastBroadcasts = []; let count = 0;
+        for (let u of users) {
+            try {
+                let sentMsg;
+                if (photoUrl && photoUrl.startsWith('data:image')) {
+                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
+                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
+                } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
+                lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
+            } catch(e) {} 
+        }
+        res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
+    } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
+});
+
+app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
+    try {
+        if(lastBroadcasts.length === 0) return res.json({ success: false, message: "No recent broadcast found." });
+        let count = 0;
+        for (let b of lastBroadcasts) { try { await bot.deleteMessage(b.chatId, b.messageId); count++; } catch(e) {} }
+        lastBroadcasts = []; res.json({ success: true, message: `🗑️ Deleted ${count} messages.` });
+    } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
+});
+
+// ==========================================
+// 🟢 LIVE BINGO GAME ENGINE (OPTIMIZED SMART RIGGING)
+// ==========================================
+let gameState = "WAITING";
+let gameClock = 40; 
+let activePlayers = {}; 
+let totalPrizePool = 0; 
+let totalCollectedMoney = 0; 
+let totalTickets = 0;
+let calledNumbers = []; 
+let currentDrawSequence = []; 
+let gameId = Math.floor(Math.random() * 9000) + 1000;
+let globalTakenTickets = []; 
+
+let midGameChosenRigged = null;
+let targetWinTurn = 0; 
+
+// 🔥 አዲስ፡ የ Bot Boost Tracking
+let botInjectedAmount = 0;
+
+function serverCheckBingo(grid, called) {
+    let m = Array(5).fill().map(() => Array(5).fill(false));
+    for(let c=0; c<5; c++) {
+        for(let r=0; r<5; r++) {
+            if((c===2 && r===2) || called.includes(grid[c][r])) {
+                m[c][r] = true;
+            }
+        }
+    }
+    for(let c=0; c<5; c++) if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; 
+    for(let r=0; r<5; r++) if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; 
+    if(m[0][0]&&m[1][1]&&m[2][2]&&m[3][3]&&m[4][4]) return true; 
+    if(m[0][4]&&m[1][3]&&m[2][2]&&m[3][1]&&m[4][0]) return true; 
+    if(m[0][0] && m[0][4] && m[4][0] && m[4][4]) return true;
+    return false;
+}
+
+function getRiggedSequence() {
+    return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+}
+
+// 🔥 አዲስ፡ ከ 1 እስከ 550 ባሉት ውስጥ ያልተያዘ Random ቁጥር ማውጫ
+function getUnusedFakeTicketId() {
+    let attempts = 0;
+    while(attempts < 1000) {
+        let fakeId = Math.floor(Math.random() * 550) + 1; // ከ 1 እስከ 550
+        if(!globalTakenTickets.includes(fakeId.toString())) {
+            return fakeId.toString();
+        }
+        attempts++;
+    }
+    // ቦታ ከሞላ ከ 1 እስከ 550 ውስጥ ዝም ብሎ አንዱን ይመልሳል
+    return (Math.floor(Math.random() * 550) + 1).toString();
+}
+
+async function declareWinners(winners) {
+    gameState = "FINISHED"; 
+    gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
+    
+    let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
+    let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
+    
+    let adminProfit = totalCollectedMoney - totalPrizePool; 
+    
+    let winnerNames = [];
+    let winnerPhones = [];
+    let ticketIds = [];
+    let winnerDetails = []; 
+
+    for (let w of winners) {
+        const user = await User.findOne({phone: w.player.phone});
+        let latestName = w.player.name; 
+        let latestPhone = w.player.phone;
+
+        if(user) { 
+            latestName = user.name; 
+            latestPhone = user.phone;
+            user.mainBalance += splitPrize; 
+            user.won += splitPrize; 
+            await user.save(); 
+            io.emit('balance_updated', latestPhone); 
+        }
+        
+        winnerNames.push(latestName);
+        winnerPhones.push(latestPhone);
+        ticketIds.push(w.ticket.id);
+
+        winnerDetails.push({
+            name: latestName,
+            phone: latestPhone,
+            ticket: w.ticket.id,
+            prize: splitPrize
+        });
+    }
+
+    let uniqueNames = [...new Set(winnerNames)];
+    let displayNames = uniqueNames.join(' እና ');
+
+    await GameHistory.create({ 
+        gameId, 
+        ticketId: ticketIds.join(', '), 
+        winnerName: displayNames, 
+        winnerPhone: winnerPhones.join(', '), 
+        prize: actualJackpot,
+        adminProfit, 
+        ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
+        winningGrid: winners[0].ticket.grid, 
+        calledNumbers: [...calledNumbers], 
+        playersData: Object.values(activePlayers) 
+    });
+
+    // 🔥 አዲስ፡ የ Golden Jackpot (የመፈንዳያው) ብቻ ለ 1 ጌም ሰርቶ ይጠፋል (ወደ 0 ይመለሳል)
+    GLOBAL_SETTINGS.jackpotBoostAmount = 0;
+    await SystemSettings.updateOne({}, { $set: { jackpotBoostAmount: 0 } });
+
+    io.emit('game_winner', { 
+        winnerName: displayNames, 
+        ticketId: ticketIds.join(', '), 
+        prize: splitPrize, 
+        totalPrize: actualJackpot, 
+        phone: winnerPhones.join(', '), 
+        ticketGrid: winners[0].ticket.grid, 
+        calledNumbers: [...calledNumbers],
+        isShared: winners.length > 1,
+        winnerCount: winners.length,
+        winnerDetails: winnerDetails
+    });
+}
+
+function resetToWaiting() {
+    gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
+    totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
+    calledNumbers = []; currentDrawSequence = [];
+    gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
+    botInjectedAmount = 0; // 🔥 ለቀጣይ ጌም የውሸት ካርቴላ እንዲገዛ እንደገና ዜሮ ማድረግ
+    io.emit('update_taken_tickets', globalTakenTickets); 
+    midGameChosenRigged = null; 
+    targetWinTurn = 0; 
+}
+
+setInterval(() => {
+    if(GLOBAL_SETTINGS.isGamePaused) { 
+        io.emit('game_status', { 
+            state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+            totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        }); 
+        return; 
+    }
+    
+    if (gameState === "WAITING") {
+        gameClock--;
+        
+        // 🔥 አዲስ፡ ቀስ እያለ ከ 1 እስከ 550 ባሉት ውስጥ ነጠል ነጠል እያደረገ የሚገዛበት ኮድ 🔥
+        let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
+        if (botInjectedAmount < targetBotAmount) {
+            // በየሰከንዱ 30% ዕድል አለው ካርቴላ ለመግዛት (ሰው እንደገዛው ለማስመሰል)
+            if (Math.random() < 0.3) {
+                let diff = targetBotAmount - botInjectedAmount;
+                let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
                 
-                <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--gold);">🔥 የጌም መፈንዳያ (Golden Jackpot)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ለተጫዋቾች በወርቃማው Alert ይታያል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ።</p>
-                    <input type="number" id="set-jackpot-boost" placeholder="e.g. 500" style="margin-bottom: 15px;">
-                    <button class="action-btn btn-orange" style="width: 100%;" onclick="updateSettings('jackpot_boost')">💾 Save Golden Jackpot</button>
-                </div>
-
-                <div class="card" style="flex: 1; border-left: 4px solid var(--cyan); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--cyan);">🤖 የውሸት ካርቴላ (Secret Bot Boost)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ቀስ እያለ የውሸት ካርቴላ እየገዛ Blur ያደርጋል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ።</p>
-                    <input type="number" id="set-bot-boost" placeholder="e.g. 200" style="margin-bottom: 15px;">
-                    <button class="action-btn btn-blue" style="width: 100%;" onclick="updateSettings('bot_boost')">💾 Save Secret Bot Tickets</button>
-                </div>
-
-                <div class="card" style="flex: 1; border-left: 4px solid var(--purple); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--purple);">🏆 Win Popup Timer</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ</p>
-                    <input type="number" id="set-win-timer" placeholder="e.g. 12" style="margin-bottom: 15px;">
-                    <button class="action-btn btn-purple" style="width: 100%;" onclick="updateSettings('win_timer')">💾 Save Win Timer</button>
-                </div>
-
-                <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (Forced)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ባዶ ከሆነ Random ይሆናል።</p>
-                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922..." style="border-color: var(--red); margin-bottom: 15px;">
-                    <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- SETTINGS & CONTROL -->
-        <div id="tab-settings" class="tab-content">
-            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
-                    <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control & Pricing</h3>
-                    <button id="btn-pause" class="action-btn btn-orange" style="width: 100%; margin-bottom:15px;" onclick="togglePauseGame()">⏸️ Pause Game (Maintenance)</button>
-                    <hr style="border-color: var(--border);">
-                    <label style="font-weight:bold; color:var(--cyan);">🎟️ Ticket Price (ETB)</label>
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-price" placeholder="e.g. 10"><button class="action-btn" onclick="updateSettings('price')">Save</button></div>
-
-                    <label style="font-weight:bold; color:var(--faded-green);">⏱️ Game Timer (Seconds)</label>
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-timer" placeholder="e.g. 40"><button class="action-btn" onclick="updateSettings('timer')">Save</button></div>
-
-                    <label style="font-weight:bold; color:var(--purple);">🔢 Max Tickets per user</label>
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;"><input type="number" id="set-max-tickets" placeholder="e.g. 4"><button class="action-btn" onclick="updateSettings('maxtickets')">Save</button></div>
+                let maxTix = Math.floor(diff / ticketPrice);
+                if (maxTix > 0) {
+                    // በአንድ ጊዜ ከ 1 እስከ 3 ካርቴላ ይገዛል
+                    let ticketsToBuy = Math.floor(Math.random() * 3) + 1;
+                    if (ticketsToBuy > maxTix) ticketsToBuy = maxTix;
                     
-                    <label style="font-weight:bold; color:var(--red);">📤 Minimum Withdraw (ETB)</label>
-                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                        <input type="number" id="set-min-withdraw" placeholder="e.g. 50">
-                        <button class="action-btn" onclick="updateSettings('minwithdraw')">Save</button>
-                    </div>
-                </div>
+                    let cost = ticketsToBuy * ticketPrice;
+                    botInjectedAmount += cost;
+                    totalCollectedMoney += cost;
+                    let addedPrize = cost * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
+                    totalPrizePool += addedPrize;
+                    totalTickets += ticketsToBuy;
+
+                    for(let i=0; i<ticketsToBuy; i++) {
+                        // ከ 1 እስከ 550 ባለው ውስጥ ያልተያዘውን ይመርጣል
+                        let fakeId = getUnusedFakeTicketId();
+                        globalTakenTickets.push(fakeId);
+                    }
+                    io.emit('update_taken_tickets', globalTakenTickets);
+                } else if (diff > 0) {
+                    botInjectedAmount += diff;
+                    totalCollectedMoney += diff;
+                    totalPrizePool += diff * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
+                }
+            }
+        }
+
+        io.emit('game_status', { 
+            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        });
+        
+        if (gameClock <= 0) { 
+            if(Object.keys(activePlayers).length > 1) { 
+                gameState = "PLAYING"; gameClock = 3; 
+                currentDrawSequence = getRiggedSequence(); 
+                midGameChosenRigged = null;
+                targetWinTurn = 0; 
                 
-                <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
-                    <div class="card" style="border-left: 4px solid var(--blue);">
-                        <h3 style="margin-top:0; color:var(--blue);">🔐 Security</h3>
-                        <label>New Admin Password</label>
-                        <input type="text" id="set-pass" placeholder="Enter new admin password">
-                        <button class="action-btn btn-blue" style="width:100%; margin-bottom: 15px;" onclick="updateSettings('password')">Change Admin Password</button>
-                        <hr style="border-color: var(--border); margin: 15px 0;">
-                        <label>New Finance Password</label>
-                        <input type="text" id="set-finance-pass" placeholder="Enter new finance password">
-                        <button class="action-btn btn-purple" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('finance_password')">Change Finance Password</button>
-                        <hr style="border-color: var(--border);">
-                        <button class="action-btn btn-red" style="width:100%;" onclick="logoutAdmin()">🚪 Logout Admin</button>
-                    </div>
+                io.emit('game_status', { 
+                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+                    totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+                    maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+                });
+            } else { 
+                gameClock = GLOBAL_SETTINGS.gameTimer; 
+            }
+        }
+    } else if (gameState === "PLAYING") {
+        gameClock--;
+        if (gameClock <= 0) {
+            gameClock = 3; 
+            if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
-                    <div class="card" style="border-left: 4px solid var(--red);">
-                        <h3 style="margin-top:0; color:var(--red);">⚠️ Danger Zone (Reset System)</h3>
-                        <button class="action-btn btn-red" style="width: 100%;" onclick="factoryReset()">🗑️ Delete All Data (Reset)</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+            let numToCall = null;
+            
+            let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
+            let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
-<!-- ================= MODALS ================= -->
+            if (activeRigged.length > 0) {
+                
+                if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
+                    midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
+                }
 
-<div class="modal" id="live-players-modal">
-    <div class="modal-content" style="max-width: 450px;">
-        <h3 style="color: var(--purple); margin-top:0; text-align: center;">🎮 Currently Live Players</h3>
-        <p style="font-size: 13px; text-align: center; margin-bottom: 10px; color: var(--text-gray);">በአሁን ሰዓት ላይቭ እየተጫወቱ ያሉ ተጠቃሚዎች</p>
-        <div id="live-players-list" style="background: #000; padding: 15px; border-radius: 6px; border: 1px solid var(--border); max-height: 350px; overflow-y: auto;">
-            <div style="text-align:center; color:gray;">Loading list...</div>
-        </div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('live-players-modal').style.display='none'">Close List</button>
-    </div>
-</div>
+                if (targetWinTurn === 0) {
+                    let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
+                    if (totalTkts >= 10) {
+                        targetWinTurn = Math.floor(Math.random() * (22 - 15 + 1)) + 15;
+                    } else {
+                        targetWinTurn = Math.floor(Math.random() * (27 - 20 + 1)) + 20;
+                    }
+                }
 
-<div class="modal" id="promoter-profile-modal">
-    <div class="modal-content" style="max-width: 600px; padding:0;">
-        <div class="promoter-header">
-            <h2 id="pp-name" style="margin:0 0 5px 0; color:var(--faded-green); text-transform:uppercase;">Promoter Name</h2>
-            <p id="pp-phone" style="margin:0; color:var(--cyan); font-family:monospace; font-size:16px;">09...</p>
-            <div class="promoter-stats">
-                <div class="p-stat-box" style="border-right: 1px solid var(--border);">
-                    <span class="p-stat-title">Users</span><span class="p-stat-val" id="pp-users">0</span>
-                </div>
-                <div class="p-stat-box" style="border-right: 1px solid var(--border);">
-                    <span class="p-stat-title">Total Earned</span><span class="p-stat-val" style="color:var(--faded-green);" id="pp-earned">0.00</span>
-                </div>
-                <div class="p-stat-box">
-                    <span class="p-stat-title">Unpaid Balance</span><span class="p-stat-val" style="color:var(--orange);" id="pp-unpaid">0.00</span>
-                </div>
-            </div>
-        </div>
-        <div style="padding: 0 20px 20px 20px;">
-            <h4 style="margin-top:0; color:var(--text-gray); border-bottom:1px solid var(--border); padding-bottom:5px;">👥 Users Brought & Profit Generated</h4>
-            <div style="max-height: 35vh; overflow-y: auto;">
-                <table class="ref-users-table"><thead><tr><th>Name</th><th>Phone</th><th>Total Deposits</th><th>Profit Generated</th></tr></thead><tbody id="pp-users-body"></tbody></table>
-            </div>
-            <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('promoter-profile-modal').style.display='none'">Close Profile</button>
-        </div>
-    </div>
-</div>
+                let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
 
-<div class="modal" id="edit-user-modal">
-    <div class="modal-content">
-        <h3 style="color: var(--blue); margin-top:0;">✏️ Edit User & Rank</h3>
-        <input type="hidden" id="eu-oldPhone">
-        
-        <label>Name (ስም)</label>
-        <input type="text" id="eu-name" placeholder="User Name">
+                let safeWinningBalls = []; 
+                let safeFeedingBalls = []; 
+                let otherSafeBalls = [];   
 
-        <label>Phone Number (ስልክ)</label>
-        <input type="text" id="eu-phone">
+                for (let i = 0; i < currentDrawSequence.length; i++) {
+                    let testNum = currentDrawSequence[i];
+                    let tempCalled = [...calledNumbers, testNum];
 
-        <label>Password</label>
-        <input type="text" id="eu-password" placeholder="(ባዶ ከተዉት አይቀየርም)">
-        
-        <div style="display:flex; gap:10px;">
-            <div style="flex:1;"><label>Main Balance</label><input type="number" id="eu-main"></div>
-            <div style="flex:1;"><label>Play Balance</label><input type="number" id="eu-play"></div>
-        </div>
-        
-        <label style="color:var(--gold); font-weight:bold;">🏆 Rank Edit (Won)</label>
-        <input type="number" id="eu-won" style="border-color:var(--gold); background:rgba(251, 191, 36, 0.1);">
-        
-        <div style="display:flex; gap:10px; margin-top: 10px;">
-            <button class="action-btn btn-blue" style="flex:1;" onclick="saveUserEdit()">Save Edit</button>
-            <button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
-        </div>
-    </div>
-</div>
+                    let normalWins = false;
+                    let riggedWins = false;
+                    let riggedHits = false;
 
-<div class="modal" id="claimed-users-modal">
-    <div class="modal-content" style="max-width: 350px;">
-        <h3 style="color: var(--orange); margin-top:0;">🎁 Claimed Users</h3>
-        <p style="font-size: 13px;"><b>Count:</b> <span id="claimed-count" style="color:var(--faded-green); font-weight:bold;">0</span> / <span id="claimed-max">0</span></p>
-        <div id="claimed-list" style="background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('claimed-users-modal').style.display='none'">Close</button>
-    </div>
-</div>
+                    for (let player of Object.values(activePlayers)) {
+                        let isRiggedPlayer = (player.phone === midGameChosenRigged);
+                        for (let ticket of player.ticketsData) {
+                            if (serverCheckBingo(ticket.grid, tempCalled)) {
+                                if (isRiggedPlayer) riggedWins = true;
+                                else normalWins = true;
+                            } else if (isRiggedPlayer && ticket.grid.flat().includes(testNum)) {
+                                riggedHits = true;
+                            }
+                        }
+                        if (normalWins) break; 
+                    }
 
-<div class="modal" id="history-modal">
-    <div class="modal-content" style="text-align: center; max-width: 600px;">
-        <h3 style="color: var(--faded-green); margin-top:0;">🎟️ Winner Cards</h3>
-        <p id="m-called" style="font-size: 13px; color: var(--text-gray); word-wrap: break-word;"></p>
-        <div id="m-grid" style="text-align: left; max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('history-modal').style.display='none'">Close</button>
-    </div>
-</div>
+                    if (!normalWins) {
+                        if (riggedWins) {
+                            safeWinningBalls.push({ index: i, num: testNum });
+                        } else if (riggedHits) {
+                            if (Math.random() > 0.3) safeFeedingBalls.push({ index: i, num: testNum });
+                            else otherSafeBalls.push({ index: i, num: testNum });
+                        } else {
+                            otherSafeBalls.push({ index: i, num: testNum });
+                        }
+                    }
+                }
 
-<div class="modal" id="sms-modal">
-    <div class="modal-content" style="max-width: 600px; text-align: left;">
-        <h3 style="color: var(--faded-green); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">🧾 SMS Details</h3>
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:15px;">
-            <p style="margin:0;"><b>📱 Phone:</b> <span id="sms-phone" style="color:white;"></span></p>
-            <p style="margin:0;"><b>🏦 Bank:</b> <span id="sms-bank" style="color:var(--cyan); text-transform:uppercase;"></span></p>
-            <p style="margin:0;"><b>💰 Amount:</b> <span id="sms-amount" style="color: var(--faded-green); font-weight: 900;"></span></p>
-        </div>
-        <span style="font-size: 13px; color: var(--text-gray); display:block; margin-bottom:8px; font-weight:bold;">✉️ Raw SMS:</span>
-        <div id="sms-text"></div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('sms-modal').style.display='none'">Close</button>
-    </div>
-</div>
+                if (isTimeToWin && safeWinningBalls.length > 0) {
+                    let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (safeFeedingBalls.length > 0) {
+                    let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (otherSafeBalls.length > 0) {
+                    let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else {
+                    numToCall = currentDrawSequence.shift();
+                }
 
-<div class="modal" id="user-info-modal">
-    <div class="modal-content" style="max-width: 750px; text-align: left;">
-        <h3 style="color: var(--cyan); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">👤 User Information & History</h3>
-        
-        <div style="display:flex; flex-wrap:wrap; gap:15px; margin-bottom:15px; font-size:14px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Name:</span><br><b id="ui-name" style="color:white; font-size:16px;"></b></div>
-            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Phone:</span><br><b id="ui-phone" style="color:var(--cyan); font-size:16px; font-family:monospace;"></b></div>
-            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Main Balance:</span><br><b id="ui-main" style="color:var(--gold); font-size:16px;"></b> ETB</div>
-            <div style="flex:1; min-width: 120px;"><span style="color:var(--text-gray);">Play Balance:</span><br><b id="ui-play" style="color:var(--faded-green); font-size:16px;"></b> ETB</div>
-        </div>
+            } else {
+                numToCall = currentDrawSequence.shift();
+            }
 
-        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; font-size:13px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Deposited</span><br><b id="ui-tot-dep" style="color:var(--faded-green); font-size:14px;">0</b></div>
-            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Withdrawn</span><br><b id="ui-tot-wit" style="color:var(--red); font-size:14px;">0</b></div>
-            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Bonus</span><br><b id="ui-tot-bon" style="color:var(--gold); font-size:14px;">0</b></div>
-            <div style="flex:1; min-width:80px; text-align:center;"><span style="color:var(--text-gray); font-size:10px;">Tickets Bought</span><br><b id="ui-tot-tix" style="color:var(--cyan); font-size:14px;">0</b></div>
-        </div>
-        
-        <span style="font-size: 14px; color: white; display:block; margin-bottom:8px; font-weight:bold;">📜 Recent Transactions:</span>
-        <div class="table-responsive" style="max-height: 30vh; overflow-y: auto;">
-            <table>
-                <thead>
-                    <tr><th>Date</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr>
-                </thead>
-                <tbody id="ui-tx-body"><tr><td colspan="5" style="text-align:center;">Loading...</td></tr></tbody>
-            </table>
-        </div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 20px; font-size:16px;" onclick="document.getElementById('user-info-modal').style.display='none'">Close</button>
-    </div>
-</div>
+            calledNumbers.push(numToCall);
+            io.emit('new_number', numToCall);
 
-<div class="modal" id="invited-modal">
-    <div class="modal-content" style="max-width: 450px;">
-        <h3 style="color: var(--purple); margin-top:0; text-align: center;">👥 People Invited By This User</h3>
-        <p style="font-size: 13px; text-align: center; margin-bottom: 10px;"><b>Inviter Phone:</b> <span id="inviter-phone" style="color:var(--cyan); font-weight:bold;"></span></p>
-        <div id="invited-list" style="background: #000; padding: 15px; border-radius: 6px; border: 1px solid var(--border); max-height: 350px; overflow-y: auto;">
-            <div style="text-align:center; color:gray;">Loading...</div>
-        </div>
-        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">Close</button>
-    </div>
-</div>
+            let winnersThisRound = [];
+            for (let player of Object.values(activePlayers)) {
+                for (let ticket of player.ticketsData) {
+                    if (serverCheckBingo(ticket.grid, calledNumbers)) {
+                        winnersThisRound.push({ player, ticket });
+                    }
+                }
+            }
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
-    let limitPerPage = 30;
+            if(winnersThisRound.length > 0) {
+                declareWinners(winnersThisRound);
+                return;
+            }
+        }
+    } else if (gameState === "FINISHED") {
+        gameClock--; if (gameClock <= 0) resetToWaiting();
+    }
+}, 1000);
+
+let buyingLocks = {}; 
+io.on('connection', (socket) => {
+    let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
+    socket.emit('game_status', { 
+        state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+        totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+        maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+    });
     
-    let p_users = 1, p_hist = 1, p_tx = 1, p_ref = 1;
-    let currentHistType = 'deposit';
-    let sysSettings = null; 
-    let selHistory = new Set(), selTx = new Set();
+    socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
-    let searchTimeout;
-    
-    let loadedGames = [];
+    socket.on('buy_tickets', async (data) => {
+        if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
+        if (buyingLocks[data.phone]) return; 
+        buyingLocks[data.phone] = true;
 
-    window.addEventListener('DOMContentLoaded', () => {
-        let savedPass = localStorage.getItem('bingo_admin_pass');
-        if (savedPass) {
-            pass = savedPass;
-            document.getElementById('adminPass').value = savedPass;
-            fullRefresh();
+        try {
+            let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
+            if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
+                socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
+                return;
+            }
+
+            const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
+            const user = await User.findOne({phone: data.phone});
+            
+            if(user && (user.playBalance + user.mainBalance) >= betAmount) {
+                let playDeducted = 0;
+                let mainDeducted = 0;
+                
+                if (user.playBalance >= betAmount) { 
+                    user.playBalance -= betAmount;
+                    playDeducted = betAmount;
+                } else { 
+                    playDeducted = user.playBalance;
+                    mainDeducted = betAmount - user.playBalance;
+                    user.mainBalance -= mainDeducted; 
+                    user.playBalance = 0; 
+                }
+                
+                user.played += 1; 
+                user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
+                await user.save();
+
+                let playPerTicket = playDeducted / data.ticketCount;
+                let mainPerTicket = mainDeducted / data.ticketCount;
+                
+                data.ticketsData.forEach(t => {
+                    t.paidFromPlay = playPerTicket;
+                    t.paidFromMain = mainPerTicket;
+                });
+
+                if (!activePlayers[data.phone]) {
+                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData };
+                } else { 
+                    activePlayers[data.phone].tickets += data.ticketCount; 
+                    activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
+                }
+                
+                totalTickets += data.ticketCount; 
+                totalCollectedMoney += betAmount;
+                totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
+                
+                data.ticketIds.forEach(id => globalTakenTickets.push(id));
+                io.emit('update_taken_tickets', globalTakenTickets); 
+                socket.emit('balance_updated', data.phone);
+            }
+        } finally {
+            delete buyingLocks[data.phone];
         }
     });
 
-    function logoutAdmin() {
-        localStorage.removeItem('bingo_admin_pass');
-        location.reload();
-    }
+    socket.on('cancel_ticket', async (data) => {
+        if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
+        if (buyingLocks[data.phone]) return; 
+        buyingLocks[data.phone] = true;
 
-    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
-    function login() { 
-        let inputPass = document.getElementById('adminPass').value; 
-        if(!inputPass) return; 
-        pass = inputPass;
-        localStorage.setItem('bingo_admin_pass', pass);
-        fullRefresh(); 
-    }
-    
-    function switchTab(tabId, btn) { 
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
-        document.getElementById(tabId).classList.add('active'); 
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
-        btn.classList.add('active'); 
-        document.getElementById('page-title').innerText = btn.innerText.replace('☰', '').replace(/[\d]+$/, '').replace('📥', '').replace('📤', '').trim(); 
-        if(window.innerWidth <= 768) toggleSidebar(); 
-    }
-    
-    function simpleSearch(inputId, tableId) { let filter = document.getElementById(inputId).value.toLowerCase(); document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => { row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none'; }); }
-
-    function debounceSearch(func, delay = 600) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(func, delay);
-    }
-
-    function handleRowClick(e, type, val) {
-        if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-        if(e.ctrlKey) {
-            e.preventDefault(); 
-            let cb = document.querySelector(`.chk-${type}[value="${val}"]`);
-            if(cb) { cb.checked = !cb.checked; toggleIndiv(cb, type); }
-        }
-    }
-
-    function toggleTimeInputs(type) {
-        if(type === 'dep') { document.getElementById('set-dep-time-restrict').checked ? document.getElementById('time-inputs-container-dep').classList.remove('disabled-input') : document.getElementById('time-inputs-container-dep').classList.add('disabled-input'); } 
-        else if (type === 'wit') { document.getElementById('set-wit-time-restrict').checked ? document.getElementById('time-inputs-container-wit').classList.remove('disabled-input') : document.getElementById('time-inputs-container-wit').classList.add('disabled-input'); }
-    }
-
-    socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
-
-    async function openLivePlayersModal() {
-        document.getElementById('live-players-modal').style.display = 'flex';
-        document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:gray;">Loading list...</div>`;
         try {
-            let res = await fetch('/api/admin/live-players-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            
-            if(data.success && data.players.length > 0) {
-                let html = data.players.map((p, i) => `
-                    <div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <div style="color:white; font-weight:bold;">${i+1}. ${p.name || 'Unknown'}</div>
-                            <div style="font-family:monospace; font-size:13px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></div>
-                        </div>
-                        <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${p.phone}')">👁️ View</button>
-                    </div>
-                `).join('');
-                document.getElementById('live-players-list').innerHTML = html;
-            } else {
-                document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:gray;">No players are currently live.</div>`;
-            }
-        } catch(e) {
-            document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:red;">Failed to load data. The list is empty or API is not ready.</div>`;
-        }
-    }
-
-    async function loadLiveStats() {
-        if(!pass) return;
-        try {
-            let res = await fetch('/api/admin/live-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); 
-            if(res.status === 401) { logoutAdmin(); return; }
-            let data = await res.json();
-            
-            sysSettings = data.settings;
-            document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
-            
-            if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
-            if (document.getElementById('u-weekly')) document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US');
-            if (document.getElementById('u-monthly')) document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
-            
-            if(document.getElementById('tab-live').classList.contains('active')) {
-                document.getElementById('stat-total-users').innerText = data.totalUsers.toLocaleString('en-US'); 
-                let tProf = data.totalProfit || 0;
-                document.getElementById('stat-total-profit').innerText = Number(tProf).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB"; 
-                document.getElementById('split-admin').innerText = Number(tProf * 0.70).toLocaleString('en-US', {minimumFractionDigits: 2}); 
-                document.getElementById('split-partner').innerText = Number(tProf * 0.30).toLocaleString('en-US', {minimumFractionDigits: 2}); 
-                document.getElementById('stat-live-players').innerText = data.livePlayers; document.getElementById('stat-game-state').innerText = data.gameState;
-                document.getElementById('stat-current-jackpot').innerText = Number(data.currentJackpot || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
-                document.getElementById('stat-daily-dep').innerText = Number(data.dailyDeposit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
-                document.getElementById('stat-daily-wit').innerText = Number(data.dailyWithdraw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
-                document.getElementById('stat-daily-bon').innerText = Number(data.dailyBonus || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
-            }
-            
-            isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
-            if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
-            
-            if(data.settings) {
-                const safeUpdate = (id, val) => {
-                    let el = document.getElementById(id);
-                    if(el && document.activeElement !== el) el.value = val;
-                };
-                safeUpdate('set-dep-banner-am', data.settings.depBannerTextAm || '');
-                safeUpdate('set-dep-banner-en', data.settings.depBannerTextEn || '');
+            const user = await User.findOne({phone: data.phone});
+            if(user) {
+                let p = activePlayers[data.phone];
+                let canceledTicket = p ? p.ticketsData.find(t => t.id === data.ticketId) : null;
                 
-                safeUpdate('set-wit-banner-am', data.settings.witBannerTextAm || '');
-                safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
-
-                safeUpdate('set-price', data.settings.ticketPrice || 10);
-                safeUpdate('set-timer', data.settings.gameTimer || 40);
-                safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
-                safeUpdate('set-min-withdraw', data.settings.minWithdrawLimit !== undefined ? data.settings.minWithdrawLimit : 50);
-                
-                safeUpdate('set-jackpot-boost', data.settings.jackpotBoostAmount !== undefined ? data.settings.jackpotBoostAmount : 0);
-                safeUpdate('set-bot-boost', data.settings.botBoostAmount !== undefined ? data.settings.botBoostAmount : 0);
-                safeUpdate('set-win-timer', data.settings.winPopupTimer !== undefined ? data.settings.winPopupTimer : 12);
-                safeUpdate('set-forced-phones', data.settings.forcedWinnerPhones || '');
-
-                safeUpdate('set-admin-profit', data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15);
-                safeUpdate('set-reg-bonus', data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10);
-                safeUpdate('set-inv-bonus', data.settings.inviteBonus !== undefined ? data.settings.inviteBonus : 10);
-                
-                safeUpdate('set-dep-min', data.settings.depBonusMinAmount !== undefined ? data.settings.depBonusMinAmount : '');
-                safeUpdate('set-dep-perc', data.settings.depBonusPercent !== undefined ? data.settings.depBonusPercent : '');
-
-                safeUpdate('set-wit-min', data.settings.witBonusMinAmount !== undefined ? data.settings.witBonusMinAmount : '');
-                safeUpdate('set-wit-perc', data.settings.witBonusPercent !== undefined ? data.settings.witBonusPercent : '');
-
-                if(document.activeElement !== document.getElementById('set-dep-time-restrict')) {
-                    document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
-                    toggleTimeInputs('dep');
-                }
-                if(document.activeElement !== document.getElementById('set-wit-active')) {
-                    document.getElementById('set-wit-active').checked = data.settings.isWitBonusActive || false;
-                }
-                if(document.activeElement !== document.getElementById('set-wit-time-restrict')) {
-                    document.getElementById('set-wit-time-restrict').checked = data.settings.witBonusTimeRestricted || false;
-                    toggleTimeInputs('wit');
-                }
-            }
-            
-        } catch(e) {}
-    }
-    setInterval(loadLiveStats, 5000);
-
-    function fullRefresh() {
-        loadLiveStats();
-        let activeTabContent = document.querySelector('.tab-content.active');
-        if (!activeTabContent) return;
-        
-        let activeTabId = activeTabContent.id;
-        if (activeTabId === 'tab-pend-dep' || activeTabId === 'tab-pend-wit') { loadPendingTxs(); } 
-        else if (activeTabId === 'tab-users') { loadUsersPage(p_users); } 
-        else if (activeTabId === 'tab-history') { loadHistoryPage(p_hist); } 
-        else if (activeTabId === 'tab-history-tx') { loadTxPage(p_tx); } 
-        else if (activeTabId === 'tab-promo-codes') { loadPromoCodes(); } 
-        else if (activeTabId === 'tab-promoters') { loadPromoters(); } 
-        else if (activeTabId === 'tab-referral') { loadRefPage(p_ref); }
-
-        document.getElementById('login-sec').style.display = 'none'; 
-        document.getElementById('dash-sec').style.display = 'flex';
-    }
-
-    function renderPagination(containerId, totalItems, currentPage, funcName) {
-        let totalPages = Math.ceil(totalItems / limitPerPage);
-        let cont = document.getElementById(containerId);
-        if(totalPages <= 1) { cont.innerHTML = ""; return; }
-        cont.innerHTML = `
-            <button class="page-btn" onclick="${funcName}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>⬅️ Prev</button>
-            <span class="page-info">Page ${currentPage} of ${totalPages} (Total: ${totalItems})</span>
-            <button class="page-btn" onclick="${funcName}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next ➡️</button>
-        `;
-    }
-
-    async function loadUsersPage(page) {
-        p_users = page;
-        let search = document.getElementById('search-user').value.trim();
-        let payload = { adminPass: pass, page: p_users, limit: limitPerPage, search: search };
-        
-        let res = await fetch('/api/admin/users', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        if(res.status === 401) { alert("Wrong Password!"); logoutAdmin(); return; }
-        let data = await res.json();
-        if(data.success) {
-            let html = "";
-            let bannedHtml = "";
-            data.users.forEach(u => {
-                let safeName = (u.name || "Unknown").replace(/'/g, "\\'"); 
-                if(u.status === 'banned') {
-                    bannedHtml += `<tr><td>${u.name}</td><td>${u.phone}</td><td><span class="badge bg-rejected">BANNED</span></td><td><button class="btn-sm" style="background:var(--faded-green); color:black;" onclick="unbanUser('${u.phone}')">Unban</button></td></tr>`;
-                } else {
-                    html += `<tr>
-                        <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${u.phone}'); return false;">${u.name}</a></td>
-                        <td>${u.phone}</td><td style="font-family:monospace; color:var(--text-gray);">${u.password}</td>
-                        <td>${Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td style="color:var(--gold); font-weight:bold;">${Number(u.totalDeposited || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td>
-                            <button class="btn-sm btn-blue" onclick="openEditModal('${u.phone}', '${safeName}', '${u.password}', ${u.mainBalance}, ${u.playBalance}, ${u.won || 0})">Edit</button>
-                            <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${u.phone}')">TXs</button>
-                            <button class="btn-sm btn-orange" onclick="banUser('${u.phone}')">Ban</button>
-                        </td>
-                    </tr>`;
-                }
-            });
-            document.getElementById('users-body').innerHTML = html || `<tr><td colspan="7" style="text-align:center;">No users found.</td></tr>`;
-            if (p_users === 1 && !search) document.getElementById('banned-body').innerHTML = bannedHtml || `<tr><td colspan="4" style="text-align:center;">No banned users</td></tr>`;
-            
-            renderPagination('pag-users', data.total, p_users, 'loadUsersPage');
-        }
-    }
-
-    async function loadHistoryPage(page) {
-        p_hist = page;
-        let search = document.getElementById('search-history').value.trim();
-        let payload = { adminPass: pass, page: p_hist, limit: limitPerPage, search: search };
-        
-        let res = await fetch('/api/admin/history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        let data = await res.json();
-        
-        if(data.success) {
-            loadedGames = data.history; 
-            selHistory.clear();
-            
-            let html = ""; let lastDateStr = "";
-            let dropHtml = '<option value="">-- Select a Game --</option>'; 
-            
-            data.history.forEach((h, idx) => {
-                let isChecked = selHistory.has(h._id) ? 'checked' : '';
-                let rowClass = isChecked ? 'selectable-row selected' : 'selectable-row';
-                
-                let d = new Date(h.date);
-                let dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                
-                if (dateStr !== lastDateStr) {
-                    html += `<tr style="pointer-events:none;"><td colspan="9" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
-                    lastDateStr = dateStr;
-                }
-
-                let phonesArr = (h.winnerPhone || "").toString().split(',').map(p => p.trim()).filter(p => p);
-                
-                let phonesLinks = phonesArr.map(p => `<a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold; display:block; padding: 2px 0;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a>`).join('');
-                
-                let txButtons = phonesArr.map(p => `<button class="btn-sm btn-purple" style="margin-bottom:4px; margin-right:4px;" onclick="fetchAndShowUserInfo('${p}')">👁️ TXs (${p})</button>`).join('');
-
-                html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'history', '${h._id}')">
-                    <td><input type="checkbox" class="chk-history" value="${h._id}" ${isChecked} onchange="toggleIndiv(this, 'history')"></td>
-                    <td>${d.toLocaleTimeString()}</td><td style="color:var(--purple); font-weight:bold;">#${h.gameId}</td>
-                    <td>${h.winnerName}</td>
-                    <td>${phonesLinks}</td>
-                    <td style="color:var(--cyan); font-weight:bold; font-size:14px;">#${h.ticketId || 'N/A'}</td>
-                    <td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                    <td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                    <td>
-                        <div style="display:flex; flex-wrap:wrap; gap:2px; margin-bottom:5px;">
-                            ${txButtons}
-                        </div>
-                        <button class="btn-sm btn-blue" onclick="viewHistory(${idx})">Cards</button>
-                        <button class="btn-sm btn-red" onclick="singleDelete('history', '${h._id}')">Delete</button>
-                    </td>
-                </tr>`;
-                
-                dropHtml += `<option value="${idx}">Game #${h.gameId} - Winner: ${h.winnerName} (${d.toLocaleTimeString()})</option>`; 
-            });
-            
-            document.getElementById('game-history-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No history found.</td></tr>`;
-            document.getElementById('game-details-select').innerHTML = dropHtml;
-            document.getElementById('chk-all-history').checked = false;
-            
-            renderPagination('pag-history', data.total, p_hist, 'loadHistoryPage');
-            updateBulkUI('history');
-        }
-    }
-
-    async function loadTxPage(page) {
-        p_tx = page;
-        let search = document.getElementById('search-tx').value.trim();
-        let payload = { adminPass: pass, page: p_tx, limit: limitPerPage, search: search, type: currentHistType };
-        
-        let res = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        let data = await res.json();
-        
-        if(data.success) {
-            selTx.clear();
-            let html = ""; let lastDateStr = "";
-            
-            data.txs.forEach(t => {
-                let isChecked = selTx.has(t._id) ? 'checked' : '';
-                let rowClass = isChecked ? 'selectable-row selected' : 'selectable-row';
-                let smsBtn = ''; if(t.type === 'deposit') { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); smsBtn = `<button class="btn-sm btn-blue" style="margin-left:8px;" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ SMS</button>`; }
-                
-                let d = new Date(t.date);
-                let dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                
-                let bonusDisplay = (t.bonusGiven && t.bonusGiven > 0) ? `<span style="color:var(--gold); font-weight:bold;">+${Number(t.bonusGiven).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB (Bonus)</span>` : `<span style="color:var(--text-gray);">-</span>`;
-
-                if (dateStr !== lastDateStr) {
-                    html += `<tr style="pointer-events:none;"><td colspan="9" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan); text-align: center; font-weight: 900; font-size: 14px; border-bottom: 1px solid var(--cyan);">📅 ${dateStr}</td></tr>`;
-                    lastDateStr = dateStr;
-                }
-
-                html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'tx', '${t._id}')">
-                    <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
-                    <td>${d.toLocaleTimeString()}</td>
-                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td>
-                    <td style="text-transform:uppercase;">${t.type}</td>
-                    <td>${t.method}</td>
-                    <td style="font-weight:bold;">
-                        ${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB<br>
-                        <span style="font-size:10px;">${bonusDisplay}</span>
-                    </td>
-                    <td><span class="badge ${t.status==='Approved'?'bg-approved':'bg-rejected'}">${t.status}</span> ${smsBtn}</td>
-                    <td>
-                        <button class="btn-sm btn-purple" style="margin-bottom:5px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User TXs</button>
-                        <button class="btn-sm btn-red" onclick="singleDelete('transactions', '${t._id}')">Delete</button>
-                    </td>
-                </tr>`;
-            });
-            document.getElementById('history-tx-body').innerHTML = html || `<tr><td colspan="9" style="text-align:center;">No transactions found.</td></tr>`;
-            document.getElementById('chk-all-tx').checked = false;
-            
-            renderPagination('pag-tx', data.total, p_tx, 'loadTxPage');
-            updateBulkUI('tx');
-        }
-    }
-    
-    function filterHistoryTxType(type) {
-        currentHistType = type; 
-        document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
-        document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
-        document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
-        document.getElementById('search-tx').value = '';
-        loadTxPage(1);
-    }
-    
-    async function loadPendingTxs() {
-        let res = await fetch('/api/admin/transactions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, isPending: true}) });
-        let data = await res.json();
-        if(data.success) {
-            let deps = data.txs.filter(t => t.type === 'deposit');
-            let wits = data.txs.filter(t => t.type === 'withdraw' && t.method !== 'Promoter Comm');
-            let proWits = data.txs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm');
-            
-            let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
-            document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm btn-purple" style="margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
-            
-            let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
-            document.getElementById('pend-wit-body').innerHTML = wits.map(t => { 
-                let methodStr = (t.method || "").toUpperCase(); let methodBadge = ""; if (methodStr.includes("CBE")) { methodBadge = `<span style="background: #a855f7; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #d8b4fe;">🏦 CBE</span>`; } else if (methodStr.includes("TELEBIRR")) { methodBadge = `<span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #93c5fd;">📱 TELEBIRR</span>`; } else { methodBadge = `<span style="background: #475569; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; text-transform: uppercase;">${t.method}</span>`; }
-                return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="font-weight: 900; font-size: 15px; letter-spacing: 1px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td>${methodBadge}</td><td style="font-weight: 900; font-size: 16px; color: var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family: monospace; font-weight: 900; font-size: 15px; color: var(--cyan); letter-spacing: 1px;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`; 
-            }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
-
-            document.getElementById('promoter-pend-wit-body').innerHTML = proWits.map(t => {
-                return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="color:var(--cyan); font-weight:900; font-size:15px; letter-spacing:1px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`;
-            }).join('') || `<tr><td colspan="5" style="text-align:center;">No pending promoter withdrawals.</td></tr>`;
-        }
-    }
-    
-    async function loadRefPage(page) {
-        p_ref = page;
-        let search = document.getElementById('search-ref').value.trim();
-        let payload = { adminPass: pass, page: p_ref, limit: limitPerPage, search: search };
-        
-        let res = await fetch('/api/admin/referrals', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        let data = await res.json();
-        
-        if(data.success) {
-            let html = "";
-            let invBonus = sysSettings ? sysSettings.inviteBonus : 10;
-            data.referrals.forEach(r => {
-                let displayEarned = r.earned !== undefined ? r.earned : (r.count * invBonus);
-                html += `<tr>
-                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${r._id}'); return false;">${r._id}</a></td>
-                    <td style="color:white; font-weight:bold; font-size:14px;">${r.count} People</td>
-                    <td style="color:var(--faded-green); font-weight:bold;">${Number(displayEarned).toLocaleString('en-US')} ETB</td>
-                    <td><button class="btn-sm btn-purple" onclick="showInvitedUsers('${r._id}')">👁️ የጋበዛቸው ሰዎች (View)</button></td>
-                </tr>`;
-            });
-            document.getElementById('ref-body').innerHTML = html || `<tr><td colspan="4" style="text-align:center;">No referrals found.</td></tr>`;
-            renderPagination('pag-ref', data.total, p_ref, 'loadRefPage');
-        }
-    }
-
-    async function showInvitedUsers(phone) {
-        document.getElementById('inviter-phone').innerText = phone;
-        document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:gray;">Loading...</div>`;
-        document.getElementById('invited-modal').style.display = 'flex';
-        
-        try {
-            let res = await fetch('/api/admin/referral-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone: phone}) });
-            let data = await res.json();
-            
-            if(data.success) {
-                let html = data.users.map((u, i) => {
-                    let d = new Date(u.date || new Date()).toLocaleDateString();
-                    return `<div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <div style="color:var(--faded-green); font-weight:bold;">${i+1}. ${u.name || 'Unknown'}</div>
-                            <div style="font-family:monospace; font-size:12px; color:#cbd5e1;"><a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${u.phone}'); return false;">${u.phone}</a></div>
-                        </div>
-                        <div style="font-size:11px; color:gray;">${d}</div>
-                    </div>`;
-                }).join('');
-                document.getElementById('invited-list').innerHTML = html || `<div style="text-align:center; color:gray;">No users found.</div>`;
-            } else {
-                document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:red;">Failed to load data.</div>`;
-            }
-        } catch(e) {
-            document.getElementById('invited-list').innerHTML = `<div style="text-align:center; color:red;">Error connecting to server.</div>`;
-        }
-    }
-
-    async function fixMissingReferralBonuses() {
-        if(!confirm("⚠️ ላልተከፈላቸው ሰዎች (Play Balance) ክፍያ መፈፀም ይፈልጋሉ? (ይህ እርምጃ ሲስተሙን አይረብሽም፣ ያልተከፈላቸውን አጣርቶ ይከፍላል)")) return;
-        try {
-            let res = await fetch('/api/admin/fix-missing-invites', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            alert(data.message);
-        } catch(e) {
-            alert("❌ Error processing request.");
-        }
-    }
-
-    async function loadPromoCodes() {
-        try {
-            let res = await fetch('/api/admin/list-promo-codes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            if(data.success) {
-                document.getElementById('promo-codes-body').innerHTML = data.codes.map(c => {
-                    let isExpired = new Date(c.expiresAt) < new Date();
-                    let isFull = c.currentUses >= c.maxUses;
-                    let status = (isExpired || isFull) ? '<span class="badge bg-rejected">INACTIVE</span>' : '<span class="badge bg-approved">ACTIVE</span>';
-                    return `<tr>
-                        <td style="font-weight:bold; color:var(--gold);">${c.code}</td>
-                        <td style="color:var(--faded-green); font-weight:bold;">${c.amount} ETB</td>
-                        <td>${c.currentUses} / ${c.maxUses}</td>
-                        <td>${status}</td>
-                        <td><button class="btn-sm btn-red" onclick="deletePromoCode('${c._id}')">🗑️ Delete</button></td>
-                    </tr>`;
-                }).join('') || `<tr><td colspan="5" style="text-align:center;">No promo codes found.</td></tr>`;
-            }
-        } catch(e) {}
-    }
-
-    async function createPromoCode() {
-        let code = document.getElementById('add-promo-code').value.trim().toUpperCase();
-        let amount = document.getElementById('add-promo-amount').value;
-        let max = document.getElementById('add-promo-max').value;
-        if(!code || !amount || !max) return alert("እባክዎ ሁሉንም መረጃ ይሙሉ!");
-        
-        try {
-            let res = await fetch('/api/admin/create-promo-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, code, amount, maxUses: max})});
-            let data = await res.json();
-            if(data.success) {
-                alert("✅ ፐሮሞ ኮድ ተፈጥሯል!");
-                document.getElementById('add-promo-code').value = ''; document.getElementById('add-promo-amount').value = ''; document.getElementById('add-promo-max').value = '';
-                loadPromoCodes();
-            } else {
-                alert(data.message || "Error");
-            }
-        } catch(e) {}
-    }
-
-    async function deletePromoCode(id) {
-        if(!confirm("Are you sure you want to delete this promo code?")) return;
-        try {
-            await fetch('/api/admin/delete-promo-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, id})});
-            loadPromoCodes();
-        } catch(e) {}
-    }
-
-    function toggleSelectAll(type) {
-        let isChecked = document.getElementById(`chk-all-${type}`).checked;
-        let checkboxes = document.querySelectorAll(`.chk-${type}`);
-        let set = type === 'history' ? selHistory : selTx;
-        
-        checkboxes.forEach(cb => {
-            cb.checked = isChecked;
-            if(isChecked) set.add(cb.value); else set.delete(cb.value);
-            let row = cb.closest('tr');
-            if(isChecked) row.classList.add('selected'); else row.classList.remove('selected');
-        });
-        updateBulkUI(type);
-    }
-
-    function toggleIndiv(cb, type) {
-        let set = type === 'history' ? selHistory : selTx;
-        let row = cb.closest('tr');
-        if(cb.checked) { set.add(cb.value); row.classList.add('selected'); } 
-        else { set.delete(cb.value); row.classList.remove('selected'); }
-        updateBulkUI(type);
-    }
-
-    function updateBulkUI(type) {
-        let set = type === 'history' ? selHistory : selTx;
-        let bar = document.getElementById(`bulk-${type}`);
-        let cnt = document.getElementById(`sel-count-${type}`);
-        if(set.size > 0) { bar.style.display = "flex"; cnt.innerText = `${set.size} Selected`; } 
-        else { bar.style.display = "none"; }
-    }
-
-    async function singleDelete(type, id) {
-        if(!confirm("Are you sure you want to delete this record?")) return;
-        let endpoint = `/api/admin/delete-${type}`;
-        let payload = { adminPass: pass, ids: [id] };
-        await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        if(type === 'history') loadHistoryPage(p_hist); else loadTxPage(p_tx);
-    }
-
-    async function bulkDelete(type) {
-        let set = type === 'history' ? selHistory : selTx;
-        if(set.size === 0) return;
-        if(!confirm(`⚠️ Are you sure you want to delete ${set.size} records? This cannot be undone.`)) return;
-        
-        let endpoint = `/api/admin/delete-${type}`;
-        let payload = { adminPass: pass, ids: Array.from(set) };
-        
-        document.querySelector(`#bulk-${type} button`).innerText = "Deleting...";
-        await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        document.querySelector(`#bulk-${type} button`).innerText = "🗑️ Delete Selected";
-        
-        if(type === 'history') loadHistoryPage(p_hist); else loadTxPage(p_tx);
-    }
-
-    async function deleteOldGames() {
-        if(!confirm("⚠️ እርግጠኛ ነዎት ከ 6 ሰዓት በፊት የተጫወቱትን ጌሞች ከዳታቤዝ ላይ ሙሉ በሙሉ ማጥፋት ይፈልጋሉ? (የቅርብ 6 ሰዓቶቹ አይጠፉም)")) return;
-        try {
-            await fetch('/api/admin/delete-old-history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
-            alert("✅ ከ 6 ሰዓት በፊት የነበሩ ጌሞች በተሳካ ሁኔታ ጠፍተዋል።"); 
-            loadHistoryPage(1);
-        } catch(e) { alert("❌ ማጥፋት አልተቻለም።"); }
-    }
-
-    function renderGamePlayers(index) { 
-        if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } 
-        let game = loadedGames[index]; 
-        document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `
-            <tr>
-                <td>${p.name}</td>
-                <td><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></td>
-                <td>${p.tickets}</td>
-                <td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                <td>
-                    <button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button>
-                    <button class="btn-sm btn-red" onclick="deletePlayerFromGame('${game._id}', '${p.phone}')">Delete Bet</button>
-                </td>
-            </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; 
-    }
-
-    async function deletePlayerFromGame(gameId, phone) {
-        if(!confirm(`Are you sure you want to delete ${phone}'s bet from this game history?`)) return;
-        try {
-            await fetch('/api/admin/delete-game-player', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, id: gameId, phone: phone}) });
-            loadHistoryPage(p_hist);
-            document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Deleted. Please reselect the game.</td></tr>';
-        } catch(e) { alert("Failed to delete bet."); }
-    }
-
-    async function loadPromoters() {
-        if(!pass) return;
-        try {
-            let res = await fetch('/api/admin/promoters-data', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-            let data = await res.json();
-            if(data.success) {
-                let pBody = document.getElementById('promoters-body');
-                pBody.innerHTML = data.promoters.map(p => {
-                    let unpaid = p.unpaidBalance !== undefined ? p.unpaidBalance : 0; 
-                    return `
-                    <tr>
-                        <td>${p.name}</td><td style="color:var(--cyan); font-weight:bold;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></td><td>${p.percent}%</td>
-                        <td>${p.usersBrought} Users</td>
-                        <td style="color:var(--faded-green); font-weight:bold;">${Number(p.earned).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                        <td style="color:var(--orange); font-weight:bold;">${Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
-                        <td>
-                            <button class="btn-sm" style="background:var(--cyan); color:black;" onclick="openPromoterProfile('${p.phone}')">👁️ View</button> 
-                            <button class="btn-sm btn-blue" onclick="setPromoterAction(true, '${p.phone}')">Edit %</button> 
-                            <button class="btn-sm btn-orange" onclick="payPromoter('${p.phone}')">💸 Pay</button>
-                            <button class="btn-sm btn-red" onclick="setPromoterAction(false, '${p.phone}')">Remove</button>
-                        </td>
-                    </tr>
-                `}).join('') || `<tr><td colspan="7" style="text-align:center;">No promoters found.</td></tr>`;
-            }
-        } catch(e) {}
-    }
-
-    async function payPromoter(phone) {
-        let amount = prompt("ስንት ብር ከፈሉት? ያስገቡት ብር ከቀሪ ሂሳቡ (Unpaid Balance) ላይ ይቀነሳል።\nAmount to deduct:");
-        if(amount === null || amount === "") return;
-        amount = Number(amount);
-        if(isNaN(amount) || amount <= 0) return alert("❌ ትክክለኛ የብር መጠን ያስገቡ!");
-        
-        try {
-            let res = await fetch('/api/admin/pay-promoter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount})});
-            let data = await res.json();
-            alert(data.message || "ክፍያው በተሳካ ሁኔታ ተቀንሷል።");
-            loadPromoters();
-            loadPendingTxs(); 
-        } catch(e) { alert("Error paying promoter."); }
-    }
-
-    async function setPromoterAction(isAdding, existingPhone = null) {
-        let phone = existingPhone || document.getElementById('add-promoter-phone').value.trim();
-        if(!phone) return alert("ስልክ ቁጥር ያስገቡ");
-        
-        if(!isAdding) {
-            if(!confirm("⚠️ እርግጠኛ ነዎት ይህን አስተዋዋቂ ማጥፋት ይፈልጋሉ? (ወደ ኋላ መመለስ አይቻልም)")) return;
-        }
-
-        let percent = undefined;
-        if(isAdding) { 
-            let pctInput = existingPhone ? prompt("አዲሱን ፐርሰንት ያስገቡ (e.g. 10):") : document.getElementById('add-promoter-percent').value.trim(); 
-            if(pctInput === null) return; 
-            percent = Number(pctInput); 
-            if(isNaN(percent) || percent < 0 || percent > 100) return alert("ትክክለኛ ፐርሰንት ያስገቡ"); 
-        }
-
-        try {
-            let res = await fetch('/api/admin/set-promoter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, isPromoter: isAdding, percent})});
-            let data = await res.json(); if(data.success) { alert(isAdding ? "Promoter Updated!" : "Promoter Removed!"); document.getElementById('add-promoter-phone').value = ''; document.getElementById('add-promoter-percent').value = ''; loadPromoters(); } else { alert(data.message || "User not found!"); }
-        } catch(e) {}
-    }
-
-    async function openPromoterProfile(phone) {
-        try {
-            let res = await fetch('/api/admin/promoter-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})});
-            let data = await res.json();
-            if(data.success) {
-                let p = data.promoter; 
-                let unpaid = p.promoterUnpaidBalance !== undefined ? p.promoterUnpaidBalance : 0;
-                
-                document.getElementById('pp-name').innerText = p.name + ` (${p.promoterPercent}%)`; 
-                document.getElementById('pp-phone').innerText = p.phone; 
-                document.getElementById('pp-users').innerText = data.details.length;
-                document.getElementById('pp-earned').innerText = Number(p.promoterEarned || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
-                document.getElementById('pp-unpaid').innerText = Number(unpaid).toLocaleString('en-US', {minimumFractionDigits: 2});
-                
-                let tableHtml = data.details.map(d => `<tr><td>${d.name}</td><td style="color:var(--cyan);"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${d.phone}'); return false;">${d.phone}</a></td><td style="color:var(--gold);">${Number(d.totalDeposit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td style="color:var(--faded-green); font-weight:bold;">+${Number(d.commission).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;">No users invited yet.</td></tr>`;
-                document.getElementById('pp-users-body').innerHTML = tableHtml; document.getElementById('promoter-profile-modal').style.display = 'flex';
-            }
-        } catch(e) { alert("Error loading profile"); }
-    }
-
-    function showTxDetailsModal(phone, method, amount, encodedSms) { document.getElementById('sms-phone').innerText = phone; document.getElementById('sms-bank').innerText = method; document.getElementById('sms-amount').innerText = Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2}); document.getElementById('sms-text').innerText = decodeURIComponent(encodedSms); document.getElementById('sms-modal').style.display = 'flex'; }
-    
-    async function fetchAndShowUserInfo(phone) {
-        try {
-            let uRes = await fetch(`/api/getUser/${phone}`);
-            let uData = await uRes.json();
-            if(!uData.success) return alert("User not found.");
-            
-            let u = uData.user;
-            document.getElementById('ui-name').innerText = u.name;
-            document.getElementById('ui-phone').innerText = u.phone;
-            document.getElementById('ui-main').innerText = Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('ui-play').innerText = Number(u.playBalance).toLocaleString('en-US', {minimumFractionDigits: 2});
-            
-            let tRes = await fetch('/api/admin/user-details', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})});
-            let tData = await tRes.json();
-            
-            if(tData.success) {
-                document.getElementById('ui-tot-dep').innerText = Number(tData.aggDep || u.totalDeposited || 0).toLocaleString();
-                document.getElementById('ui-tot-wit').innerText = Number(tData.aggWit || u.totalWithdrawn || 0).toLocaleString();
-                
-                let totalB = (tData.aggBonus || 0) + (u.inviteBonusEarned || 0);
-                document.getElementById('ui-tot-bon').innerText = Number(totalB).toLocaleString();
-                document.getElementById('ui-tot-tix').innerText = Number(u.totalTicketsBought || 0).toLocaleString();
-
-                let txHtml = tData.txs.map(t => {
-                    let statusColor = t.status === 'Approved' ? 'color:var(--faded-green);' : (t.status === 'Pending' ? 'color:var(--orange);' : 'color:var(--red);');
-                    let bonusDis = (t.bonusGiven && t.bonusGiven > 0) ? `<br><span style="color:var(--gold); font-size:10px;">+${t.bonusGiven} Bonus</span>` : "";
+                if(p && canceledTicket) {
                     
-                    return `<tr>
-                        <td style="font-size:11px;">${new Date(t.date).toLocaleString()}</td>
-                        <td style="text-transform:uppercase; font-size:12px;">${t.type}</td>
-                        <td style="font-size:12px;">${t.method}</td>
-                        <td style="font-weight:bold; font-size:12px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ${bonusDis}</td>
-                        <td style="font-weight:bold; font-size:11px; ${statusColor}">${t.status}</td>
-                    </tr>`;
-                }).join('');
-                document.getElementById('ui-tx-body').innerHTML = txHtml || `<tr><td colspan="5" style="text-align:center; color:gray;">No transactions found.</td></tr>`;
-            }
-            
-            document.getElementById('user-info-modal').style.display = 'flex';
-        } catch(e) { alert("Error fetching user data."); }
-    }
+                    let refundPlay = canceledTicket.paidFromPlay || 0;
+                    let refundMain = canceledTicket.paidFromMain || 0;
+                    
+                    if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
 
-    function viewPlayerMultipleCards(ticketsData, called) { 
-        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
-        let fullHtml = ""; 
-        ticketsData.forEach((ticket, i) => { 
-            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--purple);">Ticket #${ticket.id || i+1}</h4><div class="grid-preview">`; 
-            for(let r=0; r<5; r++) {
-                for(let c=0; c<5; c++) {
-                    fullHtml += `<div class="${called.includes(ticket.grid[c][r]) || (c===2&&r===2) ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : ticket.grid[c][r]}</div>`; 
+                    user.playBalance += refundPlay;
+                    user.mainBalance += refundMain;
+                    user.played = Math.max(0, user.played - 1);
+                    user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
+                    await user.save();
+
+                    p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
+                    p.tickets -= 1;
+                    if(p.tickets === 0) delete activePlayers[data.phone];
+
+                    totalTickets -= 1;
+                    totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                    totalPrizePool -= (GLOBAL_SETTINGS.ticketPrice * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100));
+                    globalTakenTickets = globalTakenTickets.filter(id => id !== data.ticketId);
+
+                    io.emit('update_taken_tickets', globalTakenTickets); 
+                    socket.emit('balance_updated', data.phone);
+                    socket.emit('ticket_cancelled_success', data.ticketId);
                 }
             }
-            fullHtml += `</div><hr style="border-color: var(--border);">`; 
-        }); 
-        document.getElementById('m-grid').innerHTML = fullHtml; 
-        document.getElementById('history-modal').style.display = 'flex'; 
+        } finally {
+            delete buyingLocks[data.phone];
+        }
+    });
+
+});
+
+bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
+app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
+const botState = {};
+
+const t = {
+    am: {
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንኳን ወደ BINGO HABESHA በደህና መጡ!</b> 🎉\n\nየኢትዮጵያ #1 እና በጣም ታማኝ የሆነው የቢንጎ መጫወቻ ፕላትፎርም። አሁኑኑ ይጫወቱ፣ ያሸንፉ፣ እና ወዲያውኑ ወደ ሂሳብዎ ገቢ ያድርጉ!\n\n👇 <b>ከታች ካሉት አማራጮች የሚፈልጉትን ይምረጡ፡</b>",
+        btn_play: "🎮 ጌም ይጫወቱ (PLAY)", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሂሳብ", btn_deposit: "📥 ገቢ (Deposit)", btn_withdraw: "📤 ወጪ (Withdraw)", btn_invite: "🔗 ጋብዝ & አግኝ", btn_promo: "🗣 ድርጅቱን አስተዋውቅ", btn_guide: "📖 መመሪያ", btn_help: "🆘 እርዳታ", btn_rules: "📜 ደንቦች", btn_lang: "🌐 ቋንቋ (Language)", btn_bonus: "🎁 ቦነስ (Claim Promo)", btn_back: "🔙 ወደ ኋላ ተመለስ", btn_promocode: "🎟️ ፕሮሞ ኮድ",
+        share_contact: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", err_reg_first: "እባክዎ መጀመሪያ /start ብለው ይመዝገቡ።", err_cancel: "❌ ትዕዛዙ ተቋርጧል።",
+        profile_text: (u) => `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልክ:</b> ${u.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>የሂሳብ ማረጋገጫ:</b>\n\n🟢 መጫወቻ ሂሳብ (Play): <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ዋና ሂሳብ (Main): <b>${u.mainBalance.toFixed(2)} ETB</b>`,
+        dep_msg: "🏦 <b>የትኛውን የባንክ አማራጭ መጠቀም ይፈልጋሉ?</b>", wit_msg: "🏦 <b>በየትኛው ባንክ ወጪ ማድረግ ይፈልጋሉ?</b>",
+        invite_msg: (l) => `🔗 <b>ጋብዝ እና አግኝ</b>\n\nይህንን የራስዎ የሆነ መጋበዣ ሊንክ ለጓደኞችዎ ይላኩ። ጓደኛዎ በእርስዎ ሊንክ ገብቶ ሲመዘገብ <b>እርስዎም ሆነ ጓደኛዎ ልዩ የመጫወቻ ቦነስ ያገኛላችሁ!</b>\n\n👇 የጋብዝ ሊንክዎ:\n${l}`,
+        guide_msg: `📖 <b>የጨዋታው መመሪያ:</b>\n\n1️⃣ ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል።\n2️⃣ ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል።\n3️⃣ ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።\n\n🏆 <b>እንዴት ያሸንፋሉ?</b>\nየተጠሩት ቁጥሮች በአግድም፣ ወደ ታች፣ በማዕዘን (X ቅርፅ) ወይም 4ቱን ጥግ ከሰሩ <b>BINGO!</b> ብለው ያሸንፋሉ።`,
+        rules_msg: `📜 <b>የጨዋታው ደንቦች:</b>\n\n1️⃣ <b>የሂሳብ ደንቦች:</b>\n🟢 <b>መጫወቻ ሂሳብ:</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን በፍፁም ወጪ (Withdraw) ማድረግ አይቻልም።\n🟡 <b>ዋና ሂሳብ:</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።\n\n2️⃣ <b>የገቢ ደንብ:</b>\n👉 ከ ቴሌብር ወደ ቴሌብር\n👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር ብቻ ያስገቡ።\n\n3️⃣ <b>ማረጋገጫ:</b> ገቢ ሲያደርጉ የደረሰዎትን ትክክለኛ የባንክ (SMS/TxRef) በትክክል ያስገቡ።\n4️⃣ <b>እድሜ:</b> ተጫዋቾች ከ 21 ዓመት በላይ መሆን አለባቸው።`,
+        choose_lang: "እባክዎ ቋንቋ ይምረጡ:", lang_set: "✅ ቋንቋ በተሳካ ሁኔታ ተቀይሯል!",
+        warn_telebirr: "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር (Telebirr to Telebirr) ብቻ ያስገቡ!\n\n", warn_cbebirr: "⚠️ <b>ማሳሰቢያ፡</b> እባክዎ ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBEBirr to CBEBirr) ብቻ ያስገቡ!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 ባንክ: <b>${method}</b>\n\n${warning}እባክዎ ብሩን ወደዚህ አካውንት ያስገቡ:\n👤 ስም: <b>${name}</b>\n👉 ቁጥር: <b>${num}</b>\n\nከዚያም <b>ያስገቡትን የብር መጠን</b> ብቻ እዚህ ይፃፉልኝ (ምሳሌ: 100):`,
+        wit_info: (method) => `🏦 ባንክ: <b>${method}</b>\n\nገንዘቡ እንዲላክልዎ የሚፈልጉትን <b>ስልክ ቁጥር ወይም አካውንት</b> ያስገቡ፦`,
+        invalid_amt: (min) => `❌ ትክክለኛ መጠን ያስገቡ (ቢያንስ ${min} ብር):`, enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nእባክዎ ክፍያ የፈጸሙበትን የ <b>ትክክለኛውን የባንክ SMS ማረጋገጫ (Tx Ref) ፅሁፍ</b> አሁን እዚህ ይላኩ፦`,
+        dep_success: "✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።",
+        enter_wit_amt: (acc, min) => `✅ አካውንት: <b>${acc}</b>\n\nማውጣት የሚፈልጉትን መጠን ያስገቡ (ቢያንስ ${min} ብር):`, insufficient: "❌ በዋና ሂሳብዎ ላይ በቂ ብር የለም!", wit_success: (amt, acc) => `✅ <b>የወጪ ጥያቄዎ ተልኳል!</b>\n\nመጠን: ${amt} ETB\nወደ: ${acc}\n\nበቅርቡ ይላካል!`,
+        play_msg: "በቢንጎ ሐበሻ ቤት ይጫወቱ ይዝናኑ በሺዎች ያሸንፉ\nመልካም እድል ይሁንሎት"
+    },
+    en: {
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Welcome to BINGO HABESHA!</b> 🎉\n\nEthiopia's #1 BINGO platform.\n\n👇 <b>Choose an option:</b>",
+        btn_play: "🎮 PLAY BINGO", btn_profile: "👤 Profile", btn_balance: "💰 Balance", btn_deposit: "📥 Deposit", btn_withdraw: "📤 Withdraw", btn_invite: "🔗 Invite & Earn", btn_promo: "🗣 Promote", btn_guide: "📖 Guide", btn_help: "🆘 Help", btn_rules: "📜 Rules", btn_lang: "🌐 Language", btn_bonus: "🎁 Claim Promo Bonus", btn_back: "🔙 Go Back", btn_promocode: "🎟️ Promo Code",
+        share_contact: "📱 Share Contact", err_reg_first: "Register first by sending /start.", err_cancel: "❌ Action cancelled.",
+        profile_text: (u) => `👤 <b>Your Profile</b>\n\n🔹 <b>Name:</b> ${u.name}\n🔹 <b>Phone:</b> ${u.phone}\n\n💰 <b>Play Balance:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Main Balance:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>Wallet Balance:</b>\n\n🟢 Play Balance: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Main Balance: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
+        dep_msg: "🏦 <b>Choose a bank to Deposit:</b>", wit_msg: "🏦 <b>Choose a bank to Withdraw:</b>",
+        invite_msg: (l) => `🔗 <b>Invite & Earn</b>\n\nWhen a friend joins, <b>both YOU and YOUR FRIEND get special Play Bonus!</b>\n\n👇 Your Link:\n${l}`,
+        guide_msg: `📖 <b>How to Play:</b>\n\n1️⃣ Get a 5x5 card.\n2️⃣ System calls a number every 3 sec.\n3️⃣ System auto-daubs.\n\n🏆 Match 5 in a row or 4 corners to win <b>BINGO!</b>`,
+        rules_msg: `📜 <b>Rules:</b>\n\n👉 Telebirr to Telebirr ONLY.\n👉 CBEBirr to CBEBirr ONLY.\n👉 Paste exact SMS.\n👉 Must be 21+.`,
+        choose_lang: "Please choose your language:", lang_set: "✅ Language changed successfully!",
+        warn_telebirr: "⚠️ <b>WARNING:</b> Send Telebirr to Telebirr ONLY!\n\n", warn_cbebirr: "⚠️ <b>WARNING:</b> Send CBEBirr to CBEBirr ONLY!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 Bank: <b>${method}</b>\n\n${warning}Send money to:\n👤 Name: <b>${name}</b>\n👉 Account: <b>${num}</b>\n\nType the <b>amount you sent</b> here (e.g., 100):`,
+        wit_info: (method) => `🏦 Bank: <b>${method}</b>\n\nEnter the <b>Account or Phone number</b>:`,
+        invalid_amt: (min) => `❌ Invalid Amount. Min ${min} ETB:`, enter_sms: (amt) => `✅ Amount: <b>${amt} ETB</b>\n\nPaste exact <b>Bank SMS</b>:`,
+        dep_success: "✅ <b>Deposit Request Sent!</b>", enter_wit_amt: (acc, min) => `✅ Account: <b>${acc}</b>\n\nEnter withdrawal amount (Min ${min} ETB):`, insufficient: "❌ Insufficient Main Balance!", wit_success: (amt, acc) => `✅ <b>Withdrawal Request Sent!</b>\nAmount: ${amt} ETB\nTo: ${acc}`,
+        play_msg: "Play and have fun at Bingo Habesha and win thousands!\nGood luck!"
+    },
+    or: {
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>Baga nagaan dhuftan!</b> 🎉", btn_play: "🎮 Tapadhu", btn_profile: "👤 Pirofaayilii", btn_balance: "💰 Herrega", btn_deposit: "📥 Galchuu", btn_withdraw: "📤 Baasuu", btn_invite: "🔗 Afeeri", btn_promo: "🗣 Promote", btn_guide: "📖 Qajeelfama", btn_help: "🆘 Gargaarsa", btn_rules: "📜 Seera", btn_lang: "🌐 Afaan", btn_bonus: "🎁 Boonasii", btn_back: "🔙 Duubatti", btn_promocode: "🎟️ Promo Code", share_contact: "📱 Lakkoofsa ergi", err_reg_first: "Dura /start tuqi.", err_cancel: "❌ Haqameera.",
+        profile_text: (u) => `👤 <b>Pirofaayilii</b>\n\n🔹 <b>Maqaa:</b> ${u.name}\n🔹 <b>Lakkoofsa:</b> ${u.phone}\n\n💰 <b>Herrega Taphaa:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>Muummee:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>Herrega Kee:</b>\n\n🟢 Tapha: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 Muummee: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
+        dep_msg: "🏦 <b>Baankii filadhu:</b>", wit_msg: "🏦 <b>Baankii baasuuf filadhu:</b>", invite_msg: (l) => `🔗 <b>Afeeri</b>\n\nLachuun keessan Boonasii argattu!\n\n👇 Liinkii Kee:\n${l}`, guide_msg: `📖 <b>Akkaataa Tapha:</b> Sarara guutu BINGO!`, rules_msg: `📜 <b>Seera:</b> Telebirr gara Telebirr QOFA. CBEBirr gara CBEBirr QOFA.`, choose_lang: "Afaan filadhu:", lang_set: "✅ Jijjiirameera!", warn_telebirr: "⚠️ Telebirr gara Telebirr QOFA!\n\n", warn_cbebirr: "⚠️ CBEBirr gara CBEBirr QOFA!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 Baankii: <b>${method}</b>\n\n${warning}Qarshii ergaa:\n👤 Maqaa: <b>${name}</b>\n👉 Lakkoofsa: <b>${num}</b>\n\n<b>Hamma qarshii</b> asitti barreessaa (Fkn: 100):`,
+        wit_info: (method) => `🏦 Baankii: <b>${method}</b>\n\nLakkoofsa barreessaa:`, invalid_amt: (min) => `❌ Yoo xiqqaate ${min} ETB:`, enter_sms: (amt) => `✅ Hamma: <b>${amt} ETB</b>\n\nAmma <b>SMS Baankii</b> asitti ergaa:`, dep_success: "✅ <b>Ergameera!</b>", enter_wit_amt: (acc, min) => `✅ Herrega: <b>${acc}</b>\n\nHamma galchaa (Min ${min}):`, insufficient: "❌ Qarshiን ga'aan hin jiru!", wit_success: (amt, acc) => `✅ <b>Ergameera!</b>`,
+        play_msg: "BINGO HABESHA irratti taphadhaa, bashannanaa, kumaatama mo'adhaa!\nCarraa Gaarii!"
+    },
+    ti: {
+        welcome: "🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 <b>እንቋዕ ብደሓን መጻእኩም!</b> 🎉", btn_play: "🎮 ጻወት", btn_profile: "👤 ፕሮፋይል", btn_balance: "💰 ሕሳብ", btn_deposit: "📥 ኣእቱ", btn_withdraw: "📤 ኣውጽእ", btn_invite: "🔗 ዕደም", btn_promo: "🗣 Promote", btn_guide: "📖 መምርሒ", btn_help: "🆘 ሓገዝ", btn_rules: "📜 ሕግታት", btn_lang: "🌐 ቋንቋ", btn_bonus: "🎁 ቦነስ", btn_back: "🔙 ንድሕሪት", btn_promocode: "🎟️ Promo Code", share_contact: "📱 ቁጽሪ ኣካፍል", err_reg_first: "ቅድም /start በሉ።", err_cancel: "❌ ተቋሪጹ።",
+        profile_text: (u) => `👤 <b>ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${u.name}\n🔹 <b>ስልኪ:</b> ${u.phone}\n\n💰 <b>መጻወቲ:</b> ${u.playBalance.toFixed(2)} ETB\n💰 <b>ቀንዲ:</b> ${u.mainBalance.toFixed(2)} ETB`,
+        balance_text: (u) => `💰 <b>ናይ ሕሳብ ሓበሬታ:</b>\n\n🟢 መጻወቲ: <b>${u.playBalance.toFixed(2)} ETB</b>\n🟡 ቀንዲ: <b>${u.mainBalance.toFixed(2)} ETB</b>`,
+        dep_msg: "🏦 <b>ባንኪ ምረጽ?</b>", wit_msg: "🏦 <b>ባንኪ ምረጽ?</b>", invite_msg: (l) => `🔗 <b>ዕደምን ረኸብን</b>\n\nንስኹም ሆነ ንሱ ፍሉይ ቦነስ ክትረኽቡ ኢኹም!\n\n👇 ሊንክ:\n${l}`, guide_msg: `📖 <b>መምርሒ:</b> ምሉእ መስመር እንተሰሪሖም BINGO!`, rules_msg: `📜 <b>ሕግታት:</b> ካብ ቴሌብር ናብ ቴሌብር ጥራይ። ካብ CBEBirr ናብ CBEBirr ጥራይ።`, choose_lang: "ቋንቋ ምረጹ:", lang_set: "✅ ተቐይሩ ኣሎ!", warn_telebirr: "⚠️ ካብ ቴሌብር ናብ ቴሌብር ጥራይ!\n\n", warn_cbebirr: "⚠️ ካብ CBEBirr ናብ CBEBirr ጥራይ!\n\n",
+        bank_info: (method, warning, name, num) => `🏦 ባንኪ: <b>${method}</b>\n\n${warning}ገንዘብ ናብዚ ኣእትዉ:\n👤 ስም: <b>${name}</b>\n👉 ቁጽሪ: <b>${num}</b>\n\n<b>መጠን ገንዘብ</b> ኣብዚ ጽሓፉ (ንኣብነት: 100):`,
+        wit_info: (method) => `🏦 ባንኪ: <b>${method}</b>\n\n<b>ቁጽሪ ስልኪ ወይ ኣካውንት</b> ኣእትዉ፦`, invalid_amt: (min) => `❌ እንተወሓደ ${min} ብር:`, enter_sms: (amt) => `✅ መጠን: <b>${amt} ETB</b>\n\nሕጂ <b>ትኽክለኛ SMS</b> ስደዱ፦`, dep_success: "✅ <b>ተላኢኹ!</b>", enter_wit_amt: (acc, min) => `✅ ኣካውንት: <b>${acc}</b>\n\nመጠን ኣእትዉ (Min ${min}):`, insufficient: "❌ እኹል ገንዘብ የለን!", wit_success: (amt, acc) => `✅ <b>ተላኢኹ!</b>`,
+        play_msg: "ኣብ ቢንጎ ሓበሻ ጻወቱ፡ ተዘናግዑ፡ ብኣሽሓት ድማ ዕወቱ!\nሰናይ ዕድል!"
     }
+};
 
-    function viewHistory(index) { 
-        let h = loadedGames[index]; 
-        let called = h.calledNumbers || []; 
-        let ticketIds = (h.ticketId || "").toString().split(',').map(id => id.trim()); 
-        let grids = []; 
-        if (h.playersData && h.playersData.length > 0) { 
-            h.playersData.forEach(p => { 
-                if(p.ticketsData) { 
-                    p.ticketsData.forEach(t => { 
-                        if (ticketIds.includes(t.id.toString())) { 
-                            grids.push({ id: t.id, grid: t.grid, name: p.name, phone: p.phone }); 
-                        } 
-                    }); 
-                } 
-            }); 
-        } 
-        if (grids.length === 0 && h.winningGrid && h.winningGrid.length > 0) { 
-            grids.push({ id: ticketIds[0] || 'N/A', grid: h.winningGrid, name: h.winnerName, phone: h.winnerPhone }); 
-        } 
-        document.getElementById('m-called').innerText = "✅ Called: " + called.join(", "); 
-        let fullHtml = ""; 
-        grids.forEach((gObj, i) => { 
-            fullHtml += `<h4 style="margin:10px 0 5px 0; color:var(--gold); font-size: 14px;">🏆 ${gObj.name} (Card #${gObj.id})</h4><div class="grid-preview">`; 
-            for(let r=0; r<5; r++) { 
-                for(let c=0; c<5; c++) { 
-                    let num = gObj.grid[c][r]; 
-                    let isMarked = called.includes(num) || (c===2&&r===2); 
-                    fullHtml += `<div class="${isMarked ? "highlight" : ""}">${(c===2&&r===2) ? "FREE" : num}</div>`; 
-                } 
-            } 
-            fullHtml += `</div>`; 
-            if(i !== grids.length - 1) { 
-                fullHtml += `<hr style="border-color: var(--border); margin:15px 0;">`; 
-            } 
-        }); 
-        document.getElementById('m-grid').innerHTML = fullHtml; 
-        document.getElementById('history-modal').style.display = 'flex'; 
+function getLang(user) { return user && user.language && t[user.language] ? t[user.language] : t['am']; }
+function getMainMenu(user) {
+    let ln = getLang(user);
+    return { reply_markup: { keyboard: [ 
+        [{ text: ln.btn_play }], 
+        [{ text: ln.btn_profile }, { text: ln.btn_balance }], 
+        [{ text: ln.btn_deposit }, { text: ln.btn_withdraw }], 
+        [{ text: ln.btn_invite }, { text: ln.btn_promo }], 
+        [{ text: ln.btn_promocode }, { text: ln.btn_lang }], 
+        [{ text: ln.btn_guide }, { text: ln.btn_help }, { text: ln.btn_rules }]
+    ], resize_keyboard: true } };
+}
+const cancelKeyboard = (ln) => ({ reply_markup: { keyboard: [[{ text: ln.btn_back }]], resize_keyboard: true } });
+
+bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
+    const chatId = msg.chat.id; let user = await User.findOne({ telegramId: msg.from.id.toString() }); let ln = getLang(user);
+    if(user) { 
+        try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: ln.welcome, parse_mode: "HTML", ...getMainMenu(user) }); }
+        catch(e) { bot.sendMessage(chatId, ln.welcome, { parse_mode: "HTML", ...getMainMenu(user) }); }
+    } else {
+        botState[chatId] = { step: 'idle', refCode: match[1] };
+        const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n👋 <b>እንኳን ወደ BINGO HABESHA መጡ!</b>\n\nጌሙን ለመጀመር ከታች ያለውን <b>'📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ'</b> ይጫኑ።`;
+        try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", reply_markup: { keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], resize_keyboard: true, one_time_keyboard: true } }); }
+        catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", reply_markup: { keyboard: [ [{ text: "📱 ለመመዝገብ ስልክ ቁጥር ያጋሩ", request_contact: true }] ], resize_keyboard: true, one_time_keyboard: true } }); }
     }
+});
 
-    async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amt = document.getElementById('sb-amt').value; if(!phone || !amt) return alert("Fill both!"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; } }
-    async function sendBulkBonus() { let phones = document.getElementById('b-phones').value; let amt = document.getElementById('mb-amt-bulk').value; if(!phones || !amt) return alert("Fill both!"); let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim()); let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; } }
-    
-    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let photoUrl = document.getElementById('cb-photo-url').value.trim(); let fileInput = document.getElementById('cb-photo-file'); if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; let btn = document.getElementById('btn-send-promo'); btn.innerText = "Sending..."; let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl}; if (fileInput.files.length > 0) { let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]); reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); }; } else { sendPromoData(payload, btn); } }
-    async function sendPromoData(payload, btn) { try { let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';} } catch(e) { alert("Error"); } btn.innerText = "Create Promo & Broadcast"; }
-    async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. <a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a></div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; } }
-    
-    async function sendTelegramPromo(type) { 
-        let msg = document.getElementById('tg-msg').value; 
-        let photoUrl = document.getElementById('tg-photo-url').value.trim(); 
-        let fileInput = document.getElementById('tg-photo-file'); 
-        if(!msg) return alert("Enter a message"); 
-        let btn = document.querySelector('#tab-telegram .btn-blue'); 
-        btn.innerText = "Sending..."; 
-        if (fileInput.files.length > 0) { 
-            let reader = new FileReader(); 
-            reader.readAsDataURL(fileInput.files[0]); 
-            reader.onload = async function () { sendPayloadToTelegram(msg, reader.result, btn); }; 
-        } else { 
-            sendPayloadToTelegram(msg, photoUrl, btn); 
-        } 
-    }
-    
-    async function sendPayloadToTelegram(message, photoUrl, btn) { 
-        try { 
-            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
-            let data = await res.json(); 
-            alert(data.message || "Sent successfully!"); 
-            if(data.success) { 
-                document.getElementById('tg-msg').value = ''; 
-                document.getElementById('tg-photo-file').value = ''; 
-                document.getElementById('tg-photo-url').value = ''; 
-            } 
-        } catch(e) { 
-            alert("Error sending."); 
-        } 
-        btn.innerText = "Broadcast"; 
-    }
+bot.on('contact', async (msg) => {
+    const chatId = msg.chat.id; let phone = msg.contact.phone_number;
+    if (phone.startsWith('251')) phone = '0' + phone.substring(3); if (phone.startsWith('+251')) phone = '0' + phone.substring(4);
+    let user = await User.findOne({ phone: phone }); let state = botState[chatId] || {};
+    try {
+        if (!user) {
+            let actualRef = "";
+            let cleanRefCode = state.refCode || "";
 
-    async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadPendingTxs(); loadTxPage(p_tx); } }
-    
-    function openEditModal(phone, name, passw, main, play, won) { 
-        document.getElementById('eu-oldPhone').value = phone; 
-        document.getElementById('eu-phone').value = phone; 
-        document.getElementById('eu-name').value = name; 
-        document.getElementById('eu-password').value = passw; 
-        document.getElementById('eu-main').value = main; 
-        document.getElementById('eu-play').value = play; 
-        document.getElementById('eu-won').value = won; 
-        document.getElementById('edit-user-modal').style.display = 'flex'; 
-    }
-    
-    async function saveUserEdit() { 
-        let payload = { 
-            adminPass: pass, 
-            oldPhone: document.getElementById('eu-oldPhone').value, 
-            newPhone: document.getElementById('eu-phone').value, 
-            name: document.getElementById('eu-name').value, 
-            userPass: document.getElementById('eu-password').value, 
-            mainBalance: document.getElementById('eu-main').value, 
-            playBalance: document.getElementById('eu-play').value, 
-            won: document.getElementById('eu-won').value 
-        }; 
-        let res = await fetch('/api/admin/edit-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-        let data = await res.json(); 
-        if(data.success) { document.getElementById('edit-user-modal').style.display='none'; loadUsersPage(p_users); alert("✅ Saved!"); } else { alert("❌ Failed."); } 
-    }
-    
-    async function banUser(phone) { if(confirm(`Block this user?`)){ await fetch('/api/admin/ban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadUsersPage(p_users); } }
-    async function unbanUser(phone) { if(confirm(`Unblock this user?`)){ await fetch('/api/admin/unban-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone})}); loadUsersPage(1); } }
-    async function togglePauseGame() { await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ adminPass: pass, pauseGame: !isGameCurrentlyPaused }) }); loadLiveStats(); }
-    
-    async function updateSettings(type) { 
-        let payload = { adminPass: pass }; 
-        if(type === 'password') { 
-            let np = document.getElementById('set-pass').value; 
-            if(!np) return alert("Enter admin pass!"); 
-            payload.newPass = np; 
-            pass = np; 
-            document.getElementById('adminPass').value = np; 
-            document.getElementById('set-pass').value = '';
-        } 
-        if(type === 'finance_password') { 
-            let nfp = document.getElementById('set-finance-pass').value; 
-            if(!nfp) return alert("Enter new finance password!"); 
-            payload.newFinancePass = nfp; 
-            document.getElementById('set-finance-pass').value = '';
-        }
-        if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
-        if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
-        if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
-        if(type === 'maxtickets') { let mt = document.getElementById('set-max-tickets').value; if(!mt || mt < 1) return alert("Enter number!"); payload.maxTicketsPerUser = Number(mt); }
-        if(type === 'minwithdraw') { 
-            let mw = document.getElementById('set-min-withdraw').value; 
-            if(!mw || mw < 1) return alert("Enter valid minimum amount!"); 
-            payload.minWithdrawLimit = Number(mw); 
-        }
-
-        if(type === 'jackpot_boost') {
-            let jb = document.getElementById('set-jackpot-boost').value; 
-            payload.jackpotBoostAmount = (jb !== '' && Number(jb) >= 0) ? Number(jb) : 0;
-        }
-        if(type === 'bot_boost') {
-            let bb = document.getElementById('set-bot-boost').value; 
-            payload.botBoostAmount = (bb !== '' && Number(bb) >= 0) ? Number(bb) : 0;
-        }
-        if(type === 'win_timer') {
-            let wt = document.getElementById('set-win-timer').value; 
-            if(wt !== '' && Number(wt) >= 1) payload.winPopupTimer = Number(wt);
-            else return alert("Please enter a valid time (e.g., 12)");
-        }
-        if(type === 'forced_winners') {
-            let fp = document.getElementById('set-forced-phones').value; 
-            payload.forcedWinnerPhones = fp;
-        }
-
-        if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
-        if(type === 'dep_bonus') {
-            let isRestricted = document.getElementById('set-dep-time-restrict').checked; 
-            let mAmt = document.getElementById('set-dep-min').value; 
-            let mPer = document.getElementById('set-dep-perc').value; 
-            let start = document.getElementById('set-dep-start').value; 
-            let end = document.getElementById('set-dep-end').value;
-            
-            let bam = document.getElementById('set-dep-banner-am').value; 
-            let ben = document.getElementById('set-dep-banner-en').value;
-
-            payload.depBonusTimeRestricted = isRestricted; 
-            payload.depBonusMinAmount = mAmt !== '' ? Number(mAmt) : 0; 
-            payload.depBonusPercent = mPer !== '' ? Number(mPer) : 0; 
-            payload.happyHourStart = start !== '' ? Number(start) : 0; 
-            payload.happyHourEnd = end !== '' ? Number(end) : 23;
-            
-            payload.depBannerTextAm = bam; 
-            payload.depBannerTextEn = ben;
-        }
-        if(type === 'wit_bonus') {
-            let isActive = document.getElementById('set-wit-active').checked; 
-            let isTimeRestricted = document.getElementById('set-wit-time-restrict').checked; 
-            let wMin = document.getElementById('set-wit-min').value; 
-            let wPerc = document.getElementById('set-wit-perc').value; 
-            let start = document.getElementById('set-wit-start').value; 
-            let end = document.getElementById('set-wit-end').value;
-
-            let wam = document.getElementById('set-wit-banner-am').value; 
-            let wen = document.getElementById('set-wit-banner-en').value;
-            
-            payload.isWitBonusActive = isActive; 
-            payload.witBonusMinAmount = wMin !== '' ? Number(wMin) : 0; 
-            payload.witBonusPercent = wPerc !== '' ? Number(wPerc) : 0; 
-            payload.witBonusTimeRestricted = isTimeRestricted; 
-            payload.witHappyHourStart = start !== '' ? Number(start) : 0; 
-            payload.witHappyHourEnd = end !== '' ? Number(end) : 23;
-
-            payload.witBannerTextAm = wam; 
-            payload.witBannerTextEn = wen;
-        }
-        
-        let btns = document.querySelectorAll('.action-btn');
-        btns.forEach(b => b.disabled = true);
-        
-        try {
-            let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
-            if(res.ok) {
-                alert("✅ Saved successfully!"); 
-            } else {
-                alert("❌ ስህተት ተፈጥሯል (Error saving)!");
+            let isPromoLink = false;
+            if (cleanRefCode.startsWith('promo_')) { 
+                cleanRefCode = cleanRefCode.replace('promo_', ''); 
+                isPromoLink = true;
             }
-        } catch(e) {
-            alert("❌ Network Error: ኮኔክሽን ተቋርጧል!");
+
+            if (cleanRefCode) { 
+                let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
+                if (refUser) { 
+                    actualRef = refUser.phone;
+                    if (isPromoLink && refUser.isPromoter) {
+                        refUser.totalInvites = (refUser.totalInvites || 0) + 1;
+                        await refUser.save();
+                    } else {
+                        refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                        refUser.totalInvites = (refUser.totalInvites || 0) + 1;
+                        refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
+                        await refUser.save(); 
+                        io.emit('balance_updated', refUser.phone);
+                        isPromoLink = false; 
+                    }
+                } 
+            }
+            let myRefCode = generateRefCode();
+            user = await User.create({ phone, name: msg.contact.first_name || "User", password: Math.random().toString(36).slice(-6), refCode: myRefCode, telegramId: msg.from.id.toString(), referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus, language: 'am' });
+            
+            const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n🎉 እንኳን ደስ አሎት <b>${user.name}</b>! ምዝገባው ተጠናቋል።\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
+            try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
+            catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
+        } else {
+            user.telegramId = msg.from.id.toString(); await user.save();
+            const cap = `🟢 <b>ቢንጎ</b> ⚪️ <b>ሀበሻ</b>\n\n✅ አካውንትዎ ተገናኝቷል!\n\n👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n🔑 <b>የይለፍ ቃል:</b> <code>${user.password}</code>\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
+            try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
+            catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
         }
-        
-        btns.forEach(b => b.disabled = false);
+        botState[chatId] = { step: 'idle' };
+    } catch (e) { bot.sendMessage(chatId, "❌ ይቅርታ፣ ችግር አጋጥሟል።"); }
+});
+
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id; const text = msg.text;
+    if(!text || text.startsWith('/start') || msg.contact) return;
+    
+    let user = await User.findOne({ telegramId: msg.from.id.toString() }); 
+    let ln = getLang(user); 
+    let state = botState[chatId] || { step: 'idle' };
+
+    if (text === t.am.btn_back || text === t.en.btn_back || text === t.or.btn_back || text === t.ti.btn_back || text.includes('ተመለስ') || text.includes('Back') || text.includes('Duubatti') || text.includes('ንድሕሪት') || text === '/back') { 
+        botState[chatId] = { step: 'idle' }; 
+        return bot.sendMessage(chatId, ln.err_cancel, user ? { parse_mode: "HTML", ...getMainMenu(user) } : { reply_markup: { remove_keyboard: true } }); 
     }
 
-    async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); location.reload(); }
-    async function deleteLastTelegramPromo() { if(!confirm("Are you sure?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
-</script>
-</body>
-</html>
+    if (state.step === 'support_chat') {
+        if(!user) return;
+        await SupportMessage.create({ telegramId: msg.from.id.toString(), phone: user.phone, name: user.name, text: text, sender: 'user' });
+        
+        io.emit('new_support_message'); 
+
+        bot.sendMessage(chatId, "✅ መልዕክትዎ ደርሶናል! አድሚን ሲያይ በዚሁ ቦት በኩል ይመልስሎታል።", { parse_mode: "HTML", ...getMainMenu(user) });
+        state.step = 'idle';
+        botState[chatId] = state;
+        return;
+    }
+
+    if (text === t.am.btn_play || text === t.en.btn_play || text === t.or.btn_play || text === t.ti.btn_play || text.includes('PLAY') || text.includes('ጌም ይጫወቱ') || text.includes('Tapadhu') || text.includes('ጻወት') || text === '/play') {
+        bot.sendMessage(chatId, ln.play_msg, { reply_markup: { inline_keyboard: [[{ text: ln.btn_play, web_app: { url: (user) ? `${WEB_URL}/?phone=${user.phone}&pass=${user.password}` : WEB_URL } }]] } });
+    }
+    else if (text === t.am.btn_promocode || text === t.en.btn_promocode || text === t.or.btn_promocode || text === t.ti.btn_promocode || text.includes('ፕሮሞ ኮድ') || text.includes('Promo Code') || text === '/promocode') {
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        bot.sendMessage(chatId, "🎟️ <b>ኩፖን (Promo Code)</b>\n\nከታች ያለውን ቁልፍ ተጭነው ኩፖንዎን ያስገቡ።", { 
+            parse_mode: "HTML", 
+            reply_markup: { inline_keyboard: [[{ text: "🎟️ ኩፖን አስገባ (Enter Code)", web_app: { url: `${WEB_URL}/promo_app?phone=${user.phone}&pass=${user.password}` } }]] } 
+        });
+    }
+    else if (text === t.am.btn_profile || text === t.en.btn_profile || text === t.or.btn_profile || text === t.ti.btn_profile || text.includes('ፕሮፋይል') || text.includes('Profile') || text.includes('Pirofaayilii') || text === '/profile' || text === '/account') { 
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        const cap = `👤 <b>የእርስዎ ፕሮፋይል</b>\n\n🔹 <b>ስም:</b> ${user.name}\n🔹 <b>ስልክ:</b> ${user.phone}\n\n💰 <b>መጫወቻ ሂሳብ:</b> ${user.playBalance.toFixed(2)} ETB\n💰 <b>ዋና ሂሳብ:</b> ${user.mainBalance.toFixed(2)} ETB\n\n👇 <b>ጌሙን ለመጀመር ከታች '🎮 ጌም ይጫወቱ (PLAY)' የሚለውን ይጫኑ።</b>`;
+        try { await bot.sendPhoto(chatId, WELCOME_PHOTO_URL, { caption: cap, parse_mode: "HTML", ...getMainMenu(user) }); }
+        catch(e) { bot.sendMessage(chatId, cap, { parse_mode: "HTML", ...getMainMenu(user) }); }
+    }
+    else if (text === t.am.btn_balance || text === t.en.btn_balance || text === t.or.btn_balance || text === t.ti.btn_balance || text.includes('ሂሳብ') || text.includes('Balance') || text.includes('Herrega') || text.includes('ሕሳብ')) { 
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        bot.sendMessage(chatId, ln.balance_text(user), { parse_mode: "HTML", ...getMainMenu(user) }); 
+    } 
+    else if (text === t.am.btn_deposit || text === t.en.btn_deposit || text === t.or.btn_deposit || text === t.ti.btn_deposit || text.includes('ገቢ') || text.includes('Deposit') || text.includes('Galchuu') || text.includes('ኣእቱ') || text === '/deposit') {
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        state.step = 'idle';
+        bot.sendMessage(chatId, ln.dep_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"dep_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"dep_CBEBirr"}]] } });
+    } 
+    else if (text === t.am.btn_withdraw || text === t.en.btn_withdraw || text === t.or.btn_withdraw || text === t.ti.btn_withdraw || text.includes('ወጪ') || text.includes('Withdraw') || text.includes('Baasuu') || text.includes('ኣውጽእ') || text === '/withdraw') {
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        state.step = 'idle';
+        bot.sendMessage(chatId, ln.wit_msg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{text:"📱 TeleBirr", callback_data:"wit_TeleBirr"}, {text:"🏦 CBEBirr", callback_data:"wit_CBEBirr"}]] } });
+    } 
+    else if (text === t.am.btn_invite || text === t.en.btn_invite || text === t.or.btn_invite || text === t.ti.btn_invite || text.includes('ጋብዝ') || text.includes('Invite') || text.includes('Afeeri') || text.includes('ዕደም') || text === '/referral') { 
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        if(!user.refCode) { user.refCode = generateRefCode(); await user.save(); }
+        
+        let actualInvites = user.totalInvites || 0; 
+        let displayEarned = actualInvites * GLOBAL_SETTINGS.inviteBonus;
+
+        if (user.isPromoter) {
+            let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
+            let promoLink = `https://t.me/bingo_habesha_bot?start=promo_${user.refCode}`;
+
+            let msg = `📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>ያመጡት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>በጋባዥነት ያገኙት (Invite Bonus):</b> ${displayEarned} ETB\n💸 <b>የኮሚሽን ገቢ (Commission):</b> ${(user.promoterEarned || 0).toLocaleString()} ETB\n💰 <b>አሁን ያለው ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB\n\n`;
+            msg += `🌟 <b>እርስዎ ልዩ አስተዋዋቂ ነዎት! ከታች 2 አይነት ሊንክ አለዎት፡</b>\n\n`;
+            msg += `1️⃣ <b>የመጫወቻ ቦነስ ማግኛ ሊንክ (Normal Link):</b>\nይህንን ለሰው ሲልኩ፣ ሰውየው ሲገባ እርስዎ ወዲያውኑ የመጫወቻ ቦነስ ያገኛሉ። (ሰውየው ብር ቢያስገባ ግን ፐርሰንት የለዎትም)\n👇\n${normalLink}\n\n`;
+            msg += `2️⃣ <b>የኮሚሽን ማግኛ ሊንክ (Promoter Link):</b>\nይህንን ለሰው ሲልኩ ወዲያውኑ የመጫወቻ ቦነስ አያገኙም፣ ነገር ግን ሰውየው ብር ሲያስገባ እርስዎ የገንዘብ ፐርሰንት (ኮሚሽን) ያገኛሉ።\n👇\n${promoLink}`;
+
+            bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
+        } else {
+            let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
+            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>ያገኙት ቦነስ ጠቅላላ (Bonus Earned):</b> ${displayEarned} ETB\n💰 <b>አሁን ያለው መጫወቻ ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB`;
+            bot.sendMessage(chatId, ln.invite_msg(normalLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
+        }
+    } 
+    else if (text === t.am.btn_promo || text === t.en.btn_promo || text === t.or.btn_promo || text === t.ti.btn_promo || text.includes('ድርጅቱን አስተዋውቅ') || text.includes('አስተዋውቅ') || text.includes('Promote') || text.includes('Promoter')) { 
+        if(!user) return bot.sendMessage(chatId, ln.err_reg_first); 
+        if(user.isPromoter) {
+            bot.sendMessage(chatId, "📊 <b>የአስተዋዋቂ ዳሽቦርድ (Promoter Dashboard)</b>\n\nከታች ያለውን ቁልፍ ተጭነው መረጃዎን ይመልከቱ፣ እንዲሁም ያገኙትን ኮሚሽን ወጪ (Withdraw) ያድርጉ።", {
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [[{ text: "🚀 ዳሽቦርድ ክፈት (Open Dashboard)", web_app: { url: `${WEB_URL}/promoter?phone=${user.phone}&pass=${user.password}` } }]]
+                }
+            });
+        } else {
+            bot.sendMessage(chatId, "🗣 <b>ልዩ አስተዋዋቂ (Promoter) ይሁኑ!</b>\n\nልዩ አስተዋዋቂ ለመሆን እና ኮሚሽን በየቀኑ ለመሰብሰብ እባክዎ አድሚን ያናግሩ: <b>@bingohabesha</b>", { parse_mode: "HTML", ...getMainMenu(user) });
+        }
+    } 
+    else if (text === t.am.btn_guide || text === t.en.btn_guide || text === t.or.btn_guide || text === t.ti.btn_guide || text.includes('መመሪያ') || text.includes('Guide') || text.includes('Qajeelfama') || text.includes('መምርሒ')) { 
+        if(!user) return; 
+        let langParam = user.language || 'am';
+        let guideTxt = langParam === 'en' ? "Open Guide" : (langParam === 'or' ? "Qajeelfama Bani" : (langParam === 'ti' ? "መምርሒ ክፈት" : "መመሪያ ክፈት"));
+        bot.sendMessage(chatId, "📖 <b>እንዴት መጫወት እና ማሸነፍ ይቻላል? (How to Play)</b>\n\nከታች ያለውን ቁልፍ በመጫን በምስል የተደገፈ መመሪያ ይመልከቱ።", { 
+            parse_mode: "HTML", 
+            reply_markup: { inline_keyboard: [[{ text: `📖 ${guideTxt}`, web_app: { url: `${WEB_URL}/guide?lang=${langParam}` } }]] }
+        }); 
+    }
+    else if (text === t.am.btn_help || text === t.en.btn_help || text === t.or.btn_help || text === t.ti.btn_help || text.includes('እርዳታ') || text.includes('Help') || text.includes('Gargaarsa') || text.includes('ሓገዝ') || text === '/help') { 
+        if(!user) return; 
+        bot.sendMessage(chatId, "💬 <b>ማንኛውም ጥያቄ ወይም አስተያየት ካለዎት አድሚኑን ቀጥታ በ @bingohabesha ያናግሩ።</b>", { parse_mode: "HTML", ...getMainMenu(user) }); 
+    } 
+    else if (text === t.am.btn_lang || text === t.en.btn_lang || text === t.or.btn_lang || text === t.ti.btn_lang || text.includes('ቋንቋ') || text.includes('Language') || text === '/lang') { 
+        if(!user) return; 
+        bot.sendMessage(chatId, "እባክዎ ቋንቋ ይምረጡ (Choose Language):", { 
+            reply_markup: { 
+                inline_keyboard: [
+                    [{text: "🇪🇹 አማርኛ", callback_data: "lang_am"}, {text: "🇺🇸 English", callback_data: "lang_en"}],
+                    [{text: "🌳 Afaan Oromoo", callback_data: "lang_or"}, {text: "🇪🇷 ትግርኛ", callback_data: "lang_ti"}]
+                ] 
+            } 
+        }); 
+    } 
+    else if (text === t.am.btn_rules || text === t.en.btn_rules || text === t.or.btn_rules || text === t.ti.btn_rules || text.includes('ደንቦች') || text.includes('Rules') || text.includes('Seera') || text.includes('ሕግታት')) { 
+        if(!user) return; 
+        bot.sendMessage(chatId, ln.rules_msg, { parse_mode: "HTML", ...getMainMenu(user) }); 
+    } 
+    
+    else if (state.step === 'awaiting_dep_amt') {
+        state.amount = parseFloat(text); if(isNaN(state.amount) || state.amount < 50) return bot.sendMessage(chatId, ln.invalid_amt(50), cancelKeyboard(ln));
+        bot.sendMessage(chatId, ln.enter_sms(state.amount), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_dep_sms';
+    } 
+    else if (state.step === 'awaiting_dep_sms') {
+        if(user) { 
+            let txRef = getTxRef(text);
+            if (!txRef) { return bot.sendMessage(chatId, "❌ ትክክለኛ የባንክ ማረጋገጫ (TxRef) ከፅሁፉ ውስጥ አልተገኘም። እባክዎ ትክክለኛውን የባንክ SMS ይላኩ።", { parse_mode: "HTML", ...getMainMenu(user) }); }
+            let isUsed = await isSmsAlreadyUsed(text);
+            if (isUsed) { 
+                await SystemLog.create({ phone: user.phone, actionType: "Fake Deposit Attempt", details: `Tried to use existing TxRef: ${txRef}`, severity: "High" });
+                return bot.sendMessage(chatId, "❌ ያስገቡት sms (TxRef) ቀድሞ ጥቅም ላይ ውሏል!", { parse_mode: "HTML", ...getMainMenu(user) }); 
+            }
+
+            await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
+            bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
+            await autoApprovePendingDeposits(); 
+        }
+        state.step = 'idle';
+    } 
+    else if (state.step === 'awaiting_wit_acc') {
+        state.destinationPhone = text.trim(); 
+        bot.sendMessage(chatId, ln.enter_wit_amt(state.destinationPhone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); state.step = 'awaiting_wit_amt';
+    }
+    else if (state.step === 'awaiting_wit_amt') {
+        state.amount = parseFloat(text); 
+        if(isNaN(state.amount) || state.amount < GLOBAL_SETTINGS.minWithdrawLimit) return bot.sendMessage(chatId, ln.invalid_amt(GLOBAL_SETTINGS.minWithdrawLimit), cancelKeyboard(ln));
+        if(user) {
+            if(user.mainBalance < state.amount) return bot.sendMessage(chatId, ln.insufficient, { ...getMainMenu(user) });
+            user.mainBalance -= state.amount; await user.save(); await new Transaction({ phone: user.phone, type: 'withdraw', amount: state.amount, method: state.method, smsText: `Transfer to: ${state.destinationPhone}` }).save();
+            bot.sendMessage(chatId, ln.wit_success(state.amount, state.destinationPhone), { parse_mode: "HTML", ...getMainMenu(user) });
+        }
+        state.step = 'idle';
+    }
+    botState[chatId] = state;
+});
+
+bot.on('callback_query', async (query) => {
+    const chatId = query.message.chat.id; const data = query.data;
+    let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
+    if(data.startsWith('lang_')) { if(user) { user.language = data.split('_')[1]; await user.save(); ln = getLang(user); bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); } bot.answerCallbackQuery(query.id); return; }
+    
+    if (data === 'claim_promo') {
+        if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
+        let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
+        if (!activeBonus) return bot.answerCallbackQuery(query.id, { text: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!", show_alert: true });
+        if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
+        if (activeBonus.claimedBy.includes(user.phone)) return bot.answerCallbackQuery(query.id, { text: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!", show_alert: true });
+        activeBonus.claimedBy.push(user.phone); activeBonus.currentClaims += 1; await activeBonus.save(); user.playBalance += activeBonus.amount; await user.save();
+        io.emit('balance_updated', user.phone); return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
+    }
+
+    if(!botState[chatId]) botState[chatId] = { step: 'idle' }; let state = botState[chatId];
+    
+    if (data.startsWith('dep_')) {
+        state.method = data.split('_')[1]; state.step = 'awaiting_dep_amt';
+        let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
+        let warn = state.method === 'TeleBirr' ? ln.warn_telebirr : (state.method === 'CBEBirr' ? ln.warn_cbebirr : "");
+        bot.sendMessage(chatId, ln.bank_info(state.method, warn, accInfo.name, accInfo.num), { parse_mode: "HTML", ...cancelKeyboard(ln) });
+    }
+    else if (data.startsWith('wit_')) { 
+        if(!user) return bot.answerCallbackQuery(query.id);
+        state.method = data.split('_')[1]; 
+        state.destinationPhone = user.phone; 
+        state.step = 'awaiting_wit_amt'; 
+        bot.sendMessage(chatId, ln.enter_wit_amt(user.phone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
+    }
+    botState[chatId] = state; bot.answerCallbackQuery(query.id);
+});
+
+const basicAuth = (req, res, next) => {
+    const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+    
+    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
+        return next(); 
+    }
+    if (req.path === '/finance' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
+        return next(); 
+    }
+    
+    res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
+    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin" ወይም "finance") እና Password ያስገቡ።</p>');
+};
+
+app.get('/guide', (req, res) => {
+    let lang = req.query.lang || 'am';
+    
+    const guideTrans = {
+        am: {
+            title: "📖 የጨዋታው መመሪያ እና ደንቦች",
+            rule1_title: "1️⃣ የሂሳብ ደንቦች:",
+            rule1_a: "🟢 <b>መጫወቻ ሂሳብ (Play Balance):</b> ካርድ ገዝቶ ለመጫወት ብቻ የሚያገለግል ሲሆን ወጪ (Withdraw) ማድረግ አይቻልም።",
+            rule1_b: "🟡 <b>ዋና ሂሳብ (Main Balance):</b> ተጫውተው ሲያሸንፉ የሚገባበት ሲሆን፣ በማንኛውም ሰዓት ወጪ ማድረግ ይችላሉ።",
+            rule2_title: "2️⃣ የገቢ ደንብ:",
+            rule2_a: "👉 ከ ቴሌብር ወደ ቴሌብር አካውንት ብቻ!",
+            rule2_b: "👉 ከ ሲቢኢ ብር ወደ ሲቢኢ ብር አካውንት ብቻ ያስገቡ።",
+            rule3_title: "3️⃣ የጨዋታው ሂደት:",
+            rule3_a: "ካርድ ሲገዙ ከ 1 እስከ 75 ባሉት ቁጥሮች የተሞላ 5x5 ካርቴላ ይሰጥዎታል። ጨዋታው ሲጀመር ሲስተሙ በየ 3 ሰከንዱ ቁጥሮችን ይጠራል። ሲስተሙ ራሱ ያጠቁርልዎታል (ምንም መንካት አይጠበቅብዎትም)።",
+            win_title: "🏆 ማሸነፊያ መንገዶች (Winning Patterns)",
+            win_desc: "ከታች ባሉት አራት ቅርፆች መሰረት ከተጠሩት ቁጥሮች አምስቱን ካገኙ <b>BINGO</b> ብለው ያሸንፋሉ!",
+            horiz: "1. በአግድም (Horizontal)",
+            vert: "2. ወደ ታች (Vertical)",
+            diag: "3. በማዕዘን (Diagonal / X)",
+            corner: "4. አራቱ ጥግ (Four Corners)",
+            hint: "💡 ሲስተሙ ራሱ አሸናፊውን ስለሚለይ ምንም መነካት አይጠበቅብዎትም!",
+            back: "🔙 ወደ ኋላ ተመለስ"
+        },
+        en: {
+            title: "📖 Game Guide & Rules",
+            rule1_title: "1️⃣ Account Rules:",
+            rule1_a: "🟢 <b>Play Balance:</b> Used only for buying tickets. Cannot be withdrawn.",
+            rule1_b: "🟡 <b>Main Balance:</b> Your winnings go here. Can be withdrawn at any time.",
+            rule2_title: "2️⃣ Deposit Rules:",
+            rule2_a: "👉 TeleBirr to TeleBirr account ONLY!",
+            rule2_b: "👉 CBEBirr to CBEBirr account ONLY.",
+            rule3_title: "3️⃣ Gameplay:",
+            rule3_a: "When you buy a ticket, you get a 5x5 grid with numbers 1-75. The system calls a number every 3 seconds and automatically marks it for you.",
+            win_title: "🏆 Winning Patterns",
+            win_desc: "Match 5 numbers based on the four patterns below to win <b>BINGO</b>!",
+            horiz: "1. Horizontal",
+            vert: "2. Vertical",
+            diag: "3. Diagonal (X)",
+            corner: "4. Four Corners",
+            hint: "💡 The system detects winners automatically. You don't need to touch anything!",
+            back: "🔙 Go Back"
+        }
+    };
+
+    let tr = guideTrans[lang] || guideTrans['am'];
+
+    let html = `
+    <!DOCTYPE html>
+    <html lang="${lang}">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${tr.title}</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 20px; text-align: center; margin: 0; padding-bottom: 90px !important; }
+            h2 { color: #4ade80; margin-top: 10px; }
+            .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 280px; margin: 15px auto 30px auto; background: #1e293b; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+            .cell { background: #334155; padding: 12px 0; border-radius: 6px; font-weight: bold; font-size: 15px; color: #cbd5e1; display:flex; align-items:center; justify-content:center; }
+            .hl { background: #fbbf24; color: black; box-shadow: 0 0 10px rgba(251,191,36,0.6); transform: scale(1.05); }
+            .title { color: #38bdf8; font-size: 18px; font-weight: bold; border-bottom: 2px dashed #334155; display: inline-block; padding-bottom: 5px; margin-bottom: 5px; }
+            .free { background: #0f172a; color: white; border: 1px solid #4ade80; font-size: 12px; }
+            .free.hl { background: #4ade80; color: black; border: none; }
+            
+            .back-btn-wrapper {
+                position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
+                width: 90%; max-width: 400px; z-index: 9999;
+            }
+            .back-btn-wrapper button {
+                width: 100%; padding: 16px; border-radius: 14px;
+                background: linear-gradient(135deg, #1e293b, #0f172a);
+                border: 2px solid #4ade80; color: #4ade80;
+                font-size: 16px; font-weight: 900;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.8); cursor: pointer;
+                text-transform: uppercase; letter-spacing: 1px;
+                transition: 0.3s;
+            }
+            .back-btn-wrapper button:active { transform: scale(0.95); }
+        </style>
+    </head>
+    <body>
+        <div style="text-align: left; margin-bottom: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; background: rgba(0,0,0,0.3); display: inline-block; padding: 5px 10px; border-radius: 6px; float: left;">
+            <span style="color: #4ade80;">ቢንጎ</span> <span style="color: #ffffff;">ሀበሻ</span>
+        </div>
+        <div style="clear: both;"></div>
+
+        <h2>${tr.title}</h2>
+        
+        <div style="text-align: left; background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 30px; font-size: 14px; line-height: 1.6; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            <b style="color:#fbbf24;">${tr.rule1_title}</b><br>
+            ${tr.rule1_a}<br>
+            ${tr.rule1_b}<br><br>
+            
+            <b style="color:#fbbf24;">${tr.rule2_title}</b><br>
+            ${tr.rule2_a}<br>
+            ${tr.rule2_b}<br><br>
+            
+            <b style="color:#fbbf24;">${tr.rule3_title}</b><br>
+            ${tr.rule3_a}
+        </div>
+
+        <h2 style="color: #38bdf8;">${tr.win_title}</h2>
+        <p style="color:#94a3b8; font-size:14px; margin-bottom: 30px;">${tr.win_desc}</p>
+
+        <div class="title">${tr.horiz}</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell hl">16</div><div class="cell hl">31</div><div class="cell hl">46</div><div class="cell hl">61</div>
+            <div class="cell">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell">3</div><div class="cell">18</div><div class="cell free">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell">49</div><div class="cell">64</div>
+            <div class="cell">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell">65</div>
+        </div>
+
+        <div class="title">${tr.vert}</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell">61</div>
+            <div class="cell hl">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell hl">3</div><div class="cell">18</div><div class="cell free hl">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell hl">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell">49</div><div class="cell">64</div>
+            <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell">65</div>
+        </div>
+
+        <div class="title">${tr.diag}</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell">61</div>
+            <div class="cell">2</div><div class="cell hl">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell">3</div><div class="cell">18</div><div class="cell free hl">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell hl">49</div><div class="cell">64</div>
+            <div class="cell">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
+        </div>
+
+        <div class="title">${tr.corner}</div>
+        <div class="grid">
+            <div class="cell hl">1</div><div class="cell">16</div><div class="cell">31</div><div class="cell">46</div><div class="cell hl">61</div>
+            <div class="cell">2</div><div class="cell">17</div><div class="cell">32</div><div class="cell">47</div><div class="cell">62</div>
+            <div class="cell">3</div><div class="cell">18</div><div class="cell free">FREE</div><div class="cell">48</div><div class="cell">63</div>
+            <div class="cell">4</div><div class="cell">19</div><div class="cell">34</div><div class="cell">49</div><div class="cell">64</div>
+            <div class="cell hl">5</div><div class="cell">20</div><div class="cell">35</div><div class="cell">50</div><div class="cell hl">65</div>
+        </div>
+        
+        <p style="color:#4ade80; font-size:12px; margin-top:20px; border:1px dashed #4ade80; padding:10px; border-radius:8px;">${tr.hint}</p>
+
+        <div class="back-btn-wrapper">
+            <button onclick="window.location.href='/'">${tr.back}</button>
+        </div>
+
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
+
+app.get('/promoter', async (req, res) => {
+    let phone = req.query.phone;
+    let pass = req.query.pass;
+    let user = await User.findOne({ phone, password: pass });
+    if(!user || !user.isPromoter) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ Unauthorized / የተፈቀደ አስተዋዋቂ አይደሉም!</h1>");
+
+    let referredUsers = await User.find({ referredBy: user.phone });
+    let activeDepositedUsers = referredUsers.filter(u => u.totalDeposited > 0).length;
+
+    let txHistory = await Transaction.find({ phone: user.phone, method: "Promoter Comm" }).sort({ date: -1 }).limit(15);
+    
+    let myCode = user.refCode ? user.refCode : user.phone;
+    let link = `https://t.me/bingo_habesha_bot?start=promo_${myCode}`;
+
+    let lang = user.language || 'am';
+    
+    const proTrans = {
+        am: {
+            dash: "📊 ዳሽቦርድ (Dashboard)",
+            brought: "👥 ያመጧቸው (Total)", active: "✅ ገቢ ያደረጉ (Active)", bal: "💰 ሂሳብ (Balance)", earned: "🎁 የተሰበሰበ ኮሚሽን",
+            perc: "📈 የኮሚሽን መጠንዎ", link_title: "🔗 ኮሚሽን ማግኛ ሊንክ (Promo Link):", copy_hint: "📋 ይጫኑ ኮፒ ለማድረግ", copied: "✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!",
+            wit_title: "💸 ኮሚሽን ወጪ ማድረጊያ", wit_desc: "ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ",
+            amt_ph: "የብር መጠን (ቢያንስ 1000 ብር)", acc_ph: "የባንክ አካውንት (ወይም ስልክ)", btn_wit: "ወጪ አድርግ (Withdraw)",
+            wait: "እባክዎ ይጠብቁ...", alert_fill: "እባክዎ መረጃውን በትክክል ይሙሉ!", err_conn: "ግንኙነት ተቋርጧል",
+            hist_title: "📜 የወጪ ታሪክ (Withdraw History)", date: "ቀን", amt: "መጠን", status: "ሁኔታ", no_hist: "ምንም ታሪክ የለም (No History)"
+        },
+        en: {
+            dash: "📊 Promoter Dashboard",
+            brought: "👥 Total Invited", active: "✅ Active Depositors", bal: "💰 Unpaid Balance", earned: "🎁 Total Earned",
+            perc: "📈 Your Commission %", link_title: "🔗 Your Share Link:", copy_hint: "📋 Click to Copy", copied: "✅ Link Copied!",
+            wit_title: "💸 Withdraw Commission", wit_desc: "Withdraw your earned commissions directly",
+            amt_ph: "Amount (Min 1000 ETB)", acc_ph: "Bank Account (or Phone)", btn_wit: "Withdraw Now",
+            wait: "Please wait...", alert_fill: "Please fill in all details!", err_conn: "Connection Error",
+            hist_title: "📜 Withdrawal History", date: "Date", amt: "Amount", status: "Status", no_hist: "No History Found"
+        }
+    };
+    
+    let pr = proTrans[lang] || proTrans['am'];
+
+    let html = `
+    <!DOCTYPE html>
+    <html lang="${lang}">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Promoter Dashboard</title>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
+            .card { background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+            .title { font-size: 22px; font-weight: bold; color: #38bdf8; text-align: center; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+            .stat-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #38bdf8; display:flex; justify-content: space-between; align-items:center;}
+            .stat-box.green { border-left-color: #34d399; }
+            .stat-box.orange { border-left-color: #fb923c; }
+            .stat-title { font-size: 13px; color: #94a3b8; margin-bottom:5px;}
+            .stat-value { font-size: 22px; font-weight: bold; color: #fff; }
+            .input-group { margin-bottom: 15px; }
+            input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box; font-size:16px; outline:none; text-align:center;}
+            input:focus { border-color: #fb923c; }
+            .btn { background: #fb923c; color: #fff; border: none; padding: 16px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+            .btn:active { transform: scale(0.98); }
+            .link-box { background: #020617; padding: 15px; border-radius: 8px; font-size: 13px; color: #34d399; word-break: break-all; text-align:center; border: 1px dashed #34d399; cursor:pointer;}
+            .loader { display: none; margin-top: 10px; text-align: center; color: #fb923c; font-size:14px;}
+        </style>
+    </head>
+    <body>
+        <div style="text-align: left; margin-bottom: 15px; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; background: rgba(0,0,0,0.3); display: inline-block; padding: 5px 10px; border-radius: 6px;">
+            <span style="color: #4ade80;">ቢንጎ</span> <span style="color: #ffffff;">ሀበሻ</span>
+        </div>
+
+        <div class="card">
+            <div class="title">${pr.dash}</div>
+            
+            <div class="stat-box">
+                <div style="flex:1;">
+                    <div class="stat-title">${pr.brought}</div>
+                    <div class="stat-value">${referredUsers.length}</div>
+                </div>
+                <div style="flex:1; border-left: 1px solid #334155; padding-left: 15px;">
+                    <div class="stat-title">${pr.active}</div>
+                    <div class="stat-value" style="color:#4ade80;">${activeDepositedUsers}</div>
+                </div>
+                <div style="font-size:30px; margin-left: 10px;">🧑‍🤝‍🧑</div>
+            </div>
+
+            <div class="stat-box orange">
+                <div><div class="stat-title">${pr.bal}</div><div class="stat-value" id="unpaidBal">${(user.promoterUnpaidBalance || 0).toLocaleString()} ETB</div></div>
+                <div style="font-size:30px;">💳</div>
+            </div>
+
+            <div class="stat-box green">
+                <div><div class="stat-title">${pr.earned}</div><div class="stat-value">${(user.promoterEarned || 0).toLocaleString()} ETB</div></div>
+                <div style="font-size:30px;">💸</div>
+            </div>
+
+            <div class="stat-box" style="border-left-color: #a855f7;">
+                <div><div class="stat-title">${pr.perc}</div><div class="stat-value" style="color:#a855f7;">${user.promoterPercent}%</div></div>
+                <div style="font-size:30px;">🔥</div>
+            </div>
+
+            <h3 style="font-size:14px; color:#94a3b8; margin-top:20px;">${pr.link_title}</h3>
+            <div class="link-box" onclick="navigator.clipboard.writeText('${link}'); alert('${pr.copied}');">${link} <br><br><span style="color:white; font-size:11px; background:#1e293b; padding:5px 10px; border-radius:5px;">${pr.copy_hint}</span></div>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #fb923c;">
+            <h3 style="margin-top:0; color:#fb923c; text-align:center;">${pr.wit_title}</h3>
+            <p style="color:#94a3b8; font-size:12px; text-align:center; margin-bottom:20px;">${pr.wit_desc}</p>
+            <div class="input-group">
+                <input type="number" id="wAmt" placeholder="${pr.amt_ph}">
+            </div>
+            <div class="input-group">
+                <input type="text" id="wAcc" placeholder="${pr.acc_ph}">
+            </div>
+            <button class="btn" id="wBtn" onclick="requestWithdraw()">${pr.btn_wit}</button>
+            <div class="loader" id="loader">${pr.wait}</div>
+        </div>
+
+        <div class="card" style="margin-top:20px; padding: 15px;">
+            <h3 style="color:#38bdf8; text-align:center; margin-top:0;">${pr.hist_title}</h3>
+            <table style="width:100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #475569; color:#94a3b8;">
+                        <th style="padding: 10px 5px;">${pr.date}</th>
+                        <th style="padding: 10px 5px;">${pr.amt}</th>
+                        <th style="padding: 10px 5px;">${pr.status}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${txHistory.length > 0 ? txHistory.map(tx => `
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="padding: 10px 5px;">${new Date(tx.date).toLocaleDateString()}</td>
+                            <td style="padding: 10px 5px; font-weight:bold; color:#fb923c;">${tx.amount} ETB</td>
+                            <td style="padding: 10px 5px;">
+                                <span style="background:${tx.status==='Approved'?'#064e3b':(tx.status==='Pending'?'#78350f':'#7f1d1d')}; color:${tx.status==='Approved'?'#34d399':(tx.status==='Pending'?'#fbbf24':'#f87171')}; padding: 3px 8px; border-radius: 4px; font-size:11px;">${tx.status}</span>
+                            </td>
+                        </tr>
+                    `).join('') : `<tr><td colspan="3" style="text-align:center; padding: 15px; color:#94a3b8;">${pr.no_hist}</td></tr>`}
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            async function requestWithdraw() {
+                let amt = document.getElementById('wAmt').value;
+                let acc = document.getElementById('wAcc').value;
+                if(!amt || !acc) return alert('${pr.alert_fill}');
+                
+                document.getElementById('wBtn').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+
+                try {
+                    let res = await fetch('/api/promoter/withdraw', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ phone: '${phone}', pass: '${pass}', amount: amt, account: acc })
+                    });
+                    let data = await res.json();
+                    alert(data.message);
+                    if(data.success) { window.location.reload(); }
+                } catch(e) {
+                    alert('${pr.err_conn}');
+                }
+                
+                document.getElementById('wBtn').style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
+
+app.get('/promo_app', async (req, res) => {
+    let phone = req.query.phone;
+    let pass = req.query.pass;
+    let user = await User.findOne({ phone, password: pass });
+    if(!user) return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ Unauthorized</h1>");
+
+    let html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Promo Code - Bingo Habesha</title>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap');
+            body { font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden; position: relative;}
+            
+            .btn-back { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.5); border: 1px solid #334155; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 14px; transition: 0.3s; z-index: 1000;}
+            .btn-back:hover { background: rgba(74, 222, 128, 0.2); border-color: #4ade80; }
+
+            .brand-header { background: rgba(0,0,0,0.4); border: 1px solid #334155; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: inline-block;}
+            .brand-header span:first-child { color: #4ade80; font-weight: 900; font-size: 24px; letter-spacing: 2px;}
+            .brand-header span:last-child { color: #ffffff; font-weight: 900; font-size: 24px; letter-spacing: 2px;}
+
+            .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 20px; padding: 35px 25px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center;}
+            
+            .icon-gift { font-size: 50px; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5)); animation: bounce 2s infinite;}
+            @keyframes bounce { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+
+            h2 { color: #fbbf24; margin-top: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+            p { color: #94a3b8; font-size: 13px; margin-bottom: 25px; line-height: 1.6; }
+            
+            input { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #334155; background: rgba(0,0,0,0.5); color: white; box-sizing: border-box; font-size:20px; font-weight: 900; outline:none; text-align:center; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px; transition: 0.3s;}
+            input:focus { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); background: rgba(0,0,0,0.8);}
+            
+            .btn { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4); margin-bottom: 10px;}
+            .btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);}
+            .btn:hover { background: linear-gradient(135deg, #fcd34d, #fbbf24); }
+
+            .loader { display: none; margin-top: 15px; color: #4ade80; font-size:14px; font-weight: bold; animation: pulse 1s infinite;}
+            @keyframes pulse { 0% {opacity:0.5;} 100% {opacity:1;} }
+        </style>
+    </head>
+    <body>
+        <a href="/?phone=${phone}&pass=${pass}" class="btn-back">🔙 ተመለስ</a>
+
+        <div class="brand-header">
+            <span>ቢንጎ</span> <span>ሀበሻ</span>
+        </div>
+
+        <div class="card">
+            <div class="icon-gift">🎁</div>
+            <h2>ኩፖን (Promo Code)</h2>
+            <p>በተለያዩ መንገዶች ያገኙትን የፕሮሞ ኮድ እዚህ በማስገባት የተዘጋጀልዎትን ቦነስ ይቀበሉ!</p>
+            
+            <input type="text" id="pCode" placeholder="ኮድ ያስገቡ..." autocomplete="off">
+            
+            <button class="btn" id="claimBtn" onclick="claimCode()">🚀 ቦነስ ተቀበል</button>
+            <div class="loader" id="loader">እባክዎ ይጠብቁ...</div>
+        </div>
+
+        <script>
+            async function claimCode() {
+                let code = document.getElementById('pCode').value.trim();
+                if(!code) return alert('እባክዎ ኮድ ያስገቡ!');
+                
+                document.getElementById('claimBtn').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+
+                try {
+                    let res = await fetch('/api/claim-promo-code', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ phone: '${phone}', pass: '${pass}', code: code })
+                    });
+                    let data = await res.json();
+                    
+                    if(data.success) {
+                        alert("✅ " + data.message);
+                        document.getElementById('pCode').value = '';
+                    } else {
+                        alert("❌ " + data.message);
+                    }
+                } catch(e) {
+                    alert('❌ Connection Error!');
+                }
+                
+                document.getElementById('claimBtn').style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
+
+app.get('/admin', basicAuth, (req, res) => {
+    let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
+    if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>");
+});
+
+app.get('/finance', basicAuth, (req, res) => {
+    let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html');
+    if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>");
+});
+
+app.get('*', (req, res) => {
+    let target = fs.existsSync(path.join(__dirname, 'index.html')) ? path.join(__dirname, 'index.html') : path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(target)) {
+        let html = fs.readFileSync(target, 'utf8');
+        
+        let maintenanceScript = `
+        <style>
+            #dynamic-maintenance {
+                display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(0,0,0,0.5); z-index: 9999999; flex-direction: column; align-items: center;
+                justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;
+                backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            }
+            body.paused-mode > *:not(#dynamic-maintenance) {
+                filter: blur(12px) grayscale(50%);
+                pointer-events: none;
+                user-select: none;
+            }
+            
+            .shared-alert-box {
+                background: linear-gradient(135deg, rgba(22,163,74,0.3), rgba(5,150,105,0.3));
+                border: 2px solid #4ade80;
+                color: #ffffff;
+                padding: 12px;
+                border-radius: 12px;
+                margin-top: 15px;
+                font-size: 15px;
+                font-weight: bold;
+                text-align: center;
+                box-shadow: 0 0 15px rgba(74,222,128,0.5);
+                animation: popBlink 1s infinite alternate;
+                width: 90%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            @keyframes popBlink { 
+                from { transform: scale(1); box-shadow: 0 0 10px rgba(74,222,128,0.4); } 
+                to { transform: scale(1.05); box-shadow: 0 0 25px rgba(74,222,128,0.8); } 
+            }
+        </style>
+
+        <div id="dynamic-maintenance">
+            <h1 style="color:#ea580c;font-size:50px;margin-bottom:10px;font-family:sans-serif;text-shadow: 0 4px 10px rgba(0,0,0,0.8);">⚠️ ጥገና ላይ ነን!</h1>
+            <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
+            <p style="font-size:18px;color:#f8fafc;max-width:500px;line-height:1.6;font-family:sans-serif;background:rgba(0,0,0,0.7);padding:20px;border-radius:12px;border:1px solid #ea580c;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                let depBanner = document.querySelector('.dep-banner');
+                if (depBanner && !document.getElementById('dep-strict-warn')) {
+                    let warnHTML = '<div id="dep-strict-warn" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 11px; color: #fde047; text-align: center;">⚠️ <b>ማሳሰቢያ:</b> እባክዎ ከ ቴሌብር ወደ ቴሌብር፣ እንዲሁም ከ ሲቢኢ ብር ወደ ሲቢኢ ብር (CBE Birr) ብቻ ገቢ ያድርጉ።</div>';
+                    depBanner.insertAdjacentHTML('afterend', warnHTML);
+                }
+
+                if (typeof io !== 'undefined') {
+                    const blurSocket = io();
+                    
+                    blurSocket.on('game_status', (data) => {
+                        if (data.state === 'MAINTENANCE') {
+                            document.body.classList.add('paused-mode');
+                            document.getElementById('dynamic-maintenance').style.display = 'flex';
+                        } else {
+                            document.body.classList.remove('paused-mode');
+                            document.getElementById('dynamic-maintenance').style.display = 'none';
+                        }
+
+                        if (data.minWithdrawLimit) {
+                            let witInputs = document.querySelectorAll('input[type="number"]');
+                            witInputs.forEach(input => {
+                                let ph = input.getAttribute('placeholder') || '';
+                                if (ph.includes('ቢያንስ') || ph.includes('Min')) {
+                                    if (ph.includes('ብር') || ph.includes('ETB')) {
+                                        input.setAttribute('placeholder', 'የብር መጠን (ቢያንስ ' + data.minWithdrawLimit + ' ብር)');
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    blurSocket.on('game_winner', (data) => {
+                        let oldAlert = document.getElementById('shared-alert-msg');
+                        if(oldAlert) oldAlert.remove();
+
+                        setTimeout(() => {
+                            let amIWinner = false;
+                            if (window.currentUser && window.currentUser.phone && data.phone.includes(window.currentUser.phone)) {
+                                amIWinner = true;
+                            }
+
+                            let titleEl = document.querySelector('.winner-card h3');
+                            let nameEl = document.getElementById('win-name');
+                            let winnerCard = document.querySelector('.winner-card');
+
+                            if (amIWinner) {
+                                if (titleEl) {
+                                    titleEl.innerHTML = "🎉 እንኳን ደስ አሎት! 🎉";
+                                    titleEl.style.color = "#4ade80";
+                                    titleEl.style.fontSize = "16px";
+                                }
+                                if (nameEl) {
+                                    nameEl.innerHTML = "እርስዎ አሸንፈዋል! 👏";
+                                    nameEl.style.color = "#fbbf24";
+                                }
+
+                                let alertBox = document.createElement('div');
+                                alertBox.id = 'shared-alert-msg';
+                                alertBox.className = 'shared-alert-box';
+
+                                if (data.isShared) {
+                                    alertBox.innerHTML = "✨ ከሌሎች <b>" + (data.winnerCount - 1) + "</b> ሰዎች ጋር አሸንፈዋል! ✨<br><span style='font-size:12px; color:#ffffff; font-weight:normal; display:block; margin-top:5px;'>የእርስዎ ድርሻ: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                } else {
+                                    alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
+                                    alertBox.style.borderColor = "#fbbf24";
+                                    alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
+                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                }
+                                if(winnerCard) winnerCard.appendChild(alertBox);
+
+                            } else {
+                                if (titleEl) {
+                                    titleEl.innerHTML = "አሸናፊ (WINNER)";
+                                    titleEl.style.color = "white";
+                                }
+                                if (data.isShared) {
+                                    let alertBox = document.createElement('div');
+                                    alertBox.id = 'shared-alert-msg';
+                                    alertBox.className = 'shared-alert-box';
+                                    alertBox.innerHTML = "✨ ሽልማቱ በእነዚህ <b>" + data.winnerCount + "</b> ሰዎች መካከል እኩል ተካፋይ ሆኗል! ✨<br><span style='font-size:12px; color:#4ade80; font-weight:normal; display:block; margin-top:5px;'>እያንዳንዳቸው: " + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB</span>";
+                                    if(winnerCard) winnerCard.appendChild(alertBox);
+                                }
+                            }
+                        }, 150); 
+                    });
+                }
+            });
+        </script>
+        `;
+        
+        html = html.replace('<body>', '<body>\n' + maintenanceScript);
+        
+        if (GLOBAL_SETTINGS.isGamePaused) {
+            html = html.replace('<body>', '<body class="paused-mode">');
+        }
+        
+        res.send(html);
+    } else {
+        res.send("<h1>Bingo Habesha System is Running.</h1>");
+    }
+});
+
+setInterval(async () => {
+    try {
+        await autoApprovePendingDeposits();
+    } catch (error) {}
+}, 30000); 
+
+setInterval(async () => {
+    try {
+        await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
+        await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
+
+        let negativeUsers = await User.find({ $or: [{mainBalance: {$lt: 0}}, {playBalance: {$lt: 0}}], diagnosticNegativeReported: { $ne: true } });
+        for (let u of negativeUsers) {
+            await SystemLog.create({ 
+                phone: u.phone, 
+                actionType: "CRITICAL: Negative Balance Detected", 
+                details: `System Alert: Main: ${u.mainBalance}, Play: ${u.playBalance}`, 
+                severity: "High" 
+            });
+            u.diagnosticNegativeReported = true;
+            await u.save();
+        }
+
+        let fraudUsers = await User.find({ totalDeposited: 0, played: { $gte: 5 }, diagnosticFraudReported: { $ne: true } });
+        for (let u of fraudUsers) {
+            await SystemLog.create({ 
+                phone: u.phone, 
+                actionType: "FRAUD ALERT: Bonus Exploiter", 
+                details: `Played ${u.played} times without making any deposit.`, 
+                severity: "High" 
+            });
+            u.diagnosticFraudReported = true;
+            await u.save();
+        }
+    } catch (error) {
+        console.log("System Check Error:", error);
+    }
+}, 15 * 60 * 1000); 
+
+server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
 
