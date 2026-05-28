@@ -44,7 +44,6 @@
         .stat-card h3 { margin: 0; color: var(--text-gray); font-size: 12px; text-transform: uppercase;}
         .stat-card h2 { margin: 10px 0 0 0; font-size: 20px; font-weight: 900;}
         
-        /* አዲስ የ Live players በተን hover */
         .live-player-box:hover { background: rgba(168, 85, 247, 0.1); border-color: var(--purple) !important; }
 
         input, select, textarea { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline: none; font-size: 14px;}
@@ -173,7 +172,6 @@
                     </div>
                 </div>
                 
-                <!-- 🔥 የተስተካከለው የ Live Players Box 🔥 -->
                 <div class="stat-card live-player-box" style="border-bottom: 4px solid var(--purple); cursor: pointer; transition: 0.3s;" onclick="openLivePlayersModal()">
                     <h3>Live Players Now</h3>
                     <h2 style="color: var(--purple);" id="stat-live-players">0</h2>
@@ -453,7 +451,6 @@
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour (0-23)</label><input type="number" id="set-dep-end" placeholder="16"></div>
                     </div>
 
-                    <!-- 🔥 የ Deposit Banner Text 🔥 -->
                     <hr style="border-color: var(--border); margin: 15px 0;">
                     <h4 style="margin-top:0; margin-bottom: 10px; color:#f59e0b;">📣 Deposit Banner Text (የገቢ ማስታወቂያ)</h4>
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
@@ -482,7 +479,6 @@
                         <div style="flex:1;"><label style="color:var(--text-gray); font-size:11px;">End Hour</label><input type="number" id="set-wit-end" placeholder="16"></div>
                     </div>
 
-                    <!-- 🔥 የ Withdraw Warning Text 🔥 -->
                     <hr style="border-color: var(--border); margin: 15px 0;">
                     <h4 style="margin-top:0; margin-bottom: 10px; color:var(--cyan);">📣 Withdraw Warning (የወጪ ማስጠንቀቂያ)</h4>
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
@@ -553,23 +549,30 @@
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--gold);">🔥 የጌም መፈንዳያ ቦነስ (Jackpot Boost)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ይህ ብር በየዙሩ መነሻ ደራሽ (Jackpot) ላይ ይደመራል።</p>
+                    <h3 style="margin-top:0; color:var(--gold);">🔥 የጌም መፈንዳያ (Golden Jackpot)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ለተጫዋቾች በወርቃማው Alert ይታያል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ።</p>
                     <input type="number" id="set-jackpot-boost" placeholder="e.g. 500" style="margin-bottom: 15px;">
-                    <button class="action-btn btn-orange" style="width: 100%;" onclick="updateSettings('jackpot_boost')">💾 Save Jackpot Boost</button>
+                    <button class="action-btn btn-orange" style="width: 100%;" onclick="updateSettings('jackpot_boost')">💾 Save Golden Jackpot</button>
+                </div>
+
+                <div class="card" style="flex: 1; border-left: 4px solid var(--cyan); min-width: 280px;">
+                    <h3 style="margin-top:0; color:var(--cyan);">🤖 የውሸት ካርቴላ (Secret Bot Boost)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ቀስ እያለ የውሸት ካርቴላ እየገዛ Blur ያደርጋል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ።</p>
+                    <input type="number" id="set-bot-boost" placeholder="e.g. 200" style="margin-bottom: 15px;">
+                    <button class="action-btn btn-blue" style="width: 100%;" onclick="updateSettings('bot_boost')">💾 Save Secret Bot Tickets</button>
                 </div>
 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--purple); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--purple);">🏆 Win Popup Timer (Seconds)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ (Home page ላይ)</p>
+                    <h3 style="margin-top:0; color:var(--purple);">🏆 Win Popup Timer</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ</p>
                     <input type="number" id="set-win-timer" placeholder="e.g. 12" style="margin-bottom: 15px;">
                     <button class="action-btn btn-purple" style="width: 100%;" onclick="updateSettings('win_timer')">💾 Save Win Timer</button>
                 </div>
 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (Forced Winners)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ለምሳሌ: 0911..., 0922...<br><b style="color:var(--gold);">ይህ ባዶ ከሆነ ማንም ሰው በእድሉ (Randomly) ያሸንፋል።</b></p>
-                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911223344, 0988776655" style="border-color: var(--red); margin-bottom: 15px;">
+                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (Forced)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ባዶ ከሆነ Random ይሆናል።</p>
+                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922..." style="border-color: var(--red); margin-bottom: 15px;">
                     <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
                 </div>
 
@@ -625,7 +628,6 @@
 
 <!-- ================= MODALS ================= -->
 
-<!-- 🔥 አዲሱ የ Live Players ሊስት ማሳያ ሞዳል 🔥 -->
 <div class="modal" id="live-players-modal">
     <div class="modal-content" style="max-width: 450px;">
         <h3 style="color: var(--purple); margin-top:0; text-align: center;">🎮 Currently Live Players</h3>
@@ -836,7 +838,6 @@
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
-    // 🔥 አዲሱ የ Live Players List ማምጫ ፈንክሽን 🔥
     async function openLivePlayersModal() {
         document.getElementById('live-players-modal').style.display = 'flex';
         document.getElementById('live-players-list').innerHTML = `<div style="text-align:center; color:gray;">Loading list...</div>`;
@@ -910,6 +911,7 @@
                 safeUpdate('set-min-withdraw', data.settings.minWithdrawLimit !== undefined ? data.settings.minWithdrawLimit : 50);
                 
                 safeUpdate('set-jackpot-boost', data.settings.jackpotBoostAmount !== undefined ? data.settings.jackpotBoostAmount : 0);
+                safeUpdate('set-bot-boost', data.settings.botBoostAmount !== undefined ? data.settings.botBoostAmount : 0);
                 safeUpdate('set-win-timer', data.settings.winPopupTimer !== undefined ? data.settings.winPopupTimer : 12);
                 safeUpdate('set-forced-phones', data.settings.forcedWinnerPhones || '');
 
@@ -940,35 +942,20 @@
     }
     setInterval(loadLiveStats, 5000);
 
-    // 🔥 አዲሱ የተስተካከለው fullRefresh (ገፅ ላለማዝገየት) 🔥
     function fullRefresh() {
-        // ሁልግዜም Live Stats መጀመርያ ሎድ ያደርጋል
         loadLiveStats();
-        
-        // አሁን ስክሪኑ ላይ የትኛው Tab እንደተመረጠ (Active እንደሆነ) ይለያል
         let activeTabContent = document.querySelector('.tab-content.active');
         if (!activeTabContent) return;
         
         let activeTabId = activeTabContent.id;
-        
-        // የተመረጠውን Tab ብቻ ዳታ ሎድ ያደርጋል እንጂ ሁሉንም በአንድ ጊዜ ጠርቶ አያጨናንቅም
-        if (activeTabId === 'tab-pend-dep' || activeTabId === 'tab-pend-wit') {
-            loadPendingTxs();
-        } else if (activeTabId === 'tab-users') {
-            loadUsersPage(p_users);
-        } else if (activeTabId === 'tab-history') {
-            loadHistoryPage(p_hist);
-        } else if (activeTabId === 'tab-history-tx') {
-            loadTxPage(p_tx);
-        } else if (activeTabId === 'tab-promo-codes') {
-            loadPromoCodes();
-        } else if (activeTabId === 'tab-promoters') {
-            loadPromoters();
-        } else if (activeTabId === 'tab-referral') {
-            loadRefPage(p_ref);
-        }
+        if (activeTabId === 'tab-pend-dep' || activeTabId === 'tab-pend-wit') { loadPendingTxs(); } 
+        else if (activeTabId === 'tab-users') { loadUsersPage(p_users); } 
+        else if (activeTabId === 'tab-history') { loadHistoryPage(p_hist); } 
+        else if (activeTabId === 'tab-history-tx') { loadTxPage(p_tx); } 
+        else if (activeTabId === 'tab-promo-codes') { loadPromoCodes(); } 
+        else if (activeTabId === 'tab-promoters') { loadPromoters(); } 
+        else if (activeTabId === 'tab-referral') { loadRefPage(p_ref); }
 
-        // Login ስክሪኑን ደብቆ ዳሽቦርዱን ያሳያል
         document.getElementById('login-sec').style.display = 'none'; 
         document.getElementById('dash-sec').style.display = 'flex';
     }
@@ -1650,6 +1637,10 @@
         if(type === 'jackpot_boost') {
             let jb = document.getElementById('set-jackpot-boost').value; 
             payload.jackpotBoostAmount = (jb !== '' && Number(jb) >= 0) ? Number(jb) : 0;
+        }
+        if(type === 'bot_boost') {
+            let bb = document.getElementById('set-bot-boost').value; 
+            payload.botBoostAmount = (bb !== '' && Number(bb) >= 0) ? Number(bb) : 0;
         }
         if(type === 'win_timer') {
             let wt = document.getElementById('set-win-timer').value; 
