@@ -1376,61 +1376,6 @@ setInterval(() => {
         return; 
     }
     
-    if (gameState === "WAITING") {
-        gameClock--;
-        
-        // 🔥 የውሸት ካርቴላ Smoothly የመግዛት ሎጂክ (ከTimer ጋር አብሮ)
-        let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
-        let diff = targetBotAmount - botInjectedAmount;
-
-        if (diff > 0 && gameClock > 0) {
-            let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
-            let maxTixLeft = Math.floor(diff / ticketPrice);
-            
-            if (maxTixLeft > 0) {
-                // ቀስ እያለ እንዲገዛ የቀረውን ካርቴላ በቀረው ሰከንድ ማካፈል
-                let buyNow = Math.ceil(maxTixLeft / gameClock);
-                if (buyNow > maxTixLeft) buyNow = maxTixLeft;
-                
-                let cost = buyNow * ticketPrice;
-                botInjectedAmount += cost;
-                totalCollectedMoney += cost;
-                let addedPrize = cost * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
-                totalPrizePool += addedPrize;
-                totalTickets += buyNow;
-
-                for(let i=0; i<buyNow; i++) {
-                    let fakeId = getUnusedFakeTicketId();
-                    globalTakenTickets.push(fakeId);
-                    // የውሸት ካርቴላው አካላዊ ግሪድ አለው (ቁጥር እንዲጠራለት)
-                    fakeTicketsStore.push({ id: fakeId, grid: generateFakeGrid() });
-                }
-                io.emit('update_taken_tickets', globalTakenTickets);
-            }
-        }
-
-        io.emit('game_status', { 
-            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
-            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
-            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
-        });
-        
-        if (gameClock <= 0) { 
-            if(Object.keys(activePlayers).length > 1) { 
-                gameState = "PLAYING"; gameClock = 3; 
-                currentDrawSequence = getRiggedSequence(); 
-                midGameChosenRigged = null;
-                targetWinTurn = 0; 
-                
-                io.emit('game_status', { 
-                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
-                    totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
-                    maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
-                });
-            } else { 
-                gameClock = GLOBAL_SETTINGS.gameTimer; 
-            }
-        }
     } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
@@ -1439,157 +1384,97 @@ setInterval(() => {
 
             let numToCall = null;
             
+            // 1️⃣ የማሸነፊያ ጊዜ (Turn) ስሌት - እውነተኛ ሰዎችን ብቻ መሰረት ያደረገ
+            if (targetWinTurn === 0) {
+                let realTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
+                if (realTkts >= 10) { 
+                    // ብዙ ሰው ካለ (ከ 10 ካርቴላ በላይ)
+                    targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; // 15 to 21
+                } else { 
+                    // ሰው ካነሰ (ከ 10 ካርቴላ በታች)
+                    targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; // 15 to 26
+                }
+            }
+
+            let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
+
+            // 2️⃣ የተመረጠ (Rigged/Forced) አሸናፊ ካለ መለየት (1000 ሰውም ቢኖር ይሰራል)
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
             if (activeRigged.length > 0) {
-                // 1️⃣ FORCED WINNER LOGIC (የተመረጠ ሰው ብቻ ያሸንፋል)
                 if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
                     midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
                 }
+            } else {
+                midGameChosenRigged = null; 
+            }
 
-                if (targetWinTurn === 0) {
-                    let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
-                    if (totalTkts >= 10) {
-                        targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; // 15 to 21
-                    } else {
-                        targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; // 15 to 26
+            // 3️⃣ ኳሶችን ማጣራት (እውነተኛ ተጫዋቾችን ብቻ መነሻ በማድረግ)
+            let safeWinningBalls = []; 
+            let feederBalls = []; 
+            let otherSafeBalls = [];   
+
+            for (let i = 0; i < currentDrawSequence.length; i++) {
+                let testNum = currentDrawSequence[i];
+                let tempCalled = [...calledNumbers, testNum];
+
+                let realUnforcedWins = false;
+                let forcedWins = false;
+                let someoneHits = false; // እውነተኛ ሰው ላይ ብቻ ይጣራል
+
+                // እውነተኛ ሰዎችን ብቻ ማየት
+                for (let player of Object.values(activePlayers)) {
+                    let isForcedPlayer = (midGameChosenRigged && player.phone === midGameChosenRigged);
+                    for (let ticket of player.ticketsData) {
+                        if (serverCheckBingo(ticket.grid, tempCalled)) {
+                            if (isForcedPlayer) forcedWins = true;
+                            else realUnforcedWins = true;
+                        } else if (ticket.grid.flat().includes(testNum)) {
+                            someoneHits = true;
+                        }
                     }
                 }
 
-                let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
-
-                let safeWinningBalls = []; 
-                let safeFeedingBalls = []; 
-                let otherSafeBalls = [];   
-
-                for (let i = 0; i < currentDrawSequence.length; i++) {
-                    let testNum = currentDrawSequence[i];
-                    let tempCalled = [...calledNumbers, testNum];
-
-                    let normalWins = false;
-                    let riggedWins = false;
-                    let someoneHits = false; // ለእውነተኛውም ለውሸቱም ሂት ቢያደርግ
-
-                    // ሀ. እውነተኛ ተጫዋቾችን ቼክ ማድረግ (Forced-ውን ጨምሮ)
-                    for (let player of Object.values(activePlayers)) {
-                        let isRiggedPlayer = (player.phone === midGameChosenRigged);
-                        for (let ticket of player.ticketsData) {
-                            if (serverCheckBingo(ticket.grid, tempCalled)) {
-                                if (isRiggedPlayer) riggedWins = true;
-                                else normalWins = true;
-                            } else if (ticket.grid.flat().includes(testNum)) {
-                                someoneHits = true;
-                            }
-                        }
-                        if (normalWins) break; 
+                if (midGameChosenRigged) {
+                    // 🔴 FORCED WINNER LOGIC (የተመረጠ ሰው ብቻ ያሸንፋል - ሌላ ማንም ማሸነፍ አይችልም)
+                    if (realUnforcedWins) continue; // ሌላ ሰው ሊያሸንፍ ከሆነ ቁጥሩን ዝለለው (Skip)
+                    
+                    if (forcedWins) {
+                        safeWinningBalls.push({ index: i, num: testNum });
+                    } else {
+                        if (someoneHits) feederBalls.push({ index: i, num: testNum });
+                        else otherSafeBalls.push({ index: i, num: testNum });
                     }
-
-                    // ለ. የውሸት ካርቴላዎችን (Fake Tickets) ሂት (Blur) ማድረግ
-                    // ማሳሰቢያ፡ በፍፁም BINGO (Win) ቼክ አይደረግላቸውም!
-                    if (!normalWins && !riggedWins) {
-                        for (let fake of fakeTicketsStore) {
-                            if (fake.grid.flat().includes(testNum)) {
-                                someoneHits = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // ማንም Normal ሰው የማያሸንፍ ከሆነ ብቻ
-                    if (!normalWins) {
-                        if (riggedWins) safeWinningBalls.push({ index: i, num: testNum });
-                        else if (someoneHits) safeFeedingBalls.push({ index: i, num: testNum });
+                } else {
+                    // 🟢 NORMAL GAME LOGIC (የተመረጠ ሰው ከሌለ ሁሉም Normal ይጫወታል)
+                    if (realUnforcedWins) {
+                        safeWinningBalls.push({ index: i, num: testNum });
+                    } else {
+                        if (someoneHits) feederBalls.push({ index: i, num: testNum });
                         else otherSafeBalls.push({ index: i, num: testNum });
                     }
                 }
+            }
 
-                if (isTimeToWin && safeWinningBalls.length > 0) {
-                    let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (!isTimeToWin && safeFeedingBalls.length > 0) {
-                    let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (otherSafeBalls.length > 0) {
-                    let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else {
-                    numToCall = currentDrawSequence.shift();
-                }
-
+            // 4️⃣ ኳስ መምረጥ
+            if (isTimeToWin && safeWinningBalls.length > 0) {
+                let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
+                numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+            } else if (!isTimeToWin && feederBalls.length > 0) {
+                let chosen = feederBalls[Math.floor(Math.random() * feederBalls.length)];
+                numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+            } else if (otherSafeBalls.length > 0) {
+                let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
+                numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
             } else {
-                // 2️⃣ NORMAL GAME LOGIC (የተመረጠ ሰው ከሌለ)
-                if (targetWinTurn === 0) {
-                    let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
-                    if (totalTkts >= 10) {
-                        targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; // 15 to 21
-                    } else {
-                        targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; // 15 to 26
-                    }
-                }
-
-                let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
-
-                let safeWinningBalls = []; 
-                let safeFeedingBalls = []; 
-                let otherSafeBalls = [];   
-
-                for (let i = 0; i < currentDrawSequence.length; i++) {
-                    let testNum = currentDrawSequence[i];
-                    let tempCalled = [...calledNumbers, testNum];
-                    let willWin = false;
-                    let someoneHits = false;
-
-                    // እውነተኛ ሰዎችን ማየት (ለማሸነፍ እና ለሂት)
-                    for (let player of Object.values(activePlayers)) {
-                        for (let ticket of player.ticketsData) {
-                            if (serverCheckBingo(ticket.grid, tempCalled)) { 
-                                willWin = true; 
-                                break; 
-                            } else if (ticket.grid.flat().includes(testNum)) {
-                                someoneHits = true;
-                            }
-                        }
-                        if (willWin) break;
-                    }
-
-                    // የውሸት ሰዎችን ማየት (ለሂት ብቻ)
-                    if (!willWin) {
-                        for (let fake of fakeTicketsStore) {
-                            if (fake.grid.flat().includes(testNum)) {
-                                someoneHits = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (willWin) {
-                        safeWinningBalls.push({ index: i, num: testNum });
-                    } else if (someoneHits) {
-                        safeFeedingBalls.push({ index: i, num: testNum });
-                    } else {
-                        otherSafeBalls.push({ index: i, num: testNum });
-                    }
-                }
-
-                if (isTimeToWin && safeWinningBalls.length > 0) {
-                    let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (!isTimeToWin && safeFeedingBalls.length > 0) {
-                    let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (otherSafeBalls.length > 0) {
-                    let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
-                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else {
-                    numToCall = currentDrawSequence.shift();
-                }
+                numToCall = currentDrawSequence.shift();
             }
 
             calledNumbers.push(numToCall);
             io.emit('new_number', numToCall);
 
-            // 🔥 ማሸነፍ የሚችሉት እውነተኛ ተጫዋቾች (activePlayers) ብቻ ናቸው! (Fake Tickets are ignored here)
+            // 🔥 ማሸነፍ የሚችሉት እውነተኛ ተጫዋቾች (activePlayers) ብቻ ናቸው!
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) {
