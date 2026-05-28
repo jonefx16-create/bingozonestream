@@ -1273,12 +1273,13 @@ function getUnusedFakeTicketId() {
     let attempts = 0;
     while(attempts < 1000) {
         let fakeId = Math.floor(Math.random() * 550) + 1; 
-        if(!globalTakenTickets.includes(fakeId.toString())) {
-            return fakeId.toString();
+        // ቁጥር (Number) ሆኖ እንዲላክ ተደርጓል!
+        if(!globalTakenTickets.includes(fakeId) && !globalTakenTickets.includes(fakeId.toString())) {
+            return fakeId; 
         }
         attempts++;
     }
-    return (Math.floor(Math.random() * 550) + 1).toString();
+    return Math.floor(Math.random() * 550) + 1;
 }
 
 async function declareWinners(winners) {
@@ -1413,6 +1414,7 @@ setInterval(() => {
             state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+            takenTickets: globalTakenTickets
         });
         
         if (gameClock <= 0) { 
