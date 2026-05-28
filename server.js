@@ -1229,8 +1229,9 @@ let globalTakenTickets = [];
 let midGameChosenRigged = null;
 let targetWinTurn = 0; 
 
-// 🔥 አዲስ፡ የ Bot Boost Tracking
+// 🔥 የ Bot Boost Tracking
 let botInjectedAmount = 0;
+let fakeTicketsStore = []; // 🔥 የውሸት ካርቴላዎችን ግሪድ ማከማቻ (ለማጥቆሪያ ብቻ)
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1253,17 +1254,30 @@ function getRiggedSequence() {
     return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
 }
 
-// 🔥 አዲስ፡ ከ 1 እስከ 550 ባሉት ውስጥ ያልተያዘ Random ቁጥር ማውጫ
+// 🔥 የውሸት ካርቴላ ግሪድ መፍጠሪያ (አካላዊ ካርቴላ እንዲኖራቸው)
+function generateFakeGrid() {
+    let grid = [];
+    for (let c = 0; c < 5; c++) {
+        let col = [];
+        while (col.length < 5) {
+            let num = Math.floor(Math.random() * 15) + 1 + (c * 15);
+            if (!col.includes(num)) col.push(num);
+        }
+        grid.push(col);
+    }
+    grid[2][2] = "FREE";
+    return grid;
+}
+
 function getUnusedFakeTicketId() {
     let attempts = 0;
     while(attempts < 1000) {
-        let fakeId = Math.floor(Math.random() * 550) + 1; // ከ 1 እስከ 550
+        let fakeId = Math.floor(Math.random() * 550) + 1; 
         if(!globalTakenTickets.includes(fakeId.toString())) {
             return fakeId.toString();
         }
         attempts++;
     }
-    // ቦታ ከሞላ ከ 1 እስከ 550 ውስጥ ዝም ብሎ አንዱን ይመልሳል
     return (Math.floor(Math.random() * 550) + 1).toString();
 }
 
@@ -1323,7 +1337,6 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
-    // 🔥 አዲስ፡ የ Golden Jackpot (የመፈንዳያው) ብቻ ለ 1 ጌም ሰርቶ ይጠፋል (ወደ 0 ይመለሳል)
     GLOBAL_SETTINGS.jackpotBoostAmount = 0;
     await SystemSettings.updateOne({}, { $set: { jackpotBoostAmount: 0 } });
 
@@ -1346,13 +1359,13 @@ function resetToWaiting() {
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
-    botInjectedAmount = 0; // 🔥 ለቀጣይ ጌም የውሸት ካርቴላ እንዲገዛ እንደገና ዜሮ ማድረግ
+    botInjectedAmount = 0; 
+    fakeTicketsStore = []; // የውሸት ካርቴላዎችን ማፅዳት
     io.emit('update_taken_tickets', globalTakenTickets); 
     midGameChosenRigged = null; 
     targetWinTurn = 0; 
 }
 
-// በ server.js ውስጥ ያለውን የ setInterval ክፍል በዚህ ቀይሩት
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
         io.emit('game_status', { 
@@ -1366,38 +1379,35 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🔥 አዲስ ማስተካከያ፡ Bot Boost ከ 0 በላይ ከሆነ ብቻ ነው የሚሰራው!
+        // 🔥 የውሸት ካርቴላ Smoothly የመግዛት ሎጂክ (ከTimer ጋር አብሮ)
         let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
-        if (targetBotAmount > 0 && botInjectedAmount < targetBotAmount) {
-            if (Math.random() < 0.3) {
-                let diff = targetBotAmount - botInjectedAmount;
-                let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
-                let maxTix = Math.floor(diff / ticketPrice);
-                
-                if (maxTix > 0) {
-                    let ticketsToBuy = Math.floor(Math.random() * 3) + 1;
-                    if (ticketsToBuy > maxTix) ticketsToBuy = maxTix;
-                    
-                    let cost = ticketsToBuy * ticketPrice;
-                    botInjectedAmount += cost;
-                    totalCollectedMoney += cost;
-                    let addedPrize = cost * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
-                    totalPrizePool += addedPrize;
-                    totalTickets += ticketsToBuy;
+        let diff = targetBotAmount - botInjectedAmount;
 
-                    for(let i=0; i<ticketsToBuy; i++) {
-                        let fakeId = getUnusedFakeTicketId();
-                        globalTakenTickets.push(fakeId);
-                    }
-                    io.emit('update_taken_tickets', globalTakenTickets);
-                } else if (diff > 0) {
-                    botInjectedAmount += diff;
-                    totalCollectedMoney += diff;
-                    totalPrizePool += diff * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
+        if (diff > 0 && gameClock > 0) {
+            let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
+            let maxTixLeft = Math.floor(diff / ticketPrice);
+            
+            if (maxTixLeft > 0) {
+                // ቀስ እያለ እንዲገዛ የቀረውን ካርቴላ በቀረው ሰከንድ ማካፈል
+                let buyNow = Math.ceil(maxTixLeft / gameClock);
+                if (buyNow > maxTixLeft) buyNow = maxTixLeft;
+                
+                let cost = buyNow * ticketPrice;
+                botInjectedAmount += cost;
+                totalCollectedMoney += cost;
+                let addedPrize = cost * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
+                totalPrizePool += addedPrize;
+                totalTickets += buyNow;
+
+                for(let i=0; i<buyNow; i++) {
+                    let fakeId = getUnusedFakeTicketId();
+                    globalTakenTickets.push(fakeId);
+                    // የውሸት ካርቴላው አካላዊ ግሪድ አለው (ቁጥር እንዲጠራለት)
+                    fakeTicketsStore.push({ id: fakeId, grid: generateFakeGrid() });
                 }
+                io.emit('update_taken_tickets', globalTakenTickets);
             }
         }
-        // ... የቀረው ኮድ እንዳለ ይሁን (ከዚህ በታች ያለው)
 
         io.emit('game_status', { 
             state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
@@ -1433,7 +1443,7 @@ setInterval(() => {
             let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
             if (activeRigged.length > 0) {
-                
+                // 1️⃣ FORCED WINNER LOGIC (የተመረጠ ሰው ብቻ ያሸንፋል)
                 if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
                     midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
                 }
@@ -1441,9 +1451,9 @@ setInterval(() => {
                 if (targetWinTurn === 0) {
                     let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
                     if (totalTkts >= 10) {
-                        targetWinTurn = Math.floor(Math.random() * (22 - 15 + 1)) + 15;
+                        targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; // 15 to 21
                     } else {
-                        targetWinTurn = Math.floor(Math.random() * (27 - 20 + 1)) + 20;
+                        targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; // 15 to 26
                     }
                 }
 
@@ -1459,37 +1469,45 @@ setInterval(() => {
 
                     let normalWins = false;
                     let riggedWins = false;
-                    let riggedHits = false;
+                    let someoneHits = false; // ለእውነተኛውም ለውሸቱም ሂት ቢያደርግ
 
+                    // ሀ. እውነተኛ ተጫዋቾችን ቼክ ማድረግ (Forced-ውን ጨምሮ)
                     for (let player of Object.values(activePlayers)) {
                         let isRiggedPlayer = (player.phone === midGameChosenRigged);
                         for (let ticket of player.ticketsData) {
                             if (serverCheckBingo(ticket.grid, tempCalled)) {
                                 if (isRiggedPlayer) riggedWins = true;
                                 else normalWins = true;
-                            } else if (isRiggedPlayer && ticket.grid.flat().includes(testNum)) {
-                                riggedHits = true;
+                            } else if (ticket.grid.flat().includes(testNum)) {
+                                someoneHits = true;
                             }
                         }
                         if (normalWins) break; 
                     }
 
-                    if (!normalWins) {
-                        if (riggedWins) {
-                            safeWinningBalls.push({ index: i, num: testNum });
-                        } else if (riggedHits) {
-                            if (Math.random() > 0.3) safeFeedingBalls.push({ index: i, num: testNum });
-                            else otherSafeBalls.push({ index: i, num: testNum });
-                        } else {
-                            otherSafeBalls.push({ index: i, num: testNum });
+                    // ለ. የውሸት ካርቴላዎችን (Fake Tickets) ሂት (Blur) ማድረግ
+                    // ማሳሰቢያ፡ በፍፁም BINGO (Win) ቼክ አይደረግላቸውም!
+                    if (!normalWins && !riggedWins) {
+                        for (let fake of fakeTicketsStore) {
+                            if (fake.grid.flat().includes(testNum)) {
+                                someoneHits = true;
+                                break;
+                            }
                         }
+                    }
+
+                    // ማንም Normal ሰው የማያሸንፍ ከሆነ ብቻ
+                    if (!normalWins) {
+                        if (riggedWins) safeWinningBalls.push({ index: i, num: testNum });
+                        else if (someoneHits) safeFeedingBalls.push({ index: i, num: testNum });
+                        else otherSafeBalls.push({ index: i, num: testNum });
                     }
                 }
 
                 if (isTimeToWin && safeWinningBalls.length > 0) {
                     let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
                     numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                } else if (safeFeedingBalls.length > 0) {
+                } else if (!isTimeToWin && safeFeedingBalls.length > 0) {
                     let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
                     numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                 } else if (otherSafeBalls.length > 0) {
@@ -1500,12 +1518,78 @@ setInterval(() => {
                 }
 
             } else {
-                numToCall = currentDrawSequence.shift();
+                // 2️⃣ NORMAL GAME LOGIC (የተመረጠ ሰው ከሌለ)
+                if (targetWinTurn === 0) {
+                    let totalTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
+                    if (totalTkts >= 10) {
+                        targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; // 15 to 21
+                    } else {
+                        targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; // 15 to 26
+                    }
+                }
+
+                let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
+
+                let safeWinningBalls = []; 
+                let safeFeedingBalls = []; 
+                let otherSafeBalls = [];   
+
+                for (let i = 0; i < currentDrawSequence.length; i++) {
+                    let testNum = currentDrawSequence[i];
+                    let tempCalled = [...calledNumbers, testNum];
+                    let willWin = false;
+                    let someoneHits = false;
+
+                    // እውነተኛ ሰዎችን ማየት (ለማሸነፍ እና ለሂት)
+                    for (let player of Object.values(activePlayers)) {
+                        for (let ticket of player.ticketsData) {
+                            if (serverCheckBingo(ticket.grid, tempCalled)) { 
+                                willWin = true; 
+                                break; 
+                            } else if (ticket.grid.flat().includes(testNum)) {
+                                someoneHits = true;
+                            }
+                        }
+                        if (willWin) break;
+                    }
+
+                    // የውሸት ሰዎችን ማየት (ለሂት ብቻ)
+                    if (!willWin) {
+                        for (let fake of fakeTicketsStore) {
+                            if (fake.grid.flat().includes(testNum)) {
+                                someoneHits = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (willWin) {
+                        safeWinningBalls.push({ index: i, num: testNum });
+                    } else if (someoneHits) {
+                        safeFeedingBalls.push({ index: i, num: testNum });
+                    } else {
+                        otherSafeBalls.push({ index: i, num: testNum });
+                    }
+                }
+
+                if (isTimeToWin && safeWinningBalls.length > 0) {
+                    let chosen = safeWinningBalls[Math.floor(Math.random() * safeWinningBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (!isTimeToWin && safeFeedingBalls.length > 0) {
+                    let chosen = safeFeedingBalls[Math.floor(Math.random() * safeFeedingBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (otherSafeBalls.length > 0) {
+                    let chosen = otherSafeBalls[Math.floor(Math.random() * otherSafeBalls.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else {
+                    numToCall = currentDrawSequence.shift();
+                }
             }
 
             calledNumbers.push(numToCall);
             io.emit('new_number', numToCall);
 
+            // 🔥 ማሸነፍ የሚችሉት እውነተኛ ተጫዋቾች (activePlayers) ብቻ ናቸው! (Fake Tickets are ignored here)
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) {
