@@ -93,7 +93,14 @@ const GameHistory = mongoose.model('GameHistory', new mongoose.Schema({
 }));
 
 const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
-    amount: Number, maxUsers: Number, currentClaims: { type: Number, default: 0 }, claimedBy: [String], expiresAt: Date, isActive: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
+    amount: Number, 
+    maxUsers: Number, 
+    currentClaims: { type: Number, default: 0 }, 
+    claimedBy: [String], 
+    expiresAt: Date, 
+    isActive: { type: Boolean, default: true }, 
+    date: { type: Date, default: Date.now },
+    depositorsOnly: { type: Boolean, default: false } // 🔥 NEW! For target broadcast
 }));
 
 const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
@@ -102,7 +109,9 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     maxUses: Number,
     currentUses: { type: Number, default: 0 },
     expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
-    usedBy: [String]
+    usedBy: [String],
+    requireDeposit: { type: Boolean, default: false }, // 🔥 NEW!
+    requireDepositWithinHours: { type: Number, default: 0 } // 🔥 NEW! 24 hour limit logic
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -122,6 +131,10 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     depBonusTier2Min: { type: Number, default: 200 },
     depBonusTier2Percent: { type: Number, default: 100 },
     
+    // TIER 3 (Loyalty) DEPOSIT BONUS
+    depBonusTier3Min: { type: Number, default: 300 },
+    depBonusTier3Percent: { type: Number, default: 150 },
+
     depBonusTimeRestricted: { type: Boolean, default: false }, 
     happyHourStart: { type: Number, default: 0 }, 
     happyHourEnd: { type: Number, default: 23 },
@@ -181,7 +194,9 @@ async function loadSettings() {
         depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 50, 
         depBonusTier2Min: s.depBonusTier2Min !== undefined ? s.depBonusTier2Min : 200, 
         depBonusTier2Percent: s.depBonusTier2Percent !== undefined ? s.depBonusTier2Percent : 100, 
-        
+        depBonusTier3Min: s.depBonusTier3Min !== undefined ? s.depBonusTier3Min : 300, 
+        depBonusTier3Percent: s.depBonusTier3Percent !== undefined ? s.depBonusTier3Percent : 150, 
+
         depBonusTimeRestricted: s.depBonusTimeRestricted || false, 
         happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
         happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
@@ -263,8 +278,12 @@ async function autoApprovePendingDeposits() {
                     }
                     
                     if (giveBonus) {
-                        // TIER 2 CHECK (Highest Priority)
-                        if (set.depBonusTier2Min && actualReceivedAmount >= set.depBonusTier2Min) {
+                        // TIER 3 CHECK (Loyalty)
+                        if (set.depBonusTier3Min && actualReceivedAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
+                            bonus = actualReceivedAmount * (set.depBonusTier3Percent / 100);
+                        }
+                        // TIER 2 CHECK
+                        else if (set.depBonusTier2Min && actualReceivedAmount >= set.depBonusTier2Min) {
                             bonus = actualReceivedAmount * (set.depBonusTier2Percent / 100);
                         } 
                         // TIER 1 CHECK
@@ -451,6 +470,7 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 PROMO CODE CLAIM LOGIC UPDATED WITH 24 HOUR CHECK 🔥
 app.post('/api/claim-promo-code', async (req, res) => {
     try {
         const { phone, pass, code } = req.body;
@@ -465,6 +485,26 @@ app.post('/api/claim-promo-code', async (req, res) => {
         if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
         if (promo.usedBy.includes(user.phone)) return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
         
+        // Check Deposit Requirement
+        if (promo.requireDeposit) {
+            if (promo.requireDepositWithinHours > 0) {
+                let cutoff = new Date(Date.now() - (promo.requireDepositWithinHours * 60 * 60 * 1000));
+                let recentDep = await Transaction.findOne({ 
+                    phone: user.phone, 
+                    type: 'deposit', 
+                    status: 'Approved', 
+                    date: { $gte: cutoff } 
+                });
+                if (!recentDep) {
+                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${promo.requireDepositWithinHours} ሰዓታት ውስጥ ገቢ አድርገው መሆን አለበት!` });
+                }
+            } else {
+                if (user.totalDeposited <= 0) {
+                    return res.json({ success: false, message: "ይህንን ቦነስ ለማግኘት ከዚህ በፊት ገቢ (Deposit) አድርገው መሆን አለበት!" });
+                }
+            }
+        }
+
         promo.usedBy.push(user.phone);
         promo.currentUses += 1;
         await promo.save();
@@ -477,6 +517,7 @@ app.post('/api/claim-promo-code', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
+// 🔥 WEB PROMO CLAIM UPDATED (DEPOSITORS ONLY) 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
@@ -487,6 +528,10 @@ app.post('/api/claim-promo-web', async (req, res) => {
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" });
         if (activeBonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" });
         
+        if (activeBonus.depositorsOnly && (!user.totalDeposited || user.totalDeposited <= 0)) {
+            return res.json({ success: false, message: "❌ ይህ ቦነስ ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ የተፈቀደ ነው!" });
+        }
+
         activeBonus.claimedBy.push(user.phone);
         activeBonus.currentClaims += 1;
         await activeBonus.save();
@@ -836,11 +881,18 @@ app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 PROMO CODE CREATION UPDATED 🔥
 app.post('/api/admin/create-promo-code', auth, async (req, res) => {
     try {
         let exists = await PromoCode.findOne({ code: req.body.code });
         if(exists) return res.json({ success: false, message: "Code already exists!" });
-        await new PromoCode({ code: req.body.code, amount: req.body.amount, maxUses: req.body.maxUses }).save();
+        await new PromoCode({ 
+            code: req.body.code, 
+            amount: req.body.amount, 
+            maxUses: req.body.maxUses,
+            requireDeposit: req.body.requireDeposit,
+            requireDepositWithinHours: req.body.requireDepositWithinHours
+        }).save();
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
@@ -970,8 +1022,12 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             }
             
             if (giveBonus) {
+                // TIER 3 CHECK (Loyalty)
+                if (set.depBonusTier3Min && actualAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
+                    bonus = actualAmount * (set.depBonusTier3Percent / 100);
+                }
                 // TIER 2 CHECK
-                if (set.depBonusTier2Min && actualAmount >= set.depBonusTier2Min) {
+                else if (set.depBonusTier2Min && actualAmount >= set.depBonusTier2Min) {
                     bonus = actualAmount * (set.depBonusTier2Percent / 100);
                 } 
                 // TIER 1 CHECK
@@ -995,7 +1051,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
                     user.promoterCommissionGenerated += commission;
                 }
             }
-            
+            if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true;
             user.totalWithdrawn = user.totalWithdrawn || 0;
             
             if (bonus > 0) {
@@ -1045,6 +1101,9 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.depBonusTier2Min !== undefined) s.depBonusTier2Min = req.body.depBonusTier2Min;
     if(req.body.depBonusTier2Percent !== undefined) s.depBonusTier2Percent = req.body.depBonusTier2Percent;
+
+    if(req.body.depBonusTier3Min !== undefined) s.depBonusTier3Min = req.body.depBonusTier3Min;
+    if(req.body.depBonusTier3Percent !== undefined) s.depBonusTier3Percent = req.body.depBonusTier3Percent;
     
     if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
     if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
@@ -1182,17 +1241,28 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// 🔥 WEB CLAIM PROMO BROADCAST UPDATED (Targeting Depositors) 🔥
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     try {
-        const { maxUsers, amount, minutes, message, photoUrl } = req.body;
+        const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly } = req.body;
         let expires = new Date(Date.now() + (minutes * 60000));
         await ActiveBonus.updateMany({}, { isActive: false });
-        await new ActiveBonus({ amount, maxUsers, expiresAt: expires, isActive: true }).save();
+        
+        await new ActiveBonus({ 
+            amount, 
+            maxUsers, 
+            expiresAt: expires, 
+            isActive: true,
+            depositorsOnly: depositorsOnly // 🔥 NEW!
+        }).save();
         
         io.emit('new_promo_alert', { amount: amount, msg: message });
 
         if (message) {
-            const users = await User.find({ telegramId: { $ne: "" } });
+            let query = { telegramId: { $ne: "" } };
+            if (depositorsOnly) query.totalDeposited = { $gt: 0 }; // 🔥 Filter for Telegram
+            
+            const users = await User.find(query);
             lastBroadcasts = []; 
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
@@ -1224,12 +1294,18 @@ const bot = new TelegramBot(telegramToken, { polling: false });
 const WEB_URL = "https://bingohabesha.onrender.com";
 let lastBroadcasts = []; 
 
+// 🔥 NORMAL TELEGRAM BROADCAST UPDATED (Targeting Depositors) 🔥
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
-        const { message, photoUrl } = req.body;
+        const { message, photoUrl, depositorsOnly } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
-        const users = await User.find({ telegramId: { $ne: "" } });
+        
+        let query = { telegramId: { $ne: "" } };
+        if (depositorsOnly) query.totalDeposited = { $gt: 0 }; // 🔥 Filter
+
+        const users = await User.find(query);
         lastBroadcasts = []; let count = 0;
+        
         for (let u of users) {
             try {
                 let sentMsg;
