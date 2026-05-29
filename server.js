@@ -113,13 +113,21 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     gameTimer: { type: Number, default: 40 },
     jackpotBoostAmount: { type: Number, default: 0 }, 
     botBoostAmount: { type: Number, default: 0 },
-    depBonusMinAmount: { type: Number, default: 100 }, 
-    depBonusPercent: { type: Number, default: 20 }, 
+    
+    // TIER 1 DEPOSIT BONUS
+    depBonusMinAmount: { type: Number, default: 50 }, 
+    depBonusPercent: { type: Number, default: 50 }, 
+    
+    // TIER 2 DEPOSIT BONUS
+    depBonusTier2Min: { type: Number, default: 200 },
+    depBonusTier2Percent: { type: Number, default: 100 },
+    
     depBonusTimeRestricted: { type: Boolean, default: false }, 
     happyHourStart: { type: Number, default: 0 }, 
     happyHourEnd: { type: Number, default: 23 },
     depBannerTextAm: { type: String, default: "" }, 
     depBannerTextEn: { type: String, default: "" },
+    
     witBonusMinAmount: { type: Number, default: 100 }, 
     witBonusPercent: { type: Number, default: 5 }, 
     isWitBonusActive: { type: Boolean, default: false }, 
@@ -128,6 +136,7 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     witHappyHourEnd: { type: Number, default: 23 },
     witBannerTextAm: { type: String, default: "" }, 
     witBannerTextEn: { type: String, default: "" },
+    
     registerBonus: { type: Number, default: 10 }, 
     inviteBonus: { type: Number, default: 10 }, 
     adminProfitPercent: { type: Number, default: 15 },
@@ -151,7 +160,7 @@ const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
     name: String,
     text: String,
     sender: String,
-    isRead: { type: Boolean, default: false },
+    isLatest: { type: Boolean, default: true },
     date: { type: Date, default: Date.now }
 }));
 
@@ -167,13 +176,18 @@ async function loadSettings() {
         gameTimer: s.gameTimer || 40, 
         jackpotBoostAmount: s.jackpotBoostAmount || 0,
         botBoostAmount: s.botBoostAmount || 0,
-        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 100, 
-        depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 20, 
+        
+        depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 50, 
+        depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 50, 
+        depBonusTier2Min: s.depBonusTier2Min !== undefined ? s.depBonusTier2Min : 200, 
+        depBonusTier2Percent: s.depBonusTier2Percent !== undefined ? s.depBonusTier2Percent : 100, 
+        
         depBonusTimeRestricted: s.depBonusTimeRestricted || false, 
         happyHourStart: s.happyHourStart !== undefined ? s.happyHourStart : 0, 
         happyHourEnd: s.happyHourEnd !== undefined ? s.happyHourEnd : 23, 
         depBannerTextAm: s.depBannerTextAm || "", 
         depBannerTextEn: s.depBannerTextEn || "",
+        
         witBonusMinAmount: s.witBonusMinAmount !== undefined ? s.witBonusMinAmount : 100, 
         witBonusPercent: s.witBonusPercent !== undefined ? s.witBonusPercent : 5, 
         isWitBonusActive: s.isWitBonusActive || false,
@@ -182,6 +196,7 @@ async function loadSettings() {
         witHappyHourEnd: s.witHappyHourEnd !== undefined ? s.witHappyHourEnd : 23,
         witBannerTextAm: s.witBannerTextAm || "", 
         witBannerTextEn: s.witBannerTextEn || "",
+        
         registerBonus: s.registerBonus !== undefined ? s.registerBonus : 10, 
         inviteBonus: s.inviteBonus !== undefined ? s.inviteBonus : 10,
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, 
@@ -240,14 +255,24 @@ async function autoApprovePendingDeposits() {
                     let actualReceivedAmount = matchedSMS.amount;
                     let bonus = 0;
                     let set = GLOBAL_SETTINGS;
-                    if (actualReceivedAmount >= set.depBonusMinAmount) {
-                        let giveBonus = true;
-                        if (set.depBonusTimeRestricted) {
-                            let currentHour = new Date().getHours();
-                            if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
-                        }
-                        if (giveBonus) { bonus = actualReceivedAmount * (set.depBonusPercent / 100); }
+                    let giveBonus = true;
+                    
+                    if (set.depBonusTimeRestricted) {
+                        let currentHour = new Date().getHours();
+                        if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
                     }
+                    
+                    if (giveBonus) {
+                        // TIER 2 CHECK (Highest Priority)
+                        if (set.depBonusTier2Min && actualReceivedAmount >= set.depBonusTier2Min) {
+                            bonus = actualReceivedAmount * (set.depBonusTier2Percent / 100);
+                        } 
+                        // TIER 1 CHECK
+                        else if (set.depBonusMinAmount && actualReceivedAmount >= set.depBonusMinAmount) {
+                            bonus = actualReceivedAmount * (set.depBonusPercent / 100);
+                        }
+                    }
+                    
                     let totalCredit = actualReceivedAmount + bonus;
                     tx.amount = actualReceivedAmount; 
                     tx.bonusGiven = bonus; 
@@ -692,7 +717,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         ]);
         let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
-        // ✅ ማስተካከያ: የአድሚን ጃክፖት እውነተኛ ሰዎች ከገዙት (totalCollectedMoney) ላይ ብቻ ፐርሰንቱ ተቀንሶ እንዲታይ ተደርጓል
         let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
         let realJackpot = totalCollectedMoney * ((100 - adminProfitPercent) / 100);
 
@@ -702,7 +726,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
             gameId, 
             totalProfit: dailyTotalProfit, 
-            currentJackpot: realJackpot, // 👈 እዚህ ጋር totalPrizePool የነበረው በ እውነተኛው (realJackpot) ተቀይሯል
+            currentJackpot: realJackpot, 
             settings: GLOBAL_SETTINGS, 
             dailyDeposit, 
             dailyWithdraw, 
@@ -938,14 +962,24 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             let actualAmount = tx.amount;
             let bonus = 0;
             let set = GLOBAL_SETTINGS;
-            if (actualAmount >= set.depBonusMinAmount) {
-                let giveBonus = true;
-                if (set.depBonusTimeRestricted) {
-                    let currentHour = new Date().getHours();
-                    if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
-                }
-                if (giveBonus) { bonus = actualAmount * (set.depBonusPercent / 100); }
+            let giveBonus = true;
+            
+            if (set.depBonusTimeRestricted) {
+                let currentHour = new Date().getHours();
+                if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
             }
+            
+            if (giveBonus) {
+                // TIER 2 CHECK
+                if (set.depBonusTier2Min && actualAmount >= set.depBonusTier2Min) {
+                    bonus = actualAmount * (set.depBonusTier2Percent / 100);
+                } 
+                // TIER 1 CHECK
+                else if (set.depBonusMinAmount && actualAmount >= set.depBonusMinAmount) {
+                    bonus = actualAmount * (set.depBonusPercent / 100);
+                }
+            }
+            
             let totalCredit = actualAmount + bonus;
             tx.bonusGiven = bonus;
             user.playBalance += totalCredit;
@@ -1008,6 +1042,10 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
+    
+    if(req.body.depBonusTier2Min !== undefined) s.depBonusTier2Min = req.body.depBonusTier2Min;
+    if(req.body.depBonusTier2Percent !== undefined) s.depBonusTier2Percent = req.body.depBonusTier2Percent;
+    
     if(req.body.depBonusTimeRestricted !== undefined) s.depBonusTimeRestricted = req.body.depBonusTimeRestricted;
     if(req.body.happyHourStart !== undefined) s.happyHourStart = req.body.happyHourStart;
     if(req.body.happyHourEnd !== undefined) s.happyHourEnd = req.body.happyHourEnd;
@@ -1217,7 +1255,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE (OPTIMIZED SMART RIGGING)
+// 🟢 LIVE BINGO GAME ENGINE (100% FORCED RIGGING INCLUDED)
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -1233,9 +1271,8 @@ let globalTakenTickets = [];
 let midGameChosenRigged = null;
 let targetWinTurn = 0; 
 
-// 🔥 የ Bot Boost Tracking
 let botInjectedAmount = 0;
-let fakeTicketsStore = []; // 🔥 የውሸት ካርቴላዎችን ግሪድ ማከማቻ (ለማጥቆሪያ ብቻ)
+let fakeTicketsStore = []; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1258,7 +1295,6 @@ function getRiggedSequence() {
     return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
 }
 
-// 🔥 የውሸት ካርቴላ ግሪድ መፍጠሪያ (አካላዊ ካርቴላ እንዲኖራቸው)
 function generateFakeGrid() {
     let grid = [];
     for (let c = 0; c < 5; c++) {
@@ -1277,7 +1313,6 @@ function getUnusedFakeTicketId() {
     let attempts = 0;
     while(attempts < 1000) {
         let fakeId = Math.floor(Math.random() * 550) + 1; 
-        // ቁጥር (Number) ሆኖ እንዲላክ ተደርጓል!
         if(!globalTakenTickets.includes(fakeId) && !globalTakenTickets.includes(fakeId.toString())) {
             return fakeId; 
         }
@@ -1293,7 +1328,6 @@ async function declareWinners(winners) {
     let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
     let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
     
-    // ✅ 3. የአድሚን ትርፍ የሚሰላው፣ ትክክለኛ ሰዎች ከገዙት ብር (totalCollectedMoney) ላይ 20% በመቁረጥ ብቻ ይሆናል!
     let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
     let adminProfit = totalCollectedMoney * (adminProfitPercent / 100);
     
@@ -1367,7 +1401,7 @@ function resetToWaiting() {
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     botInjectedAmount = 0; 
-    fakeTicketsStore = []; // የውሸት ካርቴላዎችን ማፅዳት
+    fakeTicketsStore = []; 
     io.emit('update_taken_tickets', globalTakenTickets); 
     midGameChosenRigged = null; 
     targetWinTurn = 0; 
@@ -1386,7 +1420,6 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 1️⃣ የውሸት ካርቴላ Smoothly የመግዛት ሎጂክ (Randomized & Staggered)
         let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
         let diff = targetBotAmount - botInjectedAmount;
 
@@ -1399,13 +1432,10 @@ setInterval(() => {
                 let baseRate = Math.ceil(maxTixLeft / gameClock);
 
                 if (gameClock > 30) {
-                    // ጌሙ ገና ሲጀምር ቀስ ብሎ (0, 1 ወይም 2 ካርቴላ አልፎ አልፎ)
                     buyNow = Math.random() > 0.6 ? 0 : Math.floor(Math.random() * 2) + 1;
                 } else if (gameClock > 10) {
-                    // መሃል ላይ ሲደርስ መካከለኛ እና ራንደም ፍጥነት
                     buyNow = Math.random() > 0.4 ? baseRate : baseRate + Math.floor(Math.random() * 3);
                 } else {
-                    // መጨረሻ አካባቢ የተረፈውን ያሟላል
                     buyNow = baseRate;
                 }
 
@@ -1414,14 +1444,8 @@ setInterval(() => {
                 if (buyNow > 0) {
                     let cost = buyNow * ticketPrice;
                     botInjectedAmount += cost;
-                    
-                    // ✅ 1. የውሸት ካርቴላ ብር ወደ አድሚን ጠቅላላ ገቢ አይደመርም! (ትክክለኛ ተጫዋች ብቻ ነው የሚደመረው)
-                    // totalCollectedMoney += cost; // ይህ እንዲቀር ተደርጓል!
-
-                    // ✅ 2. ሲስተሙ ከውሸት ካርቴላ ላይ 20% አይቆርጥም! ሙሉው የውሸት ብር ቀጥታ ወደ ሽልማት (Prize Pool) ይገባል
                     let addedPrize = cost; 
                     totalPrizePool += addedPrize;
-                    
                     totalTickets += buyNow;
 
                     for(let i=0; i<buyNow; i++) {
@@ -1463,23 +1487,17 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
-            let numToCall = null;
-            
-            // 2️⃣ የማሸነፊያ ጊዜ (Turn) ስሌት - ጥብቅ የካርቴላ ብዛት ህግ
             if (targetWinTurn === 0) {
                 let realTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
                 if (realTkts >= 10) { 
-                    // ከ 10 በላይ ከሆነ በ 15 እና 21 መካከል
                     targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; 
                 } else { 
-                    // ከ 10 በታች ከሆነ በ 15 እና 26 መካከል
                     targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; 
                 }
             }
 
             let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
 
-            // የተመረጠ (Rigged/Forced) አሸናፊ መለየት
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
@@ -1493,14 +1511,15 @@ setInterval(() => {
 
             let safeWinningForced = []; 
             let safeWinningNormal = [];
-            let safeNonWinning = [];   
+            let safeNonWinning = [];
+            let unsafeNumbers = []; 
 
-            // ኳሶችን ማጣራት
+            // ማጣሪያ - እያንዳንዱን ቀጣይ ኳስ እንሞክራለን
             for (let i = 0; i < currentDrawSequence.length; i++) {
                 let testNum = currentDrawSequence[i];
                 let tempCalled = [...calledNumbers, testNum];
 
-                let realUnforcedWins = false;
+                let unforcedWins = false;
                 let forcedWins = false;
 
                 for (let player of Object.values(activePlayers)) {
@@ -1508,62 +1527,66 @@ setInterval(() => {
                     for (let ticket of player.ticketsData) {
                         if (serverCheckBingo(ticket.grid, tempCalled)) {
                             if (isForcedPlayer) forcedWins = true;
-                            else realUnforcedWins = true;
+                            else unforcedWins = true;
                         }
                     }
                 }
 
-                if (midGameChosenRigged) {
-                    if (realUnforcedWins) continue; // ኖርማል ሰው እንዳያሸንፍ ይከላከላል
-                    
-                    if (forcedWins) safeWinningForced.push({ index: i, num: testNum });
-                    else safeNonWinning.push({ index: i, num: testNum });
+                // 100% FORCED LOGIC - ኖርማል ሰው የሚያሸንፍበትን ኳስ ሙሉ በሙሉ እንተወዋለን (unsafeNumbers)
+                if (unforcedWins) {
+                    unsafeNumbers.push({ index: i, num: testNum });
+                } else if (forcedWins) {
+                    safeWinningForced.push({ index: i, num: testNum });
                 } else {
-                    if (realUnforcedWins) safeWinningNormal.push({ index: i, num: testNum });
-                    else safeNonWinning.push({ index: i, num: testNum });
+                    safeNonWinning.push({ index: i, num: testNum });
                 }
             }
 
-            // 3️⃣ ኳስ መምረጥ (የአሸናፊው ኳስ መገደቢያ ሎጂክ)
+            let numToCall = null;
+
             if (midGameChosenRigged) {
-                // Forced አሸናፊው የሚያስፈልጉትን ኳሶች ብቻ መለየት (ካርቴላው ላይ ያሉትን)
                 let forcedPlayer = activePlayers[midGameChosenRigged];
                 let forcedPlayerNumbers = [];
                 forcedPlayer.ticketsData.forEach(t => {
                     t.grid.forEach(col => { col.forEach(n => { if(n !== "FREE" && !calledNumbers.includes(n)) forcedPlayerNumbers.push(n); }); });
                 });
-                // ጊዜው ሲደርስ የግድ እሱ ካርቴላ ላይ ያለ ኳስ እንዲጠራ ማጣሪያ
+                
+                // ያልተጠሩና የforced ሰዉ ካርቴላ ላይ ያሉ (ግን የማያሸልሙ)
                 let safeNonWinningForcedCard = safeNonWinning.filter(n => forcedPlayerNumbers.includes(n.num));
 
                 if (isTimeToWin) {
-                    // ⚠️ ማሸነፊያ ሰዓቱ ስለደረሰ የግድ ወደ ማሸነፍ መሄድ አለበት (እንዳያልፍ)
+                    // የማሸነፊያ ሰዓት ስለደረሰ አሸናፊውን ኳስ ወይም ወደሱ የሚያቀርበውን እንጠራለን
                     if (safeWinningForced.length > 0) {
                         let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
                         numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                     } else if (safeNonWinningForcedCard.length > 0) {
-                        // በአንድ ኳስ ባያሸንፍም፣ የግድ የሱን ካርቴላ ኳስ ብቻ መርጦ ይጠራል
                         let chosen = safeNonWinningForcedCard[Math.floor(Math.random() * safeNonWinningForcedCard.length)];
                         numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                    } else if (safeNonWinning.length > 0) { 
+                    } else if (safeNonWinning.length > 0) {
                         let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
                         numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                    } else {
-                        numToCall = currentDrawSequence.shift();
                     }
                 } else {
-                    // ገና ሰዓቱ አልደረሰም
+                    // ገና ሰዓቱ አልደረሰም፣ ስለዚህ ኖርማል ኳሶችን እንጠራለን (ያለ አደጋ)
                     if (safeNonWinning.length > 0) {
                         let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
                         numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
-                    } else if (safeWinningForced.length > 0) {
+                    }
+                }
+
+                // በጣም ያልተለመደ አጋጣሚ (ሁሉም ኳሶች ሌላ ሰውን የሚያሸልሙ ከሆኑ ብቻ) - Forced ሰውዬው እንዲያሸንፍ የግድ ማውጣት
+                if (numToCall === null) {
+                    if (safeWinningForced.length > 0) {
                         let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
                         numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                     } else {
+                        // ሌላ ምንም አማራጭ ከሌለ የመጀመሪያውን ማውጣት
                         numToCall = currentDrawSequence.shift();
                     }
                 }
+
             } else {
-                // ለNormal ጌም ኳስ አወጣጥ
+                // NORMAL GAMEPLAY (ማንም አልተመረጠም)
                 if (isTimeToWin && safeWinningNormal.length > 0) {
                     let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
                     numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
