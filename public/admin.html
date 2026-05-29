@@ -438,11 +438,27 @@
         <div id="tab-dep-bonus" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--gold);">
-                    <h3 style="margin-top:0; color:var(--gold);">📥 Deposit Auto-Bonus & Banner</h3>
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Minimum Deposit</label>
-                    <input type="number" id="set-dep-min" placeholder="e.g. 100">
-                    <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">Bonus Percentage (%)</label>
-                    <input type="number" id="set-dep-perc" placeholder="e.g. 20">
+                    <h3 style="margin-top:0; color:var(--gold);">📥 Tiered Deposit Auto-Bonus</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከከፍተኛው (Tier 2) ጀምሮ ያረጋግጣል።</p>
+                    
+                    <!-- Tier 1 -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <label style="color:var(--faded-green); font-size:12px; font-weight:bold;">🌟 Tier 1 Bonus (First Level)</label>
+                        <div style="display:flex; gap:10px; margin-top:5px;">
+                            <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-min" placeholder="e.g. 50"></div>
+                            <div style="flex:1;"><label style="font-size:10px; color:gray;">Bonus %</label><input type="number" id="set-dep-perc" placeholder="e.g. 50"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tier 2 -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <label style="color:var(--gold); font-size:12px; font-weight:bold;">🏆 Tier 2 Bonus (Second Level)</label>
+                        <div style="display:flex; gap:10px; margin-top:5px;">
+                            <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-tier2-min" placeholder="e.g. 200"></div>
+                            <div style="flex:1;"><label style="font-size:10px; color:gray;">Bonus %</label><input type="number" id="set-dep-tier2-perc" placeholder="e.g. 100"></div>
+                        </div>
+                    </div>
+
                     <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
                         <input type="checkbox" id="set-dep-time-restrict" onchange="toggleTimeInputs('dep')"> Happy Hour (በተወሰነ ሰዓት ብቻ)
                     </label>
@@ -570,8 +586,8 @@
                 </div>
 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (Forced)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። ባዶ ከሆነ Random ይሆናል።</p>
+                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (100% Forced)</h3>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። እዚህ ውስጥ ያለ ሰው ካለ <b>100% እርሱ ብቻ</b> ያሸንፋል።</p>
                     <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922..." style="border-color: var(--red); margin-bottom: 15px;">
                     <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
                 </div>
@@ -921,6 +937,10 @@
                 
                 safeUpdate('set-dep-min', data.settings.depBonusMinAmount !== undefined ? data.settings.depBonusMinAmount : '');
                 safeUpdate('set-dep-perc', data.settings.depBonusPercent !== undefined ? data.settings.depBonusPercent : '');
+                
+                // Tier 2 deposit bonus update
+                safeUpdate('set-dep-tier2-min', data.settings.depBonusTier2Min !== undefined ? data.settings.depBonusTier2Min : '');
+                safeUpdate('set-dep-tier2-perc', data.settings.depBonusTier2Percent !== undefined ? data.settings.depBonusTier2Percent : '');
 
                 safeUpdate('set-wit-min', data.settings.witBonusMinAmount !== undefined ? data.settings.witBonusMinAmount : '');
                 safeUpdate('set-wit-perc', data.settings.witBonusPercent !== undefined ? data.settings.witBonusPercent : '');
@@ -1657,6 +1677,11 @@
             let isRestricted = document.getElementById('set-dep-time-restrict').checked; 
             let mAmt = document.getElementById('set-dep-min').value; 
             let mPer = document.getElementById('set-dep-perc').value; 
+            
+            // Tier 2 Inputs
+            let t2Amt = document.getElementById('set-dep-tier2-min').value;
+            let t2Per = document.getElementById('set-dep-tier2-perc').value;
+
             let start = document.getElementById('set-dep-start').value; 
             let end = document.getElementById('set-dep-end').value;
             
@@ -1664,8 +1689,13 @@
             let ben = document.getElementById('set-dep-banner-en').value;
 
             payload.depBonusTimeRestricted = isRestricted; 
+            
             payload.depBonusMinAmount = mAmt !== '' ? Number(mAmt) : 0; 
             payload.depBonusPercent = mPer !== '' ? Number(mPer) : 0; 
+            
+            payload.depBonusTier2Min = t2Amt !== '' ? Number(t2Amt) : 0;
+            payload.depBonusTier2Percent = t2Per !== '' ? Number(t2Per) : 0;
+
             payload.happyHourStart = start !== '' ? Number(start) : 0; 
             payload.happyHourEnd = end !== '' ? Number(end) : 23;
             
