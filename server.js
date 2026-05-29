@@ -1289,7 +1289,9 @@ async function declareWinners(winners) {
     let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
     let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
     
-    let adminProfit = totalCollectedMoney - totalPrizePool; 
+    // ✅ 3. የአድሚን ትርፍ የሚሰላው፣ ትክክለኛ ሰዎች ከገዙት ብር (totalCollectedMoney) ላይ 20% በመቁረጥ ብቻ ይሆናል!
+    let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+    let adminProfit = totalCollectedMoney * (adminProfitPercent / 100);
     
     let winnerNames = [];
     let winnerPhones = [];
@@ -1408,9 +1410,14 @@ setInterval(() => {
                 if (buyNow > 0) {
                     let cost = buyNow * ticketPrice;
                     botInjectedAmount += cost;
-                    totalCollectedMoney += cost;
-                    let addedPrize = cost * ((100 - (GLOBAL_SETTINGS.adminProfitPercent || 15)) / 100);
+                    
+                    // ✅ 1. የውሸት ካርቴላ ብር ወደ አድሚን ጠቅላላ ገቢ አይደመርም! (ትክክለኛ ተጫዋች ብቻ ነው የሚደመረው)
+                    // totalCollectedMoney += cost; // ይህ እንዲቀር ተደርጓል!
+
+                    // ✅ 2. ሲስተሙ ከውሸት ካርቴላ ላይ 20% አይቆርጥም! ሙሉው የውሸት ብር ቀጥታ ወደ ሽልማት (Prize Pool) ይገባል
+                    let addedPrize = cost; 
                     totalPrizePool += addedPrize;
+                    
                     totalTickets += buyNow;
 
                     for(let i=0; i<buyNow; i++) {
