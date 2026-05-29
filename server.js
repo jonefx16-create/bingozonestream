@@ -1457,7 +1457,7 @@ setInterval(() => {
                 gameClock = GLOBAL_SETTINGS.gameTimer; 
             }
         }
-    else if (gameState === "PLAYING") {
+    } else if (gameState === "PLAYING") {
         gameClock--;
         if (gameClock <= 0) {
             gameClock = 3; 
@@ -1465,19 +1465,21 @@ setInterval(() => {
 
             let numToCall = null;
             
-            // 1️⃣ የማሸነፊያ ተራ (Target Turn) መወሰን
+            // 2️⃣ የማሸነፊያ ጊዜ (Turn) ስሌት - ጥብቅ የካርቴላ ብዛት ህግ
             if (targetWinTurn === 0) {
                 let realTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
                 if (realTkts >= 10) { 
+                    // ከ 10 በላይ ከሆነ በ 15 እና 21 መካከል
                     targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; 
                 } else { 
+                    // ከ 10 በታች ከሆነ በ 15 እና 26 መካከል
                     targetWinTurn = Math.floor(Math.random() * (26 - 15 + 1)) + 15; 
                 }
             }
 
             let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
 
-            // 2️⃣ የተመረጠ (Rigged) አሸናፊ ካለ መለየት
+            // የተመረጠ (Rigged/Forced) አሸናፊ መለየት
             let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
             let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
@@ -1489,16 +1491,16 @@ setInterval(() => {
                 midGameChosenRigged = null; 
             }
 
-            // 3️⃣ ጥብቅ ማጣሪያ (Strict Filtering) - ሌላ ሰው በፍፁም እንዳያሸንፍ
             let safeWinningForced = []; 
             let safeWinningNormal = [];
             let safeNonWinning = [];   
 
+            // ኳሶችን ማጣራት
             for (let i = 0; i < currentDrawSequence.length; i++) {
                 let testNum = currentDrawSequence[i];
                 let tempCalled = [...calledNumbers, testNum];
 
-                let anyoneElseWins = false;
+                let realUnforcedWins = false;
                 let forcedWins = false;
 
                 for (let player of Object.values(activePlayers)) {
@@ -1506,83 +1508,74 @@ setInterval(() => {
                     for (let ticket of player.ticketsData) {
                         if (serverCheckBingo(ticket.grid, tempCalled)) {
                             if (isForcedPlayer) forcedWins = true;
-                            else anyoneElseWins = true;
+                            else realUnforcedWins = true;
                         }
                     }
                 }
 
-                // ሌላ ሰው የሚያሸንፍ ከሆነ ያንን ኳስ Block እናደርጋለን
-                if (!anyoneElseWins) {
-                    if (midGameChosenRigged) {
-                        if (forcedWins) safeWinningForced.push({ index: i, num: testNum });
-                        else safeNonWinning.push({ index: i, num: testNum });
-                    } else {
-                        if (forcedWins || serverCheckBingo(generateFakeGrid(), tempCalled)) { /* skip */ } 
-                        else {
-                            // ኖርማል ጌም ከሆነ
-                            let anyRealWin = false;
-                            for (let p of Object.values(activePlayers)) {
-                                for (let t of p.ticketsData) {
-                                    if(serverCheckBingo(t.grid, tempCalled)) anyRealWin = true;
-                                }
-                            }
-                            if(anyRealWin) safeWinningNormal.push({ index: i, num: testNum });
-                            else safeNonWinning.push({ index: i, num: testNum });
-                        }
-                    }
+                if (midGameChosenRigged) {
+                    if (realUnforcedWins) continue; // ኖርማል ሰው እንዳያሸንፍ ይከላከላል
+                    
+                    if (forcedWins) safeWinningForced.push({ index: i, num: testNum });
+                    else safeNonWinning.push({ index: i, num: testNum });
+                } else {
+                    if (realUnforcedWins) safeWinningNormal.push({ index: i, num: testNum });
+                    else safeNonWinning.push({ index: i, num: testNum });
                 }
             }
 
-            // 4️⃣ ኳስ መምረጥ (የአሸናፊው ኳስ መገደቢያ ሎጂክ)
+            // 3️⃣ ኳስ መምረጥ (የአሸናፊው ኳስ መገደቢያ ሎጂክ)
             if (midGameChosenRigged) {
+                // Forced አሸናፊው የሚያስፈልጉትን ኳሶች ብቻ መለየት (ካርቴላው ላይ ያሉትን)
                 let forcedPlayer = activePlayers[midGameChosenRigged];
                 let forcedPlayerNumbers = [];
                 forcedPlayer.ticketsData.forEach(t => {
                     t.grid.forEach(col => { col.forEach(n => { if(n !== "FREE" && !calledNumbers.includes(n)) forcedPlayerNumbers.push(n); }); });
                 });
-                
+                // ጊዜው ሲደርስ የግድ እሱ ካርቴላ ላይ ያለ ኳስ እንዲጠራ ማጣሪያ
                 let safeNonWinningForcedCard = safeNonWinning.filter(n => forcedPlayerNumbers.includes(n.num));
 
                 if (isTimeToWin) {
+                    // ⚠️ ማሸነፊያ ሰዓቱ ስለደረሰ የግድ ወደ ማሸነፍ መሄድ አለበት (እንዳያልፍ)
                     if (safeWinningForced.length > 0) {
                         let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
                         numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                    } else if (safeNonWinningForcedCard.length > 0) {
+                        // በአንድ ኳስ ባያሸንፍም፣ የግድ የሱን ካርቴላ ኳስ ብቻ መርጦ ይጠራል
+                        let chosen = safeNonWinningForcedCard[Math.floor(Math.random() * safeNonWinningForcedCard.length)];
+                        numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                    } else if (safeNonWinning.length > 0) { 
+                        let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
+                        numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                     } else {
-                        let mixRandom = Math.random();
-                        if (mixRandom > 0.4 && safeNonWinningForcedCard.length > 0) {
-                            let chosen = safeNonWinningForcedCard[Math.floor(Math.random() * safeNonWinningForcedCard.length)];
-                            let idx = currentDrawSequence.indexOf(chosen.num);
-                            numToCall = currentDrawSequence.splice(idx, 1)[0];
-                        } else if (safeNonWinning.length > 0) {
-                            let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                            let idx = currentDrawSequence.indexOf(chosen.num);
-                            numToCall = currentDrawSequence.splice(idx, 1)[0];
-                        } else {
-                            numToCall = currentDrawSequence.shift();
-                        }
+                        numToCall = currentDrawSequence.shift();
                     }
                 } else {
-                    let mixRandom = Math.random();
-                    if (mixRandom > 0.7 && safeNonWinningForcedCard.length > 0) {
-                        let chosen = safeNonWinningForcedCard[Math.floor(Math.random() * safeNonWinningForcedCard.length)];
-                        let idx = currentDrawSequence.indexOf(chosen.num);
-                        numToCall = currentDrawSequence.splice(idx, 1)[0];
-                    } else if (safeNonWinning.length > 0) {
+                    // ገና ሰዓቱ አልደረሰም
+                    if (safeNonWinning.length > 0) {
                         let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                        let idx = currentDrawSequence.indexOf(chosen.num);
-                        numToCall = currentDrawSequence.splice(idx, 1)[0];
+                        numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                    } else if (safeWinningForced.length > 0) {
+                        let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
+                        numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                     } else {
                         numToCall = currentDrawSequence.shift();
                     }
                 }
             } else {
+                // ለNormal ጌም ኳስ አወጣጥ
                 if (isTimeToWin && safeWinningNormal.length > 0) {
                     let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
                     numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (!isTimeToWin && safeNonWinning.length > 0) {
+                    let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                 } else if (safeNonWinning.length > 0) {
                     let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                    let idx = currentDrawSequence.indexOf(chosen.num);
-                    numToCall = currentDrawSequence.splice(idx, 1)[0];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
+                } else if (safeWinningNormal.length > 0) {
+                    let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
+                    numToCall = currentDrawSequence.splice(chosen.index, 1)[0];
                 } else {
                     numToCall = currentDrawSequence.shift();
                 }
@@ -1605,7 +1598,6 @@ setInterval(() => {
                 return;
             }
         }
-    }
     } else if (gameState === "FINISHED") {
         gameClock--; if (gameClock <= 0) resetToWaiting();
     }
@@ -2689,7 +2681,6 @@ setInterval(async () => {
 }, 15 * 60 * 1000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
-
 
 
 
