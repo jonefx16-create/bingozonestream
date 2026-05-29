@@ -692,13 +692,17 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         ]);
         let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
+        // ✅ ማስተካከያ: የአድሚን ጃክፖት እውነተኛ ሰዎች ከገዙት (totalCollectedMoney) ላይ ብቻ ፐርሰንቱ ተቀንሶ እንዲታይ ተደርጓል
+        let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+        let realJackpot = totalCollectedMoney * ((100 - adminProfitPercent) / 100);
+
         res.json({ 
             totalUsers, 
             livePlayers: Object.keys(activePlayers).length, 
             gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
             gameId, 
             totalProfit: dailyTotalProfit, 
-            currentJackpot: totalPrizePool, 
+            currentJackpot: realJackpot, // 👈 እዚህ ጋር totalPrizePool የነበረው በ እውነተኛው (realJackpot) ተቀይሯል
             settings: GLOBAL_SETTINGS, 
             dailyDeposit, 
             dailyWithdraw, 
