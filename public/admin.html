@@ -89,7 +89,7 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; }
         
         #sms-text { font-size: 16px !important; line-height: 1.6; background: #000; padding: 15px; border-radius: 8px; border: 1px solid var(--faded-green); color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; min-height: 80px; }
-        .disabled-input { opacity: 0.4; pointer-events: none; }
+        .disabled-input { opacity: 0.4; pointer-events: none; display: none !important; }
 
         .promoter-header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; border: 1px solid var(--cyan); margin-bottom: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .promoter-stats { display: flex; justify-content: space-between; background: #000; padding: 15px; border-radius: 8px; margin-top: 15px; }
@@ -161,6 +161,7 @@
 
         <!-- LIVE TAB -->
         <div id="tab-live" class="tab-content active">
+            <!-- ይሄ ክፍል እንዳለ ይቀመጣል ... -->
             <div class="stats-grid">
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold);"><h3>💰 Current Jackpot</h3><h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
@@ -237,7 +238,7 @@
             </div>
         </div>
 
-        <!-- HISTORY (Paginated All Time) -->
+        <!-- HISTORY -->
         <div id="tab-history" class="tab-content">
             <div class="bulk-action-bar" id="bulk-history">
                 <div><span style="font-weight:bold; color:white;">🏆 Winners History Action: </span><span id="sel-count-history" style="color:var(--red); font-weight:bold; margin-left:10px;">0 Selected</span></div>
@@ -262,7 +263,7 @@
             </div>
         </div>
 
-        <!-- FINANCE HISTORY (All Time Paginated) -->
+        <!-- FINANCE HISTORY -->
         <div id="tab-history-tx" class="tab-content">
             <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
                 <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTxType('deposit')">⬇️ Deposits</button>
@@ -308,7 +309,7 @@
             </div>
         </div>
 
-        <!-- PROMO CODES TAB -->
+        <!-- 🔥 PROMO CODES TAB (የተስተካከለ) 🔥 -->
         <div id="tab-promo-codes" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--gold);">🎟️ Add New Promo Code (አዲስ ኩፖን)</h3>
@@ -319,18 +320,20 @@
                     <input type="number" id="add-promo-max" placeholder="Max Users" style="flex:1; margin-bottom:0;">
                 </div>
                 
-                <div style="margin-top:15px; display:flex; gap:10px; align-items:center;">
+                <div style="margin-top:15px; display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
                     <label style="color:var(--faded-green); font-size:13px; font-weight:bold; cursor:pointer; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
-                        <input type="checkbox" id="add-promo-req-dep"> ገቢ (Deposit) ላደረጉ ሰዎች ብቻ
+                        <input type="checkbox" id="add-promo-req-dep" onchange="togglePromoHours()"> ገቢ (Deposit) ላደረጉ ሰዎች ብቻ
                     </label>
-                    <button class="action-btn" onclick="createPromoCode()" style="background:var(--gold); color:black; font-weight:bold; flex:1;">✅ Create Promo Code</button>
+                    <input type="number" id="add-promo-hours" placeholder="በስንት ሰዓት ውስጥ? (e.g. 24)" style="flex:1; margin-bottom:0; max-width: 250px; display: none;">
+                    <button class="action-btn" onclick="createPromoCode()" style="background:var(--gold); color:black; font-weight:bold; flex:1; min-width:200px;">✅ Create Promo Code</button>
                 </div>
+                <p style="font-size:11px; color:gray; margin-top:5px; margin-bottom:0;" id="add-promo-hours-hint" style="display:none;">* 'በስንት ሰዓት' የሚለውን ባዶ ከተዉት፣ ማንኛውም ጊዜ Deposit ያደረገ ሰው ሊወስደው ይችላል።</p>
 
             </div>
             <div class="card">
                 <div class="table-responsive">
                     <table id="table-promo-codes">
-                        <thead><tr><th>Code</th><th>Amount</th><th>Usage (Used/Max)</th><th>Rule</th><th>Status</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Code</th><th>Amount</th><th>Usage (Used/Max)</th><th>Rule (ደንብ)</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="promo-codes-body"></tbody>
                     </table>
                 </div>
@@ -369,11 +372,11 @@
             </div></div>
         </div>
 
-        <!-- REFERRALS (Invite & Earn) -->
+        <!-- REFERRALS -->
         <div id="tab-referral" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
                 <h3 style="color:var(--gold); margin-top:0;">🔧 Fix Missing Invite Bonuses</h3>
-                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የሚያገለግለው ቀደም ብሎ ሰው ጋብዘው <b>(Play Balance)</b> ላልተሰጣቸው ሰዎች ለማስተካከል እና ለመክፈል ነው። (ያልተከፈላቸውን ብቻ አጣርቶ ይከፍላል፣ ሁለት ጊዜ አይከፍልም)።</p>
+                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የሚያገለግለው ቀደም ብሎ ሰው ጋብዘው <b>(Play Balance)</b> ላልተሰጣቸው ሰዎች ለማስተካከል እና ለመክፈል ነው።</p>
                 <button class="action-btn btn-orange" onclick="fixMissingReferralBonuses()">🔍 ላልተከፈላቸው ጋባዦች ቦነስ ክፈል (Fix Missing)</button>
             </div>
             
@@ -449,25 +452,22 @@
                     <h3 style="margin-top:0; color:var(--gold);">📥 Tiered Deposit Auto-Bonus</h3>
                     <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከከፍተኛው (Tier 3) ጀምሮ ያረጋግጣል። የቱንም ያህል ቢያስገቡ 1 አይነት ቦነስ ብቻ ያገኛሉ።</p>
                     
-                    <!-- Tier 1 -->
                     <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border:1px solid #334155;">
-                        <label style="color:var(--faded-green); font-size:12px; font-weight:bold;">🌟 Tier 1 Bonus (First Level)</label>
+                        <label style="color:var(--faded-green); font-size:12px; font-weight:bold;">🌟 Tier 1 Bonus</label>
                         <div style="display:flex; gap:10px; margin-top:5px;">
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-min" placeholder="e.g. 50"></div>
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Bonus %</label><input type="number" id="set-dep-perc" placeholder="e.g. 50"></div>
                         </div>
                     </div>
                     
-                    <!-- Tier 2 -->
                     <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border:1px solid #334155;">
-                        <label style="color:var(--gold); font-size:12px; font-weight:bold;">🏆 Tier 2 Bonus (Second Level)</label>
+                        <label style="color:var(--gold); font-size:12px; font-weight:bold;">🏆 Tier 2 Bonus</label>
                         <div style="display:flex; gap:10px; margin-top:5px;">
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-tier2-min" placeholder="e.g. 200"></div>
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Bonus %</label><input type="number" id="set-dep-tier2-perc" placeholder="e.g. 100"></div>
                         </div>
                     </div>
 
-                    <!-- Tier 3 (Loyalty) -->
                     <div style="background: rgba(168, 85, 247, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; border:1px solid var(--purple);">
                         <label style="color:var(--purple); font-size:12px; font-weight:bold;">💎 Tier 3 (Loyalty - ለድሮ ደንበኞች)</label>
                         <p style="font-size:9px; color:gray; margin:2px 0 5px 0;">ይህ ቦነስ የሚሰራው ከዚህ በፊት ገቢ (Deposit) አድርገው ለሚያውቁ የድሮ ሰዎች ብቻ ነው።</p>
@@ -486,7 +486,7 @@
                     </div>
 
                     <hr style="border-color: var(--border); margin: 15px 0;">
-                    <h4 style="margin-top:0; margin-bottom: 10px; color:#f59e0b;">📣 Deposit Banner Text (የገቢ ማስታወቂያ)</h4>
+                    <h4 style="margin-top:0; margin-bottom: 10px; color:#f59e0b;">📣 Deposit Banner Text</h4>
                     <label style="color:var(--text-gray); font-size:12px; font-weight:bold;">🇪🇹 በአማርኛ (Amharic Text)</label>
                     <textarea id="set-dep-banner-am" rows="2" style="margin-bottom: 10px; background:#000; color:white; border:1px solid var(--border); padding:8px; border-radius:6px; width: 100%; box-sizing: border-box;" placeholder="ለምሳሌ: ልዩ ስጦታ! ከ 100 ብር ጀምሮ..."></textarea>
                     
@@ -536,26 +536,27 @@
                             <input type="number" id="set-cb-amt" placeholder="e.g. 10">
                         </div>
                     </div>
-                    <label style="display:flex; align-items:center; color:white; font-size:12px; margin: 15px 0; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; cursor:pointer;">
-                        <input type="checkbox" id="set-cb-active"> Is Active?
-                    </label>
-                    <div style="display:flex; gap:10px;">
-                        <button class="action-btn btn-purple" style="flex:1;" onclick="updateSettings('cashback')">💾 Save Settings</button>
-                        <button class="action-btn btn-orange" style="flex:1;" onclick="triggerCashbackNow()">🚀 Send Cashback NOW</button>
-                    </div>
+                    <button class="action-btn btn-orange" style="width:100%;" onclick="triggerCashbackNow()">🚀 Send Cashback NOW</button>
                 </div>
             </div>
         </div>
 
-        <!-- TELEGRAM BROADCAST -->
+        <!-- 🔥 TELEGRAM BROADCAST (የተስተካከለ) 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--blue);">
                     <h3 style="margin-top:0; color:var(--blue);">✈️ Normal Telegram Broadcast</h3>
+                    
                     <label style="color:var(--cyan); font-weight:bold; font-size:12px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
                     <input type="text" id="tg-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
                     <input type="file" id="tg-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--blue); margin-bottom:15px;">
+                    
                     <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write message here..."></textarea>
+                    
+                    <label style="display:block; margin-bottom:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
+                        <input type="checkbox" id="tg-dep-only"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ ይላክ</span>
+                    </label>
+
                     <div style="display:flex; gap:10px;">
                         <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast</button>
                         <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
@@ -564,21 +565,29 @@
 
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
+                    
                     <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
                         <input type="number" id="cb-max-users" placeholder="ለስንት ሰው?" style="flex:1;">
                         <input type="number" id="cb-amount" placeholder="የብር መጠን" style="flex:1;">
                         <input type="number" id="cb-minutes" placeholder="ለስንት ደቂቃ?" style="flex:1;">
                     </div>
+                    
                     <input type="text" id="cb-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
                     <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
+                    
                     <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ..."></textarea>
+                    
+                    <label style="display:block; margin-bottom:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
+                        <input type="checkbox" id="cb-dep-only"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ ይላክ (እንዲወስዱትም ይፈቀድ)</span>
+                    </label>
+
                     <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast</button>
                     <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ View Claimed Users</button>
                 </div>
             </div>
         </div>
 
-        <!-- 🔥 አዲሱ GAME MANIPULATION TAB 🔥 -->
+        <!-- GAME MANIPULATION TAB -->
         <div id="tab-manipulation" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 
@@ -605,7 +614,7 @@
 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
                     <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (100% Forced)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። እዚህ ውስጥ ያለ ሰው ካለ <b>100% እርሱ ብቻ</b> ያሸንፋል። <b>0</b> ብለው ካስገቡ ሲስተሙ 100% Random (እውነተኛ) ይሆናል።</p>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። እዚህ ውስጥ ያለ ሰው ካለ <b>100% እርሱ ብቻ</b> ያሸንፋል። <b>0</b> ብለው ካስገቡ ሲስተሙ 100% Random ይሆናል።</p>
                     <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922... OR 0" style="border-color: var(--red); margin-bottom: 15px;">
                     <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
                 </div>
@@ -661,7 +670,6 @@
 </div>
 
 <!-- ================= MODALS ================= -->
-
 <div class="modal" id="live-players-modal">
     <div class="modal-content" style="max-width: 450px;">
         <h3 style="color: var(--purple); margin-top:0; text-align: center;">🎮 Currently Live Players</h3>
@@ -870,6 +878,13 @@
         else if (type === 'wit') { document.getElementById('set-wit-time-restrict').checked ? document.getElementById('time-inputs-container-wit').classList.remove('disabled-input') : document.getElementById('time-inputs-container-wit').classList.add('disabled-input'); }
     }
 
+    // 🔥 Added Toggle for Promo Hours Box 🔥
+    function togglePromoHours() {
+        let isChecked = document.getElementById('add-promo-req-dep').checked;
+        document.getElementById('add-promo-hours').style.display = isChecked ? 'block' : 'none';
+        document.getElementById('add-promo-hours-hint').style.display = isChecked ? 'block' : 'none';
+    }
+
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
     async function openLivePlayersModal() {
@@ -1075,9 +1090,7 @@
                 }
 
                 let phonesArr = (h.winnerPhone || "").toString().split(',').map(p => p.trim()).filter(p => p);
-                
                 let phonesLinks = phonesArr.map(p => `<a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold; display:block; padding: 2px 0;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a>`).join('');
-                
                 let txButtons = phonesArr.map(p => `<button class="btn-sm btn-purple" style="margin-bottom:4px; margin-right:4px;" onclick="fetchAndShowUserInfo('${p}')">👁️ TXs (${p})</button>`).join('');
 
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'history', '${h._id}')">
@@ -1089,9 +1102,7 @@
                     <td style="color:var(--faded-green); font-weight:bold;">+${Number(h.prize).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td style="color:var(--blue); font-weight:bold;">+${Number(h.adminProfit || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td>
-                        <div style="display:flex; flex-wrap:wrap; gap:2px; margin-bottom:5px;">
-                            ${txButtons}
-                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:2px; margin-bottom:5px;">${txButtons}</div>
                         <button class="btn-sm btn-blue" onclick="viewHistory(${idx})">Cards</button>
                         <button class="btn-sm btn-red" onclick="singleDelete('history', '${h._id}')">Delete</button>
                     </td>
@@ -1263,6 +1274,7 @@
         }
     }
 
+    // 🔥 Added Display logic for hours in Promo Codes 🔥
     async function loadPromoCodes() {
         try {
             let res = await fetch('/api/admin/list-promo-codes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -1272,7 +1284,12 @@
                     let isExpired = new Date(c.expiresAt) < new Date();
                     let isFull = c.currentUses >= c.maxUses;
                     let status = (isExpired || isFull) ? '<span class="badge bg-rejected">INACTIVE</span>' : '<span class="badge bg-approved">ACTIVE</span>';
-                    let reqDepRule = c.requireDeposit ? '<span style="color:#f59e0b; font-size:10px;">ገቢ ላደረጉ ብቻ</span>' : '<span style="color:gray; font-size:10px;">ለሁሉም</span>';
+                    
+                    let reqDepRule = c.requireDeposit ? '<span style="color:#f59e0b; font-size:11px; font-weight:bold;">ገቢ ላደረጉ ብቻ</span>' : '<span style="color:gray; font-size:11px;">ለሁሉም</span>';
+                    if (c.requireDeposit && c.requireDepositWithinHours > 0) {
+                        reqDepRule += `<br><span style="color:#38bdf8; font-size:10px;">(በ ${c.requireDepositWithinHours} ሰዓት ውስጥ)</span>`;
+                    }
+
                     return `<tr>
                         <td style="font-weight:bold; color:var(--gold);">${c.code}</td>
                         <td style="color:var(--faded-green); font-weight:bold;">${c.amount} ETB</td>
@@ -1286,21 +1303,36 @@
         } catch(e) {}
     }
 
+    // 🔥 Added logic to save Promo Deposit requirement hours 🔥
     async function createPromoCode() {
         let code = document.getElementById('add-promo-code').value.trim().toUpperCase();
         let amount = document.getElementById('add-promo-amount').value;
         let max = document.getElementById('add-promo-max').value;
         let requiresDep = document.getElementById('add-promo-req-dep').checked;
+        let reqDepHours = document.getElementById('add-promo-hours').value;
 
         if(!code || !amount || !max) return alert("እባክዎ ሁሉንም መረጃ ይሙሉ!");
         
+        let payload = { 
+            adminPass: pass, 
+            code, 
+            amount, 
+            maxUses: max, 
+            requireDeposit: requiresDep,
+            requireDepositWithinHours: requiresDep && reqDepHours ? Number(reqDepHours) : 0
+        };
+
         try {
-            let res = await fetch('/api/admin/create-promo-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, code, amount, maxUses: max, requireDeposit: requiresDep})});
+            let res = await fetch('/api/admin/create-promo-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)});
             let data = await res.json();
             if(data.success) {
                 alert("✅ ፐሮሞ ኮድ ተፈጥሯል!");
-                document.getElementById('add-promo-code').value = ''; document.getElementById('add-promo-amount').value = ''; document.getElementById('add-promo-max').value = '';
+                document.getElementById('add-promo-code').value = ''; 
+                document.getElementById('add-promo-amount').value = ''; 
+                document.getElementById('add-promo-max').value = '';
                 document.getElementById('add-promo-req-dep').checked = false;
+                document.getElementById('add-promo-hours').value = '';
+                togglePromoHours();
                 loadPromoCodes();
             } else {
                 alert(data.message || "Error");
@@ -1589,35 +1621,78 @@
     async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amt = document.getElementById('sb-amt').value; if(!phone || !amt) return alert("Fill both!"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; } }
     async function sendBulkBonus() { let phones = document.getElementById('b-phones').value; let amt = document.getElementById('mb-amt-bulk').value; if(!phones || !amt) return alert("Fill both!"); let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim()); let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; } }
     
-    async function createClaimBonus() { let maxUsers = document.getElementById('cb-max-users').value; let amount = document.getElementById('cb-amount').value; let minutes = document.getElementById('cb-minutes').value; let msg = document.getElementById('cb-msg').value; let photoUrl = document.getElementById('cb-photo-url').value.trim(); let fileInput = document.getElementById('cb-photo-file'); if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; let btn = document.getElementById('btn-send-promo'); btn.innerText = "Sending..."; let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl}; if (fileInput.files.length > 0) { let reader = new FileReader(); reader.readAsDataURL(fileInput.files[0]); reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); }; } else { sendPromoData(payload, btn); } }
-    async function sendPromoData(payload, btn) { try { let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); let data = await res.json(); alert(data.message || "Promo Created successfully!"); if(data.success) { document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';} } catch(e) { alert("Error"); } btn.innerText = "Create Promo & Broadcast"; }
+    // 🔥 Added Logic for Promo Broadcast & Normal Telegram Checkbox 🔥
+    async function createClaimBonus() { 
+        let maxUsers = document.getElementById('cb-max-users').value; 
+        let amount = document.getElementById('cb-amount').value; 
+        let minutes = document.getElementById('cb-minutes').value; 
+        let msg = document.getElementById('cb-msg').value; 
+        let photoUrl = document.getElementById('cb-photo-url').value.trim(); 
+        let fileInput = document.getElementById('cb-photo-file'); 
+        let depOnly = document.getElementById('cb-dep-only').checked; // NEW!
+
+        if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); 
+        if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; 
+        let btn = document.getElementById('btn-send-promo'); btn.innerText = "Sending..."; 
+        
+        let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl, depositorsOnly: depOnly}; 
+        
+        if (fileInput.files.length > 0) { 
+            let reader = new FileReader(); 
+            reader.readAsDataURL(fileInput.files[0]); 
+            reader.onload = async function () { payload.photoUrl = reader.result; sendPromoData(payload, btn); }; 
+        } else { sendPromoData(payload, btn); } 
+    }
+
+    async function sendPromoData(payload, btn) { 
+        try { 
+            let res = await fetch('/api/admin/create-claim-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); 
+            let data = await res.json(); 
+            alert(data.message || "Promo Created successfully!"); 
+            if(data.success) { 
+                document.getElementById('cb-max-users').value = ''; document.getElementById('cb-amount').value = ''; 
+                document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; 
+                document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';
+                document.getElementById('cb-dep-only').checked = false;
+            } 
+        } catch(e) { alert("Error"); } 
+        btn.innerText = "Create Promo & Broadcast"; 
+    }
+
     async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. <a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a></div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; } }
     
+    // 🔥 Added logic for sending Normal broadcast to Depositors Only 🔥
     async function sendTelegramPromo(type) { 
         let msg = document.getElementById('tg-msg').value; 
         let photoUrl = document.getElementById('tg-photo-url').value.trim(); 
         let fileInput = document.getElementById('tg-photo-file'); 
+        let depOnly = document.getElementById('tg-dep-only').checked; // NEW!
+
         if(!msg) return alert("Enter a message"); 
         let btn = document.querySelector('#tab-telegram .btn-blue'); 
         btn.innerText = "Sending..."; 
+        
+        let payload = {adminPass: pass, message: msg, photoUrl: photoUrl, depositorsOnly: depOnly};
+
         if (fileInput.files.length > 0) { 
             let reader = new FileReader(); 
             reader.readAsDataURL(fileInput.files[0]); 
-            reader.onload = async function () { sendPayloadToTelegram(msg, reader.result, btn); }; 
+            reader.onload = async function () { payload.photoUrl = reader.result; sendPayloadToTelegram(payload, btn); }; 
         } else { 
-            sendPayloadToTelegram(msg, photoUrl, btn); 
+            sendPayloadToTelegram(payload, btn); 
         } 
     }
     
-    async function sendPayloadToTelegram(message, photoUrl, btn) { 
+    async function sendPayloadToTelegram(payload, btn) { 
         try { 
-            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, message, photoUrl})}); 
+            let res = await fetch('/api/admin/broadcast-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)}); 
             let data = await res.json(); 
             alert(data.message || "Sent successfully!"); 
             if(data.success) { 
                 document.getElementById('tg-msg').value = ''; 
                 document.getElementById('tg-photo-file').value = ''; 
                 document.getElementById('tg-photo-url').value = ''; 
+                document.getElementById('tg-dep-only').checked = false;
             } 
         } catch(e) { 
             alert("Error sending."); 
