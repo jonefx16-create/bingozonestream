@@ -312,17 +312,25 @@
         <div id="tab-promo-codes" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--gold);">🎟️ Add New Promo Code (አዲስ ኩፖን)</h3>
+                
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                     <input type="text" id="add-promo-code" placeholder="ኩፖን ስም (e.g. BONUS50)" style="flex:1; margin-bottom:0; text-transform:uppercase;">
                     <input type="number" id="add-promo-amount" placeholder="Amount (ETB)" style="flex:1; margin-bottom:0;">
                     <input type="number" id="add-promo-max" placeholder="Max Users" style="flex:1; margin-bottom:0;">
-                    <button class="action-btn" onclick="createPromoCode()" style="background:var(--gold); color:black; font-weight:bold;">✅ Create Promo Code</button>
                 </div>
+                
+                <div style="margin-top:15px; display:flex; gap:10px; align-items:center;">
+                    <label style="color:var(--faded-green); font-size:13px; font-weight:bold; cursor:pointer; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
+                        <input type="checkbox" id="add-promo-req-dep"> ገቢ (Deposit) ላደረጉ ሰዎች ብቻ
+                    </label>
+                    <button class="action-btn" onclick="createPromoCode()" style="background:var(--gold); color:black; font-weight:bold; flex:1;">✅ Create Promo Code</button>
+                </div>
+
             </div>
             <div class="card">
                 <div class="table-responsive">
                     <table id="table-promo-codes">
-                        <thead><tr><th>Code</th><th>Amount</th><th>Usage (Used/Max)</th><th>Status</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Code</th><th>Amount</th><th>Usage (Used/Max)</th><th>Rule</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="promo-codes-body"></tbody>
                     </table>
                 </div>
@@ -439,10 +447,10 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--gold);">
                     <h3 style="margin-top:0; color:var(--gold);">📥 Tiered Deposit Auto-Bonus</h3>
-                    <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከከፍተኛው (Tier 2) ጀምሮ ያረጋግጣል።</p>
+                    <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከከፍተኛው (Tier 3) ጀምሮ ያረጋግጣል። የቱንም ያህል ቢያስገቡ 1 አይነት ቦነስ ብቻ ያገኛሉ።</p>
                     
                     <!-- Tier 1 -->
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border:1px solid #334155;">
                         <label style="color:var(--faded-green); font-size:12px; font-weight:bold;">🌟 Tier 1 Bonus (First Level)</label>
                         <div style="display:flex; gap:10px; margin-top:5px;">
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-min" placeholder="e.g. 50"></div>
@@ -451,11 +459,21 @@
                     </div>
                     
                     <!-- Tier 2 -->
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border:1px solid #334155;">
                         <label style="color:var(--gold); font-size:12px; font-weight:bold;">🏆 Tier 2 Bonus (Second Level)</label>
                         <div style="display:flex; gap:10px; margin-top:5px;">
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-tier2-min" placeholder="e.g. 200"></div>
                             <div style="flex:1;"><label style="font-size:10px; color:gray;">Bonus %</label><input type="number" id="set-dep-tier2-perc" placeholder="e.g. 100"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tier 3 (Loyalty) -->
+                    <div style="background: rgba(168, 85, 247, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; border:1px solid var(--purple);">
+                        <label style="color:var(--purple); font-size:12px; font-weight:bold;">💎 Tier 3 (Loyalty - ለድሮ ደንበኞች)</label>
+                        <p style="font-size:9px; color:gray; margin:2px 0 5px 0;">ይህ ቦነስ የሚሰራው ከዚህ በፊት ገቢ (Deposit) አድርገው ለሚያውቁ የድሮ ሰዎች ብቻ ነው።</p>
+                        <div style="display:flex; gap:10px; margin-top:5px;">
+                            <div style="flex:1;"><label style="font-size:10px; color:gray;">Min Amount</label><input type="number" id="set-dep-tier3-min" placeholder="e.g. 300"></div>
+                            <div style="flex:1;"><label style="font-size:10px; color:gray;">Bonus %</label><input type="number" id="set-dep-tier3-perc" placeholder="e.g. 150"></div>
                         </div>
                     </div>
 
@@ -587,8 +605,8 @@
 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
                     <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (100% Forced)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። እዚህ ውስጥ ያለ ሰው ካለ <b>100% እርሱ ብቻ</b> ያሸንፋል።</p>
-                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922..." style="border-color: var(--red); margin-bottom: 15px;">
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። እዚህ ውስጥ ያለ ሰው ካለ <b>100% እርሱ ብቻ</b> ያሸንፋል። <b>0</b> ብለው ካስገቡ ሲስተሙ 100% Random (እውነተኛ) ይሆናል።</p>
+                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922... OR 0" style="border-color: var(--red); margin-bottom: 15px;">
                     <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
                 </div>
 
@@ -938,9 +956,11 @@
                 safeUpdate('set-dep-min', data.settings.depBonusMinAmount !== undefined ? data.settings.depBonusMinAmount : '');
                 safeUpdate('set-dep-perc', data.settings.depBonusPercent !== undefined ? data.settings.depBonusPercent : '');
                 
-                // Tier 2 deposit bonus update
                 safeUpdate('set-dep-tier2-min', data.settings.depBonusTier2Min !== undefined ? data.settings.depBonusTier2Min : '');
                 safeUpdate('set-dep-tier2-perc', data.settings.depBonusTier2Percent !== undefined ? data.settings.depBonusTier2Percent : '');
+
+                safeUpdate('set-dep-tier3-min', data.settings.depBonusTier3Min !== undefined ? data.settings.depBonusTier3Min : '');
+                safeUpdate('set-dep-tier3-perc', data.settings.depBonusTier3Percent !== undefined ? data.settings.depBonusTier3Percent : '');
 
                 safeUpdate('set-wit-min', data.settings.witBonusMinAmount !== undefined ? data.settings.witBonusMinAmount : '');
                 safeUpdate('set-wit-perc', data.settings.witBonusPercent !== undefined ? data.settings.witBonusPercent : '');
@@ -1159,17 +1179,22 @@
             let proWits = data.txs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm');
             
             let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
-            document.getElementById('pend-dep-body').innerHTML = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm btn-purple" style="margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
             
+            let depsHtml = deps.map(t => { let safeSMS = encodeURIComponent(t.smsText || "No SMS"); let smsPreview = t.smsText ? (t.smsText.substring(0, 15) + "...") : "No SMS"; return `<tr><td>${new Date(t.date).toLocaleString()}</td><td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="text-transform:uppercase;">${t.method}</td><td style="font-weight:bold; color:var(--faded-green);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td><div style="display:flex; align-items:center; gap:5px;"><span style="color:#cbd5e1; font-size:10px;">${smsPreview}</span> <button class="btn-sm btn-blue" onclick="showTxDetailsModal('${t.phone}', '${t.method}', '${t.amount}', '${safeSMS}')">👁️ View</button></div></td><td><button class="btn-sm btn-purple" style="margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">Approve</button> <button class="btn-sm btn-red" onclick="actionTx('${t._id}', 'Reject')">Reject</button></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending deposits.</td></tr>`;
+            if (document.getElementById('pend-dep-body').innerHTML !== depsHtml) document.getElementById('pend-dep-body').innerHTML = depsHtml;
+
             let bWit = document.getElementById('badge-wit'); if(wits.length > 0) { bWit.style.display = 'inline-block'; bWit.innerText = wits.length; } else { bWit.style.display = 'none'; }
-            document.getElementById('pend-wit-body').innerHTML = wits.map(t => { 
+            
+            let witsHtml = wits.map(t => { 
                 let methodStr = (t.method || "").toUpperCase(); let methodBadge = ""; if (methodStr.includes("CBE")) { methodBadge = `<span style="background: #a855f7; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #d8b4fe;">🏦 CBE</span>`; } else if (methodStr.includes("TELEBIRR")) { methodBadge = `<span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #93c5fd;">📱 TELEBIRR</span>`; } else { methodBadge = `<span style="background: #475569; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; text-transform: uppercase;">${t.method}</span>`; }
                 return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="font-weight: 900; font-size: 15px; letter-spacing: 1px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td>${methodBadge}</td><td style="font-weight: 900; font-size: 16px; color: var(--orange);">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family: monospace; font-weight: 900; font-size: 15px; color: var(--cyan); letter-spacing: 1px;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`; 
             }).join('') || `<tr><td colspan="6" style="text-align:center;">No pending normal withdraws.</td></tr>`;
+            if (document.getElementById('pend-wit-body').innerHTML !== witsHtml) document.getElementById('pend-wit-body').innerHTML = witsHtml;
 
-            document.getElementById('promoter-pend-wit-body').innerHTML = proWits.map(t => {
+            let proWitsHtml = proWits.map(t => {
                 return `<tr><td>${new Date(t.date).toLocaleString()}</td><td style="color:var(--cyan); font-weight:900; font-size:15px; letter-spacing:1px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td><td style="color:var(--orange); font-weight:900; font-size:16px;">${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td><td style="font-family:monospace; font-weight:900; font-size:15px; letter-spacing:1px; color:#ffffff;">${(t.smsText||'').replace('Transfer to: ', '')}</td><td><button class="btn-sm btn-purple" style="font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="fetchAndShowUserInfo('${t.phone}')">👁️ User</button><button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; padding: 8px 12px; margin-right:5px;" onclick="actionTx('${t._id}', 'Approve')">✅ Approve</button> <button class="btn-sm btn-red" style="font-weight:bold; padding: 8px 12px;" onclick="actionTx('${t._id}', 'Reject')">❌ Reject</button></td></tr>`;
             }).join('') || `<tr><td colspan="5" style="text-align:center;">No pending promoter withdrawals.</td></tr>`;
+            if (document.getElementById('promoter-pend-wit-body').innerHTML !== proWitsHtml) document.getElementById('promoter-pend-wit-body').innerHTML = proWitsHtml;
         }
     }
     
@@ -1247,14 +1272,16 @@
                     let isExpired = new Date(c.expiresAt) < new Date();
                     let isFull = c.currentUses >= c.maxUses;
                     let status = (isExpired || isFull) ? '<span class="badge bg-rejected">INACTIVE</span>' : '<span class="badge bg-approved">ACTIVE</span>';
+                    let reqDepRule = c.requireDeposit ? '<span style="color:#f59e0b; font-size:10px;">ገቢ ላደረጉ ብቻ</span>' : '<span style="color:gray; font-size:10px;">ለሁሉም</span>';
                     return `<tr>
                         <td style="font-weight:bold; color:var(--gold);">${c.code}</td>
                         <td style="color:var(--faded-green); font-weight:bold;">${c.amount} ETB</td>
                         <td>${c.currentUses} / ${c.maxUses}</td>
+                        <td>${reqDepRule}</td>
                         <td>${status}</td>
                         <td><button class="btn-sm btn-red" onclick="deletePromoCode('${c._id}')">🗑️ Delete</button></td>
                     </tr>`;
-                }).join('') || `<tr><td colspan="5" style="text-align:center;">No promo codes found.</td></tr>`;
+                }).join('') || `<tr><td colspan="6" style="text-align:center;">No promo codes found.</td></tr>`;
             }
         } catch(e) {}
     }
@@ -1263,14 +1290,17 @@
         let code = document.getElementById('add-promo-code').value.trim().toUpperCase();
         let amount = document.getElementById('add-promo-amount').value;
         let max = document.getElementById('add-promo-max').value;
+        let requiresDep = document.getElementById('add-promo-req-dep').checked;
+
         if(!code || !amount || !max) return alert("እባክዎ ሁሉንም መረጃ ይሙሉ!");
         
         try {
-            let res = await fetch('/api/admin/create-promo-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, code, amount, maxUses: max})});
+            let res = await fetch('/api/admin/create-promo-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, code, amount, maxUses: max, requireDeposit: requiresDep})});
             let data = await res.json();
             if(data.success) {
                 alert("✅ ፐሮሞ ኮድ ተፈጥሯል!");
                 document.getElementById('add-promo-code').value = ''; document.getElementById('add-promo-amount').value = ''; document.getElementById('add-promo-max').value = '';
+                document.getElementById('add-promo-req-dep').checked = false;
                 loadPromoCodes();
             } else {
                 alert(data.message || "Error");
@@ -1682,6 +1712,10 @@
             let t2Amt = document.getElementById('set-dep-tier2-min').value;
             let t2Per = document.getElementById('set-dep-tier2-perc').value;
 
+            // Tier 3 Inputs (Loyalty)
+            let t3Amt = document.getElementById('set-dep-tier3-min').value;
+            let t3Per = document.getElementById('set-dep-tier3-perc').value;
+
             let start = document.getElementById('set-dep-start').value; 
             let end = document.getElementById('set-dep-end').value;
             
@@ -1695,6 +1729,9 @@
             
             payload.depBonusTier2Min = t2Amt !== '' ? Number(t2Amt) : 0;
             payload.depBonusTier2Percent = t2Per !== '' ? Number(t2Per) : 0;
+
+            payload.depBonusTier3Min = t3Amt !== '' ? Number(t3Amt) : 0;
+            payload.depBonusTier3Percent = t3Per !== '' ? Number(t3Per) : 0;
 
             payload.happyHourStart = start !== '' ? Number(start) : 0; 
             payload.happyHourEnd = end !== '' ? Number(end) : 23;
