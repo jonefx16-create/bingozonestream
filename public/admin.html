@@ -246,7 +246,7 @@
             </div>
 
             <div class="search-container">
-                <input type="text" class="search-bar" id="search-history" onkeyup="debounceSearch(() => loadHistoryPage(1))" placeholder="🔍 Search Winner Phone or Game ID...">
+                <input type="text" class="search-bar" id="search-history" onkeyup="debounceSearch(() => loadHistoryPage(1))" placeholder="🔍 Search Phone, Game ID, or Ticket ID (ካርቴላ ቁጥር)...">
                 <button class="action-btn btn-red" onclick="deleteOldGames()" style="padding: 10px; margin-left: 10px; display:none;">🗑️ የቆዩትን አጥፋ (Delete Older Than 6 Hours)</button>
             </div>
             <div class="card">
@@ -293,23 +293,27 @@
             </div>
         </div>
 
-        <!-- PLAYERS/GAME INFO -->
+        <!-- PLAYERS/GAME INFO (UPDATED WITH SEARCH) -->
         <div id="tab-players" class="tab-content">
+            <div class="search-container">
+                <input type="text" class="search-bar" id="search-player-bets" onkeyup="if(event.key === 'Enter') searchPlayerBets()" placeholder="🔍 Search Phone or Ticket ID (የሰው ስልክ ወይም ካርቴላ ቁጥር ፅፈው Enter ይጫኑ)..." style="border-color:var(--gold);">
+                <button class="action-btn btn-gold" onclick="searchPlayerBets()" style="background:var(--gold); color:black;">🔍 Search Bets</button>
+            </div>
             <div class="card">
-                <p style="font-size: 12px; color: var(--gold); margin-top:0;">⚠️ ጌም መምረጫው የሚያሳየው History ታብ ላይ ሎድ የሆኑትን 30 ጌሞች ነው። (Next እያሉ History ላይ ማየት ይቻላል)</p>
+                <p style="font-size: 12px; color: var(--gold); margin-top:0;">⚠️ ጌም መምረጫው የሚያሳየው History ታብ ላይ ሎድ የሆኑትን 30 ጌሞች ነው። የቆየ ካርቴላ ወይም ስልክ ለመፈለግ ከላይ ያለውን Search ይጠቀሙ።</p>
                 <select id="game-details-select" onchange="renderGamePlayers(this.value)" style="border-color: var(--purple); font-weight: bold;">
                     <option value="">-- Select a Game to View Details --</option>
                 </select>
                 <div class="table-responsive">
                     <table>
-                        <thead><tr><th>Name</th><th>Phone</th><th>Tickets</th><th>Bet Amount</th><th>Action</th></tr></thead>
-                        <tbody id="game-players-body"><tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr></tbody>
+                        <thead><tr><th>Game ID</th><th>Name</th><th>Phone</th><th>Tickets (IDs)</th><th>Bet Amount</th><th>Action</th></tr></thead>
+                        <tbody id="game-players-body"><tr><td colspan="6" style="text-align:center; color:gray;">Please select a game or search above</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- 🔥 PROMO CODES TAB (የተስተካከለ) 🔥 -->
+        <!-- 🔥 PROMO CODES TAB 🔥 -->
         <div id="tab-promo-codes" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--gold);">🎟️ Add New Promo Code (አዲስ ኩፖን)</h3>
@@ -541,7 +545,7 @@
             </div>
         </div>
 
-        <!-- 🔥 TELEGRAM BROADCAST (የተስተካከለ) 🔥 -->
+        <!-- 🔥 TELEGRAM BROADCAST 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <div class="card" style="border-left: 4px solid var(--blue);">
@@ -878,7 +882,6 @@
         else if (type === 'wit') { document.getElementById('set-wit-time-restrict').checked ? document.getElementById('time-inputs-container-wit').classList.remove('disabled-input') : document.getElementById('time-inputs-container-wit').classList.add('disabled-input'); }
     }
 
-    // 🔥 Added Toggle for Promo Hours Box 🔥
     function togglePromoHours() {
         let isChecked = document.getElementById('add-promo-req-dep').checked;
         document.getElementById('add-promo-hours').style.display = isChecked ? 'block' : 'none';
@@ -1274,7 +1277,6 @@
         }
     }
 
-    // 🔥 Added Display logic for hours in Promo Codes 🔥
     async function loadPromoCodes() {
         try {
             let res = await fetch('/api/admin/list-promo-codes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
@@ -1303,7 +1305,6 @@
         } catch(e) {}
     }
 
-    // 🔥 Added logic to save Promo Deposit requirement hours 🔥
     async function createPromoCode() {
         let code = document.getElementById('add-promo-code').value.trim().toUpperCase();
         let amount = document.getElementById('add-promo-amount').value;
@@ -1411,19 +1412,68 @@
     }
 
     function renderGamePlayers(index) { 
-        if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } 
+        if(!index) { document.getElementById('game-players-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Please select a game from above</td></tr>'; return; } 
         let game = loadedGames[index]; 
         document.getElementById('game-players-body').innerHTML = (game.playersData && game.playersData.length > 0) ? game.playersData.map(p => `
             <tr>
+                <td style="color:var(--gold); font-weight:bold;">#${game.gameId}</td>
                 <td>${p.name}</td>
                 <td><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></td>
-                <td>${p.tickets}</td>
+                <td>${p.tickets} <span style="font-size:10px; color:gray;">(${p.ticketsData ? p.ticketsData.map(t=>t.id).join(', ') : ''})</span></td>
                 <td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</td>
                 <td>
-                    <button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData)}, ${JSON.stringify(game.calledNumbers)})'>View Cards</button>
+                    <button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData || [])}, ${JSON.stringify(game.calledNumbers || [])})'>View Cards</button>
                     <button class="btn-sm btn-red" onclick="deletePlayerFromGame('${game._id}', '${p.phone}')">Delete Bet</button>
                 </td>
-            </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; 
+            </tr>`).join('') : `<tr><td colspan="6" style="text-align:center; color: var(--text-gray);">No player details saved.</td></tr>`; 
+    }
+
+    // 🔥 Added function to search Player Bets dynamically 🔥
+    async function searchPlayerBets() {
+        let searchVal = document.getElementById('search-player-bets').value.trim();
+        if(!searchVal) return;
+        
+        document.getElementById('game-players-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--cyan);">🔍 Searching... Please wait.</td></tr>';
+        
+        try {
+            let res = await fetch('/api/admin/search-bets', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({adminPass: pass, search: searchVal}) 
+            });
+            let data = await res.json();
+            
+            if(data.success && data.games && data.games.length > 0) {
+                let html = "";
+                data.games.forEach(game => {
+                    let matchedPlayers = game.playersData.filter(p => {
+                        if(p.phone.includes(searchVal)) return true;
+                        if(!isNaN(searchVal) && p.ticketsData && p.ticketsData.some(t => String(t.id) === searchVal)) return true;
+                        return false;
+                    });
+                    
+                    matchedPlayers.forEach(p => {
+                        html += `
+                        <tr>
+                            <td style="color:var(--gold); font-weight:bold;">#${game.gameId} <br><span style="font-size:10px; font-weight:normal; color:gray;">${new Date(game.date).toLocaleDateString()}</span></td>
+                            <td>${p.name}</td>
+                            <td><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></td>
+                            <td>${p.tickets} <span style="font-size:10px; color:gray;">(${p.ticketsData ? p.ticketsData.map(t=>t.id).join(', ') : ''})</span></td>
+                            <td style="color:var(--faded-green); font-weight:bold;">${Number(p.tickets * (game.ticketPrice || 10)).toLocaleString()} ETB</td>
+                            <td>
+                                <button class="btn-sm btn-blue" onclick='viewPlayerMultipleCards(${JSON.stringify(p.ticketsData || [])}, ${JSON.stringify(game.calledNumbers || [])})'>View Cards</button>
+                                <button class="btn-sm btn-red" onclick="deletePlayerFromGame('${game._id}', '${p.phone}')">Delete Bet</button>
+                            </td>
+                        </tr>`;
+                    });
+                });
+                document.getElementById('game-players-body').innerHTML = html || '<tr><td colspan="6" style="text-align:center; color:var(--orange);">No matching records found for this search.</td></tr>';
+            } else {
+                document.getElementById('game-players-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--red);">❌ No records found in the database.</td></tr>';
+            }
+        } catch(e) {
+            document.getElementById('game-players-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Connection Error!</td></tr>';
+        }
     }
 
     async function deletePlayerFromGame(gameId, phone) {
@@ -1431,7 +1481,7 @@
         try {
             await fetch('/api/admin/delete-game-player', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, id: gameId, phone: phone}) });
             loadHistoryPage(p_hist);
-            document.getElementById('game-players-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray;">Deleted. Please reselect the game.</td></tr>';
+            document.getElementById('game-players-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Deleted. Please search or reselect again.</td></tr>';
         } catch(e) { alert("Failed to delete bet."); }
     }
 
@@ -1621,7 +1671,6 @@
     async function sendSingleBonus() { let phone = document.getElementById('sb-phone').value; let amt = document.getElementById('sb-amt').value; if(!phone || !amt) return alert("Fill both!"); let res = await fetch('/api/admin/send-single-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phone, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('sb-phone').value=''; document.getElementById('sb-amt').value=''; } }
     async function sendBulkBonus() { let phones = document.getElementById('b-phones').value; let amt = document.getElementById('mb-amt-bulk').value; if(!phones || !amt) return alert("Fill both!"); let phoneArr = phones === "ALL" ? "ALL" : phones.split(',').map(p => p.trim()); let res = await fetch('/api/admin/send-bulk-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, phones: phoneArr, amount: amt})}); let data = await res.json(); alert(data.message); if(data.success) { document.getElementById('b-phones').value=''; document.getElementById('mb-amt-bulk').value=''; } }
     
-    // 🔥 Added Logic for Promo Broadcast & Normal Telegram Checkbox 🔥
     async function createClaimBonus() { 
         let maxUsers = document.getElementById('cb-max-users').value; 
         let amount = document.getElementById('cb-amount').value; 
@@ -1629,7 +1678,7 @@
         let msg = document.getElementById('cb-msg').value; 
         let photoUrl = document.getElementById('cb-photo-url').value.trim(); 
         let fileInput = document.getElementById('cb-photo-file'); 
-        let depOnly = document.getElementById('cb-dep-only').checked; // NEW!
+        let depOnly = document.getElementById('cb-dep-only').checked;
 
         if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); 
         if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; 
@@ -1661,12 +1710,11 @@
 
     async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. <a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a></div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; } }
     
-    // 🔥 Added logic for sending Normal broadcast to Depositors Only 🔥
     async function sendTelegramPromo(type) { 
         let msg = document.getElementById('tg-msg').value; 
         let photoUrl = document.getElementById('tg-photo-url').value.trim(); 
         let fileInput = document.getElementById('tg-photo-file'); 
-        let depOnly = document.getElementById('tg-dep-only').checked; // NEW!
+        let depOnly = document.getElementById('tg-dep-only').checked; 
 
         if(!msg) return alert("Enter a message"); 
         let btn = document.querySelector('#tab-telegram .btn-blue'); 
