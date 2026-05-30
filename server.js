@@ -100,7 +100,7 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     expiresAt: Date, 
     isActive: { type: Boolean, default: true }, 
     date: { type: Date, default: Date.now },
-    depositorsOnly: { type: Boolean, default: false } // 🔥 NEW! For target broadcast
+    depositorsOnly: { type: Boolean, default: false } // 🔥 NEW
 }));
 
 const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
@@ -110,8 +110,8 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     currentUses: { type: Number, default: 0 },
     expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
     usedBy: [String],
-    requireDeposit: { type: Boolean, default: false }, // 🔥 NEW!
-    requireDepositWithinHours: { type: Number, default: 0 } // 🔥 NEW! 24 hour limit logic
+    requireDeposit: { type: Boolean, default: false }, // 🔥 NEW
+    requireDepositWithinHours: { type: Number, default: 0 } // 🔥 NEW 24 hour logic
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -123,15 +123,10 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     jackpotBoostAmount: { type: Number, default: 0 }, 
     botBoostAmount: { type: Number, default: 0 },
     
-    // TIER 1 DEPOSIT BONUS
     depBonusMinAmount: { type: Number, default: 50 }, 
     depBonusPercent: { type: Number, default: 50 }, 
-    
-    // TIER 2 DEPOSIT BONUS
     depBonusTier2Min: { type: Number, default: 200 },
     depBonusTier2Percent: { type: Number, default: 100 },
-    
-    // TIER 3 (Loyalty) DEPOSIT BONUS
     depBonusTier3Min: { type: Number, default: 300 },
     depBonusTier3Percent: { type: Number, default: 150 },
 
@@ -278,15 +273,12 @@ async function autoApprovePendingDeposits() {
                     }
                     
                     if (giveBonus) {
-                        // TIER 3 CHECK (Loyalty)
                         if (set.depBonusTier3Min && actualReceivedAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
                             bonus = actualReceivedAmount * (set.depBonusTier3Percent / 100);
                         }
-                        // TIER 2 CHECK
                         else if (set.depBonusTier2Min && actualReceivedAmount >= set.depBonusTier2Min) {
                             bonus = actualReceivedAmount * (set.depBonusTier2Percent / 100);
                         } 
-                        // TIER 1 CHECK
                         else if (set.depBonusMinAmount && actualReceivedAmount >= set.depBonusMinAmount) {
                             bonus = actualReceivedAmount * (set.depBonusPercent / 100);
                         }
@@ -470,7 +462,7 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 PROMO CODE CLAIM LOGIC UPDATED WITH 24 HOUR CHECK 🔥
+// 🔥 PROMO CODE CLAIM LOGIC WITH 24 HOUR CHECK 🔥
 app.post('/api/claim-promo-code', async (req, res) => {
     try {
         const { phone, pass, code } = req.body;
@@ -485,7 +477,6 @@ app.post('/api/claim-promo-code', async (req, res) => {
         if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
         if (promo.usedBy.includes(user.phone)) return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
         
-        // Check Deposit Requirement
         if (promo.requireDeposit) {
             if (promo.requireDepositWithinHours > 0) {
                 let cutoff = new Date(Date.now() - (promo.requireDepositWithinHours * 60 * 60 * 1000));
@@ -517,7 +508,7 @@ app.post('/api/claim-promo-code', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
-// 🔥 WEB PROMO CLAIM UPDATED (DEPOSITORS ONLY) 🔥
+// 🔥 WEB PROMO CLAIM (DEPOSITORS ONLY) 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
@@ -686,6 +677,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 UPDATE 1: History Search includes Ticket ID 🔥
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -695,7 +687,10 @@ app.post('/api/admin/history', auth, async (req, res) => {
         let query = {};
         
         if (search) {
-            query.$or = [{ winnerPhone: new RegExp(search, 'i') }];
+            query.$or = [
+                { winnerPhone: new RegExp(search, 'i') },
+                { ticketId: new RegExp(search, 'i') } 
+            ];
             if(!isNaN(search)) query.$or.push({ gameId: Number(search) });
         }
         
@@ -703,6 +698,28 @@ app.post('/api/admin/history', auth, async (req, res) => {
         let history = await GameHistory.find(query).sort({ date: -1 }).skip((page - 1) * limit).limit(limit);
         res.json({ success: true, history, total });
     } catch(e) { res.json({ success: false }); }
+});
+
+// 🔥 UPDATE 2: New Endpoint for Player Bets Search 🔥
+app.post('/api/admin/search-bets', auth, async (req, res) => {
+    try {
+        let search = req.body.search || '';
+        search = search.trim();
+        if (!search) return res.json({ success: true, games: [] });
+
+        let query = { $or: [
+            { "playersData.phone": new RegExp(search, 'i') }
+        ] };
+        if (!isNaN(search)) {
+            query.$or.push({ "playersData.ticketsData.id": Number(search) });
+            query.$or.push({ gameId: Number(search) });
+        }
+
+        let games = await GameHistory.find(query).sort({ date: -1 }).limit(20);
+        res.json({ success: true, games });
+    } catch (e) {
+        res.json({ success: false });
+    }
 });
 
 app.post('/api/admin/user-details', auth, async (req, res) => {
@@ -881,7 +898,6 @@ app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 PROMO CODE CREATION UPDATED 🔥
 app.post('/api/admin/create-promo-code', auth, async (req, res) => {
     try {
         let exists = await PromoCode.findOne({ code: req.body.code });
@@ -1022,15 +1038,12 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             }
             
             if (giveBonus) {
-                // TIER 3 CHECK (Loyalty)
                 if (set.depBonusTier3Min && actualAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
                     bonus = actualAmount * (set.depBonusTier3Percent / 100);
                 }
-                // TIER 2 CHECK
                 else if (set.depBonusTier2Min && actualAmount >= set.depBonusTier2Min) {
                     bonus = actualAmount * (set.depBonusTier2Percent / 100);
                 } 
-                // TIER 1 CHECK
                 else if (set.depBonusMinAmount && actualAmount >= set.depBonusMinAmount) {
                     bonus = actualAmount * (set.depBonusPercent / 100);
                 }
@@ -1241,7 +1254,6 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// 🔥 WEB CLAIM PROMO BROADCAST UPDATED (Targeting Depositors) 🔥
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     try {
         const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly } = req.body;
@@ -1253,14 +1265,14 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
             maxUsers, 
             expiresAt: expires, 
             isActive: true,
-            depositorsOnly: depositorsOnly // 🔥 NEW!
+            depositorsOnly: depositorsOnly
         }).save();
         
         io.emit('new_promo_alert', { amount: amount, msg: message });
 
         if (message) {
             let query = { telegramId: { $ne: "" } };
-            if (depositorsOnly) query.totalDeposited = { $gt: 0 }; // 🔥 Filter for Telegram
+            if (depositorsOnly) query.totalDeposited = { $gt: 0 };
             
             const users = await User.find(query);
             lastBroadcasts = []; 
@@ -1288,20 +1300,18 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     }
 });
 
-// 🔥 TELEGRAM BOT INTEGRATION 🔥
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com";
 let lastBroadcasts = []; 
 
-// 🔥 NORMAL TELEGRAM BROADCAST UPDATED (Targeting Depositors) 🔥
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     try {
         const { message, photoUrl, depositorsOnly } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
         
         let query = { telegramId: { $ne: "" } };
-        if (depositorsOnly) query.totalDeposited = { $gt: 0 }; // 🔥 Filter
+        if (depositorsOnly) query.totalDeposited = { $gt: 0 }; 
 
         const users = await User.find(query);
         lastBroadcasts = []; let count = 0;
