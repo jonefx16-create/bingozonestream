@@ -29,8 +29,6 @@ mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => con
 // ==========================================
 // 🔵 MODELS
 // ==========================================
-const defaultBotNames = ["አበበ","ጫላ","አስቴር","ሄኖክ","ዳዊት","ማክዳ","ዮሴፍ","ቃልኪዳን","ሳሙኤል","ቤዛዊት","አለሙ","ተስፋዬ","መሰረት","ሀና","ዮናስ","ናትናኤል","እየሩሳሌም","ኤደን","ቢኒያም","ቴዎድሮስ","አብርሀም","ሳራ","አቤል","ሚካኤል","ዘላለም","ፍሬዘር","እንዳለ","ብርሀኑ","ጌታሁን","መላኩ","አየለ","በላይ","ሀይሌ","ታደሰ","ታምራት","አማኑኤል","ሀብታሙ","ደጀኔ","አዳነ","አሊ","ከድር","ጀማል","ፋጡማ","አሚና","ሰሚራ","አስናቀች","ፀሀይ","ሮማን","መቅደስ","ትዕግስት","ሰለሞን","ዳንኤል","ኤርሚያስ","በእምነት","አሮን","ናሆም","ኪሩቤል","ያብስራ","በረከት","ቸርነት","አሸናፊ","ድልነሳው","ይሁኔ","ጌትነት","ደሳለኝ","አለማየሁ","ተፈራ","ካሳሁን","ሺፈራው","በቀለ","ቶሎሳ","ጉዲሳ","ፈይሳ","ጫልቱ","ለሚ","አበራ","ደመቀ","አንዷለም","ስዩም","ዘነበ","ሙላቱ","ታሪኩ","አግማስ","ጌታቸው","ወርቁ","ሰይፉ","ጥላሁን","ማህሙድ","ኑሩ","ከማል","ሰኢድ","ሀሰን","ዑስማን","አብዱል","ረሂማ","ዘይነብ","ሀዋ","አያንቱ","ኩመራ","ገመቹ"];
-
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true, index: true },
     refCode: { type: String, default: "", index: true }, 
@@ -58,6 +56,30 @@ const User = mongoose.model('User', new mongoose.Schema({
     referredViaPromo: { type: Boolean, default: false }, 
     compensatedInvites: { type: Number, default: 0 }
 }));
+
+// 🔥 NEW: BOT USER DATABASE MODEL 🔥
+const BotUser = mongoose.model('BotUser', new mongoose.Schema({
+    name: String,
+    phone: String,
+    ticketCount: { type: Number, default: 2 },
+    isActive: { type: Boolean, default: true }
+}));
+
+// Auto-populate 100 Ethiopian Bots if empty
+async function initBotDatabase() {
+    let c = await BotUser.countDocuments();
+    if(c === 0) {
+        const botNames = ["አበበ","ጫላ","አስቴር","ሄኖክ","ዳዊት","ማክዳ","ዮሴፍ","ቃልኪዳን","ሳሙኤል","ቤዛዊት","አለሙ","ተስፋዬ","መሰረት","ሀና","ዮናስ","ናትናኤል","እየሩሳሌም","ኤደን","ቢኒያም","ቴዎድሮስ","አብርሀም","ሳራ","አቤል","ሚካኤል","ዘላለም","ፍሬዘር","እንዳለ","ብርሀኑ","ጌታሁን","መላኩ","አየለ","በላይ","ሀይሌ","ታደሰ","ታምራት","አማኑኤል","ሀብታሙ","ደጀኔ","አዳነ","አሊ","ከድር","ጀማል","ፋጡማ","አሚና","ሰሚራ","አስናቀች","ፀሀይ","ሮማን","መቅደስ","ትዕግስት","ሰለሞን","ዳንኤል","ኤርሚያስ","በእምነት","አሮን","ናሆም","ኪሩቤል","ያብስራ","በረከት","ቸርነት","አሸናፊ","ድልነሳው","ይሁኔ","ጌትነት","ደሳለኝ","አለማየሁ","ተፈራ","ካሳሁን","ሺፈራው","በቀለ","ቶሎሳ","ጉዲሳ","ፈይሳ","ጫልቱ","ለሚ","አበራ","ደመቀ","አንዷለም","ስዩም","ዘነበ","ሙላቱ","ታሪኩ","አግማስ","ጌታቸው","ወርቁ","ሰይፉ","ጥላሁን","ማህሙድ","ኑሩ","ከማል","ሰኢድ","ሀሰን","ዑስማን","አብዱል","ረሂማ","ዘይነብ","ሀዋ","አያንቱ","ኩመራ","ገመቹ", "አስማረ", "ብርሃኔ", "ተዋበች", "ሙላት", "ፍሬህይወት", "አሳምነው", "አለልኝ", "ተመስገን", "አበባው", "ካሳ", "ዘነበች", "አባተ", "አየለች", "ታደለ", "ጌጡ", "ስንታየሁ", "ወጋየሁ", "አማረ", "አስቻለው", "በለጠ"];
+        for(let i=0; i<100; i++) {
+            await BotUser.create({
+                name: botNames[i] || "Bot " + i,
+                phone: "09" + Math.floor(Math.random() * 90000000 + 10000000),
+                ticketCount: Math.floor(Math.random() * 3) + 1
+            });
+        }
+    }
+}
+initBotDatabase();
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     phone: { type: String, index: true }, 
@@ -102,7 +124,7 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     expiresAt: Date, 
     isActive: { type: Boolean, default: true }, 
     date: { type: Date, default: Date.now },
-    depositorsOnly: { type: Boolean, default: false }
+    depositorsOnly: { type: Boolean, default: false } // 🔥 NEW
 }));
 
 const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
@@ -112,8 +134,8 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     currentUses: { type: Number, default: 0 },
     expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
     usedBy: [String],
-    requireDeposit: { type: Boolean, default: false },
-    requireDepositWithinHours: { type: Number, default: 0 } 
+    requireDeposit: { type: Boolean, default: false }, // 🔥 NEW
+    requireDepositWithinHours: { type: Number, default: 0 } // 🔥 NEW 24 hour logic
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -122,14 +144,14 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
+    jackpotBoostAmount: { type: Number, default: 0 }, 
+    botBoostAmount: { type: Number, default: 0 },
     
-    // 🔥 NEW BOT SETTINGS 🔥
-    isBotActive: { type: Boolean, default: false }, 
-    botWinnerForce: { type: String, default: 'bots' }, 
-    totalBotsToPlay: { type: Number, default: 20 },
-    botTicketsDist: { type: Object, default: { '1': 10, '2': 5, '3': 3, '4': 2 } }, 
-    botNamesList: { type: [String], default: defaultBotNames },
-
+    // 🔥 NEW MASTER BOT SETTINGS 🔥
+    isBotSystemActive: { type: Boolean, default: false },
+    botWinnerForce: { type: String, default: 'bots' }, // 'bots' or 'real'
+    totalBotsPerGame: { type: Number, default: 15 },
+    
     depBonusMinAmount: { type: Number, default: 50 }, 
     depBonusPercent: { type: Number, default: 50 }, 
     depBonusTier2Min: { type: Number, default: 200 },
@@ -157,15 +179,26 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
-    winPopupTimer: { type: Number, default: 12 }
+    winPopupTimer: { type: Number, default: 12 },
+    forcedWinnerPhones: { type: String, default: "" }
 }));
 
 const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
-    phone: String, actionType: String, details: String, severity: String, date: { type: Date, default: Date.now }
+    phone: String,
+    actionType: String,
+    details: String,
+    severity: String,
+    date: { type: Date, default: Date.now }
 }));
 
 const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
-    telegramId: String, phone: String, name: String, text: String, sender: String, isLatest: { type: Boolean, default: true }, date: { type: Date, default: Date.now }
+    telegramId: String,
+    phone: String,
+    name: String,
+    text: String,
+    sender: String,
+    isLatest: { type: Boolean, default: true },
+    date: { type: Date, default: Date.now }
 }));
 
 let GLOBAL_SETTINGS = {};
@@ -178,12 +211,12 @@ async function loadSettings() {
         ticketPrice: s.ticketPrice, 
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
+        jackpotBoostAmount: s.jackpotBoostAmount || 0,
+        botBoostAmount: s.botBoostAmount || 0,
         
-        isBotActive: s.isBotActive || false,
+        isBotSystemActive: s.isBotSystemActive || false,
         botWinnerForce: s.botWinnerForce || 'bots',
-        totalBotsToPlay: s.totalBotsToPlay !== undefined ? s.totalBotsToPlay : 20,
-        botTicketsDist: s.botTicketsDist || { '1': 10, '2': 5, '3': 3, '4': 2 },
-        botNamesList: s.botNamesList && s.botNamesList.length > 0 ? s.botNamesList : defaultBotNames,
+        totalBotsPerGame: s.totalBotsPerGame || 15,
         
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 50, 
         depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 50, 
@@ -212,7 +245,8 @@ async function loadSettings() {
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, 
         maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
-        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12
+        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
+        forcedWinnerPhones: s.forcedWinnerPhones || ""
     };
 }
 loadSettings();
@@ -461,6 +495,7 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 PROMO CODE CLAIM LOGIC WITH 24 HOUR CHECK 🔥
 app.post('/api/claim-promo-code', async (req, res) => {
     try {
         const { phone, pass, code } = req.body;
@@ -506,6 +541,7 @@ app.post('/api/claim-promo-code', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
+// 🔥 WEB PROMO CLAIM (DEPOSITORS ONLY) 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
@@ -546,25 +582,34 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-// 🔥 API FOR BOT MANAGEMENT 🔥
-app.post('/api/admin/bot-settings', auth, async (req, res) => {
+// 🔥 NEW: ADMIN API FOR BOT DATABASE MANAGEMENT 🔥
+app.post('/api/admin/bots-list', auth, async (req, res) => {
+    try {
+        let bots = await BotUser.find().sort({ _id: -1 });
+        res.json({ success: true, bots: bots, settings: GLOBAL_SETTINGS });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/bot-update', auth, async (req, res) => {
+    try {
+        await BotUser.findByIdAndUpdate(req.body.id, {
+            name: req.body.name,
+            phone: req.body.phone,
+            ticketCount: req.body.ticketCount
+        });
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/bot-master-update', auth, async (req, res) => {
     try {
         let s = await SystemSettings.findOne();
-        if(req.body.update) {
-            if(req.body.isBotActive !== undefined) s.isBotActive = req.body.isBotActive;
-            if(req.body.botWinnerForce !== undefined) s.botWinnerForce = req.body.botWinnerForce;
-            if(req.body.totalBotsToPlay !== undefined) s.totalBotsToPlay = req.body.totalBotsToPlay;
-            if(req.body.botTicketsDist !== undefined) s.botTicketsDist = req.body.botTicketsDist;
-            if(req.body.botNamesList !== undefined) s.botNamesList = req.body.botNamesList.split(',').map(n => n.trim()).filter(n => n);
-            await s.save();
-            await loadSettings();
-            return res.json({ success: true, message: "✅ Bot Settings Saved!" });
-        } else {
-            res.json({ success: true, settings: {
-                isBotActive: s.isBotActive, botWinnerForce: s.botWinnerForce,
-                totalBotsToPlay: s.totalBotsToPlay, botTicketsDist: s.botTicketsDist, botNamesList: s.botNamesList
-            }});
-        }
+        s.isBotSystemActive = req.body.isBotSystemActive;
+        s.botWinnerForce = req.body.botWinnerForce;
+        s.totalBotsPerGame = req.body.totalBotsPerGame;
+        await s.save();
+        await loadSettings();
+        res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -696,6 +741,7 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 UPDATE 1: History Search includes Ticket ID 🔥
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -718,6 +764,7 @@ app.post('/api/admin/history', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// 🔥 UPDATE 2: New Endpoint for Player Bets Search 🔥
 app.post('/api/admin/search-bets', auth, async (req, res) => {
     try {
         let search = req.body.search || '';
@@ -759,7 +806,8 @@ app.post('/api/admin/live-players-list', auth, (req, res) => {
         let playersArray = Object.values(activePlayers).map(p => ({
             name: p.name,
             phone: p.phone,
-            tickets: p.tickets
+            tickets: p.tickets,
+            isBot: p.isBot
         }));
         res.json({ success: true, players: playersArray });
     } catch (e) {
@@ -770,30 +818,53 @@ app.post('/api/admin/live-players-list', auth, (req, res) => {
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
-        let startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-        let txStats = await Transaction.aggregate([{ $match: { date: { $gte: startOfDay }, status: 'Approved' } }, { $group: { _id: "$type", total: { $sum: "$amount" } } }]);
-        let dailyDeposit = 0; let dailyWithdraw = 0;
-        txStats.forEach(t => { if (t._id === 'deposit') dailyDeposit = t.total; if (t._id === 'withdraw') dailyWithdraw = t.total; });
+        let txStats = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved' } },
+            { $group: { _id: "$type", total: { $sum: "$amount" } } }
+        ]);
+        let dailyDeposit = 0;
+        let dailyWithdraw = 0;
+        txStats.forEach(t => {
+            if (t._id === 'deposit') dailyDeposit = t.total;
+            if (t._id === 'withdraw') dailyWithdraw = t.total;
+        });
 
-        let histStats = await GameHistory.aggregate([{ $match: { date: { $gte: startOfDay } } }, { $group: { _id: null, totalProfit: { $sum: "$adminProfit" } } }]);
+        let histStats = await GameHistory.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalProfit: { $sum: "$adminProfit" } } }
+        ]);
         let dailyTotalProfit = histStats.length > 0 ? histStats[0].totalProfit : 0;
 
-        let bonusStats = await ActiveBonus.aggregate([{ $match: { date: { $gte: startOfDay } } }, { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }]);
+        let bonusStats = await ActiveBonus.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
+        ]);
         let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
+        // 🔥 Separate Real Money and Bot Money 🔥
         let realMoney = 0;
         let botMoney = 0;
-        let realPlayersCount = 0;
+        let realCount = 0;
+        let botCount = 0;
+
         Object.values(activePlayers).forEach(p => {
-            if(p.isBot) botMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
-            else { realMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice); realPlayersCount++; }
+            if (p.isBot) {
+                botMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
+                botCount++;
+            } else {
+                realMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
+                realCount++;
+            }
         });
 
         res.json({ 
             totalUsers, 
             livePlayers: Object.keys(activePlayers).length, 
-            realPlayersCount: realPlayersCount,
+            realPlayersCount: realCount,
+            botPlayersCount: botCount,
             gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
             gameId, 
             totalProfit: dailyTotalProfit, 
@@ -805,7 +876,9 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             dailyWithdraw, 
             dailyBonus
         });
-    } catch (e) { res.status(500).json({ success: false }); }
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
 });
 
 app.post('/api/admin/referrals', auth, async (req, res) => {
@@ -934,13 +1007,6 @@ app.post('/api/admin/delete-users', auth, async (req, res) => {
 app.post('/api/admin/delete-history', auth, async (req, res) => {
     try { await GameHistory.deleteMany({ _id: { $in: req.body.ids } }); res.json({ success: true }); } 
     catch(e) { res.json({ success: false }); }
-});
-app.post('/api/admin/delete-old-history', auth, async (req, res) => {
-    try {
-        let cutoff = new Date(Date.now() - (6 * 60 * 60 * 1000));
-        await GameHistory.deleteMany({ date: { $lt: cutoff } });
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
 });
 app.post('/api/admin/delete-transactions', auth, async (req, res) => {
     try { 
@@ -1122,6 +1188,9 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
+    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount;
+    if(req.body.botBoostAmount !== undefined) s.botBoostAmount = req.body.botBoostAmount;
+    
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
     
@@ -1157,7 +1226,9 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.maxTicketsPerUser !== undefined) s.maxTicketsPerUser = req.body.maxTicketsPerUser; 
     
     if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
+    
     if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
+    if(req.body.forcedWinnerPhones !== undefined) s.forcedWinnerPhones = req.body.forcedWinnerPhones;
 
     await s.save(); await loadSettings();
     res.json({ success: true });
@@ -1222,6 +1293,12 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
                 }
                 activePlayers[newPhone].name = name;
             }
+
+            if (oldPhone !== newPhone && GLOBAL_SETTINGS.forcedWinnerPhones.includes(oldPhone)) {
+                GLOBAL_SETTINGS.forcedWinnerPhones = GLOBAL_SETTINGS.forcedWinnerPhones.replace(oldPhone, newPhone);
+                await SystemSettings.updateOne({}, {forcedWinnerPhones: GLOBAL_SETTINGS.forcedWinnerPhones});
+            }
+
             res.json({ success: true });
         } else {
             res.json({ success: false, message: "User not found" });
@@ -1359,13 +1436,22 @@ let currentDrawSequence = [];
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
+let midGameChosenRigged = null;
 let targetWinTurn = 0; 
-let injectedBotsCount = 0;
+
+let botInjectedAmount = 0;
+let fakeTicketsStore = []; 
+
+let gameBotsQueue = [];
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
     for(let c=0; c<5; c++) {
-        for(let r=0; r<5; r++) { if((c===2 && r===2) || called.includes(grid[c][r])) { m[c][r] = true; } }
+        for(let r=0; r<5; r++) {
+            if((c===2 && r===2) || called.includes(grid[c][r])) {
+                m[c][r] = true;
+            }
+        }
     }
     for(let c=0; c<5; c++) if(m[c][0]&&m[c][1]&&m[c][2]&&m[c][3]&&m[c][4]) return true; 
     for(let r=0; r<5; r++) if(m[0][r]&&m[1][r]&&m[2][r]&&m[3][r]&&m[4][r]) return true; 
@@ -1375,20 +1461,33 @@ function serverCheckBingo(grid, called) {
     return false;
 }
 
-function getRiggedSequence() { return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5); }
+function getRiggedSequence() {
+    return Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+}
 
 function generateFakeGrid() {
     let grid = [];
     for (let c = 0; c < 5; c++) {
         let col = [];
-        while (col.length < 5) { let num = Math.floor(Math.random() * 15) + 1 + (c * 15); if (!col.includes(num)) col.push(num); }
+        while (col.length < 5) {
+            let num = Math.floor(Math.random() * 15) + 1 + (c * 15);
+            if (!col.includes(num)) col.push(num);
+        }
         grid.push(col);
     }
-    grid[2][2] = "FREE"; return grid;
+    grid[2][2] = "FREE";
+    return grid;
 }
 
 function getUnusedFakeTicketId() {
-    let attempts = 0; while(attempts < 1000) { let fakeId = Math.floor(Math.random() * 550) + 1; if(!globalTakenTickets.includes(fakeId) && !globalTakenTickets.includes(fakeId.toString())) { return fakeId; } attempts++; }
+    let attempts = 0;
+    while(attempts < 1000) {
+        let fakeId = Math.floor(Math.random() * 550) + 1; 
+        if(!globalTakenTickets.includes(fakeId) && !globalTakenTickets.includes(fakeId.toString())) {
+            return fakeId; 
+        }
+        attempts++;
+    }
     return Math.floor(Math.random() * 550) + 1;
 }
 
@@ -1396,41 +1495,75 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    let actualJackpot = totalPrizePool;
+    let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
     let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
     
+    // Profit is ONLY calculated from real money, bots don't generate real admin profit
     let realMoney = 0;
-    Object.values(activePlayers).forEach(p => { if(!p.isBot) realMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice); });
+    Object.values(activePlayers).forEach(p => {
+        if(!p.isBot) realMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
+    });
     
     let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
     let adminProfit = realMoney * (adminProfitPercent / 100);
     
-    let winnerNames = []; let winnerPhones = []; let ticketIds = []; let winnerDetails = []; 
+    let winnerNames = [];
+    let winnerPhones = [];
+    let ticketIds = [];
+    let winnerDetails = []; 
 
     for (let w of winners) {
-        if(!w.player.isBot) {
+        if (!w.player.isBot) {
             const user = await User.findOne({phone: w.player.phone});
             if(user) { 
-                user.mainBalance += splitPrize; user.won += splitPrize; await user.save(); 
+                user.mainBalance += splitPrize; 
+                user.won += splitPrize; 
+                await user.save(); 
                 io.emit('balance_updated', user.phone); 
             }
         }
-        winnerNames.push(w.player.name); winnerPhones.push(w.player.phone); ticketIds.push(w.ticket.id);
-        winnerDetails.push({ name: w.player.name, phone: w.player.phone, ticket: w.ticket.id, prize: splitPrize });
+        winnerNames.push(w.player.name);
+        winnerPhones.push(w.player.phone);
+        ticketIds.push(w.ticket.id);
+
+        winnerDetails.push({
+            name: w.player.name,
+            phone: w.player.phone,
+            ticket: w.ticket.id,
+            prize: splitPrize
+        });
     }
 
-    let displayNames = [...new Set(winnerNames)].join(' እና ');
+    let uniqueNames = [...new Set(winnerNames)];
+    let displayNames = uniqueNames.join(' እና ');
 
     await GameHistory.create({ 
-        gameId, ticketId: ticketIds.join(', '), winnerName: displayNames, winnerPhone: winnerPhones.join(', '), 
-        prize: actualJackpot, adminProfit, ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
-        winningGrid: winners[0].ticket.grid, calledNumbers: [...calledNumbers], playersData: Object.values(activePlayers) 
+        gameId, 
+        ticketId: ticketIds.join(', '), 
+        winnerName: displayNames, 
+        winnerPhone: winnerPhones.join(', '), 
+        prize: actualJackpot,
+        adminProfit, 
+        ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
+        winningGrid: winners[0].ticket.grid, 
+        calledNumbers: [...calledNumbers], 
+        playersData: Object.values(activePlayers) 
     });
 
+    GLOBAL_SETTINGS.jackpotBoostAmount = 0;
+    await SystemSettings.updateOne({}, { $set: { jackpotBoostAmount: 0 } });
+
     io.emit('game_winner', { 
-        winnerName: displayNames, ticketId: ticketIds.join(', '), prize: splitPrize, totalPrize: actualJackpot, 
-        phone: winnerPhones.join(', '), ticketGrid: winners[0].ticket.grid, calledNumbers: [...calledNumbers],
-        isShared: winners.length > 1, winnerCount: winners.length, winnerDetails: winnerDetails
+        winnerName: displayNames, 
+        ticketId: ticketIds.join(', '), 
+        prize: splitPrize, 
+        totalPrize: actualJackpot, 
+        phone: winnerPhones.join(', '), 
+        ticketGrid: winners[0].ticket.grid, 
+        calledNumbers: [...calledNumbers],
+        isShared: winners.length > 1,
+        winnerCount: winners.length,
+        winnerDetails: winnerDetails
     });
 }
 
@@ -1439,70 +1572,118 @@ function resetToWaiting() {
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
+    botInjectedAmount = 0; 
+    fakeTicketsStore = []; 
+    gameBotsQueue = [];
     io.emit('update_taken_tickets', globalTakenTickets); 
-    targetWinTurn = 0; injectedBotsCount = 0;
-}
-
-function injectBots(clock) {
-    if(!GLOBAL_SETTINGS.isBotActive) return;
-    let targetBots = GLOBAL_SETTINGS.totalBotsToPlay || 0;
-    if(injectedBotsCount >= targetBots) return;
-
-    let botsToAddThisSecond = Math.ceil(targetBots / GLOBAL_SETTINGS.gameTimer);
-    if(clock <= 2) botsToAddThisSecond = targetBots - injectedBotsCount; 
-
-    let dist = GLOBAL_SETTINGS.botTicketsDist || { '1': 10, '2': 5, '3': 3, '4': 2 };
-    let names = GLOBAL_SETTINGS.botNamesList || ["አበበ","ጫላ"];
-
-    for(let i=0; i<botsToAddThisSecond; i++) {
-        if(injectedBotsCount >= targetBots) break;
-        
-        let tixCount = 1;
-        let rand = Math.random();
-        let totalWeight = (dist['1']||0) + (dist['2']||0) + (dist['3']||0) + (dist['4']||0);
-        let w1 = (dist['1']||0)/totalWeight, w2 = (dist['2']||0)/totalWeight, w3 = (dist['3']||0)/totalWeight;
-        if(rand < w1) tixCount = 1; else if(rand < w1+w2) tixCount = 2; else if(rand < w1+w2+w3) tixCount = 3; else tixCount = 4;
-
-        let botName = names[Math.floor(Math.random() * names.length)];
-        let botPhone = "09" + Math.floor(Math.random() * 90000000 + 10000000); 
-
-        let ticketsData = [];
-        for(let t=0; t<tixCount; t++) {
-            let fakeId = getUnusedFakeTicketId();
-            globalTakenTickets.push(fakeId);
-            ticketsData.push({ id: fakeId, grid: generateFakeGrid(), paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 });
-        }
-
-        activePlayers[botPhone] = { name: botName, phone: botPhone, tickets: tixCount, ticketsData: ticketsData, isBot: true };
-        
-        let cost = tixCount * GLOBAL_SETTINGS.ticketPrice;
-        totalTickets += tixCount;
-        totalCollectedMoney += cost;
-        totalPrizePool += cost; 
-        injectedBotsCount++;
-    }
-    io.emit('update_taken_tickets', globalTakenTickets);
+    midGameChosenRigged = null; 
+    targetWinTurn = 0; 
 }
 
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
-        io.emit('game_status', { state: "MAINTENANCE", timer: 0, totalPrizePool: 0, totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId }); 
+        io.emit('game_status', { 
+            state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+            totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        }); 
         return; 
     }
     
     if (gameState === "WAITING") {
         gameClock--;
-        injectBots(gameClock);
+        
+        // OLD LOGIC PRESERVED
+        let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
+        let diff = targetBotAmount - botInjectedAmount;
 
-        io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, takenTickets: globalTakenTickets });
+        if (diff > 0 && gameClock > 0) {
+            let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
+            let maxTixLeft = Math.floor(diff / ticketPrice);
+            
+            if (maxTixLeft > 0) {
+                let buyNow = 0;
+                let baseRate = Math.ceil(maxTixLeft / gameClock);
+
+                if (gameClock > 30) {
+                    buyNow = Math.random() > 0.6 ? 0 : Math.floor(Math.random() * 2) + 1;
+                } else if (gameClock > 10) {
+                    buyNow = Math.random() > 0.4 ? baseRate : baseRate + Math.floor(Math.random() * 3);
+                } else {
+                    buyNow = baseRate;
+                }
+
+                if (buyNow > maxTixLeft) buyNow = maxTixLeft;
+                
+                if (buyNow > 0) {
+                    let cost = buyNow * ticketPrice;
+                    botInjectedAmount += cost;
+                    let addedPrize = cost; 
+                    totalPrizePool += addedPrize;
+                    totalTickets += buyNow;
+
+                    for(let i=0; i<buyNow; i++) {
+                        let fakeId = getUnusedFakeTicketId();
+                        globalTakenTickets.push(fakeId);
+                        fakeTicketsStore.push({ id: fakeId, grid: generateFakeGrid() });
+                    }
+                    io.emit('update_taken_tickets', globalTakenTickets);
+                }
+            }
+        }
+
+        // 🔥 NEW DATABASE BOT LOGIC 🔥
+        if (gameClock === GLOBAL_SETTINGS.gameTimer - 1 && GLOBAL_SETTINGS.isBotSystemActive) {
+            BotUser.find({isActive: true}).then(bots => {
+                let shuffled = bots.sort(() => 0.5 - Math.random());
+                gameBotsQueue = shuffled.slice(0, GLOBAL_SETTINGS.totalBotsPerGame);
+            });
+        }
+
+        if (gameBotsQueue.length > 0 && gameClock > 0) {
+            let botsToInjectNow = Math.ceil(gameBotsQueue.length / gameClock);
+            for(let i=0; i<botsToInjectNow; i++) {
+                if(gameBotsQueue.length === 0) break;
+                let botDb = gameBotsQueue.shift();
+                
+                let buyNow = botDb.ticketCount;
+                let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
+                totalPrizePool += cost;
+                totalTickets += buyNow;
+
+                let ticketsData = [];
+                for(let t=0; t<buyNow; t++) {
+                    let fakeId = getUnusedFakeTicketId();
+                    globalTakenTickets.push(fakeId);
+                    ticketsData.push({ id: fakeId, grid: generateFakeGrid(), paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 });
+                }
+                activePlayers[botDb.phone] = { name: botDb.name, phone: botDb.phone, tickets: buyNow, ticketsData: ticketsData, isBot: true };
+                io.emit('update_taken_tickets', globalTakenTickets);
+            }
+        }
+
+        io.emit('game_status', { 
+            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
+            takenTickets: globalTakenTickets
+        });
         
         if (gameClock <= 0) { 
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
-                targetWinTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; // Win happens between 12 and 21
-                io.emit('game_status', { state: gameState, timer: gameClock, totalPrizePool, totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId });
-            } else { gameClock = GLOBAL_SETTINGS.gameTimer; }
+                midGameChosenRigged = null;
+                targetWinTurn = 0; 
+                
+                io.emit('game_status', { 
+                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+                    totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+                    maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit, 
+                });
+            } else { 
+                gameClock = GLOBAL_SETTINGS.gameTimer; 
+            }
         }
     } else if (gameState === "PLAYING") {
         gameClock--;
@@ -1510,82 +1691,175 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
+            if (targetWinTurn === 0) {
+                let realTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
+                if (realTkts >= 10) { 
+                    targetWinTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; 
+                } else { 
+                    targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; 
+                }
+            }
+
             let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
-            
-            let realPlayersCount = Object.values(activePlayers).filter(p => !p.isBot).length;
-            let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
-            
-            if(realPlayersCount === 0) forceWinner = 'bots';
-            if(injectedBotsCount === 0) forceWinner = 'real';
 
-            let botWinningNumbers = [];
-            let realWinningNumbers = [];
+            let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
+            let activeRigged = riggedPhones.filter(p => activePlayers[p]);
 
-            for (let testNum of currentDrawSequence) {
+            if (activeRigged.length > 0) {
+                if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
+                    midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
+                }
+            } else {
+                midGameChosenRigged = null; 
+            }
+
+            let safeWinningForced = []; 
+            let safeWinningNormal = [];
+            let safeNonWinning = [];
+            let unsafeNumbers = []; 
+
+            // ማጣሪያ - እያንዳንዱን ቀጣይ ኳስ እንሞክራለን
+            for (let i = 0; i < currentDrawSequence.length; i++) {
+                let testNum = currentDrawSequence[i];
                 let tempCalled = [...calledNumbers, testNum];
-                for (let p of Object.values(activePlayers)) {
-                    for (let t of p.ticketsData) {
-                        if (serverCheckBingo(t.grid, tempCalled)) {
-                            if (p.isBot) botWinningNumbers.push(testNum);
-                            else realWinningNumbers.push(testNum);
+
+                let unforcedWins = false;
+                let forcedWins = false;
+
+                for (let player of Object.values(activePlayers)) {
+                    let isForcedPlayer = (midGameChosenRigged && player.phone === midGameChosenRigged);
+                    for (let ticket of player.ticketsData) {
+                        if (serverCheckBingo(ticket.grid, tempCalled)) {
+                            if (isForcedPlayer) forcedWins = true;
+                            else unforcedWins = true;
                         }
                     }
+                }
+
+                if (unforcedWins) {
+                    unsafeNumbers.push({ index: i, num: testNum });
+                } else if (forcedWins) {
+                    safeWinningForced.push({ index: i, num: testNum });
+                } else {
+                    safeNonWinning.push({ index: i, num: testNum });
+                }
+            }
+
+            // 🔥 NEW STRICT BOT VS REAL LOGIC 🔥
+            if (GLOBAL_SETTINGS.isBotSystemActive) {
+                let forceWinner = GLOBAL_SETTINGS.botWinnerForce;
+                let realPlayersExist = Object.values(activePlayers).some(p => !p.isBot);
+                let botsExist = Object.values(activePlayers).some(p => p.isBot);
+                
+                if (!realPlayersExist) forceWinner = 'bots';
+                if (!botsExist) forceWinner = 'real';
+
+                if (forceWinner === 'bots') {
+                    let realWinningNumbers = [];
+                    for (let testNum of currentDrawSequence) {
+                        let tempCalled = [...calledNumbers, testNum];
+                        for (let p of Object.values(activePlayers)) {
+                            if (!p.isBot) {
+                                for (let t of p.ticketsData) {
+                                    if (serverCheckBingo(t.grid, tempCalled)) realWinningNumbers.push(testNum);
+                                }
+                            }
+                        }
+                    }
+                    safeWinningNormal = safeWinningNormal.filter(n => !realWinningNumbers.includes(n.num));
+                    safeNonWinning = safeNonWinning.filter(n => !realWinningNumbers.includes(n.num));
+                    safeWinningForced = safeWinningForced.filter(n => !realWinningNumbers.includes(n.num));
+                } else if (forceWinner === 'real') {
+                    let botWinningNumbers = [];
+                    for (let testNum of currentDrawSequence) {
+                        let tempCalled = [...calledNumbers, testNum];
+                        for (let p of Object.values(activePlayers)) {
+                            if (p.isBot) {
+                                for (let t of p.ticketsData) {
+                                    if (serverCheckBingo(t.grid, tempCalled)) botWinningNumbers.push(testNum);
+                                }
+                            }
+                        }
+                    }
+                    safeWinningNormal = safeWinningNormal.filter(n => !botWinningNumbers.includes(n.num));
+                    safeNonWinning = safeNonWinning.filter(n => !botWinningNumbers.includes(n.num));
+                    safeWinningForced = safeWinningForced.filter(n => !botWinningNumbers.includes(n.num));
                 }
             }
 
             let numToCall = null;
 
-            if (forceWinner === 'bots') {
-                let safePool = currentDrawSequence.filter(n => !realWinningNumbers.includes(n));
-                if (safePool.length === 0) safePool = [currentDrawSequence[0]]; 
+            if (midGameChosenRigged) {
+                let forcedPlayer = activePlayers[midGameChosenRigged];
+                let forcedPlayerNumbers = [];
+                forcedPlayer.ticketsData.forEach(t => {
+                    t.grid.forEach(col => { col.forEach(n => { if(n !== "FREE" && !calledNumbers.includes(n)) forcedPlayerNumbers.push(n); }); });
+                });
+                
+                let safeNonWinningForcedCard = safeNonWinning.filter(n => forcedPlayerNumbers.includes(n.num));
 
                 if (isTimeToWin) {
-                    let winningOptions = safePool.filter(n => botWinningNumbers.includes(n));
-                    if (winningOptions.length > 0) numToCall = winningOptions[Math.floor(Math.random() * winningOptions.length)];
+                    if (safeWinningForced.length > 0) {
+                        let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
+                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                    } else if (safeNonWinningForcedCard.length > 0) {
+                        let chosen = safeNonWinningForcedCard[Math.floor(Math.random() * safeNonWinningForcedCard.length)];
+                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                    } else if (safeNonWinning.length > 0) {
+                        let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
+                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                    }
+                } else {
+                    if (safeNonWinning.length > 0) {
+                        let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
+                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                    }
                 }
-                
+
                 if (numToCall === null) {
-                    let nonWinningSafe = safePool.filter(n => !botWinningNumbers.includes(n));
-                    if (nonWinningSafe.length > 0) numToCall = nonWinningSafe[Math.floor(Math.random() * nonWinningSafe.length)];
-                    else numToCall = safePool[0];
+                    if (safeWinningForced.length > 0) {
+                        let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
+                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                    } else {
+                        numToCall = currentDrawSequence.shift();
+                    }
                 }
 
             } else {
-                let safePool = currentDrawSequence.filter(n => !botWinningNumbers.includes(n));
-                if (safePool.length === 0) safePool = [currentDrawSequence[0]]; 
-
-                if (isTimeToWin) {
-                    let winningOptions = safePool.filter(n => realWinningNumbers.includes(n));
-                    if (winningOptions.length > 0) numToCall = winningOptions[Math.floor(Math.random() * winningOptions.length)];
-                }
-
-                if (numToCall === null) {
-                    let realCardsNumbers = [];
-                    Object.values(activePlayers).filter(p => !p.isBot).forEach(p => {
-                        p.ticketsData.forEach(t => { t.grid.forEach(col => col.forEach(n => { if(n !== "FREE" && !calledNumbers.includes(n)) realCardsNumbers.push(n); })); });
-                    });
-                    
-                    let nonWinningSafe = safePool.filter(n => !realWinningNumbers.includes(n));
-                    let advancingSafe = nonWinningSafe.filter(n => realCardsNumbers.includes(n));
-
-                    if (advancingSafe.length > 0) numToCall = advancingSafe[Math.floor(Math.random() * advancingSafe.length)];
-                    else if (nonWinningSafe.length > 0) numToCall = nonWinningSafe[Math.floor(Math.random() * nonWinningSafe.length)];
-                    else numToCall = safePool[0];
+                // NORMAL GAMEPLAY
+                if (isTimeToWin && safeWinningNormal.length > 0) {
+                    let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
+                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                } else if (!isTimeToWin && safeNonWinning.length > 0) {
+                    let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
+                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                } else if (safeNonWinning.length > 0) {
+                    let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
+                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                } else if (safeWinningNormal.length > 0) {
+                    let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
+                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                } else {
+                    numToCall = currentDrawSequence.shift();
                 }
             }
 
-            currentDrawSequence = currentDrawSequence.filter(n => n !== numToCall);
             calledNumbers.push(numToCall);
             io.emit('new_number', numToCall);
 
             let winnersThisRound = [];
             for (let player of Object.values(activePlayers)) {
                 for (let ticket of player.ticketsData) {
-                    if (serverCheckBingo(ticket.grid, calledNumbers)) { winnersThisRound.push({ player, ticket }); }
+                    if (serverCheckBingo(ticket.grid, calledNumbers)) {
+                        winnersThisRound.push({ player, ticket });
+                    }
                 }
             }
 
-            if(winnersThisRound.length > 0) { declareWinners(winnersThisRound); return; }
+            if(winnersThisRound.length > 0) {
+                declareWinners(winnersThisRound);
+                return;
+            }
         }
     } else if (gameState === "FINISHED") {
         gameClock--; if (gameClock <= 0) resetToWaiting();
