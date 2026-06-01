@@ -1803,9 +1803,9 @@ setInterval(() => {
                 }
             } 
             else {
-                // 🔥 ተጨዋች እንዳይጠራጠር ቦቱ ከ 25 እስከ 45 ቁጥር ባለው ጊዜ በራንደም ያሸንፋል 🔥
+                // 🔥 ቦቱ የሚያሸንፍበት ሰዓት ከ 12 እስከ 21 ይቀያየራል 🔥
                 if(botWinTargetTurn === null) {
-                    botWinTargetTurn = Math.floor(Math.random() * (45 - 25 + 1)) + 25; 
+                    botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; 
                 }
 
                 if (turn < botWinTargetTurn) {
