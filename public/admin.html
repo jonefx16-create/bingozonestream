@@ -213,6 +213,12 @@
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan);"><h3>Total DB Users</h3><h2 style="color: var(--cyan);" id="stat-total-users">0</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit (Today)</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--red);"><h3>📤 Daily Withdraw (Today)</h3><h2 style="color: var(--red);" id="stat-daily-wit">0.00 ETB</h2></div>
+                
+                <!-- 🔥 Total Unplayed Bonus 🔥 -->
+                <div class="stat-card" style="border-bottom: 4px solid var(--purple);">
+                    <h3>🎁 Total Unplayed Bonus</h3>
+                    <h2 style="color: var(--purple);" id="stat-total-unplayed">0.00 ETB</h2>
+                </div>
             </div>
         </div>
 
@@ -280,10 +286,13 @@
                     <!-- ⚡ Instant Live Injection -->
                     <div class="card" style="border-left: 4px solid var(--faded-green); margin: 0; flex: 1;">
                         <h3 style="margin-top:0; color:var(--faded-green);">⚡ Live Inject (አሁኑኑ ጌም አስገባ)</h3>
-                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ይህ <b>ሰዓት እየቆጠረ (WAITING)</b> ወዳለው ጌም ውስጥ ወዲያውኑ ቦቶች ገብተው ካርቴላ እንዲገዙ ያደርጋል። ካርቴላውን ከላይ በሰጠኸው ስርጭት (Distribution) አባዝቶ በራሱ ጊዜ ያስገባቸዋል።</p>
+                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ቁጥሩን ሲፅፉ ስርጭቱን እና ጃክፖቱን ያሰላል። ካረጋገጡ በኋላ አስገባን ይጫኑ።</p>
                         <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-                            <input type="number" id="instant-bot-amount" placeholder="ብዛት (e.g. 50)" style="flex:2; margin-bottom:0;">
-                            <button class="action-btn" onclick="injectLiveBots()" style="flex:1; background:var(--faded-green); color:black;">🔥 አስገባ</button>
+                            <input type="number" id="instant-bot-amount" placeholder="ብዛት (e.g. 50)" oninput="previewLiveInject()" style="flex:2; margin-bottom:0;">
+                            <button class="action-btn" onclick="injectLiveBots()" style="flex:1; background:var(--faded-green); color:black;">🔥 አስገባ (Inject)</button>
+                        </div>
+                        <!-- 🔥 Live Inject Calculator Preview 🔥 -->
+                        <div id="live-inject-preview" style="display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--faded-green); margin-top:10px; font-size:12px; color:white;">
                         </div>
                     </div>
 
@@ -293,7 +302,8 @@
             <!-- BOT DATABASE TABLE -->
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-bot" onkeyup="simpleSearch('search-bot', 'table-bots')" placeholder="🔍 Search Bot Name or Phone...">
-                <button class="action-btn btn-orange" onclick="randomizeAllBotNames()">🎲 ስሞችን ቀይር (Randomize All Names)</button>
+                <input type="number" id="rename-bot-limit" placeholder="ስንት ቦት? (ባዶ = ሁሉንም)" style="width: 150px; background:#000; color:white; border:1px solid var(--orange); padding:8px; border-radius:6px;">
+                <button class="action-btn btn-orange" onclick="randomizeAllBotNames()">🎲 ስሞችን ቀይር</button>
             </div>
             <div class="card">
                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
@@ -772,11 +782,20 @@
                 
                 <div style="display:flex; flex-direction:column; gap:20px; flex:1; min-width:280px;">
                     <div class="card" style="border-left: 4px solid var(--blue);">
-                        <h3 style="margin-top:0; color:var(--blue);">🔐 Security</h3>
+                        <h3 style="margin-top:0; color:var(--blue);">🔐 Security & General</h3>
+                        
+                        <!-- 🔥 Telegram Channel Input 🔥 -->
+                        <label style="font-weight:bold; color:var(--blue);">✈️ Telegram Verify Channel</label>
+                        <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                            <input type="text" id="set-tg-channel" placeholder="e.g. @bingohabesha (ባዶ ከሆነ አይጠይቅም)">
+                            <button class="action-btn btn-blue" onclick="updateSettings('tg_channel')">Save</button>
+                        </div>
+                        <hr style="border-color: var(--border); margin: 15px 0;">
+
                         <label>New Admin Password</label>
                         <input type="text" id="set-pass" placeholder="Enter new admin password">
                         <button class="action-btn btn-blue" style="width:100%; margin-bottom: 15px;" onclick="updateSettings('password')">Change Admin Password</button>
-                        <hr style="border-color: var(--border); margin: 15px 0;">
+                        
                         <label>New Finance Password</label>
                         <input type="text" id="set-finance-pass" placeholder="Enter new finance password">
                         <button class="action-btn btn-purple" style="width:100%; margin-bottom: 20px;" onclick="updateSettings('finance_password')">Change Finance Password</button>
@@ -796,7 +815,7 @@
 
 <!-- ================= MODALS ================= -->
 
-<!-- 🔥 NEW: EDIT BOT MODAL 🔥 -->
+<!-- 🔥 EDIT BOT MODAL 🔥 -->
 <div class="modal" id="edit-bot-modal">
     <div class="modal-content" style="max-width: 400px;">
         <h3 style="color: var(--cyan); margin-top:0;">🤖 Edit Bot Settings</h3>
@@ -1166,12 +1185,15 @@
 
     // 🎲 Randomize All Bot Names
     async function randomizeAllBotNames() {
-        if(!confirm("⚠️ ዳታቤዝ ላይ ያሉትን የቦቶች ስም በሙሉ ወደ አዲስ ኢትዮጵያዊ ስም መቀየር ይፈልጋሉ?")) return;
+        let limitInput = document.getElementById('rename-bot-limit').value;
+        let msg = limitInput ? `⚠️ እርግጠኛ ነዎት የቅርብ ${limitInput} ቦቶችን ስም እና ስልክ ብቻ መቀየር ይፈልጋሉ?` : "⚠️ ዳታቤዝ ላይ ያሉትን የቦቶች ስም በሙሉ ወደ አዲስ ኢትዮጵያዊ ስም እና አዲስ ስልክ መቀየር ይፈልጋሉ?";
+        
+        if(!confirm(msg)) return;
         try {
             let res = await fetch('/api/admin/bots-rename-all', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({adminPass: pass})
+                body: JSON.stringify({adminPass: pass, limit: Number(limitInput) || 0})
             });
             let data = await res.json();
             if(data.success) {
@@ -1183,25 +1205,68 @@
         } catch(e) { alert("Network Error"); }
     }
 
+    // 🔥 Live Inject Estimator Preview
+    function previewLiveInject() {
+        let amt = parseInt(document.getElementById('instant-bot-amount').value);
+        let previewBox = document.getElementById('live-inject-preview');
+        if(!amt || amt <= 0) { previewBox.style.display = 'none'; return; }
+
+        let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
+        let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
+        let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
+        let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
+
+        let totalRatio = d1 + d2 + d3 + d4;
+        if(totalRatio === 0) { d1 = 1; totalRatio = 1; }
+
+        let c1 = Math.round((d1/totalRatio) * amt);
+        let c2 = Math.round((d2/totalRatio) * amt);
+        let c3 = Math.round((d3/totalRatio) * amt);
+        let c4 = amt - (c1 + c2 + c3);
+
+        let totalTix = (c1*1) + (c2*2) + (c3*3) + (c4*4);
+        let tixPrice = sysSettings ? sysSettings.ticketPrice : 10;
+        let profitPerc = sysSettings ? sysSettings.adminProfitPercent : 15;
+
+        let totalBet = totalTix * tixPrice;
+        let jackpotGen = totalBet * ((100 - profitPerc) / 100);
+
+        previewBox.innerHTML = `
+            <div style="color:var(--gold); font-weight:bold; margin-bottom:5px;">📊 የስርጭት እና ጃክፖት ስሌት፡</div>
+            • 1 ካርቴላ: <b>${c1}</b> ቦቶች | 2 ካርቴላ: <b>${c2}</b> ቦቶች<br>
+            • 3 ካርቴላ: <b>${c3}</b> ቦቶች | 4 ካርቴላ: <b>${c4}</b> ቦቶች<br>
+            <hr style="border-color:var(--border); margin:5px 0;">
+            • አጠቃላይ ካርቴላ: <b>${totalTix}</b><br>
+            • ለጌሙ የሚጨምረው ጃክፖት: <b style="color:var(--faded-green); font-size:14px;">+${jackpotGen.toLocaleString()} ETB</b>
+        `;
+        previewBox.style.display = 'block';
+    }
+
     // ⚡ Instant Live Bots Injection
     async function injectLiveBots() {
         let amt = document.getElementById('instant-bot-amount').value;
         if(!amt || amt <= 0) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ (ለምሳሌ 50)!");
         
-        let confirmMsg = `⚠️ እርግጠኛ ነዎት ${amt} ቦቶችን አሁን እየቆጠረ ወዳለው ጌም በአንድ ጊዜ ማስገባት ይፈልጋሉ?`;
+        let d1 = document.getElementById('bot-d1').value || 1;
+        let d2 = document.getElementById('bot-d2').value || 1;
+        let d3 = document.getElementById('bot-d3').value || 1;
+        let d4 = document.getElementById('bot-d4').value || 1;
+
+        let confirmMsg = `⚠️ እርግጠኛ ነዎት ${amt} ቦቶችን አሁን እየቆጠረ ወዳለው ጌም ማስገባት ይፈልጋሉ?`;
         if(!confirm(confirmMsg)) return;
 
         try {
             let res = await fetch('/api/admin/inject-live-bots', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify({adminPass: pass, amount: Number(amt)}) 
+                body: JSON.stringify({adminPass: pass, amount: Number(amt), dist1: Number(d1), dist2: Number(d2), dist3: Number(d3), dist4: Number(d4)}) 
             });
             let data = await res.json();
             
             if(data.success) {
                 alert(data.message);
                 document.getElementById('instant-bot-amount').value = '';
+                document.getElementById('live-inject-preview').style.display = 'none';
                 loadLiveStats(); 
             } else {
                 alert(data.message); 
@@ -1271,6 +1336,11 @@
                 
                 document.getElementById('stat-daily-dep').innerText = Number(data.dailyDeposit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('stat-daily-wit').innerText = Number(data.dailyWithdraw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+                
+                if (data.totalUnplayedBonus !== undefined) {
+                    let el = document.getElementById('stat-total-unplayed');
+                    if(el) el.innerText = Number(data.totalUnplayedBonus).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+                }
             }
             
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
@@ -1310,6 +1380,8 @@
 
                 safeUpdate('set-wit-min', data.settings.witBonusMinAmount !== undefined ? data.settings.witBonusMinAmount : '');
                 safeUpdate('set-wit-perc', data.settings.witBonusPercent !== undefined ? data.settings.witBonusPercent : '');
+                
+                safeUpdate('set-tg-channel', data.settings.telegramChannel || '');
 
                 if(document.activeElement !== document.getElementById('set-dep-time-restrict')) {
                     document.getElementById('set-dep-time-restrict').checked = data.settings.depBonusTimeRestricted || false;
@@ -1323,7 +1395,7 @@
                     toggleTimeInputs('wit');
                 }
                 
-                // Bot Distribution Updates
+                // Bot Distribution Updates (Safeguarded from overwrite while typing)
                 safeUpdate('bot-d1', data.settings.botDist1);
                 safeUpdate('bot-d2', data.settings.botDist2);
                 safeUpdate('bot-d3', data.settings.botDist3);
@@ -2237,6 +2309,11 @@
 
             payload.witBannerTextAm = wam; 
             payload.witBannerTextEn = wen;
+        }
+
+        if(type === 'tg_channel') { 
+            let ch = document.getElementById('set-tg-channel').value; 
+            payload.telegramChannel = ch.trim(); 
         }
         
         let btns = document.querySelectorAll('.action-btn');
