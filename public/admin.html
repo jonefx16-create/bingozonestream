@@ -1054,7 +1054,7 @@
     let searchTimeout;
     
     let loadedGames = [];
-    let isBotInputDirty = false; // 🔥 Prevents auto-refresh from overwriting manual typing
+    let isBotInputDirty = false; 
 
     window.addEventListener('DOMContentLoaded', () => {
         let savedPass = localStorage.getItem('bingo_admin_pass');
@@ -1125,7 +1125,6 @@
         document.getElementById('add-promo-hours-hint').style.display = isChecked ? 'block' : 'none';
     }
 
-    // 🔥 NEW BOT DB FUNCTIONS 🔥
     async function loadBotDB() {
         if(!pass) return;
         try {
@@ -1166,7 +1165,6 @@
                     
                     let safeName = (b.name || "Unknown").replace(/'/g, "\\'");
                     
-                    // 🔥 Bot Playing Status Detection 🔥
                     let isLive = (window.activeBotPhones || []).includes(b.phone);
                     let statusBadge = '';
                     if(isLive) {
@@ -1207,7 +1205,6 @@
         let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
         let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
 
-        // Schedule Logic Extraction
         let isSchedActive = document.getElementById('bot-schedule-toggle').checked;
         let s1 = { start: parseInt(document.getElementById('s1-start').value)||0, end: parseInt(document.getElementById('s1-end').value)||0, min: parseInt(document.getElementById('s1-min').value)||0, max: parseInt(document.getElementById('s1-max').value)||0 };
         let s2 = { start: parseInt(document.getElementById('s2-start').value)||0, end: parseInt(document.getElementById('s2-end').value)||0, min: parseInt(document.getElementById('s2-min').value)||0, max: parseInt(document.getElementById('s2-max').value)||0 };
@@ -1242,7 +1239,6 @@
         } catch(e) { alert("Network Error"); }
     }
 
-    // ✏️ Edit Individual Bot
     function openEditBotModal(id, name, phone, cards, isActive) {
         document.getElementById('eb-id').value = id;
         document.getElementById('eb-name').value = name;
@@ -1273,7 +1269,6 @@
         } catch(e) { alert("Error saving bot."); }
     }
 
-    // ➕ Add Custom Bots
     async function addCustomBots() {
         let amt = document.getElementById('add-bot-amount').value;
         if(!amt || amt <= 0) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ!");
@@ -1294,7 +1289,6 @@
         } catch(e) { alert("Network Error."); }
     }
 
-    // 🎲 Randomize All Bot Names
     async function randomizeAllBotNames() {
         let limitInput = document.getElementById('rename-bot-limit').value;
         let msg = limitInput ? `⚠️ እርግጠኛ ነዎት የቅርብ ${limitInput} ቦቶችን ስም እና ስልክ ብቻ መቀየር ይፈልጋሉ?` : "⚠️ ዳታቤዝ ላይ ያሉትን የቦቶች ስም በሙሉ ወደ አዲስ ኢትዮጵያዊ ስም እና አዲስ ስልክ መቀየር ይፈልጋሉ?";
@@ -1316,13 +1310,11 @@
         } catch(e) { alert("Network Error"); }
     }
 
-    // 1. Live Inject ላይ ቁጥር ሲፃፍ ሣጥኖቹን በራሱ ጊዜ የሚሞላው ኮድ
     function previewLiveInject() {
         isBotInputDirty = true;
         let amt = parseInt(document.getElementById('instant-bot-amount').value);
         let previewBox = document.getElementById('live-inject-preview');
         
-        // ሳጥኑ ባዶ ከሆነ
         if(!amt || amt <= 0) { 
             document.getElementById('bot-d1').value = 0;
             document.getElementById('bot-d2').value = 0;
@@ -1332,7 +1324,6 @@
             return; 
         }
 
-        // ዋናውን የስርጭት ሬሾ ከ ዳታቤዝ ይወስዳል, or use current values if they exist
         let base1 = parseInt(document.getElementById('bot-d1').value) || 0;
         let base2 = parseInt(document.getElementById('bot-d2').value) || 0;
         let base3 = parseInt(document.getElementById('bot-d3').value) || 0;
@@ -1340,7 +1331,6 @@
 
         let totalRatio = base1 + base2 + base3 + base4;
         
-        // If current inputs are all 0, try to get from settings
         if(totalRatio === 0) {
             base1 = (sysSettings && sysSettings.botDist1 !== undefined) ? sysSettings.botDist1 : 0;
             base2 = (sysSettings && sysSettings.botDist2 !== undefined) ? sysSettings.botDist2 : 0;
@@ -1349,7 +1339,6 @@
             totalRatio = base1 + base2 + base3 + base4;
         }
 
-        // If still 0, fallback to default ratio
         if(totalRatio === 0) { base1 = 5; base2 = 4; base3 = 3; base4 = 3; totalRatio = 15; }
 
         let c1 = Math.round((base1/totalRatio) * amt);
@@ -1365,7 +1354,6 @@
         updatePreviewDisplay(c1, c2, c3, c4);
     }
 
-    // 2. አድሚኑ ቁጥሮቹን በእጁ ሣጥኖቹ ውስጥ ካስተካከለ፣ አጠቃላዩን Update ያደርጋል
     function updateFromDistribution() {
         isBotInputDirty = true;
         let c1 = parseInt(document.getElementById('bot-d1').value) || 0;
@@ -1387,7 +1375,6 @@
         }
     }
 
-    // 3. ጃክፖት እና ትርፍ የሚያሳየው
     function updatePreviewDisplay(c1, c2, c3, c4) {
         let previewBox = document.getElementById('live-inject-preview');
         let totalTix = (c1*1) + (c2*2) + (c3*3) + (c4*4);
@@ -1407,7 +1394,6 @@
         previewBox.style.display = 'block';
     }
 
-    // አድሚኑ በእጁ ሲፅፍ እንዲቀበል ይሄን Listen ያደርጋል
     document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('bot-d1').addEventListener('input', updateFromDistribution);
         document.getElementById('bot-d2').addEventListener('input', updateFromDistribution);
@@ -1415,7 +1401,6 @@
         document.getElementById('bot-d4').addEventListener('input', updateFromDistribution);
     });
 
-    // ⚡ Instant Live Bots Injection
     async function injectLiveBots() {
         let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
         let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
@@ -1439,7 +1424,6 @@
             
             if(data.success) {
                 alert(data.message);
-                // DO NOT clear inputs! Keep them exactly as the user requested ("until I make it 0")
                 isBotInputDirty = false;
                 loadLiveStats(); 
             } else {
@@ -1503,7 +1487,7 @@
             let data = await res.json();
             
             sysSettings = data.settings;
-            window.activeBotPhones = data.activeBotPhones || []; // 🔥 Save currently playing bots globally
+            window.activeBotPhones = data.activeBotPhones || []; 
 
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
             
@@ -1534,7 +1518,6 @@
                 }
             }
 
-            // 🔥 DYNAMICALLY UPDATE BOT TABLE STATUS IF TAB IS OPEN 🔥
             if(document.getElementById('tab-bots-db').classList.contains('active')) {
                 document.querySelectorAll('#bots-body tr').forEach(row => {
                     let phoneCell = row.querySelector('.bot-phone-cell');
@@ -1607,7 +1590,6 @@
                     toggleTimeInputs('wit');
                 }
                 
-                // 🔥 ቦት እያስገባህ ከሆነ ሪፍሬሽ ሲያደርግ እንዳያጠፋብህ ይከላከላል
                 if(!isBotInputDirty) {
                     let b1 = data.settings.botDist1 !== undefined ? data.settings.botDist1 : 0;
                     let b2 = data.settings.botDist2 !== undefined ? data.settings.botDist2 : 0;
