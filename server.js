@@ -126,12 +126,11 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
     financePass: { type: String, default: "finance1234" }, 
-    telegramChannel: { type: String, default: "" }, // 🔥 Telegram Verify Channel
+    telegramChannel: { type: String, default: "" }, 
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
     
-    // 🔥 BOT SETTINGS 🔥
     isBotSystemActive: { type: Boolean, default: false },
     botWinnerForce: { type: String, default: 'bots' }, 
     botDist1: { type: Number, default: 5 }, 
@@ -240,7 +239,7 @@ loadSettings();
 
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
-const WEB_URL = "https://bingohabesha.onrender.com"; // 👈 ይቺን 1 መስመር እዚህ መሃል ላይ ትጨምራለህ
+const WEB_URL = "https://bingohabesha.onrender.com"; 
 
 async function checkTelegramJoin(telegramId) {
     if (!GLOBAL_SETTINGS.telegramChannel || !telegramId) return true; 
@@ -876,6 +875,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             livePlayers: Object.keys(activePlayers).length, 
             realPlayersCount: realCount,
             botPlayersCount: botCount,
+            activeBotPhones: Object.values(activePlayers).filter(p => p.isBot).map(p => p.phone), 
             gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
             gameId, 
             totalProfit: dailyTotalProfit, 
@@ -1490,8 +1490,9 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         }
 
         gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
+        botInjectWaitTime = Date.now() + (Math.floor(Math.random() * 3000) + 3000); // 3 to 5 sec delay
 
-        res.json({ success: true, message: `✅ ${actualQueued} ቦቶች ወደ ወረፋ ገብተዋል። በሰከንዶች ውስጥ ቀስ እያሉ ጌም ይገባሉ!` });
+        res.json({ success: true, message: `✅ ${actualQueued} ቦቶች ወደ ወረፋ ገብተዋል። በ 3-5 ሴኮንዶች ውስጥ ቀስ እያሉ ጌም ይገባሉ!` });
 
     } catch (e) {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
@@ -1514,6 +1515,7 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
+let botInjectWaitTime = 0; // 🔥 Added for Bot Delay 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1640,6 +1642,7 @@ function resetToWaiting() {
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
+    botInjectWaitTime = 0; 
     io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -1676,11 +1679,12 @@ setInterval(() => {
                     }
                 }
                 gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
+                botInjectWaitTime = Date.now() + (Math.floor(Math.random() * 3000) + 3000); // 🔥 3 to 5 sec delay
             });
         }
 
-        // 🔥 ቦቶች ቀስ እያሉ ይገባሉ (Organic Injection) 🔥
-        if (gameBotsQueue.length > 0 && gameClock > 0 && gameState === "WAITING") {
+        // 🔥 ቦቶች ቀስ እያሉ ይገባሉ (Organic Injection + Initial Delay) 🔥
+        if (gameBotsQueue.length > 0 && gameClock > 0 && gameState === "WAITING" && Date.now() >= botInjectWaitTime) {
             // ሁሉንም በአንዴ ከማስገባት፣ የተወሰኑትን ብቻ በየሰከንዱ ያስገባል
             let maxBotsPerTick = Math.ceil(gameBotsQueue.length / gameClock); 
             let botsToInjectNow = Math.floor(Math.random() * maxBotsPerTick) + 1; 
