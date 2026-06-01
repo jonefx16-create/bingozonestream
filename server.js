@@ -57,15 +57,14 @@ const User = mongoose.model('User', new mongoose.Schema({
     compensatedInvites: { type: Number, default: 0 }
 }));
 
-// 🔥 NEW: BOT USER DATABASE MODEL 🔥
+// 🔥 BOT USER DATABASE MODEL 🔥
 const BotUser = mongoose.model('BotUser', new mongoose.Schema({
     name: String,
     phone: String,
-    ticketCount: { type: Number, default: 2 },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    lastPlayed: { type: Date, default: 0 } 
 }));
 
-// Auto-populate 100 Ethiopian Bots if empty
 async function initBotDatabase() {
     let c = await BotUser.countDocuments();
     if(c === 0) {
@@ -73,8 +72,7 @@ async function initBotDatabase() {
         for(let i=0; i<100; i++) {
             await BotUser.create({
                 name: botNames[i] || "Bot " + i,
-                phone: "09" + Math.floor(Math.random() * 90000000 + 10000000),
-                ticketCount: Math.floor(Math.random() * 3) + 1
+                phone: "09" + Math.floor(Math.random() * 90000000 + 10000000)
             });
         }
     }
@@ -124,7 +122,7 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     expiresAt: Date, 
     isActive: { type: Boolean, default: true }, 
     date: { type: Date, default: Date.now },
-    depositorsOnly: { type: Boolean, default: false } // 🔥 NEW
+    depositorsOnly: { type: Boolean, default: false } 
 }));
 
 const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
@@ -134,8 +132,8 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     currentUses: { type: Number, default: 0 },
     expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
     usedBy: [String],
-    requireDeposit: { type: Boolean, default: false }, // 🔥 NEW
-    requireDepositWithinHours: { type: Number, default: 0 } // 🔥 NEW 24 hour logic
+    requireDeposit: { type: Boolean, default: false }, 
+    requireDepositWithinHours: { type: Number, default: 0 } 
 }));
 
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
@@ -144,13 +142,14 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
-    jackpotBoostAmount: { type: Number, default: 0 }, 
-    botBoostAmount: { type: Number, default: 0 },
     
-    // 🔥 NEW MASTER BOT SETTINGS 🔥
+    // 🔥 BOT SETTINGS 🔥
     isBotSystemActive: { type: Boolean, default: false },
-    botWinnerForce: { type: String, default: 'bots' }, // 'bots' or 'real'
-    totalBotsPerGame: { type: Number, default: 15 },
+    botWinnerForce: { type: String, default: 'bots' }, 
+    botDist1: { type: Number, default: 5 }, 
+    botDist2: { type: Number, default: 4 }, 
+    botDist3: { type: Number, default: 3 }, 
+    botDist4: { type: Number, default: 3 }, 
     
     depBonusMinAmount: { type: Number, default: 50 }, 
     depBonusPercent: { type: Number, default: 50 }, 
@@ -179,8 +178,7 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
-    winPopupTimer: { type: Number, default: 12 },
-    forcedWinnerPhones: { type: String, default: "" }
+    winPopupTimer: { type: Number, default: 12 }
 }));
 
 const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
@@ -211,12 +209,13 @@ async function loadSettings() {
         ticketPrice: s.ticketPrice, 
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
-        jackpotBoostAmount: s.jackpotBoostAmount || 0,
-        botBoostAmount: s.botBoostAmount || 0,
         
         isBotSystemActive: s.isBotSystemActive || false,
         botWinnerForce: s.botWinnerForce || 'bots',
-        totalBotsPerGame: s.totalBotsPerGame || 15,
+        botDist1: s.botDist1 !== undefined ? s.botDist1 : 5,
+        botDist2: s.botDist2 !== undefined ? s.botDist2 : 4,
+        botDist3: s.botDist3 !== undefined ? s.botDist3 : 3,
+        botDist4: s.botDist4 !== undefined ? s.botDist4 : 3,
         
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 50, 
         depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 50, 
@@ -245,8 +244,7 @@ async function loadSettings() {
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, 
         maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
-        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
-        forcedWinnerPhones: s.forcedWinnerPhones || ""
+        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12
     };
 }
 loadSettings();
@@ -495,7 +493,6 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 PROMO CODE CLAIM LOGIC WITH 24 HOUR CHECK 🔥
 app.post('/api/claim-promo-code', async (req, res) => {
     try {
         const { phone, pass, code } = req.body;
@@ -541,7 +538,6 @@ app.post('/api/claim-promo-code', async (req, res) => {
     } catch(e) { res.json({success: false}); }
 });
 
-// 🔥 WEB PROMO CLAIM (DEPOSITORS ONLY) 🔥
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
@@ -582,22 +578,11 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-// 🔥 NEW: ADMIN API FOR BOT DATABASE MANAGEMENT 🔥
+// 🔥 BOT DATABASE API 🔥
 app.post('/api/admin/bots-list', auth, async (req, res) => {
     try {
         let bots = await BotUser.find().sort({ _id: -1 });
         res.json({ success: true, bots: bots, settings: GLOBAL_SETTINGS });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/bot-update', auth, async (req, res) => {
-    try {
-        await BotUser.findByIdAndUpdate(req.body.id, {
-            name: req.body.name,
-            phone: req.body.phone,
-            ticketCount: req.body.ticketCount
-        });
-        res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -606,7 +591,10 @@ app.post('/api/admin/bot-master-update', auth, async (req, res) => {
         let s = await SystemSettings.findOne();
         s.isBotSystemActive = req.body.isBotSystemActive;
         s.botWinnerForce = req.body.botWinnerForce;
-        s.totalBotsPerGame = req.body.totalBotsPerGame;
+        s.botDist1 = req.body.botDist1;
+        s.botDist2 = req.body.botDist2;
+        s.botDist3 = req.body.botDist3;
+        s.botDist4 = req.body.botDist4;
         await s.save();
         await loadSettings();
         res.json({ success: true });
@@ -741,7 +729,6 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 UPDATE 1: History Search includes Ticket ID 🔥
 app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -764,7 +751,6 @@ app.post('/api/admin/history', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// 🔥 UPDATE 2: New Endpoint for Player Bets Search 🔥
 app.post('/api/admin/search-bets', auth, async (req, res) => {
     try {
         let search = req.body.search || '';
@@ -844,7 +830,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         ]);
         let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
-        // 🔥 Separate Real Money and Bot Money 🔥
         let realMoney = 0;
         let botMoney = 0;
         let realCount = 0;
@@ -1025,6 +1010,13 @@ app.post('/api/admin/delete-game-player', auth, async (req, res) => {
         } else { res.json({ success: false }); }
     } catch(e) { res.json({ success: false }); }
 });
+app.post('/api/admin/delete-old-history', auth, async (req, res) => {
+    try {
+        let cutoff = new Date(Date.now() - (6 * 60 * 60 * 1000));
+        await GameHistory.deleteMany({ date: { $lt: cutoff } });
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
 
 app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
     try {
@@ -1188,9 +1180,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
     
-    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount;
-    if(req.body.botBoostAmount !== undefined) s.botBoostAmount = req.body.botBoostAmount;
-    
     if(req.body.depBonusMinAmount !== undefined) s.depBonusMinAmount = req.body.depBonusMinAmount;
     if(req.body.depBonusPercent !== undefined) s.depBonusPercent = req.body.depBonusPercent;
     
@@ -1215,10 +1204,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.witHappyHourEnd !== undefined) s.witHappyHourEnd = req.body.witHappyHourEnd;
     if(req.body.witBannerTextAm !== undefined) s.witBannerTextAm = req.body.witBannerTextAm;
     if(req.body.witBannerTextEn !== undefined) s.witBannerTextEn = req.body.witBannerTextEn;
-    
-    if(req.body.cashbackMinLoss !== undefined) s.cashbackMinLoss = req.body.cashbackMinLoss;
-    if(req.body.cashbackAmount !== undefined) s.cashbackAmount = req.body.cashbackAmount;
-    if(req.body.isCashbackActive !== undefined) s.isCashbackActive = req.body.isCashbackActive;
 
     if(req.body.registerBonus !== undefined) s.registerBonus = req.body.registerBonus;
     if(req.body.inviteBonus !== undefined) s.inviteBonus = req.body.inviteBonus;
@@ -1228,7 +1213,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
     
     if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
-    if(req.body.forcedWinnerPhones !== undefined) s.forcedWinnerPhones = req.body.forcedWinnerPhones;
 
     await s.save(); await loadSettings();
     res.json({ success: true });
@@ -1236,8 +1220,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
 
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
-        const minL = GLOBAL_SETTINGS.cashbackMinLoss;
-        const cAmt = GLOBAL_SETTINGS.cashbackAmount;
+        const minL = GLOBAL_SETTINGS.cashbackMinLoss || 200;
+        const cAmt = GLOBAL_SETTINGS.cashbackAmount || 10;
         
         let users = await User.find();
         let count = 0;
@@ -1253,9 +1237,7 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
                 count++;
             }
         }
-
         if(count === 0) return res.json({ success: false, message: `No users have lost >= ${minL} ETB.` });
-        
         res.json({ success: true, message: `✅ Successfully gave ${cAmt} ETB cashback to ${count} users!` });
     } catch(e) {
         res.status(500).json({ success: false });
@@ -1293,12 +1275,6 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
                 }
                 activePlayers[newPhone].name = name;
             }
-
-            if (oldPhone !== newPhone && GLOBAL_SETTINGS.forcedWinnerPhones.includes(oldPhone)) {
-                GLOBAL_SETTINGS.forcedWinnerPhones = GLOBAL_SETTINGS.forcedWinnerPhones.replace(oldPhone, newPhone);
-                await SystemSettings.updateOne({}, {forcedWinnerPhones: GLOBAL_SETTINGS.forcedWinnerPhones});
-            }
-
             res.json({ success: true });
         } else {
             res.json({ success: false, message: "User not found" });
@@ -1336,9 +1312,10 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// 🔥 NEW PROMO BROADCAST LOGIC (TG, WEB, BOTH) 🔥
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     try {
-        const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly } = req.body;
+        const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly, platform } = req.body;
         let expires = new Date(Date.now() + (minutes * 60000));
         await ActiveBonus.updateMany({}, { isActive: false });
         
@@ -1350,9 +1327,13 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
             depositorsOnly: depositorsOnly
         }).save();
         
-        io.emit('new_promo_alert', { amount: amount, msg: message });
+        // 1. Web Broadcast
+        if (platform === 'web' || platform === 'both') {
+            io.emit('new_promo_alert', { amount: amount, msg: message });
+        }
 
-        if (message) {
+        // 2. Telegram Broadcast
+        if ((platform === 'tg' || platform === 'both') && message) {
             let query = { telegramId: { $ne: "" } };
             if (depositorsOnly) query.totalDeposited = { $gt: 0 };
             
@@ -1376,7 +1357,7 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
                 } catch(e) {} 
             }
         }
-        res.json({ success: true, message: `✅ Promo Created & Broadcasted to Telegram & Web App!` });
+        res.json({ success: true, message: `✅ Promo Created & Broadcasted Successfully!` });
     } catch (e) {
         res.status(500).json({ success: false, message: "Error processing promo." });
     }
@@ -1423,7 +1404,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🟢 LIVE BINGO GAME ENGINE (STRICT BOT VS REAL LOGIC)
+// 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
 let gameState = "WAITING";
 let gameClock = 40; 
@@ -1435,12 +1416,6 @@ let calledNumbers = [];
 let currentDrawSequence = []; 
 let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
-
-let midGameChosenRigged = null;
-let targetWinTurn = 0; 
-
-let botInjectedAmount = 0;
-let fakeTicketsStore = []; 
 
 let gameBotsQueue = [];
 
@@ -1495,10 +1470,8 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
-    let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
+    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
     
-    // Profit is ONLY calculated from real money, bots don't generate real admin profit
     let realMoney = 0;
     Object.values(activePlayers).forEach(p => {
         if(!p.isBot) realMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
@@ -1542,7 +1515,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: actualJackpot,
+        prize: totalPrizePool,
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -1550,14 +1523,11 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
-    GLOBAL_SETTINGS.jackpotBoostAmount = 0;
-    await SystemSettings.updateOne({}, { $set: { jackpotBoostAmount: 0 } });
-
     io.emit('game_winner', { 
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
-        totalPrize: actualJackpot, 
+        totalPrize: totalPrizePool, 
         phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
@@ -1572,18 +1542,14 @@ function resetToWaiting() {
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
-    botInjectedAmount = 0; 
-    fakeTicketsStore = []; 
     gameBotsQueue = [];
     io.emit('update_taken_tickets', globalTakenTickets); 
-    midGameChosenRigged = null; 
-    targetWinTurn = 0; 
 }
 
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
         io.emit('game_status', { 
-            state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+            state: "MAINTENANCE", timer: 0, totalPrizePool: 0,
             totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
         }); 
@@ -1593,50 +1559,29 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // OLD LOGIC PRESERVED
-        let targetBotAmount = GLOBAL_SETTINGS.botBoostAmount || 0;
-        let diff = targetBotAmount - botInjectedAmount;
-
-        if (diff > 0 && gameClock > 0) {
-            let ticketPrice = GLOBAL_SETTINGS.ticketPrice || 10;
-            let maxTixLeft = Math.floor(diff / ticketPrice);
-            
-            if (maxTixLeft > 0) {
-                let buyNow = 0;
-                let baseRate = Math.ceil(maxTixLeft / gameClock);
-
-                if (gameClock > 30) {
-                    buyNow = Math.random() > 0.6 ? 0 : Math.floor(Math.random() * 2) + 1;
-                } else if (gameClock > 10) {
-                    buyNow = Math.random() > 0.4 ? baseRate : baseRate + Math.floor(Math.random() * 3);
-                } else {
-                    buyNow = baseRate;
-                }
-
-                if (buyNow > maxTixLeft) buyNow = maxTixLeft;
-                
-                if (buyNow > 0) {
-                    let cost = buyNow * ticketPrice;
-                    botInjectedAmount += cost;
-                    let addedPrize = cost; 
-                    totalPrizePool += addedPrize;
-                    totalTickets += buyNow;
-
-                    for(let i=0; i<buyNow; i++) {
-                        let fakeId = getUnusedFakeTicketId();
-                        globalTakenTickets.push(fakeId);
-                        fakeTicketsStore.push({ id: fakeId, grid: generateFakeGrid() });
-                    }
-                    io.emit('update_taken_tickets', globalTakenTickets);
-                }
-            }
-        }
-
-        // 🔥 NEW DATABASE BOT LOGIC 🔥
+        // 🔥 አዲሱ የቦት አገባብ (በተራ) 🔥
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 1 && GLOBAL_SETTINGS.isBotSystemActive) {
-            BotUser.find({isActive: true}).then(bots => {
-                let shuffled = bots.sort(() => 0.5 - Math.random());
-                gameBotsQueue = shuffled.slice(0, GLOBAL_SETTINGS.totalBotsPerGame);
+            BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
+                let availableBots = [...bots];
+                gameBotsQueue = [];
+                
+                let dist = [
+                    {count: GLOBAL_SETTINGS.botDist1, tix: 1},
+                    {count: GLOBAL_SETTINGS.botDist2, tix: 2},
+                    {count: GLOBAL_SETTINGS.botDist3, tix: 3},
+                    {count: GLOBAL_SETTINGS.botDist4, tix: 4}
+                ];
+
+                for(let d of dist) {
+                    for(let i=0; i<d.count; i++) {
+                        if(availableBots.length === 0) break;
+                        let b = availableBots.shift();
+                        gameBotsQueue.push({ bot: b, tixCount: d.tix });
+                    }
+                }
+                
+                // በተራ እንዲገቡ አደባልቀው
+                gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
             });
         }
 
@@ -1644,9 +1589,10 @@ setInterval(() => {
             let botsToInjectNow = Math.ceil(gameBotsQueue.length / gameClock);
             for(let i=0; i<botsToInjectNow; i++) {
                 if(gameBotsQueue.length === 0) break;
-                let botDb = gameBotsQueue.shift();
+                let queueItem = gameBotsQueue.shift();
+                let botDb = queueItem.bot;
+                let buyNow = queueItem.tixCount;
                 
-                let buyNow = botDb.ticketCount;
                 let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
                 totalPrizePool += cost;
                 totalTickets += buyNow;
@@ -1658,12 +1604,16 @@ setInterval(() => {
                     ticketsData.push({ id: fakeId, grid: generateFakeGrid(), paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 });
                 }
                 activePlayers[botDb.phone] = { name: botDb.name, phone: botDb.phone, tickets: buyNow, ticketsData: ticketsData, isBot: true };
+                
+                botDb.lastPlayed = Date.now();
+                botDb.save();
+
                 io.emit('update_taken_tickets', globalTakenTickets);
             }
         }
 
         io.emit('game_status', { 
-            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+            state: gameState, timer: gameClock, totalPrizePool,
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
             takenTickets: globalTakenTickets
@@ -1673,11 +1623,9 @@ setInterval(() => {
             if(Object.keys(activePlayers).length > 1) { 
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
-                midGameChosenRigged = null;
-                targetWinTurn = 0; 
                 
                 io.emit('game_status', { 
-                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0, 
+                    state: gameState, timer: gameClock, totalPrizePool,
                     totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
                     maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit, 
                 });
@@ -1691,158 +1639,80 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
-            if (targetWinTurn === 0) {
-                let realTkts = Object.values(activePlayers).reduce((sum, p) => sum + p.tickets, 0);
-                if (realTkts >= 10) { 
-                    targetWinTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; 
-                } else { 
-                    targetWinTurn = Math.floor(Math.random() * (21 - 15 + 1)) + 15; 
-                }
-            }
+            let turn = calledNumbers.length + 1;
+            
+            let safeForReal = []; 
+            let safeForBots = []; 
+            let winForReal = [];  
+            let winForBots = [];  
+            let completelySafe = []; 
 
-            let isTimeToWin = (calledNumbers.length + 1) >= targetWinTurn;
-
-            let riggedPhones = GLOBAL_SETTINGS.forcedWinnerPhones ? GLOBAL_SETTINGS.forcedWinnerPhones.split(',').map(p => p.trim()).filter(p => p) : [];
-            let activeRigged = riggedPhones.filter(p => activePlayers[p]);
-
-            if (activeRigged.length > 0) {
-                if (!midGameChosenRigged || !activeRigged.includes(midGameChosenRigged)) {
-                    midGameChosenRigged = activeRigged[Math.floor(Math.random() * activeRigged.length)];
-                }
-            } else {
-                midGameChosenRigged = null; 
-            }
-
-            let safeWinningForced = []; 
-            let safeWinningNormal = [];
-            let safeNonWinning = [];
-            let unsafeNumbers = []; 
-
-            // ማጣሪያ - እያንዳንዱን ቀጣይ ኳስ እንሞክራለን
-            for (let i = 0; i < currentDrawSequence.length; i++) {
-                let testNum = currentDrawSequence[i];
-                let tempCalled = [...calledNumbers, testNum];
-
-                let unforcedWins = false;
-                let forcedWins = false;
-
-                for (let player of Object.values(activePlayers)) {
-                    let isForcedPlayer = (midGameChosenRigged && player.phone === midGameChosenRigged);
-                    for (let ticket of player.ticketsData) {
-                        if (serverCheckBingo(ticket.grid, tempCalled)) {
-                            if (isForcedPlayer) forcedWins = true;
-                            else unforcedWins = true;
-                        }
-                    }
-                }
-
-                if (unforcedWins) {
-                    unsafeNumbers.push({ index: i, num: testNum });
-                } else if (forcedWins) {
-                    safeWinningForced.push({ index: i, num: testNum });
-                } else {
-                    safeNonWinning.push({ index: i, num: testNum });
-                }
-            }
-
-            // 🔥 NEW STRICT BOT VS REAL LOGIC 🔥
-            if (GLOBAL_SETTINGS.isBotSystemActive) {
-                let forceWinner = GLOBAL_SETTINGS.botWinnerForce;
-                let realPlayersExist = Object.values(activePlayers).some(p => !p.isBot);
-                let botsExist = Object.values(activePlayers).some(p => p.isBot);
-                
-                if (!realPlayersExist) forceWinner = 'bots';
-                if (!botsExist) forceWinner = 'real';
-
-                if (forceWinner === 'bots') {
-                    let realWinningNumbers = [];
-                    for (let testNum of currentDrawSequence) {
-                        let tempCalled = [...calledNumbers, testNum];
-                        for (let p of Object.values(activePlayers)) {
-                            if (!p.isBot) {
-                                for (let t of p.ticketsData) {
-                                    if (serverCheckBingo(t.grid, tempCalled)) realWinningNumbers.push(testNum);
-                                }
-                            }
-                        }
-                    }
-                    safeWinningNormal = safeWinningNormal.filter(n => !realWinningNumbers.includes(n.num));
-                    safeNonWinning = safeNonWinning.filter(n => !realWinningNumbers.includes(n.num));
-                    safeWinningForced = safeWinningForced.filter(n => !realWinningNumbers.includes(n.num));
-                } else if (forceWinner === 'real') {
-                    let botWinningNumbers = [];
-                    for (let testNum of currentDrawSequence) {
-                        let tempCalled = [...calledNumbers, testNum];
-                        for (let p of Object.values(activePlayers)) {
-                            if (p.isBot) {
-                                for (let t of p.ticketsData) {
-                                    if (serverCheckBingo(t.grid, tempCalled)) botWinningNumbers.push(testNum);
-                                }
-                            }
-                        }
-                    }
-                    safeWinningNormal = safeWinningNormal.filter(n => !botWinningNumbers.includes(n.num));
-                    safeNonWinning = safeNonWinning.filter(n => !botWinningNumbers.includes(n.num));
-                    safeWinningForced = safeWinningForced.filter(n => !botWinningNumbers.includes(n.num));
-                }
+            for(let testNum of currentDrawSequence) {
+                 let tempCalled = [...calledNumbers, testNum];
+                 let realWins = false;
+                 let botWins = false;
+                 
+                 for(let p of Object.values(activePlayers)) {
+                     for(let t of p.ticketsData) {
+                         if(serverCheckBingo(t.grid, tempCalled)) {
+                             if(p.isBot) botWins = true;
+                             else realWins = true;
+                         }
+                     }
+                 }
+                 
+                 if(realWins) winForReal.push({num: testNum});
+                 if(botWins) winForBots.push({num: testNum});
+                 if(!realWins && !botWins) completelySafe.push({num: testNum});
+                 if(!realWins) safeForReal.push({num: testNum});
+                 if(!botWins) safeForBots.push({num: testNum});
             }
 
             let numToCall = null;
+            let isBotSystemActive = GLOBAL_SETTINGS.isBotSystemActive;
+            let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
 
-            if (midGameChosenRigged) {
-                let forcedPlayer = activePlayers[midGameChosenRigged];
-                let forcedPlayerNumbers = [];
-                forcedPlayer.ticketsData.forEach(t => {
-                    t.grid.forEach(col => { col.forEach(n => { if(n !== "FREE" && !calledNumbers.includes(n)) forcedPlayerNumbers.push(n); }); });
-                });
-                
-                let safeNonWinningForcedCard = safeNonWinning.filter(n => forcedPlayerNumbers.includes(n.num));
+            let realPlayersExist = Object.values(activePlayers).some(p => !p.isBot);
+            let botsExist = Object.values(activePlayers).some(p => p.isBot);
+            
+            if (!isBotSystemActive || !realPlayersExist) forceWinner = 'bots';
+            if (!botsExist) forceWinner = 'real';
 
-                if (isTimeToWin) {
-                    if (safeWinningForced.length > 0) {
-                        let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
-                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                    } else if (safeNonWinningForcedCard.length > 0) {
-                        let chosen = safeNonWinningForcedCard[Math.floor(Math.random() * safeNonWinningForcedCard.length)];
-                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                    } else if (safeNonWinning.length > 0) {
-                        let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+            if (forceWinner === 'real') {
+                // ሰው በእድሉ ያሸንፋል። ቦት አያሸንፍም።
+                if (safeForBots.length > 0) {
+                    numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
+                } else {
+                    numToCall = currentDrawSequence[0];
+                }
+            } 
+            else {
+                // ቦት ብቻ ያሸንፋል። ሰው አያሸንፍም። 
+                // ደንብ፡ ከ 12ኛ ኳስ በፊት አያሸንፍም፣ በ 21ኛ ኳስ ላይ ደግሞ ግድ ማሸነፍ አለበት።
+                if (turn < 12) {
+                    if (completelySafe.length > 0) {
+                        numToCall = completelySafe[Math.floor(Math.random() * completelySafe.length)].num;
+                    } else if (safeForReal.length > 0) { 
+                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
+                    }
+                } else if (turn >= 21) {
+                    let forceBotWinList = winForBots.filter(n => safeForReal.some(s => s.num === n.num));
+                    if (forceBotWinList.length > 0) {
+                        numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)].num;
+                    } else if (safeForReal.length > 0) {
+                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
                 } else {
-                    if (safeNonWinning.length > 0) {
-                        let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
+                    // መሀል ላይ ባለው እድል
+                    if (safeForReal.length > 0) {
+                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
-                }
-
-                if (numToCall === null) {
-                    if (safeWinningForced.length > 0) {
-                        let chosen = safeWinningForced[Math.floor(Math.random() * safeWinningForced.length)];
-                        numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                    } else {
-                        numToCall = currentDrawSequence.shift();
-                    }
-                }
-
-            } else {
-                // NORMAL GAMEPLAY
-                if (isTimeToWin && safeWinningNormal.length > 0) {
-                    let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
-                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                } else if (!isTimeToWin && safeNonWinning.length > 0) {
-                    let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                } else if (safeNonWinning.length > 0) {
-                    let chosen = safeNonWinning[Math.floor(Math.random() * safeNonWinning.length)];
-                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                } else if (safeWinningNormal.length > 0) {
-                    let chosen = safeWinningNormal[Math.floor(Math.random() * safeWinningNormal.length)];
-                    numToCall = currentDrawSequence.splice(currentDrawSequence.indexOf(chosen.num), 1)[0];
-                } else {
-                    numToCall = currentDrawSequence.shift();
                 }
             }
+            
+            if (numToCall === null) numToCall = currentDrawSequence[0];
+            
+            currentDrawSequence = currentDrawSequence.filter(n => n !== numToCall);
 
             calledNumbers.push(numToCall);
             io.emit('new_number', numToCall);
@@ -1870,7 +1740,7 @@ let buyingLocks = {};
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { 
-        state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
+        state: stateToSend, timer: gameClock, totalPrizePool,
         totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
         maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
     });
@@ -2799,8 +2669,44 @@ app.get('*', (req, res) => {
             <p style="font-size:24px;color:#cbd5e1;font-family:sans-serif;margin-top:0;font-weight:bold;text-shadow: 0 2px 5px rgba(0,0,0,0.8);">(MAINTENANCE)</p>
             <p style="font-size:18px;color:#f8fafc;max-width:500px;line-height:1.6;font-family:sans-serif;background:rgba(0,0,0,0.7);padding:20px;border-radius:12px;border:1px solid #ea580c;">በአሁኑ ሰዓት ሲስተሙን እያሻሻልን ስለሆነ ጌም መጫወት አይቻልም።<br><br>እባክዎ ከጥቂት ደቂቃዎች በኋላ ተመልሰው ይሞክሩ። እናመሰግናለን!</p>
         </div>
+        
+        <!-- 🔥 WEB PROMO POPUP 🔥 -->
+        <div id="web-promo-popup" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center; backdrop-filter:blur(5px);">
+            <div style="background:#1e293b; padding:20px; border-radius:12px; border:2px solid #fbbf24; text-align:center; max-width:320px; width:90%; color:white; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
+                <div style="font-size:50px; margin-bottom:10px;">🎁</div>
+                <h2 style="color:#fbbf24; margin-top:0; font-size:22px;">ልዩ የቦነስ ስጦታ!</h2>
+                <p id="web-promo-msg" style="font-size:14px; margin-bottom:20px; color:#cbd5e1; line-height:1.5;"></p>
+                <button onclick="claimWebPromo()" style="background:linear-gradient(135deg, #4ade80, #16a34a); color:white; font-weight:bold; padding:12px 20px; border:none; border-radius:8px; cursor:pointer; width:100%; font-size:16px; box-shadow:0 4px 15px rgba(74,222,128,0.4);">🚀 አሁኑኑ ቦነሱን ይቀበሉ</button>
+                <button onclick="document.getElementById('web-promo-popup').style.display='none'" style="background:transparent; color:#94a3b8; border:none; margin-top:15px; cursor:pointer; font-size:13px; text-decoration:underline;">አይ አሁን አልፈልግም (Close)</button>
+            </div>
+        </div>
 
         <script>
+            window.claimWebPromo = async function() {
+                if(!window.currentUser || !window.currentUser.phone) return alert("❌ እባክዎ መጀመሪያ Login ያድርጉ!");
+                
+                let btn = document.querySelector('#web-promo-popup button');
+                let oldText = btn.innerText;
+                btn.innerText = "እየተረጋገጠ ነው...";
+                
+                try {
+                    let res = await fetch('/api/claim-promo-web', {
+                        method: 'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({phone: window.currentUser.phone})
+                    });
+                    let data = await res.json();
+                    if(data.success) {
+                        alert("🎉 እንኳን ደስ አሎት! የ " + data.amount + " ETB ቦነስ አግኝተዋል!");
+                        document.getElementById('web-promo-popup').style.display = 'none';
+                    } else {
+                        alert(data.message || "❌ ቦነሱን መውሰድ አልተቻለም።");
+                    }
+                } catch(e) {
+                    alert("❌ Connection error.");
+                }
+                btn.innerText = oldText;
+            };
+
             document.addEventListener("DOMContentLoaded", () => {
                 let depBanner = document.querySelector('.dep-banner');
                 if (depBanner && !document.getElementById('dep-strict-warn')) {
@@ -2811,6 +2717,12 @@ app.get('*', (req, res) => {
                 if (typeof io !== 'undefined') {
                     const blurSocket = io();
                     
+                    blurSocket.on('new_promo_alert', (data) => {
+                        let msgDisplay = data.msg + "<br><br><span style='color:#4ade80; font-weight:bold; font-size:18px;'>💰 " + data.amount + " ETB</span>";
+                        document.getElementById('web-promo-msg').innerHTML = msgDisplay;
+                        document.getElementById('web-promo-popup').style.display = 'flex';
+                    });
+
                     blurSocket.on('game_status', (data) => {
                         if (data.state === 'MAINTENANCE') {
                             document.body.classList.add('paused-mode');
