@@ -27,6 +27,11 @@ const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F
 mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
+// 🔵 ETHIOPIAN NAMES ARRAY (ለቦቶች ስም መስጫ)
+// ==========================================
+const ethNames = ["Abebe", "Kebede", "Chala", "Hagos", "Fatuma", "Tigist", "Dawit", "Meron", "Yosef", "Sara", "Ephrem", "Marta", "Tesfaye", "Selam", "Girma", "Hanna", "Bereket", "Eden", "Abel", "Helen", "Zinash", "Eyob", "Aster", "Samuel", "Rahel", "Biniam", "Kalkidan", "Fikre", "Genet", "Mulugeta", "Tewodros", "Betelhem", "Lema", "Meseret", "Yonas", "Mahlet", "Habtamu", "Senait"];
+
+// ==========================================
 // 🔵 MODELS
 // ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
@@ -560,7 +565,34 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-// 🔥 BOT ROUTES IMPORT 🔥
+// 🔥 BOT ROUTES & NEW APIs 🔥
+app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
+    try {
+        let amount = parseInt(req.body.amount);
+        if(!amount || amount <= 0) return res.json({success:false, message:"Invalid amount"});
+        
+        let count = 0;
+        for(let i=0; i<amount; i++) {
+            let rndName = ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999);
+            let rndPhone = "09" + Math.floor(10000000 + Math.random() * 90000000);
+            await new BotUser({ name: rndName, phone: rndPhone, isActive: true, cardsCount: 1 }).save();
+            count++;
+        }
+        res.json({ success: true, message: `Successfully added ${count} new bots.` });
+    } catch(e) { res.json({ success: false, message: "Error adding bots" }); }
+});
+
+app.post('/api/admin/bots-rename-all', auth, async (req, res) => {
+    try {
+        let bots = await BotUser.find();
+        for(let b of bots) {
+            b.name = ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999);
+            await b.save();
+        }
+        res.json({ success: true, message: "✅ ሁሉም የቦት ስሞች ወደ ኢትዮጵያዊ ስም ተቀይረዋል!" });
+    } catch(e) { res.json({ success: false }); }
+});
+
 const botRoutes = require('./bots/bot.routes');
 app.use('/api/admin', botRoutes(SystemSettings, loadSettings, auth));
 
@@ -1366,7 +1398,7 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
 });
 
-// 🔥 INSTANT LIVE BOT INJECTION 🔥
+// 🔥 INSTANT LIVE BOT INJECTION (WITH GRADUAL QUEUEING & RATIO) 🔥
 app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
     try {
         if (gameState !== "WAITING") {
@@ -1379,43 +1411,40 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         let bots = await BotUser.find({ isActive: true }).sort({ lastPlayed: 1 }).limit(amount);
         if (bots.length === 0) return res.json({ success: false, message: "በዳታቤዝ ውስጥ ምንም ቦት የለም!" });
 
-        let actualInjected = 0;
-        let totalTixBought = 0;
+        // Apply Distribution Ratios
+        let d1 = GLOBAL_SETTINGS.botDist1 !== undefined ? GLOBAL_SETTINGS.botDist1 : 5;
+        let d2 = GLOBAL_SETTINGS.botDist2 !== undefined ? GLOBAL_SETTINGS.botDist2 : 4;
+        let d3 = GLOBAL_SETTINGS.botDist3 !== undefined ? GLOBAL_SETTINGS.botDist3 : 3;
+        let d4 = GLOBAL_SETTINGS.botDist4 !== undefined ? GLOBAL_SETTINGS.botDist4 : 3;
+        
+        let totalRatio = d1 + d2 + d3 + d4;
+        if(totalRatio === 0) { d1 = 1; totalRatio = 1; }
 
-        for (let b of bots) {
-            if (activePlayers[b.phone]) continue;
+        let count1 = Math.round((d1 / totalRatio) * amount);
+        let count2 = Math.round((d2 / totalRatio) * amount);
+        let count3 = Math.round((d3 / totalRatio) * amount);
+        let count4 = amount - (count1 + count2 + count3); 
 
-            let buyNow = Math.floor(Math.random() * 4) + 1; 
-            let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
+        let distArray = [];
+        for(let i=0; i<count1; i++) distArray.push(1);
+        for(let i=0; i<count2; i++) distArray.push(2);
+        for(let i=0; i<count3; i++) distArray.push(3);
+        for(let i=0; i<count4; i++) distArray.push(4);
+        
+        distArray = distArray.sort(() => Math.random() - 0.5);
 
-            totalPrizePool += cost;
-            totalTickets += buyNow;
-            totalTixBought += buyNow;
-
-            let ticketsData = [];
-            for (let t = 0; t < buyNow; t++) {
-                let fakeId = getUnusedFakeTicketId();
-                globalTakenTickets.push(fakeId);
-                ticketsData.push({ id: fakeId, grid: generateFakeGrid(), paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 });
-            }
-
-            activePlayers[b.phone] = { name: b.name, phone: b.phone, tickets: buyNow, ticketsData: ticketsData, isBot: true };
+        let actualQueued = 0;
+        for (let i = 0; i < bots.length; i++) {
+            if (activePlayers[bots[i].phone]) continue; 
             
-            b.lastPlayed = Date.now();
-            await b.save();
-
-            actualInjected++;
+            let tix = distArray[i] || 1;
+            gameBotsQueue.push({ bot: bots[i], tixCount: tix });
+            actualQueued++;
         }
 
-        io.emit('update_taken_tickets', globalTakenTickets);
-        io.emit('game_status', { 
-            state: gameState, timer: gameClock, totalPrizePool,
-            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
-            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
-            takenTickets: globalTakenTickets
-        });
+        gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
 
-        res.json({ success: true, message: `✅ በተሳካ ሁኔታ ${actualInjected} ቦቶች አሁን ባለው ጌም ውስጥ ገብተዋል!\n\n(በድምሩ ${totalTixBought} ካርቴላዎችን በተለያየ መጠን ገዝተዋል)` });
+        res.json({ success: true, message: `✅ ${actualQueued} ቦቶች ወደ ወረፋ ገብተዋል። በሰከንዶች ውስጥ ቀስ እያሉ ጌም ይገባሉ!` });
 
     } catch (e) {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
@@ -1437,6 +1466,7 @@ let gameId = Math.floor(Math.random() * 9000) + 1000;
 let globalTakenTickets = []; 
 
 let gameBotsQueue = [];
+let botWinTargetTurn = null; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1562,6 +1592,7 @@ function resetToWaiting() {
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
+    botWinTargetTurn = null;
     io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -1578,7 +1609,7 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🔥 አዲሱ የቦት አገባብ (በተራ) 🔥
+        // አውቶማቲክ ቦት ማስገቢያ
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 1 && GLOBAL_SETTINGS.isBotSystemActive) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
@@ -1598,12 +1629,11 @@ setInterval(() => {
                         gameBotsQueue.push({ bot: b, tixCount: d.tix });
                     }
                 }
-                
-                // በተራ እንዲገቡ አደባልቀው
                 gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
             });
         }
 
+        // ቦቶች ቀስ እያሉ ይገባሉ
         if (gameBotsQueue.length > 0 && gameClock > 0) {
             let botsToInjectNow = Math.ceil(gameBotsQueue.length / gameClock);
             for(let i=0; i<botsToInjectNow; i++) {
@@ -1688,17 +1718,15 @@ setInterval(() => {
             }
 
             let numToCall = null;
-            let isBotSystemActive = GLOBAL_SETTINGS.isBotSystemActive;
             let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
 
             let realPlayersExist = Object.values(activePlayers).some(p => !p.isBot);
             let botsExist = Object.values(activePlayers).some(p => p.isBot);
             
-            if (!isBotSystemActive || !realPlayersExist) forceWinner = 'bots';
+            if (!realPlayersExist) forceWinner = 'bots';
             if (!botsExist) forceWinner = 'real';
 
             if (forceWinner === 'real') {
-                // ሰው በእድሉ ያሸንፋል። ቦት አያሸንፍም።
                 if (safeForBots.length > 0) {
                     numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
                 } else {
@@ -1706,15 +1734,22 @@ setInterval(() => {
                 }
             } 
             else {
-                // ቦት ብቻ ያሸንፋል። ሰው አያሸንፍም። 
-                // ደንብ፡ ከ 12ኛ ኳስ በፊት አያሸንፍም፣ በ 21ኛ ኳስ ላይ ደግሞ ግድ ማሸነፍ አለበት።
+                // 🔥 አዲሱ የቦት ማሸነፊያ ሰዓት ስሌት 🔥
+                if(botWinTargetTurn === null) {
+                    if(totalPrizePool < 400) {
+                        botWinTargetTurn = Math.floor(Math.random() * 3) + 24; // 24, 25, 26
+                    } else {
+                        botWinTargetTurn = Math.floor(Math.random() * 8) + 14; // 14 to 21
+                    }
+                }
+
                 if (turn < 12) {
                     if (completelySafe.length > 0) {
                         numToCall = completelySafe[Math.floor(Math.random() * completelySafe.length)].num;
                     } else if (safeForReal.length > 0) { 
                         numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
-                } else if (turn >= 21) {
+                } else if (turn >= botWinTargetTurn) {
                     let forceBotWinList = winForBots.filter(n => safeForReal.some(s => s.num === n.num));
                     if (forceBotWinList.length > 0) {
                         numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)].num;
@@ -1722,7 +1757,6 @@ setInterval(() => {
                         numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
                 } else {
-                    // መሀል ላይ ባለው እድል
                     if (safeForReal.length > 0) {
                         numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
@@ -2761,6 +2795,15 @@ app.get('*', (req, res) => {
                                     }
                                 }
                             });
+                        }
+                        
+                        // 🔥 Update top header dynamically 🔥
+                        let stateHeader = document.getElementById('header-state');
+                        let jackpotHeader = document.getElementById('header-jackpot');
+                        if(stateHeader && jackpotHeader) {
+                            stateHeader.innerText = data.state;
+                            stateHeader.style.color = data.state === 'PLAYING' ? '#4ade80' : 'var(--orange)';
+                            jackpotHeader.innerText = Number(data.totalPrizePool || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                         }
                     });
 
