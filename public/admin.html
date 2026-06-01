@@ -259,6 +259,7 @@
 
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">3. Ticket Distribution (የቦት ስርጭት)</div>
+                        <p style="font-size:10px; color:var(--text-gray); margin-top:0;">እዚህ ላይ የሚያስገቡት ቁጥር የቦቶች <b style="color:var(--faded-green);">ትክክለኛ ብዛት (Exact Quantity)</b> ነው። ካስገቡ እና Save ካደረጉ በኋላ አይቀየርም።</p>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
                             <div style="flex:1; min-width:80px;"><label style="font-size:11px; color:var(--cyan);">1 Card Bots</label><input type="number" id="bot-d1" placeholder="Qty"></div>
                             <div style="flex:1; min-width:80px;"><label style="font-size:11px; color:var(--faded-green);">2 Card Bots</label><input type="number" id="bot-d2" placeholder="Qty"></div>
@@ -1005,13 +1006,6 @@
             document.getElementById('adminPass').value = savedPass;
             fullRefresh();
         }
-
-        // 🔥 Restore Live Inject input value if it was saved 🔥
-        let savedInjectAmt = localStorage.getItem('bot_inject_amt');
-        if(savedInjectAmt) {
-            document.getElementById('instant-bot-amount').value = savedInjectAmt;
-            previewLiveInject();
-        }
     });
 
     function logoutAdmin() {
@@ -1074,14 +1068,6 @@
                 document.getElementById('bot-master-toggle').checked = data.settings.isBotSystemActive;
                 let radios = document.getElementsByName('bot-master-winner');
                 for(let r of radios) { if(r.value === data.settings.botWinnerForce) r.checked = true; }
-                
-                // Only update these if user is not actively typing
-                if(!isBotInputDirty) {
-                    document.getElementById('bot-d1').value = data.settings.botDist1;
-                    document.getElementById('bot-d2').value = data.settings.botDist2;
-                    document.getElementById('bot-d3').value = data.settings.botDist3;
-                    document.getElementById('bot-d4').value = data.settings.botDist4;
-                }
 
                 let html = data.bots.map(b => {
                     let d = new Date(b.lastPlayed || 0);
@@ -1123,10 +1109,10 @@
         let radios = document.getElementsByName('bot-master-winner');
         for(let r of radios) { if(r.checked) force = r.value; }
         
-        let d1 = document.getElementById('bot-d1').value;
-        let d2 = document.getElementById('bot-d2').value;
-        let d3 = document.getElementById('bot-d3').value;
-        let d4 = document.getElementById('bot-d4').value;
+        let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
+        let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
+        let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
+        let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
 
         try {
             let res = await fetch('/api/admin/bot-master-update', { 
@@ -1136,10 +1122,10 @@
                     adminPass: pass, 
                     isBotSystemActive: isActive, 
                     botWinnerForce: force, 
-                    botDist1: Number(d1),
-                    botDist2: Number(d2),
-                    botDist3: Number(d3),
-                    botDist4: Number(d4)
+                    botDist1: d1,
+                    botDist2: d2,
+                    botDist3: d3,
+                    botDist4: d4
                 })
             });
             let data = await res.json();
@@ -1233,32 +1219,41 @@
         let amt = parseInt(document.getElementById('instant-bot-amount').value);
         let previewBox = document.getElementById('live-inject-preview');
         
-        // ሳጥኑ ባዶ ከሆነ ወደ ነበረበት (Settings) ይመልሰዋል
+        // ሳጥኑ ባዶ ከሆነ
         if(!amt || amt <= 0) { 
+            document.getElementById('bot-d1').value = 0;
+            document.getElementById('bot-d2').value = 0;
+            document.getElementById('bot-d3').value = 0;
+            document.getElementById('bot-d4').value = 0;
             previewBox.style.display = 'none'; 
-            document.getElementById('bot-d1').value = sysSettings ? sysSettings.botDist1 : 5;
-            document.getElementById('bot-d2').value = sysSettings ? sysSettings.botDist2 : 4;
-            document.getElementById('bot-d3').value = sysSettings ? sysSettings.botDist3 : 3;
-            document.getElementById('bot-d4').value = sysSettings ? sysSettings.botDist4 : 3;
-            isBotInputDirty = false;
             return; 
         }
 
-        // ዋናውን የስርጭት ሬሾ ከ ዳታቤዝ ይወስዳል
-        let base1 = (sysSettings && sysSettings.botDist1 !== undefined) ? sysSettings.botDist1 : 5;
-        let base2 = (sysSettings && sysSettings.botDist2 !== undefined) ? sysSettings.botDist2 : 4;
-        let base3 = (sysSettings && sysSettings.botDist3 !== undefined) ? sysSettings.botDist3 : 3;
-        let base4 = (sysSettings && sysSettings.botDist4 !== undefined) ? sysSettings.botDist4 : 3;
+        // ዋናውን የስርጭት ሬሾ ከ ዳታቤዝ ይወስዳል, or use current values if they exist
+        let base1 = parseInt(document.getElementById('bot-d1').value) || 0;
+        let base2 = parseInt(document.getElementById('bot-d2').value) || 0;
+        let base3 = parseInt(document.getElementById('bot-d3').value) || 0;
+        let base4 = parseInt(document.getElementById('bot-d4').value) || 0;
 
         let totalRatio = base1 + base2 + base3 + base4;
-        if(totalRatio === 0) { base1 = 1; totalRatio = 1; }
+        
+        // If current inputs are all 0, try to get from settings
+        if(totalRatio === 0) {
+            base1 = (sysSettings && sysSettings.botDist1 !== undefined) ? sysSettings.botDist1 : 0;
+            base2 = (sysSettings && sysSettings.botDist2 !== undefined) ? sysSettings.botDist2 : 0;
+            base3 = (sysSettings && sysSettings.botDist3 !== undefined) ? sysSettings.botDist3 : 0;
+            base4 = (sysSettings && sysSettings.botDist4 !== undefined) ? sysSettings.botDist4 : 0;
+            totalRatio = base1 + base2 + base3 + base4;
+        }
+
+        // If still 0, fallback to default ratio
+        if(totalRatio === 0) { base1 = 5; base2 = 4; base3 = 3; base4 = 3; totalRatio = 15; }
 
         let c1 = Math.round((base1/totalRatio) * amt);
         let c2 = Math.round((base2/totalRatio) * amt);
         let c3 = Math.round((base3/totalRatio) * amt);
         let c4 = amt - (c1 + c2 + c3);
 
-        // አከፋፍሎ ቁጥሮቹን አውቶማቲካሊ ሣጥኖቹ ላይ ያስገባቸዋል
         document.getElementById('bot-d1').value = Math.max(0, c1);
         document.getElementById('bot-d2').value = Math.max(0, c2);
         document.getElementById('bot-d3').value = Math.max(0, c3);
@@ -1286,7 +1281,6 @@
             updatePreviewDisplay(c1, c2, c3, c4);
         } else {
             document.getElementById('live-inject-preview').style.display = 'none';
-            isBotInputDirty = false;
         }
     }
 
@@ -1302,7 +1296,9 @@
 
         previewBox.innerHTML = `
             <div style="color:var(--gold); font-weight:bold; margin-bottom:5px;">📊 አጠቃላይ የገንዘብ እና ካርቴላ ስሌት፡</div>
-            • የሚገቡ ቦቶች: <b>${c1 + c2 + c3 + c4}</b> | አጠቃላይ ካርቴላ: <b>${totalTix}</b><br>
+            • የሚገቡ ቦቶች: <b style="color:white; font-size:14px;">${c1 + c2 + c3 + c4}</b><br>
+            • አጠቃላይ ካርቴላ: <b>${totalTix}</b><br>
+            • አጠቃላይ የገንዘብ መጠን: <b style="color:var(--cyan); font-size:14px;">${totalBet.toLocaleString()} ETB</b><br>
             • ለጌሙ የሚጨምረው ጃክፖት: <b style="color:var(--faded-green); font-size:14px;">+${jackpotGen.toLocaleString()} ETB</b>
         `;
         previewBox.style.display = 'block';
@@ -1318,30 +1314,29 @@
 
     // ⚡ Instant Live Bots Injection
     async function injectLiveBots() {
-        let amt = document.getElementById('instant-bot-amount').value;
-        if(!amt || amt <= 0) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ (ለምሳሌ 50)!");
-        
-        let d1 = document.getElementById('bot-d1').value || 1;
-        let d2 = document.getElementById('bot-d2').value || 1;
-        let d3 = document.getElementById('bot-d3').value || 1;
-        let d4 = document.getElementById('bot-d4').value || 1;
+        let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
+        let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
+        let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
+        let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
 
-        let confirmMsg = `⚠️ እርግጠኛ ነዎት ${amt} ቦቶችን አሁን እየቆጠረ ወዳለው ጌም ማስገባት ይፈልጋሉ?`;
+        let total = d1 + d2 + d3 + d4;
+        
+        if(total <= 0) return alert("እባክዎ ትክክለኛ የቦት ብዛት ያስገቡ (ከ 0 በላይ)!");
+
+        let confirmMsg = `⚠️ እርግጠኛ ነዎት ${total} ቦቶችን አሁን እየቆጠረ ወዳለው ጌም ማስገባት ይፈልጋሉ?`;
         if(!confirm(confirmMsg)) return;
 
         try {
             let res = await fetch('/api/admin/inject-live-bots', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify({adminPass: pass, amount: Number(amt), dist1: Number(d1), dist2: Number(d2), dist3: Number(d3), dist4: Number(d4)}) 
+                body: JSON.stringify({adminPass: pass, amount: total, dist1: d1, dist2: d2, dist3: d3, dist4: d4}) 
             });
             let data = await res.json();
             
             if(data.success) {
                 alert(data.message);
-                // Clear inputs on success
-                document.getElementById('instant-bot-amount').value = '';
-                document.getElementById('live-inject-preview').style.display = 'none';
+                // DO NOT clear inputs! Keep them exactly as the user requested ("until I make it 0")
                 isBotInputDirty = false;
                 loadLiveStats(); 
             } else {
@@ -1496,10 +1491,26 @@
                 
                 // 🔥 ቦት እያስገባህ ከሆነ ሪፍሬሽ ሲያደርግ እንዳያጠፋብህ ይከላከላል
                 if(!isBotInputDirty) {
-                    safeUpdate('bot-d1', data.settings.botDist1);
-                    safeUpdate('bot-d2', data.settings.botDist2);
-                    safeUpdate('bot-d3', data.settings.botDist3);
-                    safeUpdate('bot-d4', data.settings.botDist4);
+                    let b1 = data.settings.botDist1 !== undefined ? data.settings.botDist1 : 0;
+                    let b2 = data.settings.botDist2 !== undefined ? data.settings.botDist2 : 0;
+                    let b3 = data.settings.botDist3 !== undefined ? data.settings.botDist3 : 0;
+                    let b4 = data.settings.botDist4 !== undefined ? data.settings.botDist4 : 0;
+                    
+                    safeUpdate('bot-d1', b1);
+                    safeUpdate('bot-d2', b2);
+                    safeUpdate('bot-d3', b3);
+                    safeUpdate('bot-d4', b4);
+                    
+                    let totalBots = b1 + b2 + b3 + b4;
+                    if(document.activeElement !== document.getElementById('instant-bot-amount')) {
+                        document.getElementById('instant-bot-amount').value = totalBots > 0 ? totalBots : '';
+                    }
+
+                    if(totalBots > 0) {
+                        updatePreviewDisplay(b1, b2, b3, b4);
+                    } else {
+                        document.getElementById('live-inject-preview').style.display = 'none';
+                    }
                 }
             }
         } catch(e) { console.log(e); }
