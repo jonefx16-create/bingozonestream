@@ -1366,6 +1366,62 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
 });
 
+// 🔥 INSTANT LIVE BOT INJECTION 🔥
+app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
+    try {
+        if (gameState !== "WAITING") {
+            return res.json({ success: false, message: "❌ ጌሙ እየተጫወተ ነው! ቦቶችን ማስገባት የሚቻለው ሰዓት እየቆጠረ (WAITING) ላይ ሲሆን ብቻ ነው።" });
+        }
+
+        let amount = parseInt(req.body.amount);
+        if (!amount || amount <= 0) return res.json({ success: false, message: "ትክክለኛ ቁጥር ያስገቡ!" });
+
+        let bots = await BotUser.find({ isActive: true }).sort({ lastPlayed: 1 }).limit(amount);
+        if (bots.length === 0) return res.json({ success: false, message: "በዳታቤዝ ውስጥ ምንም ቦት የለም!" });
+
+        let actualInjected = 0;
+        let totalTixBought = 0;
+
+        for (let b of bots) {
+            if (activePlayers[b.phone]) continue;
+
+            let buyNow = Math.floor(Math.random() * 4) + 1; 
+            let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
+
+            totalPrizePool += cost;
+            totalTickets += buyNow;
+            totalTixBought += buyNow;
+
+            let ticketsData = [];
+            for (let t = 0; t < buyNow; t++) {
+                let fakeId = getUnusedFakeTicketId();
+                globalTakenTickets.push(fakeId);
+                ticketsData.push({ id: fakeId, grid: generateFakeGrid(), paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 });
+            }
+
+            activePlayers[b.phone] = { name: b.name, phone: b.phone, tickets: buyNow, ticketsData: ticketsData, isBot: true };
+            
+            b.lastPlayed = Date.now();
+            await b.save();
+
+            actualInjected++;
+        }
+
+        io.emit('update_taken_tickets', globalTakenTickets);
+        io.emit('game_status', { 
+            state: gameState, timer: gameClock, totalPrizePool,
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
+            takenTickets: globalTakenTickets
+        });
+
+        res.json({ success: true, message: `✅ በተሳካ ሁኔታ ${actualInjected} ቦቶች አሁን ባለው ጌም ውስጥ ገብተዋል!\n\n(በድምሩ ${totalTixBought} ካርቴላዎችን በተለያየ መጠን ገዝተዋል)` });
+
+    } catch (e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
+
 // ==========================================
 // 🟢 LIVE BINGO GAME ENGINE
 // ==========================================
