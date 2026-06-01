@@ -5,12 +5,14 @@ const BotUserSchema = new mongoose.Schema({
     name: String,
     phone: String,
     isActive: { type: Boolean, default: true },
-    lastPlayed: { type: Date, default: 0 } 
+    lastPlayed: { type: Date, default: 0 },
+    // አዲስ የተጨመረ: ቦቱ ስንት ካርቴላ እንዲይዝ እንደምትፈልግ (Edit ለማድረግ)
+    cardsCount: { type: Number, default: 1 } 
 });
 
 const BotUser = mongoose.model('BotUser', BotUserSchema);
 
-// ስሞቹን Database ውስጥ የሚያስገባው Function
+// ስሞቹን Database ውስጥ የሚያስገባው Function (የነበረው ምንም አልተቀነሰም)
 async function initBotDatabase() {
     let c = await BotUser.countDocuments();
     if(c === 0) {
