@@ -174,7 +174,7 @@
                     </div>
                     <div style="width:1px; height:20px; background:var(--border);"></div>
                     <div>
-                        <span style="font-size:10px; color:var(--text-gray); display:block; text-transform:uppercase;">Current Jackpot</span>
+                        <span style="font-size:10px; color:var(--text-gray); display:block; text-transform:uppercase;">Live Jackpot</span>
                         <b id="header-jackpot" style="color:var(--gold); font-size:14px; letter-spacing:1px;">0.00 ETB</b>
                     </div>
                 </div>
@@ -186,7 +186,7 @@
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold); grid-column: span 2;">
-                    <h3>💰 Total Jackpot (Current Game)</h3>
+                    <h3>💰 Live Jackpot</h3>
                     <h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2>
                     <div style="font-size:12px; color:var(--text-gray); display:flex; justify-content:space-around; background:rgba(0,0,0,0.3); padding:10px; border-radius:5px; margin-top: 10px; border: 1px solid var(--border);">
                         <span>👤 Real Money: <b style="color:#4ade80; font-size:14px;" id="split-real-money">0.00</b></span>
@@ -233,7 +233,7 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div>
                             <div style="font-weight:bold; font-size:14px; color:white;">1. Enable Bots (ቦት ማስገባት)</div>
-                            <div style="font-size:11px; color:var(--text-gray);">ON ሲሆን ቦቶች በተራ እየተመረጡ ጌም ይገባሉ</div>
+                            <div style="font-size:11px; color:var(--text-gray);">ON ሲሆን ቦቶች በተራ እየተመረጡ ጌም ይገባሉ (ከ 3 እስከ 5 ሴኮንድ ጠብቀው)</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="bot-master-toggle">
@@ -1004,6 +1004,13 @@
             document.getElementById('adminPass').value = savedPass;
             fullRefresh();
         }
+
+        // 🔥 Restore Live Inject input value if it was saved 🔥
+        let savedInjectAmt = localStorage.getItem('bot_inject_amt');
+        if(savedInjectAmt) {
+            document.getElementById('instant-bot-amount').value = savedInjectAmt;
+            previewLiveInject();
+        }
     });
 
     function logoutAdmin() {
@@ -1076,14 +1083,24 @@
                     let d = new Date(b.lastPlayed || 0);
                     let dp = d.getTime() === 0 ? "Never Played" : d.toLocaleString();
                     
-                    let statusBadge = b.isActive !== false ? `<span class="badge bg-approved">ON (Active)</span>` : `<span class="badge bg-rejected">OFF</span>`;
                     let safeName = (b.name || "Unknown").replace(/'/g, "\\'");
+                    
+                    // 🔥 Bot Playing Status Detection 🔥
+                    let isLive = (window.activeBotPhones || []).includes(b.phone);
+                    let statusBadge = '';
+                    if(isLive) {
+                        statusBadge = `<span class="badge bg-approved" style="animation: pulseAlert 1.5s infinite;">ON (Active)</span>`;
+                    } else if(b.isActive !== false) {
+                        statusBadge = `<span class="badge" style="background:#475569; color:white;">NO ACTIVE</span>`;
+                    } else {
+                        statusBadge = `<span class="badge bg-rejected">OFF (Disabled)</span>`;
+                    }
 
                     return `
                     <tr>
                         <td style="font-weight:bold; color:var(--cyan);">${b.name}</td>
-                        <td style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
-                        <td>${statusBadge}</td>
+                        <td class="bot-phone-cell" style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
+                        <td class="bot-status-cell" data-base-active="${b.isActive !== false}">${statusBadge}</td>
                         <td style="font-weight:bold; color:var(--gold);">${b.cardsCount || 1} Cards</td>
                         <td style="font-size:11px; color:var(--text-gray);">${dp}</td>
                         <td>
@@ -1210,6 +1227,9 @@
         let amt = parseInt(document.getElementById('instant-bot-amount').value);
         let previewBox = document.getElementById('live-inject-preview');
         
+        // 🔥 Save the input value to localStorage so it doesn't disappear on refresh 🔥
+        localStorage.setItem('bot_inject_amt', amt || '');
+        
         // ሳጥኑ ባዶ ከሆነ ወደ ነበረበት (Settings) ይመልሰዋል
         if(!amt || amt <= 0) { 
             previewBox.style.display = 'none'; 
@@ -1256,6 +1276,7 @@
         let amtInput = document.getElementById('instant-bot-amount');
         if(document.activeElement !== amtInput) {
             amtInput.value = totalBots;
+            localStorage.setItem('bot_inject_amt', totalBots || '');
         }
 
         if(totalBots > 0) {
@@ -1314,7 +1335,9 @@
             
             if(data.success) {
                 alert(data.message);
+                // Clear inputs on success
                 document.getElementById('instant-bot-amount').value = '';
+                localStorage.removeItem('bot_inject_amt');
                 document.getElementById('live-inject-preview').style.display = 'none';
                 loadLiveStats(); 
             } else {
@@ -1363,6 +1386,8 @@
             let data = await res.json();
             
             sysSettings = data.settings;
+            window.activeBotPhones = data.activeBotPhones || []; // 🔥 Save currently playing bots globally
+
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
             
             if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
@@ -1390,6 +1415,27 @@
                     let el = document.getElementById('stat-total-unplayed');
                     if(el) el.innerText = Number(data.totalUnplayedBonus).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 }
+            }
+
+            // 🔥 DYNAMICALLY UPDATE BOT TABLE STATUS IF TAB IS OPEN 🔥
+            if(document.getElementById('tab-bots-db').classList.contains('active')) {
+                document.querySelectorAll('#bots-body tr').forEach(row => {
+                    let phoneCell = row.querySelector('.bot-phone-cell');
+                    let statusCell = row.querySelector('.bot-status-cell');
+                    if(phoneCell && statusCell) {
+                        let phone = phoneCell.innerText.trim();
+                        if(window.activeBotPhones.includes(phone)) {
+                            statusCell.innerHTML = '<span class="badge bg-approved" style="animation: pulseAlert 1.5s infinite;">ON (Active)</span>';
+                        } else {
+                            let baseActive = statusCell.getAttribute('data-base-active');
+                            if(baseActive === 'true') {
+                                statusCell.innerHTML = '<span class="badge" style="background:#475569; color:white;">NO ACTIVE</span>';
+                            } else {
+                                statusCell.innerHTML = '<span class="badge bg-rejected">OFF (Disabled)</span>';
+                            }
+                        }
+                    }
+                });
             }
             
             isGameCurrentlyPaused = data.settings.isGamePaused; let pBtn = document.getElementById('btn-pause');
