@@ -851,7 +851,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         ]);
         let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
-        // 🔥 Unplayed Bonus Aggregation 🔥
         let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
         let totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
 
@@ -1489,10 +1488,10 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
             actualQueued++;
         }
 
+        // ቦቶቹ ወደ Queue ከገቡ በኋላ እውነተኛ ሰው በሚመስል መልኩ ቀስ እያሉ በራሳቸው ጊዜ ይገባሉ
         gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
-        botInjectWaitTime = Date.now() + (Math.floor(Math.random() * 3000) + 3000); // 3 to 5 sec delay
-
-        res.json({ success: true, message: `✅ ${actualQueued} ቦቶች ወደ ወረፋ ገብተዋል። በ 3-5 ሴኮንዶች ውስጥ ቀስ እያሉ ጌም ይገባሉ!` });
+        
+        res.json({ success: true, message: `✅ ${actualQueued} ቦቶች ወረፋ ይዘዋል። ሰዓቱ እያለቀ ሲሄድ ልክ እንደ ሰው ቀስ እያሉ (Randomly) ጌሙን ይቀላቀላሉ!` });
 
     } catch (e) {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
@@ -1515,7 +1514,6 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
-let botInjectWaitTime = 0; // 🔥 Added for Bot Delay 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1642,7 +1640,6 @@ function resetToWaiting() {
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
-    botInjectWaitTime = 0; 
     io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -1659,7 +1656,7 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // አውቶማቲክ ቦት ማስገቢያ - ሰዓቱ ከማለቁ በፊት ቀስ ብለው ይሰለፋሉ
+        // አውቶማቲክ ቦት ማስገቢያ
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
@@ -1679,15 +1676,31 @@ setInterval(() => {
                     }
                 }
                 gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
-                botInjectWaitTime = Date.now() + (Math.floor(Math.random() * 3000) + 3000); // 🔥 3 to 5 sec delay
             });
         }
 
-        // 🔥 ቦቶች ቀስ እያሉ ይገባሉ (Organic Injection + Initial Delay) 🔥
-        if (gameBotsQueue.length > 0 && gameClock > 0 && gameState === "WAITING" && Date.now() >= botInjectWaitTime) {
-            // ሁሉንም በአንዴ ከማስገባት፣ የተወሰኑትን ብቻ በየሰከንዱ ያስገባል
-            let maxBotsPerTick = Math.ceil(gameBotsQueue.length / gameClock); 
-            let botsToInjectNow = Math.floor(Math.random() * maxBotsPerTick) + 1; 
+        // 🔥 ቦቶች 100% እውነተኛ ሰው በሚመስል መልኩ (Organic & Randomly) ይገባሉ 🔥
+        // በአንድ ሰከንድ 0, 1 ወይም 2 ሰው እየመሰለ ይገባል
+        if (gameBotsQueue.length > 0 && gameClock > 3 && gameState === "WAITING") {
+            
+            let timeRemainingForBots = gameClock - 3; 
+            let idealRate = gameBotsQueue.length / timeRemainingForBots; 
+
+            let maxBotsThisTick = Math.ceil(idealRate * 1.8); 
+            let minBotsThisTick = 0;
+            
+            // የቦቶቹ ቁጥር ብዙ ከሆነ ፍጥነቱን ትንሽ እንጨምራለን
+            if (idealRate > 3) minBotsThisTick = 1; 
+
+            // ራንደም (Random) - አንዳንድ ጊዜ 0፣ አንዳንዴ 1፣ አንዳንዴ 2 ይመርጣል
+            let botsToInjectNow = Math.floor(Math.random() * (maxBotsThisTick - minBotsThisTick + 1)) + minBotsThisTick;
+
+            // ሰዓቱ ሊያልቅ 2 ሰከንድ ሲቀረው የቀሩትን በሙሉ ጠቅልሎ ያስገባቸዋል (ልክ እንደ መጨረሻ ደቂቃ ተጣዳፊ ሰው)
+            if (timeRemainingForBots <= 2) {
+                botsToInjectNow = gameBotsQueue.length;
+            }
+
+            if (botsToInjectNow > gameBotsQueue.length) botsToInjectNow = gameBotsQueue.length;
 
             let didInject = false;
             for(let i=0; i<botsToInjectNow; i++) {
@@ -1790,9 +1803,9 @@ setInterval(() => {
                 }
             } 
             else {
-                // 🔥 ቦቱ የሚያሸንፍበት ሰዓት ከ 12 እስከ 21 ይቀያየራል 🔥
+                // 🔥 ተጨዋች እንዳይጠራጠር ቦቱ ከ 25 እስከ 45 ቁጥር ባለው ጊዜ በራንደም ያሸንፋል 🔥
                 if(botWinTargetTurn === null) {
-                    botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; // Pick random between 12 and 21
+                    botWinTargetTurn = Math.floor(Math.random() * (45 - 25 + 1)) + 25; 
                 }
 
                 if (turn < botWinTargetTurn) {
@@ -1806,7 +1819,7 @@ setInterval(() => {
                     if (forceBotWinList.length > 0) {
                         numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)].num;
                     } else if (winForBots.length > 0) {
-                        numToCall = winForBots[0].num;
+                        numToCall = winForBots[Math.floor(Math.random() * winForBots.length)].num;
                     } else if (safeForReal.length > 0) {
                         numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
