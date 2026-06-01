@@ -240,6 +240,7 @@ loadSettings();
 
 const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
 const bot = new TelegramBot(telegramToken, { polling: false }); 
+const WEB_URL = "https://bingohabesha.onrender.com"; // 👈 ይቺን 1 መስመር እዚህ መሃል ላይ ትጨምራለህ
 
 async function checkTelegramJoin(telegramId) {
     if (!GLOBAL_SETTINGS.telegramChannel || !telegramId) return true; 
