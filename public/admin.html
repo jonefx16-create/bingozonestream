@@ -996,6 +996,7 @@
     let searchTimeout;
     
     let loadedGames = [];
+    let isBotInputDirty = false; // 🔥 Prevents auto-refresh from overwriting manual typing
 
     window.addEventListener('DOMContentLoaded', () => {
         let savedPass = localStorage.getItem('bingo_admin_pass');
@@ -1074,10 +1075,13 @@
                 let radios = document.getElementsByName('bot-master-winner');
                 for(let r of radios) { if(r.value === data.settings.botWinnerForce) r.checked = true; }
                 
-                document.getElementById('bot-d1').value = data.settings.botDist1;
-                document.getElementById('bot-d2').value = data.settings.botDist2;
-                document.getElementById('bot-d3').value = data.settings.botDist3;
-                document.getElementById('bot-d4').value = data.settings.botDist4;
+                // Only update these if user is not actively typing
+                if(!isBotInputDirty) {
+                    document.getElementById('bot-d1').value = data.settings.botDist1;
+                    document.getElementById('bot-d2').value = data.settings.botDist2;
+                    document.getElementById('bot-d3').value = data.settings.botDist3;
+                    document.getElementById('bot-d4').value = data.settings.botDist4;
+                }
 
                 let html = data.bots.map(b => {
                     let d = new Date(b.lastPlayed || 0);
@@ -1141,6 +1145,7 @@
             let data = await res.json();
             if(data.success) {
                 alert("✅ Bot Master Settings Saved!");
+                isBotInputDirty = false;
                 fullRefresh();
             } else {
                 alert("❌ Error saving bot settings");
@@ -1224,11 +1229,9 @@
 
     // 1. Live Inject ላይ ቁጥር ሲፃፍ ሣጥኖቹን በራሱ ጊዜ የሚሞላው ኮድ
     function previewLiveInject() {
+        isBotInputDirty = true;
         let amt = parseInt(document.getElementById('instant-bot-amount').value);
         let previewBox = document.getElementById('live-inject-preview');
-        
-        // 🔥 Save the input value to localStorage so it doesn't disappear on refresh 🔥
-        localStorage.setItem('bot_inject_amt', amt || '');
         
         // ሳጥኑ ባዶ ከሆነ ወደ ነበረበት (Settings) ይመልሰዋል
         if(!amt || amt <= 0) { 
@@ -1237,6 +1240,7 @@
             document.getElementById('bot-d2').value = sysSettings ? sysSettings.botDist2 : 4;
             document.getElementById('bot-d3').value = sysSettings ? sysSettings.botDist3 : 3;
             document.getElementById('bot-d4').value = sysSettings ? sysSettings.botDist4 : 3;
+            isBotInputDirty = false;
             return; 
         }
 
@@ -1265,6 +1269,7 @@
 
     // 2. አድሚኑ ቁጥሮቹን በእጁ ሣጥኖቹ ውስጥ ካስተካከለ፣ አጠቃላዩን Update ያደርጋል
     function updateFromDistribution() {
+        isBotInputDirty = true;
         let c1 = parseInt(document.getElementById('bot-d1').value) || 0;
         let c2 = parseInt(document.getElementById('bot-d2').value) || 0;
         let c3 = parseInt(document.getElementById('bot-d3').value) || 0;
@@ -1272,17 +1277,16 @@
         
         let totalBots = c1 + c2 + c3 + c4;
         
-        // የ Live Inject ሳጥኑን ያዘምነዋል
         let amtInput = document.getElementById('instant-bot-amount');
         if(document.activeElement !== amtInput) {
-            amtInput.value = totalBots;
-            localStorage.setItem('bot_inject_amt', totalBots || '');
+            amtInput.value = totalBots > 0 ? totalBots : '';
         }
 
         if(totalBots > 0) {
             updatePreviewDisplay(c1, c2, c3, c4);
         } else {
             document.getElementById('live-inject-preview').style.display = 'none';
+            isBotInputDirty = false;
         }
     }
 
@@ -1337,8 +1341,8 @@
                 alert(data.message);
                 // Clear inputs on success
                 document.getElementById('instant-bot-amount').value = '';
-                localStorage.removeItem('bot_inject_amt');
                 document.getElementById('live-inject-preview').style.display = 'none';
+                isBotInputDirty = false;
                 loadLiveStats(); 
             } else {
                 alert(data.message); 
@@ -1491,9 +1495,7 @@
                 }
                 
                 // 🔥 ቦት እያስገባህ ከሆነ ሪፍሬሽ ሲያደርግ እንዳያጠፋብህ ይከላከላል
-                let injectAmtEl = document.getElementById('instant-bot-amount');
-                let injectAmt = injectAmtEl ? injectAmtEl.value : "";
-                if(!injectAmt || injectAmt <= 0) {
+                if(!isBotInputDirty) {
                     safeUpdate('bot-d1', data.settings.botDist1);
                     safeUpdate('bot-d2', data.settings.botDist2);
                     safeUpdate('bot-d3', data.settings.botDist3);
