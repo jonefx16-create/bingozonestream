@@ -271,6 +271,16 @@
                         <button class="action-btn btn-purple" onclick="addCustomBots()" style="flex:1;">🚀 ጨምር</button>
                     </div>
                 </div>
+
+                <!-- 🔥 አሁኑኑ ጌም ውስጥ አስገባ (INSTANT INJECTION) 🔥 -->
+                <div class="card" style="flex: 1; border-left: 4px solid var(--faded-green); min-width: 300px;">
+                    <h3 style="margin-top:0; color:var(--faded-green);">⚡ አሁኑኑ ጌም ውስጥ አስገባ (Instant Live Injection)</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-top:0;">እዚህ የሚያስገቡት ቁጥር፣ አሁን <b>ሰዓት እየቆጠረ (WAITING)</b> ወዳለው ጌም ውስጥ ወዲያውኑ ገብተው ካርቴላ እንዲገዙ ያደርጋል። ካርቴላውን ከ1 እስከ 4 በራሳቸው እየቀላቀሉ ይገዛሉ።</p>
+                    <div style="display:flex; gap:10px; align-items:center; margin-top:15px;">
+                        <input type="number" id="instant-bot-amount" placeholder="ስንት ቦት አሁን ይግባ? (e.g. 50)" style="flex:2; margin-bottom:0;">
+                        <button class="action-btn" onclick="injectLiveBots()" style="flex:1; background:var(--faded-green); color:black;">🚀 አሁን አስገባ</button>
+                    </div>
+                </div>
             </div>
 
             <!-- BOT DATABASE TABLE -->
@@ -1146,6 +1156,33 @@
         } catch(e) { alert("Network Error."); }
     }
 
+    // ⚡ Instant Live Bots Injection
+    async function injectLiveBots() {
+        let amt = document.getElementById('instant-bot-amount').value;
+        if(!amt || amt <= 0) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ (ለምሳሌ 50)!");
+        
+        let confirmMsg = `⚠️ እርግጠኛ ነዎት ${amt} ቦቶችን አሁን እየቆጠረ ወዳለው ጌም በአንድ ጊዜ ማስገባት ይፈልጋሉ?`;
+        if(!confirm(confirmMsg)) return;
+
+        try {
+            let res = await fetch('/api/admin/inject-live-bots', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({adminPass: pass, amount: Number(amt)}) 
+            });
+            let data = await res.json();
+            
+            if(data.success) {
+                alert(data.message);
+                document.getElementById('instant-bot-amount').value = '';
+                loadLiveStats(); 
+            } else {
+                alert(data.message); 
+            }
+        } catch(e) { 
+            alert("❌ የኔትወርክ ስህተት (Network Error)."); 
+        }
+    }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
