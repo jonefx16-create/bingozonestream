@@ -126,6 +126,7 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
     financePass: { type: String, default: "finance1234" }, 
+    telegramChannel: { type: String, default: "" }, // 🔥 Telegram Verify Channel
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
@@ -193,6 +194,7 @@ async function loadSettings() {
     GLOBAL_SETTINGS = { 
         adminPass: s.adminPass, 
         financePass: s.financePass, 
+        telegramChannel: s.telegramChannel || "",
         ticketPrice: s.ticketPrice, 
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
@@ -235,6 +237,19 @@ async function loadSettings() {
     };
 }
 loadSettings();
+
+const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
+const bot = new TelegramBot(telegramToken, { polling: false }); 
+
+async function checkTelegramJoin(telegramId) {
+    if (!GLOBAL_SETTINGS.telegramChannel || !telegramId) return true; 
+    let channel = GLOBAL_SETTINGS.telegramChannel.startsWith('@') ? GLOBAL_SETTINGS.telegramChannel : '@' + GLOBAL_SETTINGS.telegramChannel;
+    try {
+        let member = await bot.getChatMember(channel, telegramId);
+        if (['member', 'administrator', 'creator'].includes(member.status)) return true;
+        return false;
+    } catch (e) { return true; } 
+}
 
 function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
@@ -486,6 +501,9 @@ app.post('/api/claim-promo-code', async (req, res) => {
         if (!code) return res.json({ success: false, message: "እባክዎ ኮድ ያስገቡ!" });
         let user = await User.findOne({ phone, password: pass });
         if(!user) return res.json({success: false, message: "User not found!"});
+
+        let isJoined = await checkTelegramJoin(user.telegramId);
+        if(!isJoined) return res.json({ success: false, message: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}` });
         
         let promo = await PromoCode.findOne({ code: code.toUpperCase() });
         if (!promo) return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
@@ -529,6 +547,9 @@ app.post('/api/claim-promo-web', async (req, res) => {
     try {
         let user = await User.findOne({ phone: req.body.phone });
         if(!user) return res.json({success: false, message: "User not found!"});
+
+        let isJoined = await checkTelegramJoin(user.telegramId);
+        if(!isJoined) return res.json({ success: false, message: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}` });
         
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
         if (!activeBonus) return res.json({ success: false, message: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!" });
@@ -584,12 +605,17 @@ app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
 
 app.post('/api/admin/bots-rename-all', auth, async (req, res) => {
     try {
-        let bots = await BotUser.find();
+        let limit = parseInt(req.body.limit) || 0;
+        let query = BotUser.find();
+        if(limit > 0) query = query.sort({lastPlayed: -1}).limit(limit);
+        
+        let bots = await query.exec();
         for(let b of bots) {
             b.name = ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999);
+            b.phone = "09" + Math.floor(10000000 + Math.random() * 90000000);
             await b.save();
         }
-        res.json({ success: true, message: "✅ ሁሉም የቦት ስሞች ወደ ኢትዮጵያዊ ስም ተቀይረዋል!" });
+        res.json({ success: true, message: `✅ የተመረጡት ${bots.length} ቦቶች ስም እና ስልክ ተቀይሯል!` });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -825,6 +851,10 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         ]);
         let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
 
+        // 🔥 Unplayed Bonus Aggregation 🔥
+        let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
+        let totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
+
         let realMoney = 0;
         let botMoney = 0;
         let realCount = 0;
@@ -854,11 +884,28 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             settings: GLOBAL_SETTINGS, 
             dailyDeposit, 
             dailyWithdraw, 
-            dailyBonus
+            dailyBonus,
+            totalUnplayedBonus
         });
     } catch (e) {
         res.status(500).json({ success: false });
     }
+});
+
+app.post('/api/admin/bot-master-update', auth, async (req, res) => {
+    try {
+        let s = await SystemSettings.findOne();
+        s.isBotSystemActive = req.body.isBotSystemActive;
+        s.botWinnerForce = req.body.botWinnerForce;
+        s.botDist1 = req.body.botDist1; s.botDist2 = req.body.botDist2; s.botDist3 = req.body.botDist3; s.botDist4 = req.body.botDist4;
+        await s.save(); await loadSettings();
+
+        if(!req.body.isBotSystemActive) {
+            gameBotsQueue = []; 
+        }
+
+        res.json({success: true});
+    } catch(e) { res.json({success: false}); }
 });
 
 app.post('/api/admin/referrals', auth, async (req, res) => {
@@ -1208,6 +1255,8 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
     
     if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
+    
+    if(req.body.telegramChannel !== undefined) s.telegramChannel = req.body.telegramChannel;
 
     await s.save(); await loadSettings();
     res.json({ success: true });
@@ -1358,9 +1407,6 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     }
 });
 
-const telegramToken = "8369500524:AAGVFwKXWj1I3STNBtfdGKroji4bN4gP5N0"; 
-const bot = new TelegramBot(telegramToken, { polling: false }); 
-const WEB_URL = "https://bingohabesha.onrender.com";
 let lastBroadcasts = []; 
 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
@@ -1412,10 +1458,10 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         if (bots.length === 0) return res.json({ success: false, message: "በዳታቤዝ ውስጥ ምንም ቦት የለም!" });
 
         // Apply Distribution Ratios
-        let d1 = GLOBAL_SETTINGS.botDist1 !== undefined ? GLOBAL_SETTINGS.botDist1 : 5;
-        let d2 = GLOBAL_SETTINGS.botDist2 !== undefined ? GLOBAL_SETTINGS.botDist2 : 4;
-        let d3 = GLOBAL_SETTINGS.botDist3 !== undefined ? GLOBAL_SETTINGS.botDist3 : 3;
-        let d4 = GLOBAL_SETTINGS.botDist4 !== undefined ? GLOBAL_SETTINGS.botDist4 : 3;
+        let d1 = req.body.dist1 !== undefined ? req.body.dist1 : (GLOBAL_SETTINGS.botDist1 || 5);
+        let d2 = req.body.dist2 !== undefined ? req.body.dist2 : (GLOBAL_SETTINGS.botDist2 || 4);
+        let d3 = req.body.dist3 !== undefined ? req.body.dist3 : (GLOBAL_SETTINGS.botDist3 || 3);
+        let d4 = req.body.dist4 !== undefined ? req.body.dist4 : (GLOBAL_SETTINGS.botDist4 || 3);
         
         let totalRatio = d1 + d2 + d3 + d4;
         if(totalRatio === 0) { d1 = 1; totalRatio = 1; }
@@ -1609,11 +1655,10 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // አውቶማቲክ ቦት ማስገቢያ
-        if (gameClock === GLOBAL_SETTINGS.gameTimer - 1 && GLOBAL_SETTINGS.isBotSystemActive) {
+        // አውቶማቲክ ቦት ማስገቢያ - ሰዓቱ ከማለቁ በፊት ቀስ ብለው ይሰለፋሉ
+        if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
-                gameBotsQueue = [];
                 
                 let dist = [
                     {count: GLOBAL_SETTINGS.botDist1, tix: 1},
@@ -1633,9 +1678,13 @@ setInterval(() => {
             });
         }
 
-        // ቦቶች ቀስ እያሉ ይገባሉ
-        if (gameBotsQueue.length > 0 && gameClock > 0) {
-            let botsToInjectNow = Math.ceil(gameBotsQueue.length / gameClock);
+        // 🔥 ቦቶች ቀስ እያሉ ይገባሉ (Organic Injection) 🔥
+        if (gameBotsQueue.length > 0 && gameClock > 0 && gameState === "WAITING") {
+            // ሁሉንም በአንዴ ከማስገባት፣ የተወሰኑትን ብቻ በየሰከንዱ ያስገባል
+            let maxBotsPerTick = Math.ceil(gameBotsQueue.length / gameClock); 
+            let botsToInjectNow = Math.floor(Math.random() * maxBotsPerTick) + 1; 
+
+            let didInject = false;
             for(let i=0; i<botsToInjectNow; i++) {
                 if(gameBotsQueue.length === 0) break;
                 let queueItem = gameBotsQueue.shift();
@@ -1656,9 +1705,9 @@ setInterval(() => {
                 
                 botDb.lastPlayed = Date.now();
                 botDb.save();
-
-                io.emit('update_taken_tickets', globalTakenTickets);
+                didInject = true;
             }
+            if(didInject) io.emit('update_taken_tickets', globalTakenTickets);
         }
 
         io.emit('game_status', { 
@@ -1727,37 +1776,33 @@ setInterval(() => {
             if (!botsExist) forceWinner = 'real';
 
             if (forceWinner === 'real') {
-                if (safeForBots.length > 0) {
+                if (winForReal.length > 0) {
+                    numToCall = winForReal[Math.floor(Math.random() * winForReal.length)].num;
+                } else if (safeForBots.length > 0) {
                     numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
                 } else {
                     numToCall = currentDrawSequence[0];
                 }
             } 
             else {
-                // 🔥 አዲሱ የቦት ማሸነፊያ ሰዓት ስሌት 🔥
+                // 🔥 ቦቱ የሚያሸንፍበት ሰዓት ከ 12 እስከ 21 ይቀያየራል 🔥
                 if(botWinTargetTurn === null) {
-                    if(totalPrizePool < 400) {
-                        botWinTargetTurn = Math.floor(Math.random() * 3) + 24; // 24, 25, 26
-                    } else {
-                        botWinTargetTurn = Math.floor(Math.random() * 8) + 14; // 14 to 21
-                    }
+                    botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; // Pick random between 12 and 21
                 }
 
-                if (turn < 12) {
+                if (turn < botWinTargetTurn) {
                     if (completelySafe.length > 0) {
                         numToCall = completelySafe[Math.floor(Math.random() * completelySafe.length)].num;
                     } else if (safeForReal.length > 0) { 
                         numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
-                } else if (turn >= botWinTargetTurn) {
+                } else {
                     let forceBotWinList = winForBots.filter(n => safeForReal.some(s => s.num === n.num));
                     if (forceBotWinList.length > 0) {
                         numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)].num;
+                    } else if (winForBots.length > 0) {
+                        numToCall = winForBots[0].num;
                     } else if (safeForReal.length > 0) {
-                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
-                    }
-                } else {
-                    if (safeForReal.length > 0) {
                         numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
                     }
                 }
@@ -2207,6 +2252,10 @@ bot.on('callback_query', async (query) => {
     
     if (data === 'claim_promo') {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
+        
+        let isJoined = await checkTelegramJoin(user.telegramId);
+        if(!isJoined) return bot.answerCallbackQuery(query.id, { text: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}`, show_alert: true });
+
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
         if (!activeBonus) return bot.answerCallbackQuery(query.id, { text: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!", show_alert: true });
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
