@@ -1483,8 +1483,14 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         for (let i = 0; i < bots.length; i++) {
             if (activePlayers[bots[i].phone]) continue; 
             
-            let tix = distArray[i] || 1;
-            gameBotsQueue.push({ bot: bots[i], tixCount: tix });
+            let baseTix = distArray[i] || 1;
+            
+            // 🔥 Natural Randomization: 20% chance to buy 1 extra, 10% chance to buy 1 less
+            let rand = Math.random();
+            if (rand < 0.20 && baseTix < 4) baseTix += 1;
+            else if (rand > 0.90 && baseTix > 1) baseTix -= 1;
+
+            gameBotsQueue.push({ bot: bots[i], tixCount: baseTix });
             actualQueued++;
         }
 
@@ -1672,7 +1678,14 @@ setInterval(() => {
                     for(let i=0; i<d.count; i++) {
                         if(availableBots.length === 0) break;
                         let b = availableBots.shift();
-                        gameBotsQueue.push({ bot: b, tixCount: d.tix });
+                        
+                        // 🔥 Natural Randomization: 20% chance to buy 1 extra, 10% chance to buy 1 less
+                        let baseTix = d.tix;
+                        let rand = Math.random();
+                        if (rand < 0.20 && baseTix < 4) baseTix += 1;
+                        else if (rand > 0.90 && baseTix > 1) baseTix -= 1;
+
+                        gameBotsQueue.push({ bot: b, tixCount: baseTix });
                     }
                 }
                 gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
@@ -1680,7 +1693,6 @@ setInterval(() => {
         }
 
         // 🔥 ቦቶች 100% እውነተኛ ሰው በሚመስል መልኩ (Organic & Randomly) ይገባሉ 🔥
-        // በአንድ ሰከንድ 0, 1 ወይም 2 ሰው እየመሰለ ይገባል
         if (gameBotsQueue.length > 0 && gameClock > 3 && gameState === "WAITING") {
             
             let timeRemainingForBots = gameClock - 3; 
@@ -1688,18 +1700,12 @@ setInterval(() => {
 
             let maxBotsThisTick = Math.ceil(idealRate * 1.8); 
             let minBotsThisTick = 0;
-            
-            // የቦቶቹ ቁጥር ብዙ ከሆነ ፍጥነቱን ትንሽ እንጨምራለን
             if (idealRate > 3) minBotsThisTick = 1; 
 
-            // ራንደም (Random) - አንዳንድ ጊዜ 0፣ አንዳንዴ 1፣ አንዳንዴ 2 ይመርጣል
             let botsToInjectNow = Math.floor(Math.random() * (maxBotsThisTick - minBotsThisTick + 1)) + minBotsThisTick;
-
-            // ሰዓቱ ሊያልቅ 2 ሰከንድ ሲቀረው የቀሩትን በሙሉ ጠቅልሎ ያስገባቸዋል (ልክ እንደ መጨረሻ ደቂቃ ተጣዳፊ ሰው)
             if (timeRemainingForBots <= 2) {
                 botsToInjectNow = gameBotsQueue.length;
             }
-
             if (botsToInjectNow > gameBotsQueue.length) botsToInjectNow = gameBotsQueue.length;
 
             let didInject = false;
@@ -1803,9 +1809,16 @@ setInterval(() => {
                 }
             } 
             else {
-                // 🔥 ቦቱ የሚያሸንፍበት ሰዓት ከ 12 እስከ 21 ይቀያየራል 🔥
+                // 🔥 ቦቱ የሚያሸንፍበት ሰዓት (Dynamic Control) 🔥
                 if(botWinTargetTurn === null) {
-                    botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12; 
+                    let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
+                    if (totalBirr >= 400) {
+                        // ከ 400 ብር በላይ ሲሆን: አጭር ጌም (ከ 12 እስከ 22 ጥሪ)
+                        botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12; 
+                    } else {
+                        // ከ 400 ብር በታች ሲሆን: ረዘም ያለ ጌም (ከ 12 እስከ 25 ጥሪ)
+                        botWinTargetTurn = Math.floor(Math.random() * (25 - 12 + 1)) + 12; 
+                    }
                 }
 
                 if (turn < botWinTargetTurn) {
