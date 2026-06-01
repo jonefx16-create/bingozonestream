@@ -61,6 +61,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 const BotUser = mongoose.model('BotUser', new mongoose.Schema({
     name: String,
     phone: String,
+    ticketCount: { type: Number, default: 2 }, // ቦቶች የየራሳቸው ካርቴላ ብዛት አላቸው
     isActive: { type: Boolean, default: true },
     lastPlayed: { type: Date, default: 0 } 
 }));
@@ -72,7 +73,8 @@ async function initBotDatabase() {
         for(let i=0; i<100; i++) {
             await BotUser.create({
                 name: botNames[i] || "Bot " + i,
-                phone: "09" + Math.floor(Math.random() * 90000000 + 10000000)
+                phone: "09" + Math.floor(Math.random() * 90000000 + 10000000),
+                ticketCount: Math.floor(Math.random() * 4) + 1 
             });
         }
     }
@@ -142,14 +144,12 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
+    jackpotBoostAmount: { type: Number, default: 0 }, 
     
     // 🔥 BOT SETTINGS 🔥
     isBotSystemActive: { type: Boolean, default: false },
     botWinnerForce: { type: String, default: 'bots' }, 
-    botDist1: { type: Number, default: 5 }, 
-    botDist2: { type: Number, default: 4 }, 
-    botDist3: { type: Number, default: 3 }, 
-    botDist4: { type: Number, default: 3 }, 
+    totalBotsPerGame: { type: Number, default: 20 }, // 🔥 አዲሱ የቦት ብዛት መወሰኛ
     
     depBonusMinAmount: { type: Number, default: 50 }, 
     depBonusPercent: { type: Number, default: 50 }, 
@@ -209,13 +209,11 @@ async function loadSettings() {
         ticketPrice: s.ticketPrice, 
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
+        jackpotBoostAmount: s.jackpotBoostAmount || 0,
         
         isBotSystemActive: s.isBotSystemActive || false,
         botWinnerForce: s.botWinnerForce || 'bots',
-        botDist1: s.botDist1 !== undefined ? s.botDist1 : 5,
-        botDist2: s.botDist2 !== undefined ? s.botDist2 : 4,
-        botDist3: s.botDist3 !== undefined ? s.botDist3 : 3,
-        botDist4: s.botDist4 !== undefined ? s.botDist4 : 3,
+        totalBotsPerGame: s.totalBotsPerGame !== undefined ? s.totalBotsPerGame : 20,
         
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 50, 
         depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 50, 
@@ -586,15 +584,23 @@ app.post('/api/admin/bots-list', auth, async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+app.post('/api/admin/bot-update', auth, async (req, res) => {
+    try {
+        await BotUser.findByIdAndUpdate(req.body.id, {
+            name: req.body.name,
+            phone: req.body.phone,
+            ticketCount: req.body.ticketCount
+        });
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
 app.post('/api/admin/bot-master-update', auth, async (req, res) => {
     try {
         let s = await SystemSettings.findOne();
         s.isBotSystemActive = req.body.isBotSystemActive;
         s.botWinnerForce = req.body.botWinnerForce;
-        s.botDist1 = req.body.botDist1;
-        s.botDist2 = req.body.botDist2;
-        s.botDist3 = req.body.botDist3;
-        s.botDist4 = req.body.botDist4;
+        s.totalBotsPerGame = req.body.totalBotsPerGame;
         await s.save();
         await loadSettings();
         res.json({ success: true });
@@ -853,7 +859,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
             gameId, 
             totalProfit: dailyTotalProfit, 
-            currentJackpot: totalPrizePool, 
+            currentJackpot: totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0), 
             realMoney: realMoney,
             botMoney: botMoney,
             settings: GLOBAL_SETTINGS, 
@@ -1212,6 +1218,7 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.minWithdrawLimit !== undefined) s.minWithdrawLimit = req.body.minWithdrawLimit;
     
+    if(req.body.jackpotBoostAmount !== undefined) s.jackpotBoostAmount = req.body.jackpotBoostAmount;
     if(req.body.winPopupTimer !== undefined) s.winPopupTimer = req.body.winPopupTimer;
 
     await s.save(); await loadSettings();
@@ -1327,12 +1334,10 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
             depositorsOnly: depositorsOnly
         }).save();
         
-        // 1. Web Broadcast
         if (platform === 'web' || platform === 'both') {
             io.emit('new_promo_alert', { amount: amount, msg: message });
         }
 
-        // 2. Telegram Broadcast
         if ((platform === 'tg' || platform === 'both') && message) {
             let query = { telegramId: { $ne: "" } };
             if (depositorsOnly) query.totalDeposited = { $gt: 0 };
@@ -1470,7 +1475,8 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
+    let actualJackpot = totalPrizePool + (GLOBAL_SETTINGS.jackpotBoostAmount || 0);
+    let splitPrize = Number((actualJackpot / winners.length).toFixed(2));
     
     let realMoney = 0;
     Object.values(activePlayers).forEach(p => {
@@ -1515,7 +1521,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: totalPrizePool,
+        prize: actualJackpot,
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -1523,11 +1529,14 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
+    GLOBAL_SETTINGS.jackpotBoostAmount = 0;
+    await SystemSettings.updateOne({}, { $set: { jackpotBoostAmount: 0 } });
+
     io.emit('game_winner', { 
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
-        totalPrize: totalPrizePool, 
+        totalPrize: actualJackpot, 
         phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
@@ -1549,7 +1558,7 @@ function resetToWaiting() {
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
         io.emit('game_status', { 
-            state: "MAINTENANCE", timer: 0, totalPrizePool: 0,
+            state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
             totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
         }); 
@@ -1559,29 +1568,10 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🔥 አዲሱ የቦት አገባብ (በተራ) 🔥
+        // 🔥 አዲሱ የቦት አገባብ (በተራ እና በቀስ) 🔥
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 1 && GLOBAL_SETTINGS.isBotSystemActive) {
-            BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
-                let availableBots = [...bots];
-                gameBotsQueue = [];
-                
-                let dist = [
-                    {count: GLOBAL_SETTINGS.botDist1, tix: 1},
-                    {count: GLOBAL_SETTINGS.botDist2, tix: 2},
-                    {count: GLOBAL_SETTINGS.botDist3, tix: 3},
-                    {count: GLOBAL_SETTINGS.botDist4, tix: 4}
-                ];
-
-                for(let d of dist) {
-                    for(let i=0; i<d.count; i++) {
-                        if(availableBots.length === 0) break;
-                        let b = availableBots.shift();
-                        gameBotsQueue.push({ bot: b, tixCount: d.tix });
-                    }
-                }
-                
-                // በተራ እንዲገቡ አደባልቀው
-                gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
+            BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).limit(GLOBAL_SETTINGS.totalBotsPerGame).then(bots => {
+                gameBotsQueue = bots.sort(() => Math.random() - 0.5); 
             });
         }
 
@@ -1589,10 +1579,9 @@ setInterval(() => {
             let botsToInjectNow = Math.ceil(gameBotsQueue.length / gameClock);
             for(let i=0; i<botsToInjectNow; i++) {
                 if(gameBotsQueue.length === 0) break;
-                let queueItem = gameBotsQueue.shift();
-                let botDb = queueItem.bot;
-                let buyNow = queueItem.tixCount;
+                let botDb = gameBotsQueue.shift();
                 
+                let buyNow = botDb.ticketCount; 
                 let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
                 totalPrizePool += cost;
                 totalTickets += buyNow;
@@ -1613,7 +1602,7 @@ setInterval(() => {
         }
 
         io.emit('game_status', { 
-            state: gameState, timer: gameClock, totalPrizePool,
+            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
             takenTickets: globalTakenTickets
@@ -1625,7 +1614,7 @@ setInterval(() => {
                 currentDrawSequence = getRiggedSequence(); 
                 
                 io.emit('game_status', { 
-                    state: gameState, timer: gameClock, totalPrizePool,
+                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
                     totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
                     maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit, 
                 });
@@ -1649,68 +1638,73 @@ setInterval(() => {
 
             for(let testNum of currentDrawSequence) {
                  let tempCalled = [...calledNumbers, testNum];
-                 let realWins = false;
-                 let botWins = false;
+                 let rWin = false;
+                 let bWin = false;
                  
                  for(let p of Object.values(activePlayers)) {
                      for(let t of p.ticketsData) {
                          if(serverCheckBingo(t.grid, tempCalled)) {
-                             if(p.isBot) botWins = true;
-                             else realWins = true;
+                             if(p.isBot) bWin = true;
+                             else rWin = true;
                          }
                      }
                  }
                  
-                 if(realWins) winForReal.push({num: testNum});
-                 if(botWins) winForBots.push({num: testNum});
-                 if(!realWins && !botWins) completelySafe.push({num: testNum});
-                 if(!realWins) safeForReal.push({num: testNum});
-                 if(!botWins) safeForBots.push({num: testNum});
+                 if(rWin) winForReal.push(testNum);
+                 if(bWin) winForBots.push(testNum);
+                 if(!rWin) safeForReal.push(testNum);
+                 if(!bWin) safeForBots.push(testNum);
+                 if(!rWin && !bWin) completelySafe.push(testNum);
             }
 
             let numToCall = null;
-            let isBotSystemActive = GLOBAL_SETTINGS.isBotSystemActive;
-            let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
-
             let realPlayersExist = Object.values(activePlayers).some(p => !p.isBot);
             let botsExist = Object.values(activePlayers).some(p => p.isBot);
             
-            if (!isBotSystemActive || !realPlayersExist) forceWinner = 'bots';
-            if (!botsExist) forceWinner = 'real';
+            let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
+            if (!GLOBAL_SETTINGS.isBotSystemActive || !botsExist) forceWinner = 'real';
+            if (!realPlayersExist) forceWinner = 'bots';
 
+            // 🔥 ጥብቅ አሸናፊ መምረጫ 🔥
             if (forceWinner === 'real') {
-                // ሰው በእድሉ ያሸንፋል። ቦት አያሸንፍም።
-                if (safeForBots.length > 0) {
-                    numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
-                } else {
-                    numToCall = currentDrawSequence[0];
+                // ትክክለኛ ሰው ብቻ ያሸንፋል (ቦት በፍፁም አያሸንፍም)
+                if (winForReal.length > 0 && safeForBots.length > 0) {
+                    let overlap = winForReal.filter(n => safeForBots.includes(n));
+                    if(overlap.length > 0) numToCall = overlap[Math.floor(Math.random() * overlap.length)];
+                }
+                if (numToCall === null && safeForBots.length > 0) {
+                    numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)];
                 }
             } 
             else {
-                // ቦት ብቻ ያሸንፋል። ሰው አያሸንፍም። 
-                // ደንብ፡ ከ 12ኛ ኳስ በፊት አያሸንፍም፣ በ 21ኛ ኳስ ላይ ደግሞ ግድ ማሸነፍ አለበት።
+                // ቦት ብቻ ያሸንፋል (ሰው በፍፁም አያሸንፍም)
                 if (turn < 12) {
-                    if (completelySafe.length > 0) {
-                        numToCall = completelySafe[Math.floor(Math.random() * completelySafe.length)].num;
-                    } else if (safeForReal.length > 0) { 
-                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
+                    // ከ 12ኛ ኳስ በታች ማንም አያሸንፍም
+                    if (completelySafe.length > 0) numToCall = completelySafe[Math.floor(Math.random() * completelySafe.length)];
+                    else if (safeForReal.length > 0) numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)]; 
+                } 
+                else if (turn >= 21) {
+                    // ከ 21 ኳስ በላይ ከሄደ ቦት ግድ ማሸነፍ አለበት
+                    let forceBotWinList = winForBots.filter(n => safeForReal.includes(n));
+                    if (forceBotWinList.length > 0) numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)];
+                    else if (safeForReal.length > 0) numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)];
+                } 
+                else {
+                    // ከ 12 እስከ 21 ባለው ውስጥ (Natural chance for bot)
+                    if (winForBots.length > 0) {
+                        let overlap = winForBots.filter(n => safeForReal.includes(n));
+                        // 50% chance to let the bot win naturally if the number is available
+                        if(overlap.length > 0 && Math.random() > 0.5) { 
+                            numToCall = overlap[Math.floor(Math.random() * overlap.length)];
+                        }
                     }
-                } else if (turn >= 21) {
-                    let forceBotWinList = winForBots.filter(n => safeForReal.some(s => s.num === n.num));
-                    if (forceBotWinList.length > 0) {
-                        numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)].num;
-                    } else if (safeForReal.length > 0) {
-                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
-                    }
-                } else {
-                    // መሀል ላይ ባለው እድል
-                    if (safeForReal.length > 0) {
-                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
+                    if (numToCall === null && safeForReal.length > 0) {
+                        numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)];
                     }
                 }
             }
             
-            if (numToCall === null) numToCall = currentDrawSequence[0];
+            if (numToCall === null) numToCall = currentDrawSequence[0]; 
             
             currentDrawSequence = currentDrawSequence.filter(n => n !== numToCall);
 
@@ -1740,7 +1734,7 @@ let buyingLocks = {};
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { 
-        state: stateToSend, timer: gameClock, totalPrizePool,
+        state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: GLOBAL_SETTINGS.jackpotBoostAmount || 0,
         totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
         maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
     });
