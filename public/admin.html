@@ -1205,25 +1205,69 @@
         } catch(e) { alert("Network Error"); }
     }
 
-    // 🔥 Live Inject Estimator Preview
+    // 1. Live Inject ላይ ቁጥር ሲፃፍ ሣጥኖቹን በራሱ ጊዜ የሚሞላው ኮድ
     function previewLiveInject() {
         let amt = parseInt(document.getElementById('instant-bot-amount').value);
         let previewBox = document.getElementById('live-inject-preview');
-        if(!amt || amt <= 0) { previewBox.style.display = 'none'; return; }
+        
+        // ሳጥኑ ባዶ ከሆነ ወደ ነበረበት (Settings) ይመልሰዋል
+        if(!amt || amt <= 0) { 
+            previewBox.style.display = 'none'; 
+            document.getElementById('bot-d1').value = sysSettings ? sysSettings.botDist1 : 5;
+            document.getElementById('bot-d2').value = sysSettings ? sysSettings.botDist2 : 4;
+            document.getElementById('bot-d3').value = sysSettings ? sysSettings.botDist3 : 3;
+            document.getElementById('bot-d4').value = sysSettings ? sysSettings.botDist4 : 3;
+            return; 
+        }
 
-        let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
-        let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
-        let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
-        let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
+        // ዋናውን የስርጭት ሬሾ ከ ዳታቤዝ ይወስዳል
+        let base1 = (sysSettings && sysSettings.botDist1 !== undefined) ? sysSettings.botDist1 : 5;
+        let base2 = (sysSettings && sysSettings.botDist2 !== undefined) ? sysSettings.botDist2 : 4;
+        let base3 = (sysSettings && sysSettings.botDist3 !== undefined) ? sysSettings.botDist3 : 3;
+        let base4 = (sysSettings && sysSettings.botDist4 !== undefined) ? sysSettings.botDist4 : 3;
 
-        let totalRatio = d1 + d2 + d3 + d4;
-        if(totalRatio === 0) { d1 = 1; totalRatio = 1; }
+        let totalRatio = base1 + base2 + base3 + base4;
+        if(totalRatio === 0) { base1 = 1; totalRatio = 1; }
 
-        let c1 = Math.round((d1/totalRatio) * amt);
-        let c2 = Math.round((d2/totalRatio) * amt);
-        let c3 = Math.round((d3/totalRatio) * amt);
+        let c1 = Math.round((base1/totalRatio) * amt);
+        let c2 = Math.round((base2/totalRatio) * amt);
+        let c3 = Math.round((base3/totalRatio) * amt);
         let c4 = amt - (c1 + c2 + c3);
 
+        // አከፋፍሎ ቁጥሮቹን አውቶማቲካሊ ሣጥኖቹ ላይ ያስገባቸዋል
+        document.getElementById('bot-d1').value = Math.max(0, c1);
+        document.getElementById('bot-d2').value = Math.max(0, c2);
+        document.getElementById('bot-d3').value = Math.max(0, c3);
+        document.getElementById('bot-d4').value = Math.max(0, c4);
+
+        updatePreviewDisplay(c1, c2, c3, c4);
+    }
+
+    // 2. አድሚኑ ቁጥሮቹን በእጁ ሣጥኖቹ ውስጥ ካስተካከለ፣ አጠቃላዩን Update ያደርጋል
+    function updateFromDistribution() {
+        let c1 = parseInt(document.getElementById('bot-d1').value) || 0;
+        let c2 = parseInt(document.getElementById('bot-d2').value) || 0;
+        let c3 = parseInt(document.getElementById('bot-d3').value) || 0;
+        let c4 = parseInt(document.getElementById('bot-d4').value) || 0;
+        
+        let totalBots = c1 + c2 + c3 + c4;
+        
+        // የ Live Inject ሳጥኑን ያዘምነዋል
+        let amtInput = document.getElementById('instant-bot-amount');
+        if(document.activeElement !== amtInput) {
+            amtInput.value = totalBots;
+        }
+
+        if(totalBots > 0) {
+            updatePreviewDisplay(c1, c2, c3, c4);
+        } else {
+            document.getElementById('live-inject-preview').style.display = 'none';
+        }
+    }
+
+    // 3. ጃክፖት እና ትርፍ የሚያሳየው
+    function updatePreviewDisplay(c1, c2, c3, c4) {
+        let previewBox = document.getElementById('live-inject-preview');
         let totalTix = (c1*1) + (c2*2) + (c3*3) + (c4*4);
         let tixPrice = sysSettings ? sysSettings.ticketPrice : 10;
         let profitPerc = sysSettings ? sysSettings.adminProfitPercent : 15;
@@ -1232,15 +1276,20 @@
         let jackpotGen = totalBet * ((100 - profitPerc) / 100);
 
         previewBox.innerHTML = `
-            <div style="color:var(--gold); font-weight:bold; margin-bottom:5px;">📊 የስርጭት እና ጃክፖት ስሌት፡</div>
-            • 1 ካርቴላ: <b>${c1}</b> ቦቶች | 2 ካርቴላ: <b>${c2}</b> ቦቶች<br>
-            • 3 ካርቴላ: <b>${c3}</b> ቦቶች | 4 ካርቴላ: <b>${c4}</b> ቦቶች<br>
-            <hr style="border-color:var(--border); margin:5px 0;">
-            • አጠቃላይ ካርቴላ: <b>${totalTix}</b><br>
+            <div style="color:var(--gold); font-weight:bold; margin-bottom:5px;">📊 አጠቃላይ የገንዘብ እና ካርቴላ ስሌት፡</div>
+            • የሚገቡ ቦቶች: <b>${c1 + c2 + c3 + c4}</b> | አጠቃላይ ካርቴላ: <b>${totalTix}</b><br>
             • ለጌሙ የሚጨምረው ጃክፖት: <b style="color:var(--faded-green); font-size:14px;">+${jackpotGen.toLocaleString()} ETB</b>
         `;
         previewBox.style.display = 'block';
     }
+
+    // አድሚኑ በእጁ ሲፅፍ እንዲቀበል ይሄን Listen ያደርጋል
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('bot-d1').addEventListener('input', updateFromDistribution);
+        document.getElementById('bot-d2').addEventListener('input', updateFromDistribution);
+        document.getElementById('bot-d3').addEventListener('input', updateFromDistribution);
+        document.getElementById('bot-d4').addEventListener('input', updateFromDistribution);
+    });
 
     // ⚡ Instant Live Bots Injection
     async function injectLiveBots() {
@@ -1395,12 +1444,14 @@
                     toggleTimeInputs('wit');
                 }
                 
-                // Bot Distribution Updates (Safeguarded from overwrite while typing)
-                safeUpdate('bot-d1', data.settings.botDist1);
-                safeUpdate('bot-d2', data.settings.botDist2);
-                safeUpdate('bot-d3', data.settings.botDist3);
-                safeUpdate('bot-d4', data.settings.botDist4);
-            }
+                // 🔥 ቦት እያስገባህ ከሆነ ሪፍሬሽ ሲያደርግ የሞላኸውን እንዳያጠፋብህ ይከላከላል
+                let injectAmt = document.getElementById('instant-bot-amount').value;
+                if(!injectAmt || injectAmt <= 0) {
+                    safeUpdate('bot-d1', data.settings.botDist1);
+                    safeUpdate('bot-d2', data.settings.botDist2);
+                    safeUpdate('bot-d3', data.settings.botDist3);
+                    safeUpdate('bot-d4', data.settings.botDist4);
+                }
             
         } catch(e) {}
     }
