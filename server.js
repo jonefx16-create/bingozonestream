@@ -57,26 +57,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     compensatedInvites: { type: Number, default: 0 }
 }));
 
-// 🔥 BOT USER DATABASE MODEL 🔥
-const BotUser = mongoose.model('BotUser', new mongoose.Schema({
-    name: String,
-    phone: String,
-    isActive: { type: Boolean, default: true },
-    lastPlayed: { type: Date, default: 0 } 
-}));
-
-async function initBotDatabase() {
-    let c = await BotUser.countDocuments();
-    if(c === 0) {
-        const botNames = ["አበበ","ጫላ","አስቴር","ሄኖክ","ዳዊት","ማክዳ","ዮሴፍ","ቃልኪዳን","ሳሙኤል","ቤዛዊት","አለሙ","ተስፋዬ","መሰረት","ሀና","ዮናስ","ናትናኤል","እየሩሳሌም","ኤደን","ቢኒያም","ቴዎድሮስ","አብርሀም","ሳራ","አቤል","ሚካኤል","ዘላለም","ፍሬዘር","እንዳለ","ብርሀኑ","ጌታሁን","መላኩ","አየለ","በላይ","ሀይሌ","ታደሰ","ታምራት","አማኑኤል","ሀብታሙ","ደጀኔ","አዳነ","አሊ","ከድር","ጀማል","ፋጡማ","አሚና","ሰሚራ","አስናቀች","ፀሀይ","ሮማን","መቅደስ","ትዕግስት","ሰለሞን","ዳንኤል","ኤርሚያስ","በእምነት","አሮን","ናሆም","ኪሩቤል","ያብስራ","በረከት","ቸርነት","አሸናፊ","ድልነሳው","ይሁኔ","ጌትነት","ደሳለኝ","አለማየሁ","ተፈራ","ካሳሁን","ሺፈራው","በቀለ","ቶሎሳ","ጉዲሳ","ፈይሳ","ጫልቱ","ለሚ","አበራ","ደመቀ","አንዷለም","ስዩም","ዘነበ","ሙላቱ","ታሪኩ","አግማስ","ጌታቸው","ወርቁ","ሰይፉ","ጥላሁን","ማህሙድ","ኑሩ","ከማል","ሰኢድ","ሀሰን","ዑስማን","አብዱል","ረሂማ","ዘይነብ","ሀዋ","አያንቱ","ኩመራ","ገመቹ", "አስማረ", "ብርሃኔ", "ተዋበች", "ሙላት", "ፍሬህይወት", "አሳምነው", "አለልኝ", "ተመስገን", "አበባው", "ካሳ", "ዘነበች", "አባተ", "አየለች", "ታደለ", "ጌጡ", "ስንታየሁ", "ወጋየሁ", "አማረ", "አስቻለው", "በለጠ"];
-        for(let i=0; i<100; i++) {
-            await BotUser.create({
-                name: botNames[i] || "Bot " + i,
-                phone: "09" + Math.floor(Math.random() * 90000000 + 10000000)
-            });
-        }
-    }
-}
+// 🔥 BOT DATABASE IMPORT 🔥
+const { BotUser, initBotDatabase } = require('./bots/bot.model');
 initBotDatabase();
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
@@ -578,28 +560,9 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
-// 🔥 BOT DATABASE API 🔥
-app.post('/api/admin/bots-list', auth, async (req, res) => {
-    try {
-        let bots = await BotUser.find().sort({ _id: -1 });
-        res.json({ success: true, bots: bots, settings: GLOBAL_SETTINGS });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/bot-master-update', auth, async (req, res) => {
-    try {
-        let s = await SystemSettings.findOne();
-        s.isBotSystemActive = req.body.isBotSystemActive;
-        s.botWinnerForce = req.body.botWinnerForce;
-        s.botDist1 = req.body.botDist1;
-        s.botDist2 = req.body.botDist2;
-        s.botDist3 = req.body.botDist3;
-        s.botDist4 = req.body.botDist4;
-        await s.save();
-        await loadSettings();
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
+// 🔥 BOT ROUTES IMPORT 🔥
+const botRoutes = require('./bots/bot.routes');
+app.use('/api/admin', botRoutes(SystemSettings, loadSettings, auth));
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
