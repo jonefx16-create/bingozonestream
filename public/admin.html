@@ -176,7 +176,6 @@
         <!-- LIVE TAB -->
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <!-- 🔥 REAL VS BOT MONEY DISPLAY 🔥 -->
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold); grid-column: span 2;">
                     <h3>💰 Total Jackpot (Current Game)</h3>
                     <h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2>
@@ -208,7 +207,7 @@
             </div>
         </div>
 
-        <!-- 🔥 NEW BOT DATABASE TAB 🔥 -->
+        <!-- 🔥 BOT DATABASE TAB 🔥 -->
         <div id="tab-bots-db" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
                 <!-- MASTER CONTROLS -->
@@ -994,7 +993,6 @@
                 let radios = document.getElementsByName('bot-master-winner');
                 for(let r of radios) { if(r.value === data.settings.botWinnerForce) r.checked = true; }
                 
-                document.getElementById('bot-master-total').value = data.settings.totalBotsPerGame;
                 document.getElementById('bot-d1').value = data.settings.botDist1;
                 document.getElementById('bot-d2').value = data.settings.botDist2;
                 document.getElementById('bot-d3').value = data.settings.botDist3;
@@ -1005,8 +1003,8 @@
                     let dp = d.getTime() === 0 ? "Never Played" : d.toLocaleString();
                     return `
                     <tr>
-                        <td><input type="text" id="bname-${b._id}" value="${b.name}"></td>
-                        <td><input type="text" id="bphone-${b._id}" value="${b.phone}"></td>
+                        <td style="font-weight:bold; color:var(--cyan);">${b.name}</td>
+                        <td style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
                         <td style="font-size:11px; color:var(--gold);">${dp}</td>
                     </tr>
                 `}).join('');
@@ -1021,7 +1019,6 @@
         let radios = document.getElementsByName('bot-master-winner');
         for(let r of radios) { if(r.checked) force = r.value; }
         
-        let total = document.getElementById('bot-master-total').value;
         let d1 = document.getElementById('bot-d1').value;
         let d2 = document.getElementById('bot-d2').value;
         let d3 = document.getElementById('bot-d3').value;
@@ -1035,7 +1032,6 @@
                     adminPass: pass, 
                     isBotSystemActive: isActive, 
                     botWinnerForce: force, 
-                    totalBotsPerGame: Number(total),
                     botDist1: Number(d1),
                     botDist2: Number(d2),
                     botDist3: Number(d3),
