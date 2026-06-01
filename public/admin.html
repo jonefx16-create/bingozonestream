@@ -1444,16 +1444,17 @@
                     toggleTimeInputs('wit');
                 }
                 
-                // 🔥 ቦት እያስገባህ ከሆነ ሪፍሬሽ ሲያደርግ የሞላኸውን እንዳያጠፋብህ ይከላከላል
-                let injectAmt = document.getElementById('instant-bot-amount').value;
+                // 🔥 ቦት እያስገባህ ከሆነ ሪፍሬሽ ሲያደርግ እንዳያጠፋብህ ይከላከላል
+                let injectAmtEl = document.getElementById('instant-bot-amount');
+                let injectAmt = injectAmtEl ? injectAmtEl.value : "";
                 if(!injectAmt || injectAmt <= 0) {
                     safeUpdate('bot-d1', data.settings.botDist1);
                     safeUpdate('bot-d2', data.settings.botDist2);
                     safeUpdate('bot-d3', data.settings.botDist3);
                     safeUpdate('bot-d4', data.settings.botDist4);
                 }
-            
-        } catch(e) {}
+            }
+        } catch(e) { console.log(e); }
     }
     setInterval(loadLiveStats, 5000);
 
