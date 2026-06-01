@@ -133,13 +133,12 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     
     isBotSystemActive: { type: Boolean, default: false },
     botWinnerForce: { type: String, default: 'bots' }, 
-    mixBotCount: { type: Number, default: 1 }, // 🔥 MIX COUNT
+    mixBotCount: { type: Number, default: 1 }, 
     botDist1: { type: Number, default: 5 }, 
     botDist2: { type: Number, default: 4 }, 
     botDist3: { type: Number, default: 3 }, 
     botDist4: { type: Number, default: 3 }, 
 
-    // 🔥 BOT SCHEDULE FIELDS 🔥
     isBotScheduleActive: { type: Boolean, default: false },
     botSchedule1: { type: Object, default: { start: 1, end: 4, min: 10, max: 20 } },
     botSchedule2: { type: Object, default: { start: 4, end: 10, min: 20, max: 50 } },
@@ -1683,15 +1682,16 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // አውቶማቲክ ቦት ማስገቢያ (With Schedule Check)
+        // አውቶማቲክ ቦት ማስገቢያ (With Proper Schedule Check - EAT Timezone Fix)
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
                 let totalBotsToInject = 0;
 
-                // 1. Check Schedule
+                // 1. Check Schedule (Using Ethiopian Time Zone UTC+3)
                 if (GLOBAL_SETTINGS.isBotScheduleActive) {
-                    let currentHour = new Date().getHours();
+                    let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
+                    let currentHour = eatTime.getUTCHours();
                     let activeSchedule = null;
                     let schedules = [GLOBAL_SETTINGS.botSchedule1, GLOBAL_SETTINGS.botSchedule2, GLOBAL_SETTINGS.botSchedule3, GLOBAL_SETTINGS.botSchedule4];
                     
@@ -1713,8 +1713,16 @@ setInterval(() => {
                     totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
                 }
 
-                // 2. Distribute Total Bots
+                // 2. Distribute Total Bots (With slight random variation to prevent exact duplication)
                 let r1 = GLOBAL_SETTINGS.botDist1, r2 = GLOBAL_SETTINGS.botDist2, r3 = GLOBAL_SETTINGS.botDist3, r4 = GLOBAL_SETTINGS.botDist4;
+                
+                if (GLOBAL_SETTINGS.isBotScheduleActive) {
+                    r1 += Math.floor(Math.random() * 3);
+                    r2 += Math.floor(Math.random() * 2);
+                    r3 += Math.floor(Math.random() * 2);
+                    r4 += Math.floor(Math.random() * 2);
+                }
+
                 let totalRatio = r1 + r2 + r3 + r4;
                 if(totalRatio === 0) { r1 = 1; totalRatio = 1; }
 
@@ -1893,7 +1901,7 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                // 🔥 MIX WINNER FORCE LOGIC (ADD FAKE BOTS TO SHARE PRIZE) 🔥
+                // 🔥 MIX WINNER FORCE LOGIC (ADD EXACT BOT COUNT TO SHARE PRIZE) 🔥
                 if (GLOBAL_SETTINGS.botWinnerForce === 'mix') {
                     let actualReals = winnersThisRound.filter(w => !w.player.isBot);
                     
@@ -1903,12 +1911,21 @@ setInterval(() => {
                         botPool = botPool.sort(() => Math.random() - 0.5);
 
                         for (let i = 0; i < botsToAdd; i++) {
+                            let b;
                             if (botPool.length > 0) {
-                                let b = botPool.pop();
-                                let copiedGrid = JSON.parse(JSON.stringify(actualReals[0].ticket.grid));
-                                let fakeTicket = { id: getUnusedFakeTicketId(), grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
-                                winnersThisRound.push({ player: b, ticket: fakeTicket });
+                                b = botPool.pop(); // Take from currently playing bots
+                            } else {
+                                // Guarantee exact bot count by generating fake db bot format if active bots run out
+                                b = {
+                                    name: ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999),
+                                    phone: "09" + Math.floor(10000000 + Math.random() * 90000000),
+                                    isBot: true,
+                                    ticketsData: []
+                                };
                             }
+                            let copiedGrid = JSON.parse(JSON.stringify(actualReals[0].ticket.grid));
+                            let fakeTicket = { id: getUnusedFakeTicketId(), grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
+                            winnersThisRound.push({ player: b, ticket: fakeTicket });
                         }
                     }
                 }
