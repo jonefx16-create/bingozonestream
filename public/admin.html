@@ -1056,42 +1056,45 @@
         document.getElementById('add-promo-hours-hint').style.display = isChecked ? 'block' : 'none';
     }
 
-    // 🔥 ቦቶችን ዳታቤዝ ውስጥ ያሉትን በዝርዝር የሚያሳየው ኮድ
-async function loadBotDB() {
-    if(!pass) return;
-    try {
-        let res = await fetch('/api/admin/bots-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
-        let data = await res.json();
-        if(data.success && data.settings) {
-            // ... (የ toggle እና ratio ማስተካከያዎች እንዳሉ ሆነው)
-
-            let html = data.bots.map(b => {
-                let d = new Date(b.lastPlayed || 0);
-                let dp = d.getTime() === 0 ? "Never Played" : d.toLocaleString();
+    // 🔥 NEW BOT DB FUNCTIONS 🔥
+    async function loadBotDB() {
+        if(!pass) return;
+        try {
+            let res = await fetch('/api/admin/bots-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})});
+            let data = await res.json();
+            if(data.success && data.settings) {
+                document.getElementById('bot-master-toggle').checked = data.settings.isBotSystemActive;
+                let radios = document.getElementsByName('bot-master-winner');
+                for(let r of radios) { if(r.value === data.settings.botWinnerForce) r.checked = true; }
                 
-                // 🔥 አዲሱ የ Status ማሳያ ሎጂክ
-                let statusBadge = b.isActive !== false 
-                    ? `<span class="badge" style="background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid #4ade80; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Active</span>` 
-                    : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Not Active</span>`;
+                document.getElementById('bot-d1').value = data.settings.botDist1;
+                document.getElementById('bot-d2').value = data.settings.botDist2;
+                document.getElementById('bot-d3').value = data.settings.botDist3;
+                document.getElementById('bot-d4').value = data.settings.botDist4;
 
-                let safeName = (b.name || "Unknown").replace(/'/g, "\\'");
+                let html = data.bots.map(b => {
+                    let d = new Date(b.lastPlayed || 0);
+                    let dp = d.getTime() === 0 ? "Never Played" : d.toLocaleString();
+                    
+                    let statusBadge = b.isActive !== false ? `<span class="badge bg-approved">ON (Active)</span>` : `<span class="badge bg-rejected">OFF</span>`;
+                    let safeName = (b.name || "Unknown").replace(/'/g, "\\'");
 
-                return `
-                <tr>
-                    <td style="font-weight:bold; color:var(--cyan);">${b.name}</td>
-                    <td style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
-                    <td>${statusBadge}</td> <!-- እዚህ ጋር ነው ሁኔታውን የሚያሳየው -->
-                    <td style="font-weight:bold; color:var(--gold);">${b.cardsCount || 1} Cards</td>
-                    <td style="font-size:11px; color:var(--text-gray);">${dp}</td>
-                    <td>
-                        <button class="btn-sm btn-blue" onclick="openEditBotModal('${b._id}', '${safeName}', '${b.phone}', ${b.cardsCount || 1}, ${b.isActive !== false})">✏️ Edit</button>
-                    </td>
-                </tr>
-            `}).join('');
-            document.getElementById('bots-body').innerHTML = html;
-        }
-    } catch(e) { console.log(e); }
-}
+                    return `
+                    <tr>
+                        <td style="font-weight:bold; color:var(--cyan);">${b.name}</td>
+                        <td style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
+                        <td>${statusBadge}</td>
+                        <td style="font-weight:bold; color:var(--gold);">${b.cardsCount || 1} Cards</td>
+                        <td style="font-size:11px; color:var(--text-gray);">${dp}</td>
+                        <td>
+                            <button class="btn-sm btn-blue" onclick="openEditBotModal('${b._id}', '${safeName}', '${b.phone}', ${b.cardsCount || 1}, ${b.isActive !== false})">✏️ Edit</button>
+                        </td>
+                    </tr>
+                `}).join('');
+                document.getElementById('bots-body').innerHTML = html;
+            }
+        } catch(e) { console.log(e); }
+    }
 
     async function saveBotMasterSettings() {
         let isActive = document.getElementById('bot-master-toggle').checked;
