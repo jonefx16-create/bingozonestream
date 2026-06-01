@@ -142,7 +142,7 @@
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
         
-        <!-- 🔥 NEW TAB FOR BOT CONTROL 🔥 -->
+        <!-- 🔥 BOT CONTROL 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-bots-db', this); loadBotDB();" style="color:var(--faded-green);"><div>🤖 Bot Database & Settings</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-promo-codes', this); loadPromoCodes();" style="color:var(--gold);"><div>🎟️ Promo Codes (ኩፖን)</div></button>
@@ -153,10 +153,13 @@
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit % & Withdraw Bonus</div></button>
-        <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram Broadcast</div></button>
+        
+        <!-- 🔥 TELEGRAM & WEB BROADCAST 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram/Web Broadcast</div></button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this); loadUsersPage(1);" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
         
-        <button class="nav-btn" onclick="switchTab('tab-manipulation', this)" style="color:var(--gold);"><div>🎮 Game Manipulation & Jackpot</div></button>
+        <!-- 🔥 JACKPOT & TIMER ONLY (Removed Bot Boost & Forced Winner) 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-manipulation', this)" style="color:var(--gold);"><div>💰 Jackpot & Win Timer</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
     </div>
@@ -173,7 +176,6 @@
         <!-- LIVE TAB -->
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
-                <!-- 🔥 REAL VS BOT MONEY DISPLAY 🔥 -->
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold); grid-column: span 2;">
                     <h3>💰 Total Jackpot (Current Game)</h3>
                     <h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2>
@@ -205,7 +207,7 @@
             </div>
         </div>
 
-        <!-- 🔥 NEW BOT DATABASE TAB 🔥 -->
+        <!-- 🔥 BOT DATABASE TAB 🔥 -->
         <div id="tab-bots-db" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
                 <!-- MASTER CONTROLS -->
@@ -215,7 +217,7 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div>
                             <div style="font-weight:bold; font-size:14px; color:white;">1. Enable Bots (ቦት ማስገባት)</div>
-                            <div style="font-size:11px; color:var(--text-gray);">ON ሲሆን ቦቶች ከታች ካለው ሊስት ላይ እየተመረጡ ጌም ይገባሉ</div>
+                            <div style="font-size:11px; color:var(--text-gray);">ON ሲሆን ቦቶች በተራ እየተመረጡ ጌም ይገባሉ</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="bot-master-toggle">
@@ -225,21 +227,41 @@
 
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">2. Winner Control (ማን ያሸንፍ?)</div>
-                        <div style="font-size:11px; color:var(--text-gray); margin-bottom: 10px;">ቦት እና ሰው አብረው ሲጫወቱ አሸናፊውን ይመርጣል።</div>
                         
                         <label style="display:block; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; margin-bottom:8px; cursor:pointer;">
                             <input type="radio" name="bot-master-winner" value="bots" style="width:auto; height:auto; display:inline-block; margin-right:10px;">
-                            <span style="color:white; font-weight:bold;">🤖 Bots ONLY (100% ቦት ብቻ ያሸንፋል)</span>
+                            <span style="color:white; font-weight:bold;">🤖 Bots ONLY (100% ቦት ብቻ ከ 12ኛ - 21ኛ ኳስ ያሸንፋል)</span>
                         </label>
 
                         <label style="display:block; padding:10px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); border-radius:6px; cursor:pointer;">
                             <input type="radio" name="bot-master-winner" value="real" style="width:auto; height:auto; display:inline-block; margin-right:10px;">
-                            <span style="color:white; font-weight:bold;">👤 Real Users ONLY (100% ትክክለኛ ሰው ያሸንፋል)</span>
+                            <span style="color:white; font-weight:bold;">👤 Real Users ONLY (100% ሰው በእድሉ ያሸንፋል)</span>
                         </label>
                     </div>
 
-                    <label style="font-weight:bold; color:var(--text-gray); font-size:13px;">3. Total Bots per Game (በአንድ ጌም ስንት ቦት ይግባ?)</label>
-                    <input type="number" id="bot-master-total" placeholder="e.g. 15" style="margin-bottom: 15px; font-size:16px; font-weight:bold;">
+                    <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
+                        <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">3. Bot Ticket Distribution (የቦት ስርጭት)</div>
+                        <div style="font-size:11px; color:var(--text-gray); margin-bottom:10px;">በእያንዳንዱ ጌም ውስጥ ምን ያህል ቦቶች ስንት ካርቴላ ገዝተው ይግቡ?</div>
+                        
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:120px;">
+                                <label style="font-size:12px; color:var(--cyan);">1 ካርቴላ ገዢዎች</label>
+                                <input type="number" id="bot-d1" placeholder="ብዛት (e.g. 10)">
+                            </div>
+                            <div style="flex:1; min-width:120px;">
+                                <label style="font-size:12px; color:var(--faded-green);">2 ካርቴላ ገዢዎች</label>
+                                <input type="number" id="bot-d2" placeholder="ብዛት (e.g. 5)">
+                            </div>
+                            <div style="flex:1; min-width:120px;">
+                                <label style="font-size:12px; color:var(--gold);">3 ካርቴላ ገዢዎች</label>
+                                <input type="number" id="bot-d3" placeholder="ብዛት (e.g. 3)">
+                            </div>
+                            <div style="flex:1; min-width:120px;">
+                                <label style="font-size:12px; color:var(--purple);">4 ካርቴላ ገዢዎች</label>
+                                <input type="number" id="bot-d4" placeholder="ብዛት (e.g. 2)">
+                            </div>
+                        </div>
+                    </div>
 
                     <button class="action-btn btn-blue" style="width: 100%; padding:15px; font-size:15px;" onclick="saveBotMasterSettings()">💾 Save Master Settings</button>
                 </div>
@@ -256,8 +278,7 @@
                             <tr>
                                 <th>Bot Name (ስም)</th>
                                 <th>Bot Phone (ስልክ)</th>
-                                <th>Ticket Count (ካርቴላ)</th>
-                                <th>Action</th>
+                                <th>Last Played (መጨረሻ የተጫወቱት)</th>
                             </tr>
                         </thead>
                         <tbody id="bots-body"></tbody>
@@ -372,7 +393,7 @@
             </div>
         </div>
 
-        <!-- PLAYERS/GAME INFO (WITH SEARCH & ALL ORIGINAL FEATURES) -->
+        <!-- PLAYERS/GAME INFO -->
         <div id="tab-players" class="tab-content">
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-player-bets" onkeyup="if(event.key === 'Enter') searchPlayerBets()" placeholder="🔍 Search Phone or Ticket ID (የሰው ስልክ ወይም ካርቴላ ቁጥር ፅፈው Enter ይጫኑ)..." style="border-color:var(--gold);">
@@ -624,11 +645,41 @@
             </div>
         </div>
 
-        <!-- 🔥 TELEGRAM BROADCAST 🔥 -->
+        <!-- 🔥 TELEGRAM & WEB BROADCAST 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="card" style="border-left: 4px solid var(--orange);">
+                    <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <input type="number" id="cb-max-users" placeholder="ለስንት ሰው?" style="flex:1;">
+                        <input type="number" id="cb-amount" placeholder="የብር መጠን" style="flex:1;">
+                        <input type="number" id="cb-minutes" placeholder="ለስንት ደቂቃ?" style="flex:1;">
+                    </div>
+                    
+                    <label style="color:var(--text-gray); font-weight:bold; font-size:12px;">የት ላይ ይላክ? (Platform)</label>
+                    <select id="cb-platform" style="margin-bottom:10px; background:#000; color:white; padding:10px; border-radius:6px; border:1px solid var(--border); width:100%;">
+                        <option value="both">🌐 ዌብሳይት እና ✈️ ቴሌግራም (Both)</option>
+                        <option value="web">🌐 ዌብሳይት (Home Page Popup) ላይ ብቻ</option>
+                        <option value="tg">✈️ ቴሌግራም ላይ ብቻ (Telegram Only)</option>
+                    </select>
+
+                    <input type="text" id="cb-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL) (አማራጭ)" style="margin-bottom:5px;">
+                    <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
+                    
+                    <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ..."></textarea>
+                    
+                    <label style="display:block; margin-bottom:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
+                        <input type="checkbox" id="cb-dep-only"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ ይላክ (እንዲወስዱትም ይፈቀድ)</span>
+                    </label>
+
+                    <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast</button>
+                    <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ View Claimed Users</button>
+                </div>
+
                 <div class="card" style="border-left: 4px solid var(--blue);">
                     <h3 style="margin-top:0; color:var(--blue);">✈️ Normal Telegram Broadcast</h3>
+                    <p style="font-size:11px; color:gray;">ይህ ቴሌግራም ላይ ብቻ መረጃ ለመላክ ያገለግላል። (ያለ ቦነስ)</p>
                     
                     <label style="color:var(--cyan); font-weight:bold; font-size:12px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
                     <input type="text" id="tg-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
@@ -641,36 +692,14 @@
                     </label>
 
                     <div style="display:flex; gap:10px;">
-                        <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast</button>
+                        <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast to Telegram</button>
                         <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
                     </div>
-                </div>
-
-                <div class="card" style="border-left: 4px solid var(--orange);">
-                    <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
-                    
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <input type="number" id="cb-max-users" placeholder="ለስንት ሰው?" style="flex:1;">
-                        <input type="number" id="cb-amount" placeholder="የብር መጠን" style="flex:1;">
-                        <input type="number" id="cb-minutes" placeholder="ለስንት ደቂቃ?" style="flex:1;">
-                    </div>
-                    
-                    <input type="text" id="cb-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
-                    <input type="file" id="cb-photo-file" accept="image/*" style="background:var(--panel); border:1px dashed var(--orange); margin-bottom:10px;">
-                    
-                    <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ..."></textarea>
-                    
-                    <label style="display:block; margin-bottom:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
-                        <input type="checkbox" id="cb-dep-only"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ ይላክ (እንዲወስዱትም ይፈቀድ)</span>
-                    </label>
-
-                    <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast</button>
-                    <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ View Claimed Users</button>
                 </div>
             </div>
         </div>
 
-        <!-- GAME MANIPULATION TAB (KEEPING EVERYTHING FROM THE ORIGINAL) -->
+        <!-- JACKPOT & TIMER TAB (No manipulation stuff here anymore) -->
         <div id="tab-manipulation" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 
@@ -681,25 +710,11 @@
                     <button class="action-btn btn-orange" style="width: 100%;" onclick="updateSettings('jackpot_boost')">💾 Save Golden Jackpot</button>
                 </div>
 
-                <div class="card" style="flex: 1; border-left: 4px solid var(--cyan); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--cyan);">🤖 የውሸት ካርቴላ (Secret Bot Boost)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ቀስ እያለ የውሸት ካርቴላ እየገዛ Blur ያደርጋል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ።</p>
-                    <input type="number" id="set-bot-boost" placeholder="e.g. 200" style="margin-bottom: 15px;">
-                    <button class="action-btn btn-blue" style="width: 100%;" onclick="updateSettings('bot_boost')">💾 Save Secret Bot Tickets</button>
-                </div>
-
                 <div class="card" style="flex: 1; border-left: 4px solid var(--purple); min-width: 280px;">
                     <h3 style="margin-top:0; color:var(--purple);">🏆 Win Popup Timer</h3>
                     <p style="font-size:10px; color:var(--text-gray); margin-top:0;">አሸናፊ ሲመጣ ስክሪኑ ላይ ስንት ሰከንድ ይቆይ</p>
                     <input type="number" id="set-win-timer" placeholder="e.g. 12" style="margin-bottom: 15px;">
                     <button class="action-btn btn-purple" style="width: 100%;" onclick="updateSettings('win_timer')">💾 Save Win Timer</button>
-                </div>
-
-                <div class="card" style="flex: 1; border-left: 4px solid var(--red); min-width: 280px;">
-                    <h3 style="margin-top:0; color:var(--red);">🎯 የተመረጡ ስልኮች (100% Forced)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">በነጠላ ሰረዝ (,) በመለየት ያስገቡ። እዚህ ውስጥ ያለ ሰው ካለ <b>100% እርሱ ብቻ</b> ያሸንፋል። <b>0</b> ብለው ካስገቡ ሲስተሙ 100% Random ይሆናል።</p>
-                    <input type="text" id="set-forced-phones" placeholder="e.g. 0911..., 0922... OR 0" style="border-color: var(--red); margin-bottom: 15px;">
-                    <button class="action-btn btn-red" style="width: 100%;" onclick="updateSettings('forced_winners')">💾 Save Forced Winners</button>
                 </div>
 
             </div>
@@ -977,16 +992,22 @@
                 document.getElementById('bot-master-toggle').checked = data.settings.isBotSystemActive;
                 let radios = document.getElementsByName('bot-master-winner');
                 for(let r of radios) { if(r.value === data.settings.botWinnerForce) r.checked = true; }
-                document.getElementById('bot-master-total').value = data.settings.totalBotsPerGame;
+                
+                document.getElementById('bot-d1').value = data.settings.botDist1;
+                document.getElementById('bot-d2').value = data.settings.botDist2;
+                document.getElementById('bot-d3').value = data.settings.botDist3;
+                document.getElementById('bot-d4').value = data.settings.botDist4;
 
-                let html = data.bots.map(b => `
+                let html = data.bots.map(b => {
+                    let d = new Date(b.lastPlayed || 0);
+                    let dp = d.getTime() === 0 ? "Never Played" : d.toLocaleString();
+                    return `
                     <tr>
-                        <td><input type="text" id="bname-${b._id}" value="${b.name}"></td>
-                        <td><input type="text" id="bphone-${b._id}" value="${b.phone}"></td>
-                        <td><input type="number" id="btix-${b._id}" value="${b.ticketCount}" min="1" max="4"></td>
-                        <td><button class="btn-sm btn-blue" onclick="saveSingleBot('${b._id}')">Save Edit</button></td>
+                        <td style="font-weight:bold; color:var(--cyan);">${b.name}</td>
+                        <td style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
+                        <td style="font-size:11px; color:var(--gold);">${dp}</td>
                     </tr>
-                `).join('');
+                `}).join('');
                 document.getElementById('bots-body').innerHTML = html;
             }
         } catch(e) { console.log(e); }
@@ -997,36 +1018,34 @@
         let force = 'bots';
         let radios = document.getElementsByName('bot-master-winner');
         for(let r of radios) { if(r.checked) force = r.value; }
-        let total = document.getElementById('bot-master-total').value;
+        
+        let d1 = document.getElementById('bot-d1').value;
+        let d2 = document.getElementById('bot-d2').value;
+        let d3 = document.getElementById('bot-d3').value;
+        let d4 = document.getElementById('bot-d4').value;
 
         try {
-            let res = await fetch('/api/admin/bot-master-update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, isBotSystemActive: isActive, botWinnerForce: force, totalBotsPerGame: Number(total)})});
+            let res = await fetch('/api/admin/bot-master-update', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({
+                    adminPass: pass, 
+                    isBotSystemActive: isActive, 
+                    botWinnerForce: force, 
+                    botDist1: Number(d1),
+                    botDist2: Number(d2),
+                    botDist3: Number(d3),
+                    botDist4: Number(d4)
+                })
+            });
             let data = await res.json();
             if(data.success) {
-                alert("✅ Master Settings Saved!");
+                alert("✅ Bot Settings Saved!");
                 fullRefresh();
             } else {
-                alert("❌ Error saving master settings");
+                alert("❌ Error saving bot settings");
             }
         } catch(e) { alert("Network Error"); }
-    }
-
-    async function saveSingleBot(id) {
-        let n = document.getElementById('bname-'+id).value;
-        let p = document.getElementById('bphone-'+id).value;
-        let t = document.getElementById('btix-'+id).value;
-        try {
-            let res = await fetch('/api/admin/bot-update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, id: id, name: n, phone: p, ticketCount: Number(t)})});
-            let data = await res.json();
-            if(data.success) {
-                let btn = event.target;
-                let oldText = btn.innerText;
-                btn.innerText = "✅ Saved";
-                btn.style.background = "var(--faded-green)";
-                setTimeout(() => { btn.innerText = oldText; btn.style.background = ""; }, 2000);
-            }
-            else alert("❌ Error");
-        } catch(e) {}
     }
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
@@ -1111,9 +1130,7 @@
                 safeUpdate('set-min-withdraw', data.settings.minWithdrawLimit !== undefined ? data.settings.minWithdrawLimit : 50);
                 
                 safeUpdate('set-jackpot-boost', data.settings.jackpotBoostAmount !== undefined ? data.settings.jackpotBoostAmount : 0);
-                safeUpdate('set-bot-boost', data.settings.botBoostAmount !== undefined ? data.settings.botBoostAmount : 0);
                 safeUpdate('set-win-timer', data.settings.winPopupTimer !== undefined ? data.settings.winPopupTimer : 12);
-                safeUpdate('set-forced-phones', data.settings.forcedWinnerPhones || '');
 
                 safeUpdate('set-admin-profit', data.settings.adminProfitPercent !== undefined ? data.settings.adminProfitPercent : 15);
                 safeUpdate('set-reg-bonus', data.settings.registerBonus !== undefined ? data.settings.registerBonus : 10);
@@ -1142,6 +1159,12 @@
                     document.getElementById('set-wit-time-restrict').checked = data.settings.witBonusTimeRestricted || false;
                     toggleTimeInputs('wit');
                 }
+                
+                // Bot Distribution Updates
+                safeUpdate('bot-d1', data.settings.botDist1);
+                safeUpdate('bot-d2', data.settings.botDist2);
+                safeUpdate('bot-d3', data.settings.botDist3);
+                safeUpdate('bot-d4', data.settings.botDist4);
             }
             
         } catch(e) {}
@@ -1846,12 +1869,22 @@
         let photoUrl = document.getElementById('cb-photo-url').value.trim(); 
         let fileInput = document.getElementById('cb-photo-file'); 
         let depOnly = document.getElementById('cb-dep-only').checked;
+        let platform = document.getElementById('cb-platform').value;
 
         if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); 
         if(!confirm(`Create ${amount} ETB Bonus for ${maxUsers} users & Broadcast?`)) return; 
         let btn = document.getElementById('btn-send-promo'); btn.innerText = "Sending..."; 
         
-        let payload = {adminPass: pass, maxUsers, amount, minutes, message: msg, photoUrl: photoUrl, depositorsOnly: depOnly}; 
+        let payload = {
+            adminPass: pass, 
+            maxUsers, 
+            amount, 
+            minutes, 
+            message: msg, 
+            photoUrl: photoUrl, 
+            depositorsOnly: depOnly,
+            platform: platform
+        }; 
         
         if (fileInput.files.length > 0) { 
             let reader = new FileReader(); 
@@ -1912,7 +1945,7 @@
         } catch(e) { 
             alert("Error sending."); 
         } 
-        btn.innerText = "Broadcast"; 
+        btn.innerText = "Broadcast to Telegram"; 
     }
 
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadPendingTxs(); loadTxPage(p_tx); } }
@@ -1978,18 +2011,10 @@
             let jb = document.getElementById('set-jackpot-boost').value; 
             payload.jackpotBoostAmount = (jb !== '' && Number(jb) >= 0) ? Number(jb) : 0;
         }
-        if(type === 'bot_boost') {
-            let bb = document.getElementById('set-bot-boost').value; 
-            payload.botBoostAmount = (bb !== '' && Number(bb) >= 0) ? Number(bb) : 0;
-        }
         if(type === 'win_timer') {
             let wt = document.getElementById('set-win-timer').value; 
             if(wt !== '' && Number(wt) >= 1) payload.winPopupTimer = Number(wt);
             else return alert("Please enter a valid time (e.g., 12)");
-        }
-        if(type === 'forced_winners') {
-            let fp = document.getElementById('set-forced-phones').value; 
-            payload.forcedWinnerPhones = fp;
         }
 
         if(type === 'reg_bonus') { let rBon = document.getElementById('set-reg-bonus').value; let iBon = document.getElementById('set-inv-bonus').value; if(!rBon || !iBon) return alert("Enter values!"); payload.registerBonus = Number(rBon); payload.inviteBonus = Number(iBon); }
