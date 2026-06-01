@@ -1347,7 +1347,19 @@
         }
     }
 
-    socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
+    socket.on('game_status', (data) => { 
+        if(document.getElementById('tab-live').classList.contains('active')) {
+            document.getElementById('stat-live-players').innerText = data.playersCount; 
+        }
+        
+        let stateHeader = document.getElementById('header-state');
+        let jackpotHeader = document.getElementById('header-jackpot');
+        if(stateHeader && jackpotHeader) {
+            stateHeader.innerText = data.state;
+            stateHeader.style.color = data.state === 'PLAYING' ? '#4ade80' : 'var(--orange)';
+            jackpotHeader.innerText = Number(data.totalPrizePool || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+        }
+    });
 
     async function openLivePlayersModal() {
         document.getElementById('live-players-modal').style.display = 'flex';
