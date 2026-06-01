@@ -743,7 +743,7 @@
                 
                 <div class="card" style="flex: 1; border-left: 4px solid var(--gold); min-width: 280px;">
                     <h3 style="margin-top:0; color:var(--gold);">🔥 የጌም መፈንዳያ (Golden Jackpot)</h3>
-                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ለተጫዋቾች በወርቃማው Alert ይታያል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ።</p>
+                    <p style="font-size:10px; color:var(--text-gray); margin-top:0;">ለተጫዋቾች በወርቃማው Alert ይታያል። ማጥፋት ሲፈልጉ 0 ብለው Save ያድርጉ。</p>
                     <input type="number" id="set-jackpot-boost" placeholder="e.g. 500" style="margin-bottom: 15px;">
                     <button class="action-btn btn-orange" style="width: 100%;" onclick="updateSettings('jackpot_boost')">💾 Save Golden Jackpot</button>
                 </div>
@@ -1365,7 +1365,10 @@
                             <div style="color:white; font-weight:bold;">${i+1}. ${p.name || 'Unknown'} ${botLabel}</div>
                             <div style="font-family:monospace; font-size:13px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${p.phone}'); return false;">${p.phone}</a></div>
                         </div>
-                        <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${p.phone}')">👁️ View</button>
+                        <div>
+                            <button class="btn-sm btn-blue" onclick="openEditModal('${p.phone}', '${(p.name||'').replace(/'/g, "\\'")}', '', 0, 0, 0)">✏️ Edit</button>
+                            <button class="btn-sm btn-purple" onclick="fetchAndShowUserInfo('${p.phone}')">👁️ View</button>
+                        </div>
                     </div>
                 `}).join('');
                 document.getElementById('live-players-list').innerHTML = html;
