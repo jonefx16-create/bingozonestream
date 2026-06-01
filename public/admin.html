@@ -154,13 +154,9 @@
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
         <button class="nav-btn" onclick="switchTab('tab-dep-bonus', this)" style="color:var(--gold);"><div>💰 Deposit % & Withdraw Bonus</div></button>
         
-        <!-- 🔥 TELEGRAM & WEB BROADCAST 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-telegram', this)"><div>✈️ Telegram/Web Broadcast</div></button>
         <button class="nav-btn" onclick="switchTab('tab-banned', this); loadUsersPage(1);" style="color: var(--orange);"><div>🚫 Banned Users</div></button>
-        
-        <!-- 🔥 JACKPOT & TIMER ONLY (Removed Bot Boost & Forced Winner) 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-manipulation', this)" style="color:var(--gold);"><div>💰 Jackpot & Win Timer</div></button>
-        
         <button class="nav-btn" onclick="switchTab('tab-settings', this)"><div>⚙️ Settings & Control</div></button>
     </div>
 
@@ -230,7 +226,7 @@
                         
                         <label style="display:block; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; margin-bottom:8px; cursor:pointer;">
                             <input type="radio" name="bot-master-winner" value="bots" style="width:auto; height:auto; display:inline-block; margin-right:10px;">
-                            <span style="color:white; font-weight:bold;">🤖 Bots ONLY (100% ቦት ብቻ ከ 12ኛ - 21ኛ ኳስ ያሸንፋል)</span>
+                            <span style="color:white; font-weight:bold;">🤖 Bots ONLY (100% ቦት ብቻ ያሸንፋል)</span>
                         </label>
 
                         <label style="display:block; padding:10px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); border-radius:6px; cursor:pointer;">
@@ -265,6 +261,16 @@
 
                     <button class="action-btn btn-blue" style="width: 100%; padding:15px; font-size:15px;" onclick="saveBotMasterSettings()">💾 Save Master Settings</button>
                 </div>
+
+                <!-- 🔥 አዲስ: ADD MULTIPLE BOTS 🔥 -->
+                <div class="card" style="flex: 1; border-left: 4px solid var(--purple); min-width: 300px;">
+                    <h3 style="margin-top:0; color:var(--purple);">➕ Add Custom Bots (ቦቶችን ጨምር)</h3>
+                    <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከታች የሚፈልጉትን ቁጥር አስገብተው አዳዲስ ቦቶችን በአንድ ጊዜ ወደ ዳታቤዝ መጨመር ይችላሉ።</p>
+                    <div style="display:flex; gap:10px; align-items:center; margin-top:15px;">
+                        <input type="number" id="add-bot-amount" placeholder="ስንት ቦት ይጨመር? (e.g. 30)" style="flex:2; margin-bottom:0;">
+                        <button class="action-btn btn-purple" onclick="addCustomBots()" style="flex:1;">🚀 ጨምር</button>
+                    </div>
+                </div>
             </div>
 
             <!-- BOT DATABASE TABLE -->
@@ -276,9 +282,12 @@
                     <table id="table-bots">
                         <thead style="position: sticky; top: 0; background: var(--panel);">
                             <tr>
-                                <th>Bot Name (ስም)</th>
-                                <th>Bot Phone (ስልክ)</th>
-                                <th>Last Played (መጨረሻ የተጫወቱት)</th>
+                                <th>Name (ስም)</th>
+                                <th>Phone (ስልክ)</th>
+                                <th>Status</th>
+                                <th>Cards</th>
+                                <th>Last Played</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="bots-body"></tbody>
@@ -699,7 +708,7 @@
             </div>
         </div>
 
-        <!-- JACKPOT & TIMER TAB (No manipulation stuff here anymore) -->
+        <!-- JACKPOT & TIMER TAB -->
         <div id="tab-manipulation" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 
@@ -768,6 +777,34 @@
 </div>
 
 <!-- ================= MODALS ================= -->
+
+<!-- 🔥 NEW: EDIT BOT MODAL 🔥 -->
+<div class="modal" id="edit-bot-modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <h3 style="color: var(--cyan); margin-top:0;">🤖 Edit Bot Settings</h3>
+        <input type="hidden" id="eb-id">
+        
+        <label style="color:var(--text-gray); font-size:12px;">Bot Name (ስም)</label>
+        <input type="text" id="eb-name">
+        
+        <label style="color:var(--text-gray); font-size:12px;">Bot Phone (ስልክ)</label>
+        <input type="text" id="eb-phone">
+        
+        <label style="color:var(--gold); font-size:12px; font-weight:bold;">Cards Count (ስንት ካርቴላ ይግዛ?)</label>
+        <input type="number" id="eb-cards" style="border-color:var(--gold);">
+        
+        <label style="display:flex; align-items:center; margin-top:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
+            <input type="checkbox" id="eb-active" style="width:20px; height:20px; margin-right:10px; accent-color:var(--faded-green);">
+            <span style="font-weight:bold; color:white;">Is Active (ቦቱ አሁን ይስራ?)</span>
+        </label>
+        
+        <div style="display:flex; gap:10px; margin-top: 20px;">
+            <button class="action-btn btn-blue" style="flex:1;" onclick="saveBotEdit()">💾 Save Bot</button>
+            <button class="action-btn btn-red" style="flex:1;" onclick="document.getElementById('edit-bot-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal" id="live-players-modal">
     <div class="modal-content" style="max-width: 450px;">
         <h3 style="color: var(--purple); margin-top:0; text-align: center;">🎮 Currently Live Players</h3>
@@ -1001,11 +1038,20 @@
                 let html = data.bots.map(b => {
                     let d = new Date(b.lastPlayed || 0);
                     let dp = d.getTime() === 0 ? "Never Played" : d.toLocaleString();
+                    
+                    let statusBadge = b.isActive !== false ? `<span class="badge bg-approved">ON (Active)</span>` : `<span class="badge bg-rejected">OFF</span>`;
+                    let safeName = (b.name || "Unknown").replace(/'/g, "\\'");
+
                     return `
                     <tr>
                         <td style="font-weight:bold; color:var(--cyan);">${b.name}</td>
                         <td style="font-family:monospace; color:var(--text-gray);">${b.phone}</td>
-                        <td style="font-size:11px; color:var(--gold);">${dp}</td>
+                        <td>${statusBadge}</td>
+                        <td style="font-weight:bold; color:var(--gold);">${b.cardsCount || 1} Cards</td>
+                        <td style="font-size:11px; color:var(--text-gray);">${dp}</td>
+                        <td>
+                            <button class="btn-sm btn-blue" onclick="openEditBotModal('${b._id}', '${safeName}', '${b.phone}', ${b.cardsCount || 1}, ${b.isActive !== false})">✏️ Edit</button>
+                        </td>
                     </tr>
                 `}).join('');
                 document.getElementById('bots-body').innerHTML = html;
@@ -1040,13 +1086,66 @@
             });
             let data = await res.json();
             if(data.success) {
-                alert("✅ Bot Settings Saved!");
+                alert("✅ Bot Master Settings Saved!");
                 fullRefresh();
             } else {
                 alert("❌ Error saving bot settings");
             }
         } catch(e) { alert("Network Error"); }
     }
+
+    // ✏️ Edit Individual Bot
+    function openEditBotModal(id, name, phone, cards, isActive) {
+        document.getElementById('eb-id').value = id;
+        document.getElementById('eb-name').value = name;
+        document.getElementById('eb-phone').value = phone;
+        document.getElementById('eb-cards').value = cards;
+        document.getElementById('eb-active').checked = isActive;
+        document.getElementById('edit-bot-modal').style.display = 'flex';
+    }
+
+    async function saveBotEdit() {
+        let payload = {
+            adminPass: pass,
+            botId: document.getElementById('eb-id').value,
+            name: document.getElementById('eb-name').value,
+            phone: document.getElementById('eb-phone').value,
+            cardsCount: Number(document.getElementById('eb-cards').value),
+            isActive: document.getElementById('eb-active').checked
+        };
+        try {
+            let res = await fetch('/api/admin/bot-edit', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            let data = await res.json();
+            if(data.success) {
+                document.getElementById('edit-bot-modal').style.display = 'none';
+                loadBotDB();
+            } else {
+                alert("❌ " + data.message);
+            }
+        } catch(e) { alert("Error saving bot."); }
+    }
+
+    // ➕ Add Custom Bots
+    async function addCustomBots() {
+        let amt = document.getElementById('add-bot-amount').value;
+        if(!amt || amt <= 0) return alert("እባክዎ ትክክለኛ ቁጥር ያስገቡ!");
+        
+        let confirmMsg = `እርግጠኛ ነዎት ${amt} አዲስ ቦቶችን መጨመር ይፈልጋሉ?`;
+        if(!confirm(confirmMsg)) return;
+
+        try {
+            let res = await fetch('/api/admin/bot-add-custom', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, amount: Number(amt)}) });
+            let data = await res.json();
+            if(data.success) {
+                alert(`✅ ${data.message}`);
+                document.getElementById('add-bot-amount').value = '';
+                loadBotDB();
+            } else {
+                alert("❌ ስህተት አጋጥሟል!");
+            }
+        } catch(e) { alert("Network Error."); }
+    }
+
 
     socket.on('game_status', (data) => { if(document.getElementById('tab-live').classList.contains('active')) document.getElementById('stat-live-players').innerText = data.playersCount; });
 
