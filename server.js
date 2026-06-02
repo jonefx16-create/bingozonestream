@@ -140,10 +140,10 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     botDist4: { type: Number, default: 3 }, 
 
     isBotScheduleActive: { type: Boolean, default: false },
-    botSchedule1: { type: Object, default: { start: 1, end: 4, min: 10, max: 20 } },
-    botSchedule2: { type: Object, default: { start: 4, end: 10, min: 20, max: 50 } },
-    botSchedule3: { type: Object, default: { start: 10, end: 18, min: 30, max: 60 } },
-    botSchedule4: { type: Object, default: { start: 18, end: 24, min: 40, max: 80 } },
+    botSchedule1: { type: Object, default: { start: 0, end: 8, min: 10, max: 15 } },
+    botSchedule2: { type: Object, default: { start: 8, end: 12, min: 15, max: 25 } },
+    botSchedule3: { type: Object, default: { start: 12, end: 18, min: 20, max: 40 } },
+    botSchedule4: { type: Object, default: { start: 18, end: 24, min: 40, max: 60 } },
     
     depBonusMinAmount: { type: Number, default: 50 }, 
     depBonusPercent: { type: Number, default: 50 }, 
@@ -214,10 +214,10 @@ async function loadSettings() {
         botDist4: s.botDist4 !== undefined ? s.botDist4 : 3,
 
         isBotScheduleActive: s.isBotScheduleActive || false,
-        botSchedule1: s.botSchedule1 || { start: 1, end: 4, min: 10, max: 20 },
-        botSchedule2: s.botSchedule2 || { start: 4, end: 10, min: 20, max: 50 },
-        botSchedule3: s.botSchedule3 || { start: 10, end: 18, min: 30, max: 60 },
-        botSchedule4: s.botSchedule4 || { start: 18, end: 24, min: 40, max: 80 },
+        botSchedule1: s.botSchedule1 || { start: 0, end: 8, min: 10, max: 15 },
+        botSchedule2: s.botSchedule2 || { start: 8, end: 12, min: 15, max: 25 },
+        botSchedule3: s.botSchedule3 || { start: 12, end: 18, min: 20, max: 40 },
+        botSchedule4: s.botSchedule4 || { start: 18, end: 24, min: 40, max: 60 },
         
         depBonusMinAmount: s.depBonusMinAmount !== undefined ? s.depBonusMinAmount : 50, 
         depBonusPercent: s.depBonusPercent !== undefined ? s.depBonusPercent : 50, 
@@ -883,6 +883,27 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             }
         });
 
+        let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
+        let cHour = eatTime.getUTCHours();
+        let cMin = eatTime.getUTCMinutes();
+        let timeStr = `${cHour.toString().padStart(2, '0')}:${cMin.toString().padStart(2, '0')} (EAT)`;
+        
+        let activeSchName = "None";
+        let schMin = 0, schMax = 0;
+        
+        if (GLOBAL_SETTINGS.isBotScheduleActive) {
+            let schedules = [
+                {n: "Sch 1", d: GLOBAL_SETTINGS.botSchedule1}, {n: "Sch 2", d: GLOBAL_SETTINGS.botSchedule2},
+                {n: "Sch 3", d: GLOBAL_SETTINGS.botSchedule3}, {n: "Sch 4", d: GLOBAL_SETTINGS.botSchedule4}
+            ];
+            for(let s of schedules) {
+                let st = s.d.start || 0; let en = s.d.end || 24;
+                if ((st < en && cHour >= st && cHour < en) || (st > en && (cHour >= st || cHour < en))) {
+                    activeSchName = s.n; schMin = s.d.min; schMax = s.d.max; break;
+                }
+            }
+        }
+
         res.json({ 
             totalUsers, 
             livePlayers: Object.keys(activePlayers).length, 
@@ -899,7 +920,8 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             dailyDeposit, 
             dailyWithdraw, 
             dailyBonus,
-            totalUnplayedBonus
+            totalUnplayedBonus,
+            scheduleStatus: { active: GLOBAL_SETTINGS.isBotScheduleActive, time: timeStr, name: activeSchName, min: schMin, max: schMax }
         });
     } catch (e) {
         res.status(500).json({ success: false });
@@ -1487,7 +1509,10 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         let d4 = req.body.dist4 !== undefined ? req.body.dist4 : (GLOBAL_SETTINGS.botDist4 || 3);
         
         let totalRatio = d1 + d2 + d3 + d4;
-        if(totalRatio === 0) { d1 = 1; totalRatio = 1; }
+        if(totalRatio === 0) { 
+            d1 = 40; d2 = 30; d3 = 20; d4 = 10; 
+            totalRatio = 100; 
+        }
 
         let count1 = Math.round((d1 / totalRatio) * amount);
         let count2 = Math.round((d2 / totalRatio) * amount);
@@ -1697,8 +1722,13 @@ setInterval(() => {
                     let schedules = [GLOBAL_SETTINGS.botSchedule1, GLOBAL_SETTINGS.botSchedule2, GLOBAL_SETTINGS.botSchedule3, GLOBAL_SETTINGS.botSchedule4];
                     
                     for(let s of schedules) {
-                        if (currentHour >= (s.start || 0) && currentHour < (s.end || 24)) {
-                            activeSchedule = s; break;
+                        let sStart = s.start || 0;
+                        let sEnd = s.end || 24;
+                        // ሌሊት የሚያቋርጥ ሰዓት ከሆነ (ለምሳሌ ከ 22 ጀምሮ እስከ 4) በትክክል እንዲሰራ
+                        if (sStart < sEnd) {
+                            if (currentHour >= sStart && currentHour < sEnd) { activeSchedule = s; break; }
+                        } else if (sStart > sEnd) {
+                            if (currentHour >= sStart || currentHour < sEnd) { activeSchedule = s; break; }
                         }
                     }
                     
@@ -1707,21 +1737,20 @@ setInterval(() => {
                         let mx = activeSchedule.max || 0;
                         totalBotsToInject = Math.floor(Math.random() * (mx - mn + 1)) + mn;
                     } else {
-                        totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
+                        totalBotsToInject = Math.floor(Math.random() * (20 - 10 + 1)) + 10; // Failsafe
                     }
                 } else {
                     // Normal Manual
                     totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
                 }
 
-                // 2. Distribute Total Bots (With slight random variation to prevent exact duplication)
-                let r1 = GLOBAL_SETTINGS.botDist1, r2 = GLOBAL_SETTINGS.botDist2, r3 = GLOBAL_SETTINGS.botDist3, r4 = GLOBAL_SETTINGS.botDist4;
+                // 2. Distribute Total Bots
+                let r1, r2, r3, r4;
                 
                 if (GLOBAL_SETTINGS.isBotScheduleActive) {
-                    r1 += Math.floor(Math.random() * 3);
-                    r2 += Math.floor(Math.random() * 2);
-                    r3 += Math.floor(Math.random() * 2);
-                    r4 += Math.floor(Math.random() * 2);
+                    r1 = 40; r2 = 30; r3 = 20; r4 = 10;
+                } else {
+                    r1 = GLOBAL_SETTINGS.botDist1; r2 = GLOBAL_SETTINGS.botDist2; r3 = GLOBAL_SETTINGS.botDist3; r4 = GLOBAL_SETTINGS.botDist4;
                 }
 
                 let totalRatio = r1 + r2 + r3 + r4;
@@ -1858,31 +1887,49 @@ setInterval(() => {
             if (!realPlayersExist) forceWinner = 'bots';
             if (!botsExist) forceWinner = 'real';
 
-            if (forceWinner === 'real' || forceWinner === 'mix') {
-                if (winForReal.length > 0) {
-                    numToCall = winForReal[Math.floor(Math.random() * winForReal.length)].num;
-                } else if (safeForBots.length > 0) {
-                    numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
-                } else {
-                    numToCall = currentDrawSequence[0];
-                }
-            } 
-            else if (forceWinner === 'bots') {
-                if(botWinTargetTurn === null) {
+            if (forceWinner === 'bots') {
+                // 🔥 100% BOT WIN GUARANTEE 🔥
+                // ሰውን BINGO የሚያስብሉትን ቁጥሮች በሙሉ አግልሎ (Block አድርጎ) ደህንነቱ የተጠበቀ ቁጥር ብቻ መጥራት
+                let availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
+                
+                if (botWinTargetTurn === null) {
                     let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
-                    if (totalBirr >= 400) botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12; 
-                    else botWinTargetTurn = Math.floor(Math.random() * (25 - 12 + 1)) + 12; 
+                    botWinTargetTurn = totalBirr >= 400 ? Math.floor(Math.random()*(22-12+1))+12 : Math.floor(Math.random()*(25-12+1))+12;
                 }
 
-                if (turn < botWinTargetTurn) {
-                    if (completelySafe.length > 0) numToCall = completelySafe[Math.floor(Math.random() * completelySafe.length)].num;
-                    else if (safeForReal.length > 0) numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
-                } else {
-                    let forceBotWinList = winForBots.filter(n => safeForReal.some(s => s.num === n.num));
-                    if (forceBotWinList.length > 0) numToCall = forceBotWinList[Math.floor(Math.random() * forceBotWinList.length)].num;
-                    else if (winForBots.length > 0) numToCall = winForBots[Math.floor(Math.random() * winForBots.length)].num;
-                    else if (safeForReal.length > 0) numToCall = safeForReal[Math.floor(Math.random() * safeForReal.length)].num;
+                if (turn >= botWinTargetTurn) {
+                    let winningBotNumbers = winForBots.filter(w => availableToCall.includes(w.num));
+                    if (winningBotNumbers.length > 0) numToCall = winningBotNumbers[Math.floor(Math.random() * winningBotNumbers.length)].num;
                 }
+                
+                if (numToCall === null) {
+                    let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
+                    if (safeNumbers.length === 0) safeNumbers = safeForReal.filter(s => availableToCall.includes(s.num));
+                    
+                    if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
+                    else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                }
+            } 
+            else if (forceWinner === 'real') {
+                // 🔥 100% REAL WIN GUARANTEE 🔥
+                // ቦትን BINGO የሚያስብሉትን ቁጥሮች በሙሉ አግልሎ (Block አድርጎ) ለሰው የሚጠቅመውን ብቻ መጥራት
+                let availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
+                
+                let winningRealNumbers = winForReal.filter(w => availableToCall.includes(w.num));
+                if (winningRealNumbers.length > 0) numToCall = winningRealNumbers[Math.floor(Math.random() * winningRealNumbers.length)].num;
+                
+                if (numToCall === null) {
+                    let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
+                    if (safeNumbers.length === 0) safeNumbers = safeForBots.filter(s => availableToCall.includes(s.num));
+                    
+                    if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
+                    else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                }
+            } 
+            else { 
+                // 🔥 MIX WIN GUARANTEE 🔥 (Share)
+                if (winForReal.length > 0) numToCall = winForReal[Math.floor(Math.random() * winForReal.length)].num;
+                else if (safeForBots.length > 0) numToCall = safeForBots[Math.floor(Math.random() * safeForBots.length)].num;
             }
             
             if (numToCall === null) numToCall = currentDrawSequence[0];
