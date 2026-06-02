@@ -27,7 +27,7 @@ const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F
 mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
-// 🔵 ETHIOPIAN NAMES ARRAY (ለቦቶች ስም መስጫ)
+// 🔵 ETHIOPIAN NAMES ARRAY
 // ==========================================
 const ethNames = ["Abebe", "Kebede", "Chala", "Hagos", "Fatuma", "Tigist", "Dawit", "Meron", "Yosef", "Sara", "Ephrem", "Marta", "Tesfaye", "Selam", "Girma", "Hanna", "Bereket", "Eden", "Abel", "Helen", "Zinash", "Eyob", "Aster", "Samuel", "Rahel", "Biniam", "Kalkidan", "Fikre", "Genet", "Mulugeta", "Tewodros", "Betelhem", "Lema", "Meseret", "Yonas", "Mahlet", "Habtamu", "Senait"];
 
@@ -62,7 +62,6 @@ const User = mongoose.model('User', new mongoose.Schema({
     compensatedInvites: { type: Number, default: 0 }
 }));
 
-// 🔥 BOT DATABASE IMPORT 🔥
 const { BotUser, initBotDatabase } = require('./bots/bot.model');
 initBotDatabase();
 
@@ -1708,75 +1707,72 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // አውቶማቲክ ቦት ማስገቢያ (With Proper Schedule Check - EAT Timezone Fix)
+        // 🟢 አውቶማቲክ ቦት ማስገቢያ (Schedule or Normal)
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
                 let totalBotsToInject = 0;
 
-                // 1. Check Schedule (Using Ethiopian Time Zone UTC+3)
+                // 1. EAT Schedule Check
+                let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
+                let currentHour = eatTime.getUTCHours();
+                let activeSchedule = null;
+
                 if (GLOBAL_SETTINGS.isBotScheduleActive) {
-                    let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
-                    let currentHour = eatTime.getUTCHours();
-                    let activeSchedule = null;
                     let schedules = [GLOBAL_SETTINGS.botSchedule1, GLOBAL_SETTINGS.botSchedule2, GLOBAL_SETTINGS.botSchedule3, GLOBAL_SETTINGS.botSchedule4];
-                    
                     for(let s of schedules) {
                         let sStart = s.start || 0;
                         let sEnd = s.end || 24;
-                        // ሌሊት የሚያቋርጥ ሰዓት ከሆነ (ለምሳሌ ከ 22 ጀምሮ እስከ 4) በትክክል እንዲሰራ
                         if (sStart < sEnd) {
                             if (currentHour >= sStart && currentHour < sEnd) { activeSchedule = s; break; }
                         } else if (sStart > sEnd) {
                             if (currentHour >= sStart || currentHour < sEnd) { activeSchedule = s; break; }
                         }
                     }
-                    
-                    if (activeSchedule) {
-                        let mn = activeSchedule.min || 0;
-                        let mx = activeSchedule.max || 0;
-                        totalBotsToInject = Math.floor(Math.random() * (mx - mn + 1)) + mn;
-                    } else {
-                        totalBotsToInject = Math.floor(Math.random() * (20 - 10 + 1)) + 10; // Failsafe
-                    }
+                }
+                
+                if (activeSchedule) {
+                    let mn = activeSchedule.min || 0;
+                    let mx = activeSchedule.max || 0;
+                    totalBotsToInject = Math.floor(Math.random() * (mx - mn + 1)) + mn;
                 } else {
-                    // Normal Manual
                     totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
                 }
 
-                // 2. Distribute Total Bots
-                let r1, r2, r3, r4;
-                
-                if (GLOBAL_SETTINGS.isBotScheduleActive) {
-                    r1 = 40; r2 = 30; r3 = 20; r4 = 10;
-                } else {
-                    r1 = GLOBAL_SETTINGS.botDist1; r2 = GLOBAL_SETTINGS.botDist2; r3 = GLOBAL_SETTINGS.botDist3; r4 = GLOBAL_SETTINGS.botDist4;
-                }
+                // 2. Humanized Ticket Distribution
+                let r1 = GLOBAL_SETTINGS.botDist1; 
+                let r2 = GLOBAL_SETTINGS.botDist2; 
+                let r3 = GLOBAL_SETTINGS.botDist3; 
+                let r4 = GLOBAL_SETTINGS.botDist4;
 
                 let totalRatio = r1 + r2 + r3 + r4;
-                if(totalRatio === 0) { r1 = 1; totalRatio = 1; }
+                if(totalRatio === 0) { r1 = 40; r2 = 30; r3 = 20; r4 = 10; totalRatio = 100; }
 
                 let c1 = Math.round((r1 / totalRatio) * totalBotsToInject);
                 let c2 = Math.round((r2 / totalRatio) * totalBotsToInject);
                 let c3 = Math.round((r3 / totalRatio) * totalBotsToInject);
                 let c4 = totalBotsToInject - (c1 + c2 + c3);
 
-                let dist = [
-                    {count: c1, tix: 1}, {count: c2, tix: 2}, {count: c3, tix: 3}, {count: c4, tix: 4}
-                ];
+                let distArray = [];
+                for(let i=0; i<c1; i++) distArray.push(1);
+                for(let i=0; i<c2; i++) distArray.push(2);
+                for(let i=0; i<c3; i++) distArray.push(3);
+                for(let i=0; i<c4; i++) distArray.push(4);
+                
+                distArray = distArray.sort(() => Math.random() - 0.5);
 
-                for(let d of dist) {
-                    for(let i=0; i<d.count; i++) {
-                        if(availableBots.length === 0) break;
-                        let b = availableBots.shift();
-                        
-                        let baseTix = d.tix;
-                        let rand = Math.random();
-                        if (rand < 0.20 && baseTix < 4) baseTix += 1;
-                        else if (rand > 0.90 && baseTix > 1) baseTix -= 1;
+                for(let i=0; i<totalBotsToInject; i++) {
+                    if(availableBots.length === 0) break;
+                    let b = availableBots.shift();
+                    
+                    let baseTix = distArray[i] || 1;
+                    
+                    // Humanizer: Slightly modify up or down randomly
+                    let rand = Math.random();
+                    if (rand < 0.20 && baseTix < 4) baseTix += 1;
+                    else if (rand > 0.90 && baseTix > 1) baseTix -= 1;
 
-                        gameBotsQueue.push({ bot: b, tixCount: baseTix });
-                    }
+                    gameBotsQueue.push({ bot: b, tixCount: baseTix });
                 }
                 gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
             });
@@ -1888,31 +1884,53 @@ setInterval(() => {
             if (!botsExist) forceWinner = 'real';
 
             if (forceWinner === 'bots') {
-                // 🔥 100% BOT WIN GUARANTEE 🔥
-                // ሰውን BINGO የሚያስብሉትን ቁጥሮች በሙሉ አግልሎ (Block አድርጎ) ደህንነቱ የተጠበቀ ቁጥር ብቻ መጥራት
+                // 🔥 100% BOT WIN GUARANTEE (PANIC MODE INCLUDED) 🔥
                 let availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
                 
-                if (botWinTargetTurn === null) {
-                    let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
-                    botWinTargetTurn = totalBirr >= 400 ? Math.floor(Math.random()*(22-12+1))+12 : Math.floor(Math.random()*(25-12+1))+12;
-                }
+                if (availableToCall.length === 0) {
+                    // 🚨 PANIC MODE: ሰው እንዳያሸንፍ የምንጠራው Safe ቁጥር አለቀ (ሁሉም የቀሩት ቁጥሮች ሰውን ያሸልማሉ)!
+                    // መፍትሄ፡ ሰርቨር ላይ የአንዱን ቦት ካርቴላ በማስተካከል ወዲያውኑ እንዲያሸንፍ እናደርጋለን።
+                    let activeBotsList = Object.values(activePlayers).filter(p => p.isBot);
+                    if (activeBotsList.length > 0) {
+                        let luckyBot = activeBotsList[Math.floor(Math.random() * activeBotsList.length)];
+                        let luckyTicket = luckyBot.ticketsData[0];
+                        let forcedNum = currentDrawSequence[0];
+                        
+                        // የቦቱን የመጀመሪያ ካርቴላ የላይኛውን መስመር እንዲያሸንፍ አድርገን እናስተካክለዋለን
+                        let calledCopy = [...calledNumbers];
+                        luckyTicket.grid[0][0] = calledCopy.length > 0 ? calledCopy[0] : 1;
+                        luckyTicket.grid[1][0] = calledCopy.length > 1 ? calledCopy[1] : 2;
+                        luckyTicket.grid[2][0] = calledCopy.length > 2 ? calledCopy[2] : 3;
+                        luckyTicket.grid[3][0] = calledCopy.length > 3 ? calledCopy[3] : 4;
+                        luckyTicket.grid[4][0] = forcedNum;
 
-                if (turn >= botWinTargetTurn) {
-                    let winningBotNumbers = winForBots.filter(w => availableToCall.includes(w.num));
-                    if (winningBotNumbers.length > 0) numToCall = winningBotNumbers[Math.floor(Math.random() * winningBotNumbers.length)].num;
-                }
-                
-                if (numToCall === null) {
-                    let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
-                    if (safeNumbers.length === 0) safeNumbers = safeForReal.filter(s => availableToCall.includes(s.num));
+                        numToCall = forcedNum;
+                    } else {
+                        numToCall = currentDrawSequence[0];
+                    }
+                } else {
+                    // Safe ቁጥሮች ስላሉ በነፃነት እንጠራለን
+                    if (botWinTargetTurn === null) {
+                        let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
+                        botWinTargetTurn = totalBirr >= 500 ? Math.floor(Math.random()*(18-12+1))+12 : Math.floor(Math.random()*(25-18+1))+18;
+                    }
+
+                    if (turn >= botWinTargetTurn) {
+                        let winningBotNumbers = winForBots.filter(w => availableToCall.includes(w.num));
+                        if (winningBotNumbers.length > 0) numToCall = winningBotNumbers[Math.floor(Math.random() * winningBotNumbers.length)].num;
+                    }
                     
-                    if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
-                    else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                    if (numToCall === null) {
+                        let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
+                        if (safeNumbers.length === 0) safeNumbers = safeForReal.filter(s => availableToCall.includes(s.num));
+                        
+                        if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
+                        else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                    }
                 }
             } 
             else if (forceWinner === 'real') {
                 // 🔥 100% REAL WIN GUARANTEE 🔥
-                // ቦትን BINGO የሚያስብሉትን ቁጥሮች በሙሉ አግልሎ (Block አድርጎ) ለሰው የሚጠቅመውን ብቻ መጥራት
                 let availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 
                 let winningRealNumbers = winForReal.filter(w => availableToCall.includes(w.num));
@@ -1949,7 +1967,7 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                // 🔥 MIX WINNER FORCE LOGIC (ADD EXACT BOT COUNT TO SHARE PRIZE) 🔥
+                // 🔥 MIX WINNER FORCE LOGIC 🔥
                 if (GLOBAL_SETTINGS.botWinnerForce === 'mix') {
                     let actualReals = winnersThisRound.filter(w => !w.player.isBot);
                     
@@ -1961,7 +1979,7 @@ setInterval(() => {
                         let actualBotsToAdd = Math.min(botsToAdd, botPool.length);
 
                         for (let i = 0; i < actualBotsToAdd; i++) {
-                            let b = botPool.pop(); // Take from currently playing bots
+                            let b = botPool.pop(); 
                             let copiedGrid = JSON.parse(JSON.stringify(actualReals[0].ticket.grid));
                             let fakeTicket = { id: getUnusedFakeTicketId(), grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
                             winnersThisRound.push({ player: b, ticket: fakeTicket });
@@ -2005,9 +2023,8 @@ io.on('connection', (socket) => {
         const user = await User.findOne({phone: data.phone});
         
         if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-            // የድርጅቱን ትርፍ እዚህ ጋር እናሰላለን
             let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-            let netToJackpot = betAmount * ((100 - adminProfitPercent) / 100); // ትርፍ ተቀነሰ
+            let netToJackpot = betAmount * ((100 - adminProfitPercent) / 100); 
 
             let playDeducted = 0;
             let mainDeducted = 0;
@@ -2043,7 +2060,7 @@ io.on('connection', (socket) => {
             
             totalTickets += data.ticketCount; 
             totalCollectedMoney += betAmount;
-            totalPrizePool += netToJackpot; // 🔥 ማስተካከያው፡ የተጣራው ብር ብቻ ጃክፖት ላይ ተደመረ
+            totalPrizePool += netToJackpot; 
             
             data.ticketIds.forEach(id => globalTakenTickets.push(id));
             io.emit('update_taken_tickets', globalTakenTickets); 
