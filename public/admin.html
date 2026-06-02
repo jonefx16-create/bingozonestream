@@ -1212,7 +1212,7 @@
         let s4 = { start: parseInt(document.getElementById('s4-start').value)||0, end: parseInt(document.getElementById('s4-end').value)||0, min: parseInt(document.getElementById('s4-min').value)||0, max: parseInt(document.getElementById('s4-max').value)||0 };
 
         try {
-            let res = await fetch('/api/admin/bot-master-update', { 
+            let res = await fetch('/api/admin/bot-master-update-v2', { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
                 body: JSON.stringify({
@@ -1542,6 +1542,19 @@
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             
             if(data.settings) {
+                // 🔥 Sync Bot Toggles directly from global live settings 🔥
+                if(document.activeElement !== document.getElementById('bot-schedule-toggle')) {
+                    let schedToggle = document.getElementById('bot-schedule-toggle');
+                    if(schedToggle) {
+                        schedToggle.checked = data.settings.isBotScheduleActive || false;
+                        toggleScheduleDiv();
+                    }
+                }
+                if(document.activeElement !== document.getElementById('bot-master-toggle')) {
+                    let masterToggle = document.getElementById('bot-master-toggle');
+                    if(masterToggle) masterToggle.checked = data.settings.isBotSystemActive || false;
+                }
+
                 const safeUpdate = (id, val) => {
                     let el = document.getElementById(id);
                     if(el && document.activeElement !== el) el.value = val;
