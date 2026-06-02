@@ -68,6 +68,7 @@
         button.btn-blue { background: var(--blue); color: white; } 
         button.btn-purple { background: var(--purple); color: white; }
         button.btn-orange { background: var(--orange); color: white; }
+        button.btn-gold { background: var(--gold); color: black; }
         button.btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; white-space: nowrap;}
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 600px; }
@@ -463,6 +464,7 @@
             <div style="margin-bottom: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
                 <button class="tx-tab-btn active" id="btn-hist-dep" onclick="filterHistoryTxType('deposit')">⬇️ Deposits</button>
                 <button class="tx-tab-btn" id="btn-hist-wit" onclick="filterHistoryTxType('withdraw')">⬆️ Withdrawals</button>
+                <button class="tx-tab-btn" id="btn-hist-win" onclick="filterHistoryTxType('win')" style="color: var(--gold); border-color: var(--gold);">🏆 Game Wins</button>
                 <button class="tx-tab-btn" id="btn-hist-rej" onclick="filterHistoryTxType('rejected')" style="color: var(--red); border-color: var(--red);">❌ Rejected</button>
             </div>
             
@@ -998,7 +1000,7 @@
 </div>
 
 <div class="modal" id="user-info-modal">
-    <div class="modal-content" style="max-width: 750px; text-align: left;">
+    <div class="modal-content" style="max-width: 800px; text-align: left;">
         <h3 style="color: var(--cyan); margin-top:0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">👤 User Information & History</h3>
         
         <div style="display:flex; flex-wrap:wrap; gap:15px; margin-bottom:15px; font-size:14px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
@@ -1009,10 +1011,26 @@
         </div>
 
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; font-size:13px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Deposited</span><br><b id="ui-tot-dep" style="color:var(--faded-green); font-size:14px;">0</b></div>
-            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Withdrawn</span><br><b id="ui-tot-wit" style="color:var(--red); font-size:14px;">0</b></div>
-            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;"><span style="color:var(--text-gray); font-size:10px;">Total Bonus</span><br><b id="ui-tot-bon" style="color:var(--gold); font-size:14px;">0</b></div>
-            <div style="flex:1; min-width:80px; text-align:center;"><span style="color:var(--text-gray); font-size:10px;">Tickets Bought</span><br><b id="ui-tot-tix" style="color:var(--cyan); font-size:14px;">0</b></div>
+            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;">
+                <span style="color:var(--text-gray); font-size:10px;">Total Deposited</span><br>
+                <b id="ui-tot-dep" style="color:var(--faded-green); font-size:14px;">0</b>
+            </div>
+            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;">
+                <span style="color:var(--text-gray); font-size:10px;">Total Withdrawn</span><br>
+                <b id="ui-tot-wit" style="color:var(--red); font-size:14px;">0</b>
+            </div>
+            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;">
+                <span style="color:var(--text-gray); font-size:10px;">Total Bonus</span><br>
+                <b id="ui-tot-bon" style="color:var(--gold); font-size:14px;">0</b>
+            </div>
+            <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;">
+                <span style="color:var(--text-gray); font-size:10px;">Total Won</span><br>
+                <b id="ui-tot-won" style="color:var(--purple); font-size:14px;">0</b>
+            </div>
+            <div style="flex:1; min-width:80px; text-align:center;">
+                <span style="color:var(--text-gray); font-size:10px;">Tickets Bought</span><br>
+                <b id="ui-tot-tix" style="color:var(--cyan); font-size:14px;">0</b>
+            </div>
         </div>
         
         <span style="font-size: 14px; color: white; display:block; margin-bottom:8px; font-weight:bold;">📜 Recent Transactions:</span>
@@ -1835,6 +1853,7 @@
         currentHistType = type; 
         document.getElementById('btn-hist-dep').className = type === 'deposit' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
         document.getElementById('btn-hist-wit').className = type === 'withdraw' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
+        document.getElementById('btn-hist-win').className = type === 'win' ? 'tx-tab-btn active' : 'tx-tab-btn'; 
         document.getElementById('btn-hist-rej').className = type === 'rejected' ? 'tx-tab-btn active' : 'tx-tab-btn';
         document.getElementById('search-tx').value = '';
         loadTxPage(1);
@@ -2253,6 +2272,7 @@
                 
                 let totalB = (tData.aggBonus || 0) + (u.inviteBonusEarned || 0);
                 document.getElementById('ui-tot-bon').innerText = Number(totalB).toLocaleString();
+                document.getElementById('ui-tot-won').innerText = Number(tData.aggWin || u.won || 0).toLocaleString();
                 document.getElementById('ui-tot-tix').innerText = Number(u.totalTicketsBought || 0).toLocaleString();
 
                 let txHtml = tData.txs.map(t => {
