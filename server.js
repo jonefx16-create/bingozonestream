@@ -906,21 +906,22 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
     }
 });
 
-app.post('/api/admin/bot-master-update', auth, async (req, res) => {
+app.post('/api/admin/bot-master-update-v2', auth, async (req, res) => {
     try {
         let s = await SystemSettings.findOne();
-        s.isBotSystemActive = req.body.isBotSystemActive;
+        s.isBotSystemActive = !!req.body.isBotSystemActive;
         s.botWinnerForce = req.body.botWinnerForce;
         s.mixBotCount = req.body.mixBotCount !== undefined ? req.body.mixBotCount : 1;
         s.botDist1 = req.body.botDist1; s.botDist2 = req.body.botDist2; s.botDist3 = req.body.botDist3; s.botDist4 = req.body.botDist4;
         
-        s.isBotScheduleActive = req.body.isBotScheduleActive;
-        if(req.body.botSchedule1) s.botSchedule1 = req.body.botSchedule1;
-        if(req.body.botSchedule2) s.botSchedule2 = req.body.botSchedule2;
-        if(req.body.botSchedule3) s.botSchedule3 = req.body.botSchedule3;
-        if(req.body.botSchedule4) s.botSchedule4 = req.body.botSchedule4;
+        s.isBotScheduleActive = !!req.body.isBotScheduleActive;
+        if(req.body.botSchedule1) { s.botSchedule1 = req.body.botSchedule1; s.markModified('botSchedule1'); }
+        if(req.body.botSchedule2) { s.botSchedule2 = req.body.botSchedule2; s.markModified('botSchedule2'); }
+        if(req.body.botSchedule3) { s.botSchedule3 = req.body.botSchedule3; s.markModified('botSchedule3'); }
+        if(req.body.botSchedule4) { s.botSchedule4 = req.body.botSchedule4; s.markModified('botSchedule4'); }
 
-        await s.save(); await loadSettings();
+        await s.save(); 
+        await loadSettings();
 
         if(!req.body.isBotSystemActive) {
             gameBotsQueue = []; 
@@ -1910,19 +1911,10 @@ setInterval(() => {
                         let botPool = Object.values(activePlayers).filter(p => p.isBot);
                         botPool = botPool.sort(() => Math.random() - 0.5);
 
-                        for (let i = 0; i < botsToAdd; i++) {
-                            let b;
-                            if (botPool.length > 0) {
-                                b = botPool.pop(); // Take from currently playing bots
-                            } else {
-                                // Guarantee exact bot count by generating fake db bot format if active bots run out
-                                b = {
-                                    name: ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999),
-                                    phone: "09" + Math.floor(10000000 + Math.random() * 90000000),
-                                    isBot: true,
-                                    ticketsData: []
-                                };
-                            }
+                        let actualBotsToAdd = Math.min(botsToAdd, botPool.length);
+
+                        for (let i = 0; i < actualBotsToAdd; i++) {
+                            let b = botPool.pop(); // Take from currently playing bots
                             let copiedGrid = JSON.parse(JSON.stringify(actualReals[0].ticket.grid));
                             let fakeTicket = { id: getUnusedFakeTicketId(), grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
                             winnersThisRound.push({ player: b, ticket: fakeTicket });
