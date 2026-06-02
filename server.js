@@ -1782,19 +1782,9 @@ setInterval(() => {
             });
         }
 
+        // 🔥 የቦቶች ትርፍ አቆራረጥ ስሌት (Smooth Queue Processor ውስጥ የሚገባ)
         if (gameBotsQueue.length > 0 && gameClock > 3 && gameState === "WAITING") {
-            let timeRemainingForBots = gameClock - 3; 
-            let idealRate = gameBotsQueue.length / timeRemainingForBots; 
-
-            let maxBotsThisTick = Math.ceil(idealRate * 1.8); 
-            let minBotsThisTick = 0;
-            if (idealRate > 3) minBotsThisTick = 1; 
-
-            let botsToInjectNow = Math.floor(Math.random() * (maxBotsThisTick - minBotsThisTick + 1)) + minBotsThisTick;
-            if (timeRemainingForBots <= 2) {
-                botsToInjectNow = gameBotsQueue.length;
-            }
-            if (botsToInjectNow > gameBotsQueue.length) botsToInjectNow = gameBotsQueue.length;
+            // ... (ሌላው የቆጠራ ስሌት እንዳለ ሆኖ) ...
 
             let didInject = false;
             for(let i=0; i<botsToInjectNow; i++) {
@@ -1804,8 +1794,13 @@ setInterval(() => {
                 let buyNow = queueItem.tixCount;
                 
                 let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
-                totalPrizePool += cost;
-                totalTickets += buyNow;
+
+                // 🛑 ዋናው ማስተካከያ እዚህ ጋር ነው፡
+                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15; // የትርፍ መጠኑን ያነባል
+                let netToJackpot = cost * ((100 - adminProfitPercent) / 100); // ትርፉን ይቀንሳል
+
+                totalPrizePool += netToJackpot; // 🔥 የተጣራው ብቻ ጃክፖት ላይ ተደመረ
+                totalCollectedMoney += cost;    // ለድርጅቱ ገቢ (Turnover) ሙሉው ተመዘገበ
 
                 let ticketsData = [];
                 for(let t=0; t<buyNow; t++) {
