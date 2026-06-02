@@ -97,7 +97,6 @@
         .p-stat-title { font-size: 10px; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px; display: block; }
         .p-stat-val { font-size: 18px; font-weight: 900; color: white; }
 
-        /* 🔥 BOT TOGGLE SWITCH 🔥 */
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; margin: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 34px; }
@@ -142,7 +141,6 @@
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-players', this)"><div>🎮 Players & Bets Info</div></button>
         
-        <!-- 🔥 BOT CONTROL 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-bots-db', this); loadBotDB();" style="color:var(--faded-green);"><div>🤖 Bot Database & Settings</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-promo-codes', this); loadPromoCodes();" style="color:var(--gold);"><div>🎟️ Promo Codes (ኩፖን)</div></button>
@@ -166,7 +164,6 @@
                 <button class="menu-toggle-btn" onclick="toggleSidebar()" style="margin-right: 0;">☰</button>
                 <h2 id="page-title" style="margin: 0; margin-right: 15px;">📊 Live & Analytics</h2>
                 
-                <!-- 🔥 HEADER GAME STATUS & JACKPOT 🔥 -->
                 <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--border); padding: 5px 15px; border-radius: 8px; display:flex; gap:15px; align-items:center;">
                     <div>
                         <span style="font-size:10px; color:var(--text-gray); display:block; text-transform:uppercase;">Game Status</span>
@@ -214,7 +211,6 @@
                 <div class="stat-card" style="border-bottom: 4px solid var(--faded-green);"><h3>📥 Daily Deposit (Today)</h3><h2 style="color: var(--faded-green);" id="stat-daily-dep">0.00 ETB</h2></div>
                 <div class="stat-card" style="border-bottom: 4px solid var(--red);"><h3>📤 Daily Withdraw (Today)</h3><h2 style="color: var(--red);" id="stat-daily-wit">0.00 ETB</h2></div>
                 
-                <!-- 🔥 Total Unplayed Bonus 🔥 -->
                 <div class="stat-card" style="border-bottom: 4px solid var(--purple);">
                     <h3>🎁 Total Unplayed Bonus</h3>
                     <h2 style="color: var(--purple);" id="stat-total-unplayed">0.00 ETB</h2>
@@ -241,7 +237,6 @@
                         </label>
                     </div>
 
-                    <!-- 🔥 MIX WINNER ተጨምሯል 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">2. Winner Control (ማን ያሸንፍ?)</div>
                         
@@ -262,7 +257,6 @@
                             </label>
                         </div>
                         
-                        <!-- Mix Bot Count Input -->
                         <div id="mix-count-container" style="display:none; margin-top:10px;">
                             <label style="font-size:11px; color:var(--gold);">ሰው ሲያሸንፍ ስንት ቦት አብሮት ያሸንፍ? (Mix Bot Count)</label>
                             <input type="number" id="mix-bot-count" placeholder="e.g. 1" style="width:100%; margin-top:5px; margin-bottom:0;">
@@ -280,12 +274,12 @@
                         </div>
                     </div>
 
-                    <!-- 🔥 BOT SCHEDULE ተጨምሯል 🔥 -->
+                    <!-- 🔥 BOT SCHEDULE 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
                             <div>
                                 <div style="font-weight:bold; font-size:14px; color:white;">4. Auto Bot Schedule (በሰዓት)</div>
-                                <div style="font-size:11px; color:var(--text-gray);">ይህ ከበራ ከላይ ያለው Distribution አይሰራም፣ በሰዓቱ መሰረት ያስገባል</div>
+                                <div style="font-size:11px; color:var(--text-gray);">ይህ ከበራ Schedule ብቻ ሰዓት እና ብዛት ይቆጣጠራል (ስርጭት ግን ከላይ ባለው ይሰራል)</div>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" id="bot-schedule-toggle" onchange="toggleScheduleDiv()">
@@ -293,34 +287,42 @@
                             </label>
                         </div>
                         
+                        <!-- 🔥 LIVE SCHEDULE STATUS INDICATOR 🔥 -->
+                        <div id="active-schedule-info" style="background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none;">
+                            <div style="font-size: 14px; margin-bottom: 5px; font-weight:bold;">🟢 Active Schedule: <b id="sch-active-name" style="color: var(--faded-green);">Loading...</b></div>
+                            <div style="font-size: 12px; color: var(--text-gray); margin-bottom: 3px;">⏱ Time Range: <b id="sch-active-range" style="color: var(--cyan);">-</b> | Current EAT: <b id="sch-current-time" style="color: var(--gold);">-</b></div>
+                            <div style="font-size: 12px; color: var(--text-gray); margin-bottom: 3px;">🤖 Target Range: <b id="sch-active-target" style="color: var(--purple);">-</b> bots</div>
+                            <div style="font-size: 12px; color: var(--text-gray);">🔥 Currently Injected: <b id="sch-active-injected" style="color: var(--orange); font-size:14px;">-</b> bots</div>
+                        </div>
+
                         <div id="schedule-container" style="display:none; flex-direction:column; gap:8px;">
                             <div style="display:flex; gap:5px; align-items:center;">
                                 <span style="color:var(--text-gray); font-size:11px; width:40px;">Sch 1:</span>
-                                <input type="number" id="s1-start" placeholder="Start" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s1-start" placeholder="Start (0-23)" style="margin:0; padding:8px; font-size:12px;">
                                 <input type="number" id="s1-end" placeholder="End" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s1-min" placeholder="Min" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s1-max" placeholder="Max" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s1-min" placeholder="Min Bots" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s1-max" placeholder="Max Bots" style="margin:0; padding:8px; font-size:12px;">
                             </div>
                             <div style="display:flex; gap:5px; align-items:center;">
                                 <span style="color:var(--text-gray); font-size:11px; width:40px;">Sch 2:</span>
                                 <input type="number" id="s2-start" placeholder="Start" style="margin:0; padding:8px; font-size:12px;">
                                 <input type="number" id="s2-end" placeholder="End" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s2-min" placeholder="Min" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s2-max" placeholder="Max" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s2-min" placeholder="Min Bots" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s2-max" placeholder="Max Bots" style="margin:0; padding:8px; font-size:12px;">
                             </div>
                             <div style="display:flex; gap:5px; align-items:center;">
                                 <span style="color:var(--text-gray); font-size:11px; width:40px;">Sch 3:</span>
                                 <input type="number" id="s3-start" placeholder="Start" style="margin:0; padding:8px; font-size:12px;">
                                 <input type="number" id="s3-end" placeholder="End" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s3-min" placeholder="Min" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s3-max" placeholder="Max" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s3-min" placeholder="Min Bots" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s3-max" placeholder="Max Bots" style="margin:0; padding:8px; font-size:12px;">
                             </div>
                             <div style="display:flex; gap:5px; align-items:center;">
                                 <span style="color:var(--text-gray); font-size:11px; width:40px;">Sch 4:</span>
                                 <input type="number" id="s4-start" placeholder="Start" style="margin:0; padding:8px; font-size:12px;">
                                 <input type="number" id="s4-end" placeholder="End" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s4-min" placeholder="Min" style="margin:0; padding:8px; font-size:12px;">
-                                <input type="number" id="s4-max" placeholder="Max" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s4-min" placeholder="Min Bots" style="margin:0; padding:8px; font-size:12px;">
+                                <input type="number" id="s4-max" placeholder="Max Bots" style="margin:0; padding:8px; font-size:12px;">
                             </div>
                         </div>
                     </div>
@@ -331,7 +333,6 @@
                 <!-- RIGHT SIDE (ADD & INJECT BOTS) -->
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 300px;">
                     
-                    <!-- ➕ Add Custom Bots -->
                     <div class="card" style="border-left: 4px solid var(--purple); margin: 0;">
                         <h3 style="margin-top:0; color:var(--purple);">➕ Add Bots (ወደ ዳታቤዝ ጨምር)</h3>
                         <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከታች ቁጥር በማስገባት አዳዲስ ቦቶችን ወደ ዳታቤዝ መጨመር ይችላሉ (በኢትዮጵያዊ ስም ይፈጠራሉ)።</p>
@@ -341,7 +342,6 @@
                         </div>
                     </div>
 
-                    <!-- ⚡ Instant Live Injection -->
                     <div class="card" style="border-left: 4px solid var(--faded-green); margin: 0; flex: 1;">
                         <h3 style="margin-top:0; color:var(--faded-green);">⚡ Live Inject (አሁኑኑ ጌም አስገባ)</h3>
                         <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ቁጥሩን ሲፅፉ ስርጭቱን እና ጃክፖቱን ያሰላል። ካረጋገጡ በኋላ አስገባን ይጫኑ።</p>
@@ -349,7 +349,6 @@
                             <input type="number" id="instant-bot-amount" placeholder="ብዛት (e.g. 50)" oninput="previewLiveInject()" style="flex:2; margin-bottom:0;">
                             <button class="action-btn" onclick="injectLiveBots()" style="flex:1; background:var(--faded-green); color:black;">🔥 አስገባ (Inject)</button>
                         </div>
-                        <!-- 🔥 Live Inject Calculator Preview 🔥 -->
                         <div id="live-inject-preview" style="display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--faded-green); margin-top:10px; font-size:12px; color:white;">
                         </div>
                     </div>
@@ -357,7 +356,6 @@
                 </div>
             </div>
 
-            <!-- BOT DATABASE TABLE -->
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-bot" onkeyup="simpleSearch('search-bot', 'table-bots')" placeholder="🔍 Search Bot Name or Phone...">
                 <input type="number" id="rename-bot-limit" placeholder="ስንት ቦት? (ባዶ = ሁሉንም)" style="width: 150px; background:#000; color:white; border:1px solid var(--orange); padding:8px; border-radius:6px;">
@@ -842,7 +840,6 @@
                     <div class="card" style="border-left: 4px solid var(--blue);">
                         <h3 style="margin-top:0; color:var(--blue);">🔐 Security & General</h3>
                         
-                        <!-- 🔥 Telegram Channel Input 🔥 -->
                         <label style="font-weight:bold; color:var(--blue);">✈️ Telegram Verify Channel</label>
                         <div style="display:flex; gap:10px; margin-bottom: 15px;">
                             <input type="text" id="set-tg-channel" placeholder="e.g. @bingohabesha (ባዶ ከሆነ አይጠይቅም)">
@@ -873,7 +870,6 @@
 
 <!-- ================= MODALS ================= -->
 
-<!-- 🔥 EDIT BOT MODAL 🔥 -->
 <div class="modal" id="edit-bot-modal">
     <div class="modal-content" style="max-width: 400px;">
         <h3 style="color: var(--cyan); margin-top:0;">🤖 Edit Bot Settings</h3>
@@ -1135,7 +1131,6 @@
                 let radios = document.getElementsByName('bot-master-winner');
                 for(let r of radios) { if(r.value === data.settings.botWinnerForce) r.checked = true; }
                 
-                // Mix & Schedule Data Loader
                 document.getElementById('mix-bot-count').value = data.settings.mixBotCount || 1;
                 toggleMixInput();
 
@@ -1344,7 +1339,7 @@
         let c1 = Math.round((base1/totalRatio) * amt);
         let c2 = Math.round((base2/totalRatio) * amt);
         let c3 = Math.round((base3/totalRatio) * amt);
-        let c4 = amt - (c1 + c2 + c3);
+        let c4 = Math.max(0, amt - (c1 + c2 + c3));
 
         document.getElementById('bot-d1').value = Math.max(0, c1);
         document.getElementById('bot-d2').value = Math.max(0, c2);
@@ -1519,6 +1514,22 @@
             }
 
             if(document.getElementById('tab-bots-db').classList.contains('active')) {
+                
+                if (data.scheduleStatus && data.scheduleStatus.active) {
+                    let sInfo = document.getElementById('active-schedule-info');
+                    if (sInfo) {
+                        sInfo.style.display = 'block';
+                        document.getElementById('sch-active-name').innerText = data.scheduleStatus.name;
+                        document.getElementById('sch-active-range').innerText = data.scheduleStatus.start + ":00 - " + data.scheduleStatus.end + ":00";
+                        document.getElementById('sch-current-time').innerText = data.scheduleStatus.time;
+                        document.getElementById('sch-active-target').innerText = data.scheduleStatus.min + " to " + data.scheduleStatus.max;
+                        document.getElementById('sch-active-injected').innerText = data.botPlayersCount; 
+                    }
+                } else {
+                    let sInfo = document.getElementById('active-schedule-info');
+                    if(sInfo) sInfo.style.display = 'none';
+                }
+
                 document.querySelectorAll('#bots-body tr').forEach(row => {
                     let phoneCell = row.querySelector('.bot-phone-cell');
                     let statusCell = row.querySelector('.bot-status-cell');
@@ -1542,7 +1553,6 @@
             if(isGameCurrentlyPaused) { pBtn.innerText = "▶️ Resume Game"; pBtn.className = "action-btn"; } else { pBtn.innerText = "⏸️ Pause Game (Maintenance)"; pBtn.className = "action-btn btn-orange"; }
             
             if(data.settings) {
-                // 🔥 Sync Bot Toggles directly from global live settings 🔥
                 if(document.activeElement !== document.getElementById('bot-schedule-toggle')) {
                     let schedToggle = document.getElementById('bot-schedule-toggle');
                     if(schedToggle) {
@@ -1628,7 +1638,7 @@
             }
         } catch(e) { console.log(e); }
     }
-    setInterval(loadLiveStats, 5000);
+    setInterval(loadLiveStats, 3000); // 3 seconds interval for faster live tracking update
 
     function fullRefresh() {
         loadLiveStats();
