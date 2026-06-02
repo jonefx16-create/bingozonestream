@@ -1912,7 +1912,19 @@ setInterval(() => {
                     // Safe ቁጥሮች ስላሉ በነፃነት እንጠራለን
                     if (botWinTargetTurn === null) {
                         let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
-                        botWinTargetTurn = totalBirr >= 500 ? Math.floor(Math.random()*(18-12+1))+12 : Math.floor(Math.random()*(25-18+1))+18;
+                        
+                        if (totalBirr < 450) {
+                            // ከ450 ብር በታች ከሆነ: ከ 17 እስከ 24 ባለው ጥሪ ያሸንፋል (ለሰው እድል ይሰጣል)
+                            botWinTargetTurn = Math.floor(Math.random() * (24 - 17 + 1)) + 17;
+                        } 
+                        else if (totalBirr >= 450 && totalBirr < 600) {
+                            // ከ450 ብር እስከ 600 ብር ከሆነ: ከ 12 እስከ 22 ባለው ጥሪ ያሸንፋል
+                            botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
+                        } 
+                        else {
+                            // 600 ብር እና ከዚያ በላይ ከሆነ (ትልቅ ብር ሲሆን): ከ 12 እስከ 21 ባለው ቶሎ ያሸንፋል
+                            botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
+                        }
                     }
 
                     if (turn >= botWinTargetTurn) {
