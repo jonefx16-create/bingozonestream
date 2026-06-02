@@ -2002,49 +2002,53 @@ io.on('connection', (socket) => {
             }
 
             const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
-            const user = await User.findOne({phone: data.phone});
+        const user = await User.findOne({phone: data.phone});
+        
+        if(user && (user.playBalance + user.mainBalance) >= betAmount) {
+            // የድርጅቱን ትርፍ እዚህ ጋር እናሰላለን
+            let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+            let netToJackpot = betAmount * ((100 - adminProfitPercent) / 100); // ትርፍ ተቀነሰ
+
+            let playDeducted = 0;
+            let mainDeducted = 0;
             
-            if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-                let playDeducted = 0;
-                let mainDeducted = 0;
-                
-                if (user.playBalance >= betAmount) { 
-                    user.playBalance -= betAmount;
-                    playDeducted = betAmount;
-                } else { 
-                    playDeducted = user.playBalance;
-                    mainDeducted = betAmount - user.playBalance;
-                    user.mainBalance -= mainDeducted; 
-                    user.playBalance = 0; 
-                }
-                
-                user.played += 1; 
-                user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
-                await user.save();
-
-                let playPerTicket = playDeducted / data.ticketCount;
-                let mainPerTicket = mainDeducted / data.ticketCount;
-                
-                data.ticketsData.forEach(t => {
-                    t.paidFromPlay = playPerTicket;
-                    t.paidFromMain = mainPerTicket;
-                });
-
-                if (!activePlayers[data.phone]) {
-                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false };
-                } else { 
-                    activePlayers[data.phone].tickets += data.ticketCount; 
-                    activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
-                }
-                
-                totalTickets += data.ticketCount; 
-                totalCollectedMoney += betAmount;
-                totalPrizePool += betAmount * ((100 - GLOBAL_SETTINGS.adminProfitPercent) / 100);
-                
-                data.ticketIds.forEach(id => globalTakenTickets.push(id));
-                io.emit('update_taken_tickets', globalTakenTickets); 
-                socket.emit('balance_updated', data.phone);
+            if (user.playBalance >= betAmount) { 
+                user.playBalance -= betAmount;
+                playDeducted = betAmount;
+            } else { 
+                playDeducted = user.playBalance;
+                mainDeducted = betAmount - user.playBalance;
+                user.mainBalance -= mainDeducted; 
+                user.playBalance = 0; 
             }
+            
+            user.played += 1; 
+            user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
+            await user.save();
+
+            let playPerTicket = playDeducted / data.ticketCount;
+            let mainPerTicket = mainDeducted / data.ticketCount;
+            
+            data.ticketsData.forEach(t => {
+                t.paidFromPlay = playPerTicket;
+                t.paidFromMain = mainPerTicket;
+            });
+
+            if (!activePlayers[data.phone]) {
+                activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false };
+            } else { 
+                activePlayers[data.phone].tickets += data.ticketCount; 
+                activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
+            }
+            
+            totalTickets += data.ticketCount; 
+            totalCollectedMoney += betAmount;
+            totalPrizePool += netToJackpot; // 🔥 ማስተካከያው፡ የተጣራው ብር ብቻ ጃክፖት ላይ ተደመረ
+            
+            data.ticketIds.forEach(id => globalTakenTickets.push(id));
+            io.emit('update_taken_tickets', globalTakenTickets); 
+            socket.emit('balance_updated', data.phone);
+        }
         } finally {
             delete buyingLocks[data.phone];
         }
