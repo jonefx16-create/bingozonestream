@@ -1401,26 +1401,24 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
 });
 
 // 🔥 NEW PROMO BROADCAST LOGIC (TG, WEB, BOTH) 🔥
+let isBroadcasting = false; // ድግግሞሽን የሚከለክል Lock
+
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
+    if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
+    isBroadcasting = true;
     try {
         const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly, platform } = req.body;
         let expires = new Date(Date.now() + (minutes * 60000));
         await ActiveBonus.updateMany({}, { isActive: false });
         
         await new ActiveBonus({ 
-            amount, 
-            maxUsers, 
-            expiresAt: expires, 
-            isActive: true,
-            depositorsOnly: depositorsOnly
+            amount, maxUsers, expiresAt: expires, isActive: true, depositorsOnly: depositorsOnly
         }).save();
         
-        // 1. Web Broadcast
         if (platform === 'web' || platform === 'both') {
             io.emit('new_promo_alert', { amount: amount, msg: message });
         }
 
-        // 2. Telegram Broadcast
         if ((platform === 'tg' || platform === 'both') && message) {
             let query = { telegramId: { $ne: "" } };
             if (depositorsOnly) query.totalDeposited = { $gt: 0 };
@@ -1448,12 +1446,16 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
         res.json({ success: true, message: `✅ Promo Created & Broadcasted Successfully!` });
     } catch (e) {
         res.status(500).json({ success: false, message: "Error processing promo." });
+    } finally {
+        isBroadcasting = false;
     }
 });
 
 let lastBroadcasts = []; 
 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
+    if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
+    isBroadcasting = true;
     try {
         const { message, photoUrl, depositorsOnly } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
@@ -1476,7 +1478,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
             } catch(e) {} 
         }
         res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
-    } catch (e) { res.status(500).json({ success: false, message: "Error sending broadcast." }); }
+    } catch (e) { 
+        res.status(500).json({ success: false, message: "Error sending broadcast." }); 
+    } finally {
+        isBroadcasting = false;
+    }
 });
 
 app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
@@ -1884,47 +1890,19 @@ setInterval(() => {
             if (!botsExist) forceWinner = 'real';
 
             if (forceWinner === 'bots') {
-                // 🔥 100% BOT WIN GUARANTEE (PANIC MODE INCLUDED) 🔥
+                // 🔥 100% BOT WIN GUARANTEE (ORGANIC - NO PANIC MODE) 🔥
                 let availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
                 
                 if (availableToCall.length === 0) {
-                    // 🚨 PANIC MODE: ሰው እንዳያሸንፍ የምንጠራው Safe ቁጥር አለቀ (ሁሉም የቀሩት ቁጥሮች ሰውን ያሸልማሉ)!
-                    // መፍትሄ፡ ሰርቨር ላይ የአንዱን ቦት ካርቴላ በማስተካከል ወዲያውኑ እንዲያሸንፍ እናደርጋለን።
-                    let activeBotsList = Object.values(activePlayers).filter(p => p.isBot);
-                    if (activeBotsList.length > 0) {
-                        let luckyBot = activeBotsList[Math.floor(Math.random() * activeBotsList.length)];
-                        let luckyTicket = luckyBot.ticketsData[0];
-                        let forcedNum = currentDrawSequence[0];
-                        
-                        // የቦቱን የመጀመሪያ ካርቴላ የላይኛውን መስመር እንዲያሸንፍ አድርገን እናስተካክለዋለን
-                        let calledCopy = [...calledNumbers];
-                        luckyTicket.grid[0][0] = calledCopy.length > 0 ? calledCopy[0] : 1;
-                        luckyTicket.grid[1][0] = calledCopy.length > 1 ? calledCopy[1] : 2;
-                        luckyTicket.grid[2][0] = calledCopy.length > 2 ? calledCopy[2] : 3;
-                        luckyTicket.grid[3][0] = calledCopy.length > 3 ? calledCopy[3] : 4;
-                        luckyTicket.grid[4][0] = forcedNum;
-
-                        numToCall = forcedNum;
-                    } else {
-                        numToCall = currentDrawSequence[0];
-                    }
+                    let botWinNums = winForBots.map(w => w.num);
+                    if (botWinNums.length > 0) numToCall = botWinNums[0];
+                    else numToCall = currentDrawSequence[0];
                 } else {
-                    // Safe ቁጥሮች ስላሉ በነፃነት እንጠራለን
                     if (botWinTargetTurn === null) {
                         let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
-                        
-                        if (totalBirr < 450) {
-                            // ከ450 ብር በታች ከሆነ: ከ 17 እስከ 24 ባለው ጥሪ ያሸንፋል (ለሰው እድል ይሰጣል)
-                            botWinTargetTurn = Math.floor(Math.random() * (24 - 17 + 1)) + 17;
-                        } 
-                        else if (totalBirr >= 450 && totalBirr < 600) {
-                            // ከ450 ብር እስከ 600 ብር ከሆነ: ከ 12 እስከ 22 ባለው ጥሪ ያሸንፋል
-                            botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
-                        } 
-                        else {
-                            // 600 ብር እና ከዚያ በላይ ከሆነ (ትልቅ ብር ሲሆን): ከ 12 እስከ 21 ባለው ቶሎ ያሸንፋል
-                            botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
-                        }
+                        if (totalBirr < 450) botWinTargetTurn = Math.floor(Math.random() * (24 - 17 + 1)) + 17;
+                        else if (totalBirr >= 450 && totalBirr < 600) botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
+                        else botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
                     }
 
                     if (turn >= botWinTargetTurn) {
@@ -1933,14 +1911,35 @@ setInterval(() => {
                     }
                     
                     if (numToCall === null) {
-                        let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
-                        if (safeNumbers.length === 0) safeNumbers = safeForReal.filter(s => availableToCall.includes(s.num));
+                        // ቦቱን ቶሎ ለማሞላት (Organic) የቦት ካርቴላ ላይ ያሉትን ቁጥሮች ብቻ ቅድሚያ እንጠራለን
+                        let botNeededNumbers = new Set();
+                        for (let p of Object.values(activePlayers)) {
+                            if (p.isBot) {
+                                for (let t of p.ticketsData) {
+                                    for(let r=0; r<5; r++) {
+                                        for(let c=0; c<5; c++) {
+                                            if (t.grid[r][c] !== "FREE") botNeededNumbers.add(t.grid[r][c]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        let botFavored = completelySafe.filter(s => availableToCall.includes(s.num) && botNeededNumbers.has(s.num));
+                        if (botFavored.length === 0) botFavored = safeForReal.filter(s => availableToCall.includes(s.num) && botNeededNumbers.has(s.num));
                         
-                        if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
-                        else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                        if (botFavored.length > 0) {
+                            numToCall = botFavored[Math.floor(Math.random() * botFavored.length)].num;
+                        } else {
+                            let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
+                            if (safeNumbers.length === 0) safeNumbers = safeForReal.filter(s => availableToCall.includes(s.num));
+                            
+                            if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
+                            else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                        }
                     }
                 }
-            } 
+            }
             else if (forceWinner === 'real') {
                 // 🔥 100% REAL WIN GUARANTEE 🔥
                 let availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
