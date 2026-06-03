@@ -525,7 +525,10 @@
                     <label style="color:var(--faded-green); font-size:13px; font-weight:bold; cursor:pointer; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
                         <input type="checkbox" id="add-promo-req-dep" onchange="togglePromoHours()"> ገቢ (Deposit) ላደረጉ ሰዎች ብቻ
                     </label>
-                    <input type="number" id="add-promo-hours" placeholder="በስንት ሰዓት ውስጥ? (e.g. 24)" style="flex:1; margin-bottom:0; max-width: 250px; display: none;">
+                    <div id="promo-dep-options" style="display:none; flex:2; gap:10px;">
+                        <input type="number" id="add-promo-min-dep" placeholder="ቢያንስ ስንት ብር? (e.g. 100)" style="flex:1; margin-bottom:0;">
+                        <input type="number" id="add-promo-hours" placeholder="በስንት ሰዓት ውስጥ? (e.g. 24)" style="flex:1; margin-bottom:0;">
+                    </div>
                     <button class="action-btn" onclick="createPromoCode()" style="background:var(--gold); color:black; font-weight:bold; flex:1; min-width:200px;">✅ Create Promo Code</button>
                 </div>
                 <p style="font-size:11px; color:gray; margin-top:5px; margin-bottom:0;" id="add-promo-hours-hint" style="display:none;">* 'በስንት ሰዓት' የሚለውን ባዶ ከተዉት፣ ማንኛውም ጊዜ Deposit ያደረገ ሰው ሊወስደው ይችላል።</p>
@@ -767,8 +770,14 @@
                     <textarea id="cb-msg" rows="4" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="መልዕክትዎን እዚህ ይፃፉ..."></textarea>
                     
                     <label style="display:block; margin-bottom:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
-                        <input type="checkbox" id="cb-dep-only"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ ይላክ (እንዲወስዱትም ይፈቀድ)</span>
+                        <input type="checkbox" id="cb-dep-only" onchange="toggleBroadcastDepOptions('cb')"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ</span>
                     </label>
+                    
+                    <div id="cb-dep-options" style="display:none; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                        <input type="number" id="cb-min-dep" placeholder="ቢያንስ ስንት ብር ያስገባ? (e.g. 100)" style="flex:1; margin-bottom:0;">
+                        <input type="number" id="cb-dep-hours" placeholder="በስንት ሰዓት ውስጥ? (e.g. 24)" style="flex:1; margin-bottom:0;">
+                        <div style="flex-basis: 100%; font-size:11px; color:gray;">* ሰዓቱን ባዶ ከተዉት ከዚህ በፊት መቼም ቢሆን ብር ያስገባን ሰው ያጠቃልላል።</div>
+                    </div>
 
                     <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast</button>
                     <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ View Claimed Users</button>
@@ -785,8 +794,13 @@
                     <textarea id="tg-msg" rows="5" style="width:100%; background:#000; color:white; border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:10px;" placeholder="Write message here..."></textarea>
                     
                     <label style="display:block; margin-bottom:15px; cursor:pointer; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid #334155;">
-                        <input type="checkbox" id="tg-dep-only"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ ይላክ</span>
+                        <input type="checkbox" id="tg-dep-only" onchange="toggleBroadcastDepOptions('tg')"> <span style="color:var(--gold); font-weight:bold; font-size:13px;">💰 ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ</span>
                     </label>
+                    
+                    <div id="tg-dep-options" style="display:none; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                        <input type="number" id="tg-min-dep" placeholder="ቢያንስ ስንት ብር ያስገባ?" style="flex:1; margin-bottom:0;">
+                        <input type="number" id="tg-dep-hours" placeholder="በስንት ሰዓት ውስጥ?" style="flex:1; margin-bottom:0;">
+                    </div>
 
                     <div style="display:flex; gap:10px;">
                         <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast to Telegram</button>
@@ -1137,8 +1151,13 @@
 
     function togglePromoHours() {
         let isChecked = document.getElementById('add-promo-req-dep').checked;
-        document.getElementById('add-promo-hours').style.display = isChecked ? 'block' : 'none';
+        document.getElementById('promo-dep-options').style.display = isChecked ? 'flex' : 'none';
         document.getElementById('add-promo-hours-hint').style.display = isChecked ? 'block' : 'none';
+    }
+
+    function toggleBroadcastDepOptions(prefix) {
+        let isChecked = document.getElementById(`${prefix}-dep-only`).checked;
+        document.getElementById(`${prefix}-dep-options`).style.display = isChecked ? 'flex' : 'none';
     }
 
     async function loadBotDB() {
@@ -1658,7 +1677,7 @@
             }
         } catch(e) { console.log(e); }
     }
-    setInterval(loadLiveStats, 3000); // 3 seconds interval for faster live tracking update
+    setInterval(loadLiveStats, 3000); 
 
     function fullRefresh() {
         loadLiveStats();
@@ -1962,7 +1981,7 @@
                     let isFull = c.currentUses >= c.maxUses;
                     let status = (isExpired || isFull) ? '<span class="badge bg-rejected">INACTIVE</span>' : '<span class="badge bg-approved">ACTIVE</span>';
                     
-                    let reqDepRule = c.requireDeposit ? '<span style="color:#f59e0b; font-size:11px; font-weight:bold;">ገቢ ላደረጉ ብቻ</span>' : '<span style="color:gray; font-size:11px;">ለሁሉም</span>';
+                    let reqDepRule = c.requireDeposit ? `<span style="color:#f59e0b; font-size:11px; font-weight:bold;">ገቢ ያደረጉ ቢያንስ ${c.minDepositAmount||0}ETB</span>` : '<span style="color:gray; font-size:11px;">ለሁሉም</span>';
                     if (c.requireDeposit && c.requireDepositWithinHours > 0) {
                         reqDepRule += `<br><span style="color:#38bdf8; font-size:10px;">(በ ${c.requireDepositWithinHours} ሰዓት ውስጥ)</span>`;
                     }
@@ -1985,6 +2004,7 @@
         let amount = document.getElementById('add-promo-amount').value;
         let max = document.getElementById('add-promo-max').value;
         let requiresDep = document.getElementById('add-promo-req-dep').checked;
+        let reqDepMin = document.getElementById('add-promo-min-dep').value;
         let reqDepHours = document.getElementById('add-promo-hours').value;
 
         if(!code || !amount || !max) return alert("እባክዎ ሁሉንም መረጃ ይሙሉ!");
@@ -1995,6 +2015,7 @@
             amount, 
             maxUses: max, 
             requireDeposit: requiresDep,
+            minDepositAmount: requiresDep && reqDepMin ? Number(reqDepMin) : 0,
             requireDepositWithinHours: requiresDep && reqDepHours ? Number(reqDepHours) : 0
         };
 
@@ -2007,6 +2028,7 @@
                 document.getElementById('add-promo-amount').value = ''; 
                 document.getElementById('add-promo-max').value = '';
                 document.getElementById('add-promo-req-dep').checked = false;
+                document.getElementById('add-promo-min-dep').value = '';
                 document.getElementById('add-promo-hours').value = '';
                 togglePromoHours();
                 loadPromoCodes();
@@ -2362,6 +2384,8 @@
         let photoUrl = document.getElementById('cb-photo-url').value.trim(); 
         let fileInput = document.getElementById('cb-photo-file'); 
         let depOnly = document.getElementById('cb-dep-only').checked;
+        let minDep = document.getElementById('cb-min-dep').value;
+        let depHours = document.getElementById('cb-dep-hours').value;
         let platform = document.getElementById('cb-platform').value;
 
         if(!maxUsers || !amount || !minutes || !msg) return alert("Fill all details!"); 
@@ -2376,6 +2400,8 @@
             message: msg, 
             photoUrl: photoUrl, 
             depositorsOnly: depOnly,
+            minDepositAmount: depOnly && minDep ? Number(minDep) : 0,
+            requireDepositWithinHours: depOnly && depHours ? Number(depHours) : 0,
             platform: platform
         }; 
         
@@ -2396,6 +2422,9 @@
                 document.getElementById('cb-minutes').value = ''; document.getElementById('cb-msg').value = ''; 
                 document.getElementById('cb-photo-file').value = ''; document.getElementById('cb-photo-url').value = '';
                 document.getElementById('cb-dep-only').checked = false;
+                document.getElementById('cb-min-dep').value = '';
+                document.getElementById('cb-dep-hours').value = '';
+                toggleBroadcastDepOptions('cb');
             } 
         } catch(e) { alert("Error"); } 
         btn.innerText = "Create Promo & Broadcast"; 
@@ -2408,12 +2437,21 @@
         let photoUrl = document.getElementById('tg-photo-url').value.trim(); 
         let fileInput = document.getElementById('tg-photo-file'); 
         let depOnly = document.getElementById('tg-dep-only').checked; 
+        let minDep = document.getElementById('tg-min-dep').value;
+        let depHours = document.getElementById('tg-dep-hours').value;
 
         if(!msg) return alert("Enter a message"); 
         let btn = document.querySelector('#tab-telegram .btn-blue'); 
         btn.innerText = "Sending..."; 
         
-        let payload = {adminPass: pass, message: msg, photoUrl: photoUrl, depositorsOnly: depOnly};
+        let payload = {
+            adminPass: pass, 
+            message: msg, 
+            photoUrl: photoUrl, 
+            depositorsOnly: depOnly,
+            minDepositAmount: depOnly && minDep ? Number(minDep) : 0,
+            requireDepositWithinHours: depOnly && depHours ? Number(depHours) : 0
+        };
 
         if (fileInput.files.length > 0) { 
             let reader = new FileReader(); 
@@ -2434,6 +2472,9 @@
                 document.getElementById('tg-photo-file').value = ''; 
                 document.getElementById('tg-photo-url').value = ''; 
                 document.getElementById('tg-dep-only').checked = false;
+                document.getElementById('tg-min-dep').value = '';
+                document.getElementById('tg-dep-hours').value = '';
+                toggleBroadcastDepOptions('tg');
             } 
         } catch(e) { 
             alert("Error sending."); 
