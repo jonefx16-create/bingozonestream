@@ -1698,7 +1698,6 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
-let realWinTargetTurn = null; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1834,7 +1833,6 @@ function resetToWaiting() {
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
-    realWinTargetTurn = null; 
     io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -1970,10 +1968,7 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 
-                // 🔥 ማስተካከያ 1: የቦት እና የሰው ማሸነፊያ ሁሌም ከ 12 እስከ 21 ጥሪ ይሆናል (አሰልቺ እንዳይሆን)
-                let targetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
-                botWinTargetTurn = targetTurn;
-                realWinTargetTurn = targetTurn; 
+                botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
 
                 io.emit('game_status', { 
                     state: gameState, timer: gameClock, totalPrizePool,
@@ -1992,11 +1987,8 @@ setInterval(() => {
 
             let turn = calledNumbers.length + 1;
             
-            let safeForReal = []; 
-            let safeForBots = []; 
             let winForReal = [];  
             let winForBots = [];  
-            let completelySafe = []; 
 
             for(let testNum of currentDrawSequence) {
                  let tempCalled = [...calledNumbers, testNum];
@@ -2014,9 +2006,6 @@ setInterval(() => {
                  
                  if(realWins) winForReal.push({num: testNum});
                  if(botWins) winForBots.push({num: testNum});
-                 if(!realWins && !botWins) completelySafe.push({num: testNum});
-                 if(!realWins) safeForReal.push({num: testNum});
-                 if(!botWins) safeForBots.push({num: testNum});
             }
 
             let numToCall = null;
@@ -2029,11 +2018,51 @@ setInterval(() => {
             if (!botsExist) forceWinner = 'real';
 
             // 🔥 1. PURE LUCK (ሰው ሲሆን በራሱ ንፁህ ዕድል ብቻ ይሰራል) 🔥
-            if (forceWinner === 'real' || forceWinner === 'mix') {
+            if (forceWinner === 'real') {
                 numToCall = currentDrawSequence[0]; 
             } 
             
-            // 🔥 2. BOTS 100% WIN (ሰው የሚያሸንፍበትን ቁጥር ይደብቀዋል) 🔥
+            // 🔥 2. MIX MODE (ከፍተኛው እስከ 24 ጥሪ ይሄዳል፣ ከዚያ በፊት ሰውየው በግድ ማሸነፍ አለበት) 🔥
+            else if (forceWinner === 'mix') {
+                let maxMixTurn = 24;
+                
+                // ቦት ብቻውን ቀድሞ እንዳያሸንፍ እንከለክለዋለን
+                let safeNumbersToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
+                
+                // እውነተኛው ሰው በዕድሉ ካሸነፈ እንተወዋለን (ቦት መጥቶ ይካፈለዋል)
+                let naturalRealWinNum = currentDrawSequence.find(n => winForReal.some(w => w.num === n));
+                
+                if (naturalRealWinNum) {
+                    numToCall = naturalRealWinNum; 
+                } 
+                else if (turn >= maxMixTurn) {
+                    // 24ኛው ጥሪ ላይ ከደረሰና ሰው ካላሸነፈ፣ ሰውን በግድ እንዲያሸንፍ እናደርገዋለን!
+                    let realPool = Object.values(activePlayers).filter(p => !p.isBot);
+                    if (realPool.length > 0) {
+                        let chosenReal = realPool[Math.floor(Math.random() * realPool.length)];
+                        let tix = chosenReal.ticketsData[0]; 
+                        
+                        let safeNum = safeNumbersToCall.length > 0 ? safeNumbersToCall[0] : currentDrawSequence[0];
+                        
+                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
+                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
+                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
+                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
+                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
+                        tix.grid[4][0] = safeNum; 
+                        
+                        numToCall = safeNum;
+                    } else {
+                        numToCall = safeNumbersToCall.length > 0 ? safeNumbersToCall[0] : currentDrawSequence[0];
+                    }
+                } 
+                else {
+                    // ሰውየው እስኪያሸንፍ ወይም 24ኛው ጥሪ እስኪደርስ ድረስ ለቦት ሴፍ የሆነ ቁጥር ብቻ እንጠራለን
+                    numToCall = safeNumbersToCall.length > 0 ? safeNumbersToCall[0] : currentDrawSequence[0];
+                }
+            }
+            
+            // 🔥 3. BOTS 100% WIN (ሰው የሚያሸንፍበትን ቁጥር ይደብቀዋል) 🔥
             else if (forceWinner === 'bots') {
                 let safeNumbersToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
 
@@ -2086,7 +2115,7 @@ setInterval(() => {
                     if (actualReals.length > 0) winnersThisRound = actualReals; 
                 } 
                 else if (GLOBAL_SETTINGS.botWinnerForce === 'bots' || GLOBAL_SETTINGS.botWinnerForce === 'mix') {
-                    // 🔥 ማስተካከያ 3: Mix ሆኖ ሰው ካሸነፈ፣ አብረውት ከሚጫወቱት ቦቶች አንዱን አብሮ እንዲበላ ያደርገዋል
+                    // 🔥 Mix ሆኖ ሰው ካሸነፈ፣ አብረውት ከሚጫወቱት ቦቶች አንዱን አብሮ እንዲበላ ያደርገዋል
                     if (actualReals.length > 0) {
                         let botsToAdd = GLOBAL_SETTINGS.mixBotCount || 1;
                         let botPool = Object.values(activePlayers).filter(p => p.isBot && !actualBots.some(ab => ab.player.phone === p.phone)).sort(() => Math.random() - 0.5);
