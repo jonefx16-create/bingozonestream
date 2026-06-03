@@ -240,36 +240,48 @@
                     </div>
 
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
-    <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">2. Winner Control (ማን ያሸንፍ?)</div>
-    <p style="font-size:11px; color:var(--text-gray); margin-top:0;">* Bots 100% Guaranteed: ሰው መቼም አያሸንፍም!</p>
-    
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <label style="flex:1; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; cursor:pointer;">
-            <input type="radio" name="bot-master-winner" value="bots" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-            <span style="color:white; font-size:12px; font-weight:bold;">🤖 Bots (100% ቦት)</span>
-        </label>
+                        <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">2. Winner Control (ማን ያሸንፍ?)</div>
+                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">* Bots 100% Guaranteed: ሰው መቼም አያሸንፍም!</p>
+                        
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <label style="flex:1; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="bots" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🤖 Bots (100% ቦት)</span>
+                            </label>
 
-        <label style="flex:1; padding:10px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); border-radius:6px; cursor:pointer;">
-            <input type="radio" name="bot-master-winner" value="real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-            <span style="color:white; font-size:12px; font-weight:bold;">👤 Real (ሰው ብቻ)</span>
-        </label>
+                            <label style="flex:1; padding:10px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">👤 Real (ሰው ብቻ)</span>
+                            </label>
 
-        <label style="flex:1; padding:10px; background: rgba(234, 179, 8, 0.1); border: 1px solid var(--gold); border-radius:6px; cursor:pointer;">
-            <input type="radio" name="bot-master-winner" value="mix" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-            <span style="color:white; font-size:12px; font-weight:bold;">🔄 Mix (ሰው+ቦት)</span>
-        </label>
-        
-        <label style="flex:1; padding:10px; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); border-radius:6px; cursor:pointer;">
-            <input type="radio" name="bot-master-winner" value="mix_real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-            <span style="color:white; font-size:12px; font-weight:bold;">🤝 Mix 4 (ሰው+ሰው)</span>
-        </label>
-    </div>
-    
-    <div id="mix-count-container" style="display:none; margin-top:10px;">
-        <label style="font-size:11px; color:var(--gold);">ሰው ሲያሸንፍ ስንት ሰው/ቦት አብሮት ያሸንፍ? (Share Count)</label>
-        <input type="number" id="mix-bot-count" placeholder="e.g. 1" style="width:100%; margin-top:5px; margin-bottom:0;">
-    </div>
-</div>
+                            <label style="flex:1; padding:10px; background: rgba(234, 179, 8, 0.1); border: 1px solid var(--gold); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="mix" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🔄 Mix (ሰው+ቦት)</span>
+                            </label>
+                            
+                            <label style="flex:1; padding:10px; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="mix_real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🤝 Mix 4 (ሰው+ሰው)</span>
+                            </label>
+                        </div>
+                        
+                        <div id="mix-count-container" style="display:none; margin-top:10px;">
+                            <label style="font-size:11px; color:var(--gold);">ሰው ሲያሸንፍ ስንት ሰው/ቦት አብሮት ያሸንፍ? (Share Count)</label>
+                            <input type="number" id="mix-bot-count" placeholder="e.g. 1" style="width:100%; margin-top:5px; margin-bottom:0;">
+                        </div>
+                    </div>
+
+                    <!-- 🔥 የጠፋብህ የ TICKET DISTRIBUTION ይሄ ነው 🔥 -->
+                    <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
+                        <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">3. Ticket Distribution (የቦት ስርጭት)</div>
+                        <p style="font-size:10px; color:var(--text-gray); margin-top:0;">የቦቶች <b style="color:var(--faded-green);">ትክክለኛ ብዛት (Exact Quantity)</b>።</p>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:80px;"><label style="font-size:11px; color:var(--cyan);">1 Card Bots</label><input type="number" id="bot-d1" placeholder="Qty"></div>
+                            <div style="flex:1; min-width:80px;"><label style="font-size:11px; color:var(--faded-green);">2 Card Bots</label><input type="number" id="bot-d2" placeholder="Qty"></div>
+                            <div style="flex:1; min-width:80px;"><label style="font-size:11px; color:var(--gold);">3 Card Bots</label><input type="number" id="bot-d3" placeholder="Qty"></div>
+                            <div style="flex:1; min-width:80px;"><label style="font-size:11px; color:var(--purple);">4 Card Bots</label><input type="number" id="bot-d4" placeholder="Qty"></div>
+                        </div>
+                    </div>
 
                     <!-- 🔥 BOT SCHEDULE 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
