@@ -623,6 +623,77 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
+// 🔥 አድሚን Manual ደረሰኝ (TxRef) የሚያስገባበት API 🔥
+app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
+    try {
+        const { phone, amount, txRef, bank } = req.body;
+        let user = await User.findOne({ phone });
+        if (!user) return res.json({ success: false, message: "❌ ተጠቃሚው አልተገኘም!" });
+
+        if (!txRef || !amount) return res.json({ success: false, message: "❌ እባክዎ ደረሰኝ እና የብር መጠን ያስገቡ!" });
+        
+        let isUsed = await isSmsAlreadyUsed(txRef);
+        if (isUsed) return res.json({ success: false, message: "❌ ይቅርታ! ይህ ደረሰኝ (TxRef) ቀድሞ ጥቅም ላይ ውሏል!" });
+
+        let actualAmount = Number(amount);
+        let bonus = 0;
+        let set = GLOBAL_SETTINGS;
+        let giveBonus = true;
+        
+        if (set.depBonusTimeRestricted) {
+            let currentHour = new Date().getHours();
+            if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) giveBonus = false;
+        }
+        
+        if (giveBonus) {
+            if (set.depBonusTier3Min && actualAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
+                bonus = actualAmount * (set.depBonusTier3Percent / 100);
+            }
+            else if (set.depBonusTier2Min && actualAmount >= set.depBonusTier2Min) {
+                bonus = actualAmount * (set.depBonusTier2Percent / 100);
+            } 
+            else if (set.depBonusMinAmount && actualAmount >= set.depBonusMinAmount) {
+                bonus = actualAmount * (set.depBonusPercent / 100);
+            }
+        }
+
+        await new Transaction({
+            phone: user.phone,
+            type: 'deposit',
+            amount: actualAmount,
+            bonusGiven: bonus,
+            method: bank,
+            smsText: `Admin Entry (Support): ${txRef}`,
+            txRef: txRef,
+            status: 'Approved'
+        }).save();
+
+        user.playBalance += (actualAmount + bonus);
+        user.totalDeposited += actualAmount;
+
+        if(user.referredBy && user.referredViaPromo) {
+            let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+            if(promoter) {
+                let commission = actualAmount * (promoter.promoterPercent / 100);
+                promoter.promoterUnpaidBalance += commission; 
+                promoter.promoterEarned += commission;
+                await promoter.save();
+                user.promoterCommissionGenerated += commission;
+            }
+        }
+
+        if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true;
+        await user.save();
+
+        io.emit('balance_updated', user.phone);
+        if (bonus > 0) io.emit('deposit_bonus_alert', { phone: user.phone, depositAmount: actualAmount, bonusAmount: bonus });
+
+        res.json({ success: true, message: `✅ በተሳካ ሁኔታ የ ${actualAmount} ETB ዴፖዚት ለ ${user.name} ገቢ ተደርጓል!` });
+    } catch (e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
+
 // 🔥 BOT ROUTES & NEW APIs 🔥
 app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
     try {
@@ -1627,7 +1698,7 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
-let realWinTargetTurn = null; // 🔥 ADDED: For Real/Mix fast win
+let realWinTargetTurn = null; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1899,8 +1970,10 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 
-                // 🔥 Set Random Target Turn for Real Winners (12 to 22)
-                realWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
+                // 🔥 ማስተካከያ 1: የቦት እና የሰው ማሸነፊያ ሁሌም ከ 12 እስከ 21 ጥሪ ይሆናል (አሰልቺ እንዳይሆን)
+                let targetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
+                botWinTargetTurn = targetTurn;
+                realWinTargetTurn = targetTurn; 
 
                 io.emit('game_status', { 
                     state: gameState, timer: gameClock, totalPrizePool,
@@ -1955,111 +2028,38 @@ setInterval(() => {
             if (!realPlayersExist) forceWinner = 'bots';
             if (!botsExist) forceWinner = 'real';
 
-            let availableToCall = [];
+            // 🔥 1. PURE LUCK (ሰው ሲሆን በራሱ ንፁህ ዕድል ብቻ ይሰራል) 🔥
+            if (forceWinner === 'real' || forceWinner === 'mix') {
+                numToCall = currentDrawSequence[0]; 
+            } 
+            
+            // 🔥 2. BOTS 100% WIN (ሰው የሚያሸንፍበትን ቁጥር ይደብቀዋል) 🔥
+            else if (forceWinner === 'bots') {
+                let safeNumbersToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
 
-            if (forceWinner === 'bots') {
-                availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
-            } else if (forceWinner === 'real' || forceWinner === 'mix') {
-                availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
-            } else {
-                availableToCall = currentDrawSequence;
-            }
-
-            if (availableToCall.length === 0) availableToCall = currentDrawSequence;
-
-            // 🔥 1. BOTS 100% WIN GUARANTEE 🔥
-            if (forceWinner === 'bots') {
-                if (botWinTargetTurn === null) {
-                    botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12; // 12 to 22 calls
-                }
-
-                if (turn >= botWinTargetTurn) {
-                    let botWinNums = winForBots.filter(w => availableToCall.includes(w.num));
-                    
-                    if (botWinNums.length > 0) {
-                        numToCall = botWinNums[Math.floor(Math.random() * botWinNums.length)].num;
+                // የቦት ማሸነፊያ ሰዓት ከደረሰ ጌሙን ይዘጋዋል
+                if (turn >= botWinTargetTurn || safeNumbersToCall.length === 0) {
+                    let botPool = Object.values(activePlayers).filter(p => p.isBot);
+                    if (botPool.length > 0) {
+                        let chosenBot = botPool[Math.floor(Math.random() * botPool.length)];
+                        let tix = chosenBot.ticketsData[0]; 
+                        
+                        let safeNum = safeNumbersToCall.length > 0 ? safeNumbersToCall[0] : currentDrawSequence[0];
+                        
+                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
+                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
+                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
+                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
+                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
+                        tix.grid[4][0] = safeNum; 
+                        
+                        numToCall = safeNum;
                     } else {
-                        let botPool = Object.values(activePlayers).filter(p => p.isBot);
-                        if (botPool.length > 0 && availableToCall.length > 0) {
-                            let chosenBot = botPool[Math.floor(Math.random() * botPool.length)];
-                            let tix = chosenBot.ticketsData[0]; 
-                            let safeNum = availableToCall[0];
-                            
-                            let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
-                            
-                            tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                            tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                            tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                            tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                            tix.grid[4][0] = safeNum; 
-                            
-                            numToCall = safeNum;
-                        } else {
-                            numToCall = availableToCall[0]; 
-                        }
+                        numToCall = safeNumbersToCall.length > 0 ? safeNumbersToCall[0] : currentDrawSequence[0];
                     }
                 } else {
-                    let botNeededNumbers = new Set();
-                    for (let p of Object.values(activePlayers)) {
-                        if (p.isBot) {
-                            for (let t of p.ticketsData) {
-                                for(let r=0; r<5; r++) {
-                                    for(let c=0; c<5; c++) {
-                                        if (t.grid[r][c] !== "FREE") botNeededNumbers.add(t.grid[r][c]);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    let botFavored = completelySafe.filter(s => availableToCall.includes(s.num) && botNeededNumbers.has(s.num));
-                    if (botFavored.length === 0) botFavored = safeForReal.filter(s => availableToCall.includes(s.num) && botNeededNumbers.has(s.num));
-                    
-                    if (botFavored.length > 0) {
-                        numToCall = botFavored[Math.floor(Math.random() * botFavored.length)].num;
-                    } else {
-                        let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
-                        if (safeNumbers.length === 0) safeNumbers = safeForReal.filter(s => availableToCall.includes(s.num));
-                        
-                        if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
-                        else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
-                    }
-                }
-            }
-            // 🔥 2. REAL AND MIX WINNER FORCE (SPEED UP TO 12-22 CALLS) 🔥
-            else { 
-                // Collect numbers that real players actually need to build their boards fast
-                let realNeededNumbers = new Set();
-                for (let p of Object.values(activePlayers)) {
-                    if (!p.isBot) {
-                        for (let t of p.ticketsData) {
-                            for(let r=0; r<5; r++) for(let c=0; c<5; c++) if (t.grid[r][c] !== "FREE") realNeededNumbers.add(t.grid[r][c]);
-                        }
-                    }
-                }
-
-                let winningRealNumbers = winForReal.filter(w => availableToCall.includes(w.num));
-                
-                // If it's time to win, aggressively pick the winning number
-                if (turn >= realWinTargetTurn && winningRealNumbers.length > 0) {
-                    numToCall = winningRealNumbers[Math.floor(Math.random() * winningRealNumbers.length)].num;
-                }
-                else {
-                    // Try to aggressively build the real player's board so they win on time
-                    let realFavored = completelySafe.filter(s => availableToCall.includes(s.num) && realNeededNumbers.has(s.num));
-                    if (realFavored.length === 0) realFavored = safeForBots.filter(s => availableToCall.includes(s.num) && realNeededNumbers.has(s.num));
-                    
-                    if (realFavored.length > 0 && Math.random() < 0.85) { 
-                        // 85% chance to give real players a number they need
-                        numToCall = realFavored[Math.floor(Math.random() * realFavored.length)].num;
-                    } else {
-                        // Fallback to random safe number
-                        let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
-                        if (safeNumbers.length === 0) safeNumbers = safeForBots.filter(s => availableToCall.includes(s.num));
-                        
-                        if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
-                        else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
-                    }
+                    // ማሸነፊያው ካልደረሰ Safe የሆነ ቁጥር ይጠራል
+                    numToCall = safeNumbersToCall.length > 0 ? safeNumbersToCall[0] : currentDrawSequence[0];
                 }
             }
             
@@ -2079,15 +2079,17 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                if (GLOBAL_SETTINGS.botWinnerForce === 'bots') {
-                    let botWinners = winnersThisRound.filter(w => w.player.isBot);
-                    if (botWinners.length > 0) winnersThisRound = botWinners;
-                }
-                else if (GLOBAL_SETTINGS.botWinnerForce === 'mix') {
-                    let actualReals = winnersThisRound.filter(w => !w.player.isBot);
+                let actualReals = winnersThisRound.filter(w => !w.player.isBot);
+                let actualBots = winnersThisRound.filter(w => w.player.isBot);
+
+                if (GLOBAL_SETTINGS.botWinnerForce === 'real') {
+                    if (actualReals.length > 0) winnersThisRound = actualReals; 
+                } 
+                else if (GLOBAL_SETTINGS.botWinnerForce === 'bots' || GLOBAL_SETTINGS.botWinnerForce === 'mix') {
+                    // 🔥 ማስተካከያ 3: Mix ሆኖ ሰው ካሸነፈ፣ አብረውት ከሚጫወቱት ቦቶች አንዱን አብሮ እንዲበላ ያደርገዋል
                     if (actualReals.length > 0) {
                         let botsToAdd = GLOBAL_SETTINGS.mixBotCount || 1;
-                        let botPool = Object.values(activePlayers).filter(p => p.isBot).sort(() => Math.random() - 0.5);
+                        let botPool = Object.values(activePlayers).filter(p => p.isBot && !actualBots.some(ab => ab.player.phone === p.phone)).sort(() => Math.random() - 0.5);
                         let actualBotsToAdd = Math.min(botsToAdd, botPool.length);
 
                         for (let i = 0; i < actualBotsToAdd; i++) {
@@ -2095,22 +2097,17 @@ setInterval(() => {
                             let tix = b.ticketsData[0];
                             let actualTicketId = tix.id;
 
-                            // 🔥 MIX FIX: Modify the Bot's OWN card top row using already called numbers!
                             let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
                             tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
                             tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
                             tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
                             tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                            tix.grid[4][0] = numToCall; // The number that just triggered the win
+                            tix.grid[4][0] = numToCall;
 
                             let mixTicket = { id: actualTicketId, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
                             winnersThisRound.push({ player: b, ticket: mixTicket });
                         }
                     }
-                }
-                else if (GLOBAL_SETTINGS.botWinnerForce === 'real') {
-                    let realWinners = winnersThisRound.filter(w => !w.player.isBot);
-                    if(realWinners.length > 0) winnersThisRound = realWinners; 
                 }
                 
                 declareWinners(winnersThisRound);
@@ -2514,7 +2511,8 @@ bot.on('message', async (msg) => {
             }
 
             await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
-            bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nሲረጋገጥ በሰከንዶች ውስጥ ይሞላል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
+            // 🔥 ቦት ላይ ብር ሲያስገቡ "አድሚን ሲያረጋገጥ ይገባል" የሚል እንዲያሳያቸው ተስተካክሏል 🔥
+            bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nአድሚን ሲያረጋግጠው (Approve ሲያደርገው) ሂሳብዎ ላይ ይገባል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
             await autoApprovePendingDeposits(); 
         }
         state.step = 'idle';
