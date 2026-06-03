@@ -108,7 +108,9 @@ const ActiveBonus = mongoose.model('ActiveBonus', new mongoose.Schema({
     expiresAt: Date, 
     isActive: { type: Boolean, default: true }, 
     date: { type: Date, default: Date.now },
-    depositorsOnly: { type: Boolean, default: false } 
+    depositorsOnly: { type: Boolean, default: false },
+    minDepositAmount: { type: Number, default: 0 },
+    requireDepositWithinHours: { type: Number, default: 0 }
 }));
 
 const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
@@ -119,6 +121,7 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     expiresAt: { type: Date, default: () => Date.now() + 30*24*60*60*1000 }, 
     usedBy: [String],
     requireDeposit: { type: Boolean, default: false }, 
+    minDepositAmount: { type: Number, default: 0 },
     requireDepositWithinHours: { type: Number, default: 0 } 
 }));
 
@@ -526,20 +529,23 @@ app.post('/api/claim-promo-code', async (req, res) => {
         if (promo.usedBy.includes(user.phone)) return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
         
         if (promo.requireDeposit) {
+            let minDep = promo.minDepositAmount || 0;
             if (promo.requireDepositWithinHours > 0) {
                 let cutoff = new Date(Date.now() - (promo.requireDepositWithinHours * 60 * 60 * 1000));
                 let recentDep = await Transaction.findOne({ 
                     phone: user.phone, 
                     type: 'deposit', 
                     status: 'Approved', 
-                    date: { $gte: cutoff } 
+                    date: { $gte: cutoff },
+                    amount: { $gte: minDep } 
                 });
                 if (!recentDep) {
-                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${promo.requireDepositWithinHours} ሰዓታት ውስጥ ገቢ አድርገው መሆን አለበት!` });
+                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${promo.requireDepositWithinHours} ሰዓታት ውስጥ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት!` });
                 }
             } else {
-                if (user.totalDeposited <= 0) {
-                    return res.json({ success: false, message: "ይህንን ቦነስ ለማግኘት ከዚህ በፊት ገቢ (Deposit) አድርገው መሆን አለበት!" });
+                let validDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep } });
+                if (!validDep) {
+                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ከዚህ በፊት ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት!` });
                 }
             }
         }
@@ -569,8 +575,26 @@ app.post('/api/claim-promo-web', async (req, res) => {
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" });
         if (activeBonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" });
         
-        if (activeBonus.depositorsOnly && (!user.totalDeposited || user.totalDeposited <= 0)) {
-            return res.json({ success: false, message: "❌ ይህ ቦነስ ገቢ (Deposit) ላደረጉ ደንበኞች ብቻ የተፈቀደ ነው!" });
+        if (activeBonus.depositorsOnly) {
+            let minDep = activeBonus.minDepositAmount || 0;
+            if (activeBonus.requireDepositWithinHours > 0) {
+                let cutoff = new Date(Date.now() - (activeBonus.requireDepositWithinHours * 60 * 60 * 1000));
+                let recentDep = await Transaction.findOne({
+                    phone: user.phone,
+                    type: 'deposit',
+                    status: 'Approved',
+                    date: { $gte: cutoff },
+                    amount: { $gte: minDep }
+                });
+                if (!recentDep) {
+                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${activeBonus.requireDepositWithinHours} ሰዓታት ውስጥ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት!` });
+                }
+            } else {
+                let validDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep } });
+                if (!validDep) {
+                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት!` });
+                }
+            }
         }
 
         activeBonus.claimedBy.push(user.phone);
@@ -1068,7 +1092,8 @@ app.post('/api/admin/create-promo-code', auth, async (req, res) => {
             amount: req.body.amount, 
             maxUses: req.body.maxUses,
             requireDeposit: req.body.requireDeposit,
-            requireDepositWithinHours: req.body.requireDepositWithinHours
+            minDepositAmount: req.body.minDepositAmount || 0,
+            requireDepositWithinHours: req.body.requireDepositWithinHours || 0
         }).save();
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
@@ -1409,18 +1434,21 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
 });
 
 // 🔥 NEW PROMO BROADCAST LOGIC (TG, WEB, BOTH) 🔥
-let isBroadcasting = false; // ድግግሞሽን የሚከለክል Lock
+let isBroadcasting = false; 
 
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
     isBroadcasting = true;
     try {
-        const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly, platform } = req.body;
+        const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours, platform } = req.body;
         let expires = new Date(Date.now() + (minutes * 60000));
         await ActiveBonus.updateMany({}, { isActive: false });
         
         await new ActiveBonus({ 
-            amount, maxUsers, expiresAt: expires, isActive: true, depositorsOnly: depositorsOnly
+            amount, maxUsers, expiresAt: expires, isActive: true, 
+            depositorsOnly: depositorsOnly,
+            minDepositAmount: minDepositAmount || 0,
+            requireDepositWithinHours: requireDepositWithinHours || 0
         }).save();
         
         if (platform === 'web' || platform === 'both') {
@@ -1429,13 +1457,24 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
 
         if ((platform === 'tg' || platform === 'both') && message) {
             let query = { telegramId: { $ne: "" } };
-            if (depositorsOnly) query.totalDeposited = { $gt: 0 };
             
             const users = await User.find(query);
             lastBroadcasts = []; 
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
             for (let u of users) {
+                // If it's deposit only, pre-filter for telegram sending (Optional, but good to not spam inactive users)
+                if(depositorsOnly) {
+                    if (requireDepositWithinHours > 0) {
+                        let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
+                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                        if (!recentDep) continue;
+                    } else {
+                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                        if (!validDep) continue;
+                    }
+                }
+
                 try {
                     let sentMsg;
                     if (photoUrl && photoUrl.startsWith('data:image')) {
@@ -1465,16 +1504,26 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
     isBroadcasting = true;
     try {
-        const { message, photoUrl, depositorsOnly } = req.body;
+        const { message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours } = req.body;
         if (!message) return res.json({ success: false, message: "No message entered." });
         
         let query = { telegramId: { $ne: "" } };
-        if (depositorsOnly) query.totalDeposited = { $gt: 0 }; 
 
         const users = await User.find(query);
         lastBroadcasts = []; let count = 0;
         
         for (let u of users) {
+            if(depositorsOnly) {
+                if (requireDepositWithinHours > 0) {
+                    let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
+                    let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                    if (!recentDep) continue;
+                } else {
+                    let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                    if (!validDep) continue;
+                }
+            }
+
             try {
                 let sentMsg;
                 if (photoUrl && photoUrl.startsWith('data:image')) {
@@ -1515,7 +1564,6 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         let bots = await BotUser.find({ isActive: true }).sort({ lastPlayed: 1 }).limit(amount);
         if (bots.length === 0) return res.json({ success: false, message: "በዳታቤዝ ውስጥ ምንም ቦት የለም!" });
 
-        // Apply Distribution Ratios
         let d1 = req.body.dist1 !== undefined ? req.body.dist1 : (GLOBAL_SETTINGS.botDist1 || 5);
         let d2 = req.body.dist2 !== undefined ? req.body.dist2 : (GLOBAL_SETTINGS.botDist2 || 4);
         let d3 = req.body.dist3 !== undefined ? req.body.dist3 : (GLOBAL_SETTINGS.botDist3 || 3);
@@ -1579,6 +1627,7 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
+let realWinTargetTurn = null; // 🔥 ADDED: For Real/Mix fast win
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1655,7 +1704,6 @@ async function declareWinners(winners) {
                 await user.save(); 
                 io.emit('balance_updated', user.phone); 
 
-                // 🔥 Fix 1: Record Win in Transaction History for the Real Player
                 await new Transaction({
                     phone: user.phone,
                     type: 'win',
@@ -1715,6 +1763,7 @@ function resetToWaiting() {
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
+    realWinTargetTurn = null; 
     io.emit('update_taken_tickets', globalTakenTickets); 
 }
 
@@ -1731,13 +1780,11 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🟢 አውቶማቲክ ቦት ማስገቢያ (Schedule or Normal)
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
                 let totalBotsToInject = 0;
 
-                // 1. EAT Schedule Check
                 let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
                 let currentHour = eatTime.getUTCHours();
                 let activeSchedule = null;
@@ -1763,7 +1810,6 @@ setInterval(() => {
                     totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
                 }
 
-                // 2. Humanized Ticket Distribution
                 let r1 = GLOBAL_SETTINGS.botDist1; 
                 let r2 = GLOBAL_SETTINGS.botDist2; 
                 let r3 = GLOBAL_SETTINGS.botDist3; 
@@ -1791,7 +1837,6 @@ setInterval(() => {
                     
                     let baseTix = distArray[i] || 1;
                     
-                    // Humanizer: Slightly modify up or down randomly
                     let rand = Math.random();
                     if (rand < 0.20 && baseTix < 4) baseTix += 1;
                     else if (rand > 0.90 && baseTix > 1) baseTix -= 1;
@@ -1854,6 +1899,9 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 
+                // 🔥 Set Random Target Turn for Real Winners (12 to 22)
+                realWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
+
                 io.emit('game_status', { 
                     state: gameState, timer: gameClock, totalPrizePool,
                     totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
@@ -1907,54 +1955,43 @@ setInterval(() => {
             if (!realPlayersExist) forceWinner = 'bots';
             if (!botsExist) forceWinner = 'real';
 
-            // 🔥 PERFECT WINNER LOGIC IMPLEMENTATION 🔥
             let availableToCall = [];
 
             if (forceWinner === 'bots') {
-                // 100% guarantee real player NEVER wins by filtering out their winning numbers entirely
                 availableToCall = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
             } else if (forceWinner === 'real' || forceWinner === 'mix') {
-                // 100% guarantee bot NEVER wins directly (For mix, bot will get the win duplicated later)
                 availableToCall = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
             } else {
                 availableToCall = currentDrawSequence;
             }
 
-            // Extreme edge case fallback
             if (availableToCall.length === 0) availableToCall = currentDrawSequence;
 
             // 🔥 1. BOTS 100% WIN GUARANTEE 🔥
             if (forceWinner === 'bots') {
                 if (botWinTargetTurn === null) {
-                    let totalBirr = totalTickets * GLOBAL_SETTINGS.ticketPrice;
-                    if (totalBirr < 450) botWinTargetTurn = Math.floor(Math.random() * (24 - 17 + 1)) + 17;
-                    else if (totalBirr >= 450 && totalBirr < 600) botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
-                    else botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
+                    botWinTargetTurn = Math.floor(Math.random() * (22 - 12 + 1)) + 12; // 12 to 22 calls
                 }
 
-                // ቦቱ ማሸነፍ ያለበት ሰዓት ከደረሰ
                 if (turn >= botWinTargetTurn) {
                     let botWinNums = winForBots.filter(w => availableToCall.includes(w.num));
                     
                     if (botWinNums.length > 0) {
-                        // ቦቱ በተፈጥሮ ካሸነፈ
                         numToCall = botWinNums[Math.floor(Math.random() * botWinNums.length)].num;
                     } else {
-                        // 🔥 ቦቱ አሸናፊ ካልሆነ፣ የቦቱን ካርቴላ እስካሁን በተጠሩት (Safe) ቁጥሮች አርመን (Modify) አሸናፊ እናደርገዋለን!
                         let botPool = Object.values(activePlayers).filter(p => p.isBot);
                         if (botPool.length > 0 && availableToCall.length > 0) {
                             let chosenBot = botPool[Math.floor(Math.random() * botPool.length)];
-                            let tix = chosenBot.ticketsData[0]; // የቦቱን የመጀመሪያ ካርቴላ እንወስዳለን
+                            let tix = chosenBot.ticketsData[0]; 
                             let safeNum = availableToCall[0];
                             
-                            // የቦቱን ካርቴላ የመጀመሪያ መስመር (Top Row) አሁን በተጠሩት ቁጥሮች እንቀይረዋለን
                             let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
                             
                             tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
                             tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
                             tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
                             tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                            tix.grid[4][0] = safeNum; // አሁን የሚጠራው አሸናፊ ቁጥር
+                            tix.grid[4][0] = safeNum; 
                             
                             numToCall = safeNum;
                         } else {
@@ -1962,7 +1999,6 @@ setInterval(() => {
                         }
                     }
                 } else {
-                    // ጌሙ ገና ከሆነ፣ የቦቱን ካርቴላ ለማሞላት እንጥራለን
                     let botNeededNumbers = new Set();
                     for (let p of Object.values(activePlayers)) {
                         if (p.isBot) {
@@ -1990,19 +2026,40 @@ setInterval(() => {
                     }
                 }
             }
-            // 🔥 2. REAL AND MIX WINNER FORCE 🔥
+            // 🔥 2. REAL AND MIX WINNER FORCE (SPEED UP TO 12-22 CALLS) 🔥
             else { 
+                // Collect numbers that real players actually need to build their boards fast
+                let realNeededNumbers = new Set();
+                for (let p of Object.values(activePlayers)) {
+                    if (!p.isBot) {
+                        for (let t of p.ticketsData) {
+                            for(let r=0; r<5; r++) for(let c=0; c<5; c++) if (t.grid[r][c] !== "FREE") realNeededNumbers.add(t.grid[r][c]);
+                        }
+                    }
+                }
+
                 let winningRealNumbers = winForReal.filter(w => availableToCall.includes(w.num));
-                if (winningRealNumbers.length > 0) {
+                
+                // If it's time to win, aggressively pick the winning number
+                if (turn >= realWinTargetTurn && winningRealNumbers.length > 0) {
                     numToCall = winningRealNumbers[Math.floor(Math.random() * winningRealNumbers.length)].num;
                 }
-                
-                if (numToCall === null) {
-                    let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
-                    if (safeNumbers.length === 0) safeNumbers = safeForBots.filter(s => availableToCall.includes(s.num));
+                else {
+                    // Try to aggressively build the real player's board so they win on time
+                    let realFavored = completelySafe.filter(s => availableToCall.includes(s.num) && realNeededNumbers.has(s.num));
+                    if (realFavored.length === 0) realFavored = safeForBots.filter(s => availableToCall.includes(s.num) && realNeededNumbers.has(s.num));
                     
-                    if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
-                    else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                    if (realFavored.length > 0 && Math.random() < 0.85) { 
+                        // 85% chance to give real players a number they need
+                        numToCall = realFavored[Math.floor(Math.random() * realFavored.length)].num;
+                    } else {
+                        // Fallback to random safe number
+                        let safeNumbers = completelySafe.filter(s => availableToCall.includes(s.num));
+                        if (safeNumbers.length === 0) safeNumbers = safeForBots.filter(s => availableToCall.includes(s.num));
+                        
+                        if (safeNumbers.length > 0) numToCall = safeNumbers[Math.floor(Math.random() * safeNumbers.length)].num;
+                        else numToCall = availableToCall.length > 0 ? availableToCall[0] : currentDrawSequence[0];
+                    }
                 }
             }
             
@@ -2022,7 +2079,6 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                // ማጣሪያ (Filter)
                 if (GLOBAL_SETTINGS.botWinnerForce === 'bots') {
                     let botWinners = winnersThisRound.filter(w => w.player.isBot);
                     if (botWinners.length > 0) winnersThisRound = botWinners;
@@ -2036,10 +2092,18 @@ setInterval(() => {
 
                         for (let i = 0; i < actualBotsToAdd; i++) {
                             let b = botPool.pop(); 
-                            let copiedGrid = JSON.parse(JSON.stringify(actualReals[0].ticket.grid));
-                            let actualTicketId = b.ticketsData[0].id;
-                            b.ticketsData[0].grid = copiedGrid; 
-                            let mixTicket = { id: actualTicketId, grid: copiedGrid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
+                            let tix = b.ticketsData[0];
+                            let actualTicketId = tix.id;
+
+                            // 🔥 MIX FIX: Modify the Bot's OWN card top row using already called numbers!
+                            let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
+                            tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
+                            tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
+                            tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
+                            tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
+                            tix.grid[4][0] = numToCall; // The number that just triggered the win
+
+                            let mixTicket = { id: actualTicketId, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 };
                             winnersThisRound.push({ player: b, ticket: mixTicket });
                         }
                     }
@@ -2487,6 +2551,19 @@ bot.on('callback_query', async (query) => {
         if (!activeBonus) return bot.answerCallbackQuery(query.id, { text: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!", show_alert: true });
         if (activeBonus.currentClaims >= activeBonus.maxUsers) return bot.answerCallbackQuery(query.id, { text: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።", show_alert: true });
         if (activeBonus.claimedBy.includes(user.phone)) return bot.answerCallbackQuery(query.id, { text: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!", show_alert: true });
+        
+        if (activeBonus.depositorsOnly) {
+            let minDep = activeBonus.minDepositAmount || 0;
+            if (activeBonus.requireDepositWithinHours > 0) {
+                let cutoff = new Date(Date.now() - (activeBonus.requireDepositWithinHours * 60 * 60 * 1000));
+                let recentDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep }, date: { $gte: cutoff } });
+                if (!recentDep) return bot.answerCallbackQuery(query.id, { text: `❌ ይህንን ቦነስ ለማግኘት ባለፉት ${activeBonus.requireDepositWithinHours} ሰዓታት ውስጥ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት!`, show_alert: true });
+            } else {
+                let validDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep } });
+                if (!validDep) return bot.answerCallbackQuery(query.id, { text: `❌ ይህንን ቦነስ ለማግኘት ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት!`, show_alert: true });
+            }
+        }
+
         activeBonus.claimedBy.push(user.phone); activeBonus.currentClaims += 1; await activeBonus.save(); user.playBalance += activeBonus.amount; await user.save();
         io.emit('balance_updated', user.phone); return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
     }
