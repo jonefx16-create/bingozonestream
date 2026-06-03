@@ -1025,6 +1025,20 @@
         </div>
 
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; font-size:13px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #334155;">
+           <!-- 🔥 Manual Deposit Box (ደረሰኝ መሙያ) 🔥 -->
+<div style="background: rgba(74, 222, 128, 0.1); padding: 18px; border-radius: 12px; border: 1px solid var(--faded-green); margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.4);">
+    <h4 style="margin:0 0 12px 0; color:var(--faded-green); font-size:15px;">📥 Support ደረሰኝ መሙያ (Manual Deposit)</h4>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="man-txref" placeholder="ደረሰኝ ቁጥር (TxRef)" style="flex:2; margin:0; height:45px; background:#000; border:1px solid #334155; padding:10px; color:white;">
+        <input type="number" id="man-amount" placeholder="ብር መጠን" style="flex:1; margin:0; height:45px; background:#000; border:1px solid #334155; padding:10px; color:white;">
+        <select id="man-bank" style="flex:1; margin:0; height:45px; background:#000; color:white; border:1px solid #334155; border-radius:8px; padding:0 10px;">
+            <option value="TeleBirr">TeleBirr</option>
+            <option value="CBEBirr">CBEBirr</option>
+        </select>
+        <button class="action-btn" onclick="submitManualDeposit()" style="flex:1; background:var(--faded-green); color:black; font-weight:bold; min-width:130px; cursor:pointer; border-radius:8px; border:none; height:45px;">✅ ብር ሙላ (Deposit)</button>
+    </div>
+    <p style="font-size:10px; color:#94a3b8; margin-top:8px;">* እዚህ ጋር ብር ሲሞሉ ሲስተሙ ራሱ አሁን ያለውን ቦነስ አስልቶ ይጨምርለታል።</p>
+</div>
             <div style="flex:1; min-width:80px; text-align:center; border-right:1px solid #334155;">
                 <span style="color:var(--text-gray); font-size:10px;">Total Deposited</span><br>
                 <b id="ui-tot-dep" style="color:var(--faded-green); font-size:14px;">0</b>
@@ -1087,6 +1101,7 @@
     let isBotInputDirty = false; 
 
     window.addEventListener('DOMContentLoaded', () => {
+       
         let savedPass = localStorage.getItem('bingo_admin_pass');
         if (savedPass) {
             pass = savedPass;
@@ -1109,7 +1124,39 @@
         localStorage.removeItem('bingo_admin_pass');
         location.reload();
     }
+   // 🔥 አድሚን Manual ደረሰኝ (TxRef) ሞልቶ ብር የሚሞላበት Function 🔥
+async function submitManualDeposit() {
+    let phone = document.getElementById('ui-phone').innerText; 
+    let txRef = document.getElementById('man-txref').value.trim();
+    let amount = document.getElementById('man-amount').value;
+    let bank = document.getElementById('man-bank').value;
 
+    if(!txRef || !amount) return alert("❌ እባክዎ ደረሰኝ ቁጥር እና የብር መጠን ያስገቡ!");
+    
+    if(!confirm(`እርግጠኛ ነዎት ለስልክ ${phone} በደረሰኝ ቁጥር ${txRef} የ ${amount} ብር መሙላት ይፈልጋሉ?`)) return;
+
+    try {
+        let res = await fetch('/api/admin/manual-receipt-deposit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({adminPass: pass, phone: phone, txRef: txRef, amount: amount, bank: bank})
+        });
+        let data = await res.json();
+        
+        if(data.success) {
+            alert("✅ " + data.message);
+            document.getElementById('man-txref').value = '';
+            document.getElementById('man-amount').value = '';
+            // መረጃውን እንዲያድስ
+            fetchAndShowUserInfo(phone); 
+            if(typeof loadPendingTxs === 'function') loadPendingTxs(); 
+        } else {
+            alert("❌ " + data.message);
+        }
+    } catch(e) {
+        alert("❌ የኔትወርክ ስህተት አጋጥሟል!");
+    }
+}
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
     function login() { 
         let inputPass = document.getElementById('adminPass').value; 
