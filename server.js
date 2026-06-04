@@ -694,6 +694,19 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
     }
 });
 
+// 🔥 አድሚን ለደራሽ ቦነስ የሚጨምርበት API 🔥
+app.post('/api/admin/inject-jackpot-bonus', auth, (req, res) => {
+    let amount = Number(req.body.amount);
+    if(amount && amount > 0) {
+        jackpotBoostAmount += amount; // ለ Display
+        totalPrizePool += amount;     // ለ ትክክለኛው አሸናፊ ክፍያ
+        io.emit('update_taken_tickets', globalTakenTickets); // የ UI ሪፍሬሽ እንዲያደርግ
+        res.json({ success: true, message: `✅ በተሳካ ሁኔታ ${amount} ETB ደራሽ ላይ ተጨምሯል!` });
+    } else {
+        res.json({ success: false, message: "❌ ትክክለኛ የብር መጠን ያስገቡ!" });
+    }
+});
+
 // 🔥 BOT ROUTES & NEW APIs 🔥
 app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
     try {
@@ -1689,6 +1702,7 @@ let gameState = "WAITING";
 let gameClock = 40; 
 let activePlayers = {}; 
 let totalPrizePool = 0; 
+let jackpotBoostAmount = 0; // 🔥 Added for real-time jackpot boost display
 let totalCollectedMoney = 0; 
 let totalTickets = 0;
 let calledNumbers = []; 
@@ -1829,7 +1843,7 @@ async function declareWinners(winners) {
 
 function resetToWaiting() {
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
-    totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
+    totalPrizePool = 0; jackpotBoostAmount = 0; totalCollectedMoney = 0; totalTickets = 0; 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
@@ -1841,7 +1855,7 @@ function resetToWaiting() {
 setInterval(() => {
     if(GLOBAL_SETTINGS.isGamePaused) { 
         io.emit('game_status', { 
-            state: "MAINTENANCE", timer: 0, totalPrizePool: 0,
+            state: "MAINTENANCE", timer: 0, totalPrizePool: 0, jackpotBoost: jackpotBoostAmount,
             totalTickets: 0, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers: [], playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
         }); 
@@ -1960,7 +1974,7 @@ setInterval(() => {
         }
 
         io.emit('game_status', { 
-            state: gameState, timer: gameClock, totalPrizePool,
+            state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
             takenTickets: globalTakenTickets
@@ -1977,7 +1991,7 @@ setInterval(() => {
                 mixWinTargetTurn = Math.floor(Math.random() * (24 - 15 + 1)) + 15;
 
                 io.emit('game_status', { 
-                    state: gameState, timer: gameClock, totalPrizePool,
+                    state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
                     totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
                     maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit, 
                 });
@@ -2169,7 +2183,7 @@ let buyingLocks = {};
 io.on('connection', (socket) => {
     let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
     socket.emit('game_status', { 
-        state: stateToSend, timer: gameClock, totalPrizePool,
+        state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
         totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
         maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
     });
