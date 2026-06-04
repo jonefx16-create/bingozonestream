@@ -1279,50 +1279,51 @@
         let boostAmtBox = document.getElementById('h-boost-amt');
         let hBoostLbl = document.getElementById('h-lbl-boost');
 
+        // 1. የደራሽ (Jackpot) ድምር ስሌት (ካርቴላ + ቦነስ)
+        let actualJackpot = (data.totalPrizePool || 0) + (data.jackpotBoost || 0);
+
+        // 2. በየቦታው ያሉትን የጃክፖት ማሳያዎች በድምሩ ማደስ
+        if(document.getElementById('jp')) document.getElementById('jp').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
+        if(document.getElementById('h-jp-amt-2')) document.getElementById('h-jp-amt-2').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
+        if(document.getElementById('g-jp-amt')) document.getElementById('g-jp-amt').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
+        if(document.getElementById('t-page-prize')) document.getElementById('t-page-prize').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+
+        // 3. ቦነስ ካለ (currentJackpotBoost > 0) ቦክሱ ወርቃማ ሆኖ እንዲበራ
         if (currentJackpotBoost > 0) {
-            if(boostBoxWrapper) {
-                // ሳያቋርጥ በተከታታይ ወርቃማ ሆኖ ብልጭ ድርግም ይላል
-                boostBoxWrapper.classList.add('active-gold-blink');
+            if (boostBoxWrapper) {
+                boostBoxWrapper.classList.add('active-gold-blink'); // ሳያቋርጥ እንዲበራ
                 boostBoxWrapper.style.opacity = '1';
                 boostBoxWrapper.style.filter = 'none';
-
-                // 🔥 አድሚን አሁን ወዲያውኑ ከጨመረው ብልጭ (Flash) እንዲያደርግ 🔥
                 if (currentJackpotBoost > prevJackpotBoost) {
-                    boostBoxWrapper.classList.remove('flash-boost');
-                    void boostBoxWrapper.offsetWidth; // ሪፍሬሽ (Reflow)
                     boostBoxWrapper.classList.add('flash-boost');
+                    setTimeout(() => boostBoxWrapper.classList.remove('flash-boost'), 800);
                 }
             }
-            if(hBoostLbl) {
-                hBoostLbl.innerText = isAm ? "🔥 ደራሽ ላይ የተጨመረ" : "🔥 ADDED TO JACKPOT";
+            if (hBoostLbl) {
+                hBoostLbl.innerText = isAm ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "🔥 ADDED TO JACKPOT";
                 hBoostLbl.style.background = 'rgba(251, 191, 36, 0.3)';
                 hBoostLbl.style.color = '#fff';
             }
-            if(boostAmtBox) {
-                // ብሩን በወርቃማ ሆኖ ቦክሱ ውስጥ ያሳያል
+            if (boostAmtBox) {
                 boostAmtBox.innerHTML = "+" + currentJackpotBoost.toLocaleString('en-US') + " <span style='font-size:10px; color:#fde047;'>ETB</span>";
                 boostAmtBox.style.color = '#fbbf24';
                 boostAmtBox.style.textShadow = '0 0 15px rgba(251,191,36,0.9), 0 0 5px #fff';
                 boostAmtBox.style.fontSize = '22px';
             }
         } else {
-            if(boostBoxWrapper) {
-                // ወደነበረበት የደበዘዘ ከለር ይመለሳል
+            // 4. ቦነስ ከሌለ (0 ሲሆን) ወደ መደበኛው መመለሻ (⏳)
+            if (boostBoxWrapper) {
                 boostBoxWrapper.classList.remove('active-gold-blink');
-                boostBoxWrapper.classList.remove('flash-boost');
                 boostBoxWrapper.style.opacity = '0.6';
                 boostBoxWrapper.style.filter = 'grayscale(70%)';
                 boostBoxWrapper.style.background = 'rgba(251, 191, 36, 0.05)';
-                boostBoxWrapper.style.boxShadow = 'none';
-                boostBoxWrapper.style.borderColor = 'transparent';
             }
-            if(hBoostLbl) {
+            if (hBoostLbl) {
                 hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
                 hBoostLbl.style.background = 'transparent';
                 hBoostLbl.style.color = 'var(--gold)';
             }
-            if(boostAmtBox) {
-                // ሰዓቷ ትመለሳለች
+            if (boostAmtBox) {
                 boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
                 boostAmtBox.style.color = 'var(--gold)';
                 boostAmtBox.style.textShadow = '0 0 10px rgba(251,191,36,0.6)';
