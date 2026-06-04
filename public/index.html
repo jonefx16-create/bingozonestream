@@ -1294,8 +1294,8 @@
             if(boostAmtBox) boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
         }
 
-        // 🔥 ማስተካከያ: Backend ላይ totalPrizePool ቀድሞ ስለተደመረ እዚህ እንደገና መደመር አያስፈልግም (Double count ያቆማል) 🔥
-        let actualJackpot = data.totalPrizePool;
+        // 🔥 ማስተካከያ: Backend ላይ totalPrizePool ካልተደመረ እንዲደምረው၊ ከተደመረ እንዳይደግመው በ Frontend Explicitly መደመር አድርገን አስተካክለናል 🔥
+        let actualJackpot = Number(data.totalPrizePool || 0) + Number(currentJackpotBoost || 0);
 
         document.getElementById('jp').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}); 
         let jpAmtBox2 = document.getElementById('h-jp-amt-2'); if(jpAmtBox2) jpAmtBox2.innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
