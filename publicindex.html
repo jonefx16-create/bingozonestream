@@ -754,6 +754,8 @@
     let currentAudioObj = null;
 
     let currentJackpotBoost = 0;
+    // 🔥 አድሚኑ ብር እንደጨመረ ለማወቅ ይጠቅማል 🔥
+    let prevJackpotBoost = 0;
 
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
@@ -1283,6 +1285,13 @@
                 boostBoxWrapper.classList.add('active-gold-blink');
                 boostBoxWrapper.style.opacity = '1';
                 boostBoxWrapper.style.filter = 'none';
+
+                // 🔥 አድሚን አሁን ወዲያውኑ ከጨመረው ብልጭ (Flash) እንዲያደርግ 🔥
+                if (currentJackpotBoost > prevJackpotBoost) {
+                    boostBoxWrapper.classList.remove('flash-boost');
+                    void boostBoxWrapper.offsetWidth; // ሪፍሬሽ (Reflow)
+                    boostBoxWrapper.classList.add('flash-boost');
+                }
             }
             if(hBoostLbl) {
                 hBoostLbl.innerText = isAm ? "🔥 ደራሽ ላይ የተጨመረ" : "🔥 ADDED TO JACKPOT";
@@ -1300,6 +1309,7 @@
             if(boostBoxWrapper) {
                 // ወደነበረበት የደበዘዘ ከለር ይመለሳል
                 boostBoxWrapper.classList.remove('active-gold-blink');
+                boostBoxWrapper.classList.remove('flash-boost');
                 boostBoxWrapper.style.opacity = '0.6';
                 boostBoxWrapper.style.filter = 'grayscale(70%)';
                 boostBoxWrapper.style.background = 'rgba(251, 191, 36, 0.05)';
@@ -1319,6 +1329,7 @@
                 boostAmtBox.style.fontSize = '16px';
             }
         }
+        prevJackpotBoost = currentJackpotBoost;
 
         // Backend አስቀድሞ totalPrizePool ላይ ስለሚደምረው ደብል እንዳይደመር data.totalPrizePool ብቻ እንጠቀማለን!
         let actualJackpot = data.totalPrizePool;
