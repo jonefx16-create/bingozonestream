@@ -1426,6 +1426,12 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.telegramChannel !== undefined) s.telegramChannel = req.body.telegramChannel;
 
+    // 🔥 አድሚን Manual የጨመረውን ቦነስ በ Setting በኩል Save ሲደረግም እንዲይዘው 🔥
+    if(req.body.jackpotBoostAmount !== undefined) {
+        s.jackpotBoostAmount = req.body.jackpotBoostAmount;
+        jackpotBoostAmount = req.body.jackpotBoostAmount;
+    }
+
     await s.save(); await loadSettings();
     res.json({ success: true });
 });
@@ -1772,7 +1778,9 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    let splitPrize = Number((totalPrizePool / winners.length).toFixed(2));
+    // 🔥 እዚህ ጋር አድሚን የጨመረውን ቦነስ ጨምረን ነው ለ Winner የምንሰጠው
+    let finalTotalPrize = totalPrizePool + jackpotBoostAmount; 
+    let splitPrize = Number((finalTotalPrize / winners.length).toFixed(2));
     
     let realMoney = 0;
     Object.values(activePlayers).forEach(p => {
@@ -1826,7 +1834,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: totalPrizePool,
+        prize: finalTotalPrize, // እዚህም ሙሉ ብሩ ይገባል
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -1838,7 +1846,7 @@ async function declareWinners(winners) {
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
-        totalPrize: totalPrizePool, 
+        totalPrize: finalTotalPrize, 
         phone: winnerPhones.join(', '), 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
@@ -1850,13 +1858,20 @@ async function declareWinners(winners) {
 
 function resetToWaiting() {
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
-    totalPrizePool = 0; jackpotBoostAmount = 0; totalCollectedMoney = 0; totalTickets = 0; 
+    totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
+    
+    // 🔥 አዲሱ ዙር ሲጀምር የተጨመረውን ቦነስ (Jackpot Boost) ወደ 0 መመለስ (Reset) 🔥
+    jackpotBoostAmount = 0; 
+
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
     mixWinTargetTurn = null; // 🔥
     io.emit('update_taken_tickets', globalTakenTickets); 
+    
+    // የጨዋታውን Setting Update ማድረግ
+    SystemSettings.findOneAndUpdate({}, { jackpotBoostAmount: 0 }).exec();
 }
 
 setInterval(() => {
