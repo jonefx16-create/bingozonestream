@@ -53,17 +53,14 @@
             100% { transform: scale(1); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
         }
 
-        /* 🔥 አዲሱ የማያቋርጥ የወርቃማ ብልጭ ድርግም አኒሜሽን (Continuous Golden Blink) 🔥 */
-        @keyframes activeGoldBlink {
-            0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.5); border-color: rgba(251, 191, 36, 0.6); background: rgba(251, 191, 36, 0.1); transform: scale(1); }
-            50% { box-shadow: 0 0 25px rgba(251, 191, 36, 1); border-color: rgba(251, 191, 36, 1); background: rgba(251, 191, 36, 0.3); transform: scale(1.04); }
-            100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.5); border-color: rgba(251, 191, 36, 0.6); background: rgba(251, 191, 36, 0.1); transform: scale(1); }
+        @keyframes goldPulseBox {
+            0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); border-color: rgba(251, 191, 36, 1); transform: scale(1.03); }
+            100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
         }
-        .active-gold-blink {
-            animation: activeGoldBlink 1s infinite ease-in-out !important;
-            opacity: 1 !important;
-            filter: none !important;
-            z-index: 5;
+        .pulse-bonus-box {
+            animation: goldPulseBox 1.5s infinite alternate;
+            z-index: 2;
         }
 
         @keyframes hourglassRock {
@@ -540,9 +537,9 @@
             </div>
 
             <!-- Bonus Boost (Right - Animated) -->
-            <div class="new-timer-box" id="boost-box-wrapper" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; transition: 0.4s; opacity: 0.6; filter: grayscale(70%);">
-                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 8px; font-weight: bold; text-align: center; line-height: 1.2;">የደራሽ ቦነስ በቅርቡ ይጠብቁ</div>
-                <div class="nt-value" id="h-boost-amt" style="font-size: 16px;"></div>
+            <div class="new-timer-box pulse-bonus-box" id="boost-box-wrapper" style="flex: 1.2; margin-bottom: 0; flex-direction: column; justify-content: center; align-items: center; padding: 10px 2px; background: rgba(251, 191, 36, 0.05); transition: 0.4s; opacity: 0.6; filter: grayscale(70%);">
+                <div class="nt-badge" id="h-lbl-boost" style="margin-bottom: 5px; font-size: 8px; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(251,191,36,0.5); font-weight: bold; text-align: center; line-height: 1.2;">የደራሽ ቦነስ በቅርቡ ይጠብቁ</div>
+                <div class="nt-value" style="font-size: 16px; color: var(--gold); text-shadow: 0 0 10px rgba(251,191,36,0.6);"><span id="h-boost-amt"><span class="waiting-hourglass">⏳</span></span></div>
             </div>
         </div>
 
@@ -754,13 +751,12 @@
     let currentAudioObj = null;
 
     let currentJackpotBoost = 0;
-    // 🔥 አድሚኑ ብር እንደጨመረ ለማወቅ ይጠቅማል 🔥
-    let prevJackpotBoost = 0;
 
     const depAccounts = { 'telebirr': {num: '0953839231', name: 'Yohannes aberham'}, 'cbe': {num: '0953839231', name: 'Yohannes aberham'} };
     const bHeads = ['B', 'I', 'N', 'G', 'O'];
     const bColors = ['#3b82f6', '#6366f1', '#a855f7', '#4ade80', '#f97316']; 
 
+    // 🔥 አዲሱ የመመሪያ (Guide) ፖፕ-አፕ መቆጣጠሪያ 🔥
     function openGuideModal() { 
         document.getElementById('guide-modal-overlay').style.display = 'flex'; 
         setTimeout(() => { document.getElementById('guide-modal').classList.add('show'); }, 10); 
@@ -783,7 +779,7 @@
             document.getElementById('h-lbl-derash').innerText = "ደራሽ"; document.getElementById('h-lbl-derash-badge').innerText = "ደራሽ"; 
             
             let hBoost = document.getElementById('h-lbl-boost');
-            if(hBoost) { hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ" : "የደራሽ ቦነስ በቅርቡ ይጠብቁ"; }
+            if(hBoost) { hBoost.innerText = (currentJackpotBoost > 0) ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "የደራሽ ቦነስ በቅርቡ ይጠብቁ"; }
 
             document.getElementById('h-lbl-select').innerText = `ካርቴላ ይምረጡ (${currentTicketPrice} ብር)`; 
             document.getElementById('lbl-sel-tickets').innerText = "የመረጧቸው ካርቴላዎች: ";
@@ -796,6 +792,7 @@
             document.getElementById('rnk-title').innerText = "🏆 አሸናፊዎች (Top 10 Rank)";
             document.getElementById('prof-title').innerText = "👤 የእኔ ፕሮፋይል"; document.getElementById('prof-bot-lbl').innerText = "🤖 የራስዎ መጋበዣ ሊንክ (Share)"; document.getElementById('prof-played-lbl').innerText = "የተጫወቱት (Played)"; document.getElementById('prof-won-lbl').innerText = "ያሸነፉት (Won)"; document.getElementById('prof-help-lbl').innerText = "እርዳታ ያስፈልጎታል?"; 
             
+            // 🔥 የፕሮፋይል እና የመመሪያ ቋንቋ ቀያሪ 🔥
             document.getElementById('prof-guide-lbl').innerText = "የጨዋታው መመሪያ እና ደንብ"; 
             document.getElementById('guide-title').innerText = "የጨዋታው መመሪያ እና ደንብ";
             document.getElementById('guide-chance-text').innerHTML = "⚠️ <b>ማሳሰቢያ (Disclaimer):</b><br>ቢንጎ (Bingo) ሙሉ በሙሉ <b>በእድል ላይ የተመሰረተ ጨዋታ (Game of Chance)</b> ነው። ማንኛውም አሸናፊ የሚለየው ሲስተሙ በዘፈቀደ (Randomly) በሚያወጣቸው ቁጥሮች ብቻ ነው። ስለዚህ ሲጫወቱ ይህንን ተረድተው በኃላፊነት እንዲጫወቱ እናሳስባለን።";
@@ -842,6 +839,7 @@
             document.getElementById('rnk-title').innerText = "🏆 Leaderboard (Top 10)";
             document.getElementById('prof-title').innerText = "👤 My Profile"; document.getElementById('prof-bot-lbl').innerText = "🤖 Your Referral Link (Share)"; document.getElementById('prof-played-lbl').innerText = "Games Played"; document.getElementById('prof-won-lbl').innerText = "Total Won"; document.getElementById('prof-help-lbl').innerText = "Need Help?"; 
             
+            // 🔥 የፕሮፋይል እና የመመሪያ ቋንቋ ቀያሪ (English) 🔥
             document.getElementById('prof-guide-lbl').innerText = "Game Guide & Rules";
             document.getElementById('guide-title').innerText = "Game Guide & Rules";
             document.getElementById('guide-chance-text').innerHTML = "⚠️ <b>Disclaimer:</b><br>Bingo is purely a <b>Game of Chance</b>. Winners are determined completely randomly by the system's drawn numbers. Please play responsibly understanding this fact.";
@@ -1273,65 +1271,30 @@
             dynWitBanner.innerHTML = isAm ? witBannerAm.replace(/\n/g, '<br>') : witBannerEn.replace(/\n/g, '<br>'); 
         }
 
-        // 🔥 የቦነስ አኒሜሽኑ እና ብሩን አስተካክዬዋለሁ 🔥
         currentJackpotBoost = data.jackpotBoost || 0;
         let boostBoxWrapper = document.getElementById('boost-box-wrapper');
         let boostAmtBox = document.getElementById('h-boost-amt');
         let hBoostLbl = document.getElementById('h-lbl-boost');
-        // 1. የደራሽ (Jackpot) ድምር ስሌት (ካርቴላ + ቦነስ)
-        let actualJackpot = (data.totalPrizePool || 0) + (data.jackpotBoost || 0);
 
-        // 2. በየቦታው ያሉትን የጃክፖት ማሳያዎች በድምሩ ማደስ
-        if(document.getElementById('jp')) document.getElementById('jp').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
-        if(document.getElementById('h-jp-amt-2')) document.getElementById('h-jp-amt-2').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
-        if(document.getElementById('g-jp-amt')) document.getElementById('g-jp-amt').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2});
-        if(document.getElementById('t-page-prize')) document.getElementById('t-page-prize').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
-
-        // 3. ቦነስ ካለ (currentJackpotBoost > 0) ቦክሱ ወርቃማ ሆኖ እንዲበራ
         if (currentJackpotBoost > 0) {
-            if (boostBoxWrapper) {
-                boostBoxWrapper.classList.add('active-gold-blink'); // ሳያቋርጥ እንዲበራ
+            if(boostBoxWrapper) {
+                boostBoxWrapper.classList.add('pulse-bonus-box');
                 boostBoxWrapper.style.opacity = '1';
                 boostBoxWrapper.style.filter = 'none';
-                if (currentJackpotBoost > prevJackpotBoost) {
-                    boostBoxWrapper.classList.add('flash-boost');
-                    setTimeout(() => boostBoxWrapper.classList.remove('flash-boost'), 800);
-                }
             }
-            if (hBoostLbl) {
-                hBoostLbl.innerText = isAm ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "🔥 ADDED TO JACKPOT";
-                hBoostLbl.style.background = 'rgba(251, 191, 36, 0.3)';
-                hBoostLbl.style.color = '#fff';
-            }
-            if (boostAmtBox) {
-                boostAmtBox.innerHTML = "+" + currentJackpotBoost.toLocaleString('en-US') + " <span style='font-size:10px; color:#fde047;'>ETB</span>";
-                boostAmtBox.style.color = '#fbbf24';
-                boostAmtBox.style.textShadow = '0 0 15px rgba(251,191,36,0.9), 0 0 5px #fff';
-                boostAmtBox.style.fontSize = '22px';
-            }
+            if(hBoostLbl) hBoostLbl.innerText = isAm ? "🔥 ደራሽ ላይ የተጨመረ ቦነስ" : "🔥 ADDED TO JACKPOT";
+            if(boostAmtBox) boostAmtBox.innerText = "+" + currentJackpotBoost;
         } else {
-            // 4. ቦነስ ከሌለ (0 ሲሆን) ወደ መደበኛው መመለሻ (⏳)
-            if (boostBoxWrapper) {
-                boostBoxWrapper.classList.remove('active-gold-blink');
+            if(boostBoxWrapper) {
+                boostBoxWrapper.classList.remove('pulse-bonus-box');
                 boostBoxWrapper.style.opacity = '0.6';
                 boostBoxWrapper.style.filter = 'grayscale(70%)';
-                boostBoxWrapper.style.background = 'rgba(251, 191, 36, 0.05)';
             }
-            if (hBoostLbl) {
-                hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
-                hBoostLbl.style.background = 'transparent';
-                hBoostLbl.style.color = 'var(--gold)';
-            }
-            if (boostAmtBox) {
-                boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
-                boostAmtBox.style.color = 'var(--gold)';
-                boostAmtBox.style.textShadow = '0 0 10px rgba(251,191,36,0.6)';
-                boostAmtBox.style.fontSize = '16px';
-            }
+            if(hBoostLbl) hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
+            if(boostAmtBox) boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
         }
-        prevJackpotBoost = currentJackpotBoost;
 
-        // Backend አስቀድሞ totalPrizePool ላይ ስለሚደምረው ደብል እንዳይደመር data.totalPrizePool ብቻ እንጠቀማለን!
+        // 🔥 ማስተካከያ: Backend ላይ totalPrizePool ቀድሞ ስለተደመረ እዚህ እንደገና መደመር አያስፈልግም (Double count ያቆማል) 🔥
         let actualJackpot = data.totalPrizePool;
 
         document.getElementById('jp').innerText = actualJackpot.toLocaleString('en-US', {minimumFractionDigits: 2}); 
