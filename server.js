@@ -700,7 +700,14 @@ app.post('/api/admin/inject-jackpot-bonus', auth, (req, res) => {
     if(amount && amount > 0) {
         jackpotBoostAmount += amount; // ለ Display
         totalPrizePool += amount;     // ለ ትክክለኛው አሸናፊ ክፍያ
-        io.emit('update_taken_tickets', globalTakenTickets); // የ UI ሪፍሬሽ እንዲያደርግ
+        
+        // 🔥 አድሚን ሲጨምር ወዲያውኑ ለተጫዋቾች ሆም ፔጅ ላይ እንዲበራ እና ሪፍሬሽ እንዲያደርግ ተስተካክሏል
+        io.emit('game_status', { 
+            state: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        });
+        
         res.json({ success: true, message: `✅ በተሳካ ሁኔታ ${amount} ETB ደራሽ ላይ ተጨምሯል!` });
     } else {
         res.json({ success: false, message: "❌ ትክክለኛ የብር መጠን ያስገቡ!" });
