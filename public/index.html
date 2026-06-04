@@ -238,7 +238,20 @@
         .trx-copy-box.show { display: flex; }
         @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .pop-anim { animation: popIn 0.3s ease-out; }
-        
+        /* 🔥 ወርቃማው ቦክስ እንዲበራ የሚያደርግ ስታይል 🔥 */
+.golden-boost-active {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 25px rgba(251, 191, 36, 0.9) !important;
+    transform: scale(1.05);
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.golden-text {
+    color: #000000 !important;
+    font-weight: 900 !important;
+}
         .trx-input, .pw-input { width: 100%; background: #020617; border: 1px solid #1e293b; color: white; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 4px; font-size: 14px;}
         .trx-submit-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 900; width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; cursor: pointer;}
         .trx-submit-btn.red-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); }
@@ -1276,40 +1289,34 @@
         let boostBoxWrapper = document.getElementById('boost-box-wrapper');
         let boostAmtBox = document.getElementById('h-boost-amt');
         let hBoostLbl = document.getElementById('h-lbl-boost');
+        let isAm = document.getElementById('btn-am').style.background === 'white';
 
         if (currentJackpotBoost > 0) {
-            if(boostBoxWrapper) {
-                boostBoxWrapper.classList.add('pulse-bonus-box');
-                boostBoxWrapper.style.opacity = '1';
-                boostBoxWrapper.style.filter = 'none';
-                boostBoxWrapper.style.background = 'rgba(251, 191, 36, 0.15)'; 
-                boostBoxWrapper.style.border = '2px solid #fbbf24';
-            }
+            if(boostBoxWrapper) boostBoxWrapper.className = "new-timer-box pulse-bonus-box golden-boost-active";
             if(hBoostLbl) {
-                hBoostLbl.innerText = isAm ? "ደራሽ ላይ የተጨመረ ሽልማት" : "ADDED TO JACKPOT";
-                hBoostLbl.style.background = 'rgba(251, 191, 36, 0.3)';
-                hBoostLbl.style.color = '#fbbf24';
+                hBoostLbl.innerText = isAm ? "ደራሽ ላይ የተጨመረ ሽልማት" : "BONUS ADDED!";
+                hBoostLbl.className = "nt-badge golden-text";
+                hBoostLbl.style.background = "rgba(255,255,255,0.5)";
             }
             if(boostAmtBox) {
-                boostAmtBox.innerHTML = `+${currentJackpotBoost.toLocaleString('en-US')} ETB`;
-                boostAmtBox.style.fontSize = "18px";
+                boostAmtBox.innerHTML = `+${currentJackpotBoost} <span style="font-size:10px;">ETB</span>`;
+                boostAmtBox.className = "nt-value golden-text";
             }
         } else {
+            // ጌሙ ሲያልቅ ወደ ነበረበት ግራጫ ይመለሳል
             if(boostBoxWrapper) {
-                boostBoxWrapper.classList.remove('pulse-bonus-box');
+                boostBoxWrapper.className = "new-timer-box";
                 boostBoxWrapper.style.opacity = '0.6';
                 boostBoxWrapper.style.filter = 'grayscale(70%)';
-                boostBoxWrapper.style.background = 'rgba(251, 191, 36, 0.05)';
-                boostBoxWrapper.style.border = '1px solid rgba(74, 222, 128, 0.4)';
             }
             if(hBoostLbl) {
                 hBoostLbl.innerText = isAm ? "የደራሽ ቦነስ በቅርቡ ይጠብቁ" : "BONUS COMING SOON";
-                hBoostLbl.style.background = 'rgba(251, 191, 36, 0.2)';
-                hBoostLbl.style.color = 'var(--gold)';
+                hBoostLbl.className = "nt-badge";
+                hBoostLbl.style.background = "rgba(251, 191, 36, 0.2)";
             }
             if(boostAmtBox) {
                 boostAmtBox.innerHTML = '<span class="waiting-hourglass">⏳</span>';
-                boostAmtBox.style.fontSize = "16px";
+                boostAmtBox.className = "nt-value";
             }
         }
 
