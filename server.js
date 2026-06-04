@@ -1851,11 +1851,8 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🔥 Mix 4 (Mix_Real) ከተመረጠ ቦት እንዳይገባ ያግዳል 🔥
-        if (GLOBAL_SETTINGS.botWinnerForce === 'mix_real') {
-            gameBotsQueue = [];
-        } 
-        else if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
+        // 🔥 ቦቶች በማንኛውም ሴቲንግ እንዳይታገዱ ተደርጓል 🔥
+        if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
                 let totalBotsToInject = 0;
