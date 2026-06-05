@@ -623,6 +623,7 @@ const financeAuth = (req, res, next) => {
     next(); 
 };
 
+// 🔥 አድሚን Manual ደረሰኝ (TxRef) የሚያስገባበት API 🔥
 app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
     try {
         const { phone, amount, txRef, bank } = req.body;
@@ -693,12 +694,14 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
     }
 });
 
+// 🔥 አድሚን ለደራሽ ቦነስ የሚጨምርበት API 🔥
 app.post('/api/admin/inject-jackpot-bonus', auth, (req, res) => {
     let amount = Number(req.body.amount);
     if(amount && amount > 0) {
-        jackpotBoostAmount += amount; 
-        totalPrizePool += amount;     
+        jackpotBoostAmount += amount; // ለ Display
+        totalPrizePool += amount;     // ለ ትክክለኛው አሸናፊ ክፍያ
         
+        // 🔥 አድሚን ሲጨምር ወዲያውኑ ለተጫዋቾች ሆም ፔጅ ላይ እንዲበራ እና ሪፍሬሽ እንዲያደርግ ተስተካክሏል
         io.emit('game_status', { 
             state: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
@@ -711,6 +714,7 @@ app.post('/api/admin/inject-jackpot-bonus', auth, (req, res) => {
     }
 });
 
+// 🔥 BOT ROUTES & NEW APIs 🔥
 app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
     try {
         let amount = parseInt(req.body.amount);
@@ -1063,7 +1067,6 @@ app.post('/api/admin/bot-master-update-v2', auth, async (req, res) => {
         await s.save(); 
         await loadSettings();
 
-        // 🔥 የቦቶችን መቋረጥ የሚከለክለው ይህ መስመር ነው (ON ሲሆን አያጠፋቸውም) 🔥
         if(!req.body.isBotSystemActive) {
             gameBotsQueue = []; 
         }
@@ -1423,6 +1426,7 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.telegramChannel !== undefined) s.telegramChannel = req.body.telegramChannel;
 
+    // 🔥 አድሚን Manual የጨመረውን ቦነስ በ Setting በኩል Save ሲደረግም እንዲይዘው 🔥
     if(req.body.jackpotBoostAmount !== undefined) {
         s.jackpotBoostAmount = req.body.jackpotBoostAmount;
         jackpotBoostAmount = req.body.jackpotBoostAmount;
@@ -1711,7 +1715,7 @@ let gameState = "WAITING";
 let gameClock = 40; 
 let activePlayers = {}; 
 let totalPrizePool = 0; 
-let jackpotBoostAmount = 0; 
+let jackpotBoostAmount = 0; // 🔥 Added for real-time jackpot boost display
 let totalCollectedMoney = 0; 
 let totalTickets = 0;
 let calledNumbers = []; 
@@ -1721,10 +1725,7 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
-let mixWinTargetTurn = null; 
-
-// 🔥 አዲሱ የ Mix-Loser ሎጂክ የሚጠቀምበት ተለዋዋጭ 🔥
-let recentDepositorsCache = [];
+let mixWinTargetTurn = null; // 🔥 ለሰው ማሸነፊያ (Random Turn) 🔥
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1777,6 +1778,7 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
+    // 🔥 እዚህ ጋር አድሚን የጨመረውን ቦነስ ጨምረን ነው ለ Winner የምንሰጠው
     let finalTotalPrize = totalPrizePool + jackpotBoostAmount; 
     let splitPrize = Number((finalTotalPrize / winners.length).toFixed(2));
     
@@ -1832,7 +1834,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: finalTotalPrize, 
+        prize: finalTotalPrize, // እዚህም ሙሉ ብሩ ይገባል
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -1858,36 +1860,18 @@ function resetToWaiting() {
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     
+    // 🔥 አዲሱ ዙር ሲጀምር የተጨመረውን ቦነስ (Jackpot Boost) ወደ 0 መመለስ (Reset) 🔥
     jackpotBoostAmount = 0; 
 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
-    mixWinTargetTurn = null; 
+    mixWinTargetTurn = null; // 🔥
     io.emit('update_taken_tickets', globalTakenTickets); 
     
+    // የጨዋታውን Setting Update ማድረግ
     SystemSettings.findOneAndUpdate({}, { jackpotBoostAmount: 0 }).exec();
-}
-
-// 🔥 አዲስ ዙር ሲጀመር (ከመጫወቱ በፊት) ዴፖዚት ያደረጉ ሰዎችን የሚያወጣ ሎጂክ
-async function cacheRecentDepositors() {
-    try {
-        let playersInGame = Object.values(activePlayers).filter(p => !p.isBot).map(p => p.phone);
-        if(playersInGame.length === 0) {
-            recentDepositorsCache = [];
-            return;
-        }
-        
-        let usersWithDep = await User.find({ 
-            phone: { $in: playersInGame }, 
-            totalDeposited: { $gt: 0 } 
-        }).select('phone');
-        
-        recentDepositorsCache = usersWithDep.map(u => u.phone);
-    } catch(e) {
-        recentDepositorsCache = [];
-    }
 }
 
 setInterval(() => {
@@ -1903,6 +1887,7 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
+        // 🔥 ቦቶች በማንኛውም ሴቲንግ እንዳይታገዱ ተደርጓል 🔥
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
@@ -2022,13 +2007,10 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 
+                // 🔥 ቦት ብቻ ከሆነ ከ 12 እስከ 21ኛው ተራ ያሸንፋል
                 botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
+                // 🔥 Mix Mode ከሆነ ከ 15 እስከ 24ኛው ተራ ባለው (Randomly) መርጦ ያሸንፋል
                 mixWinTargetTurn = Math.floor(Math.random() * (24 - 15 + 1)) + 15;
-
-                // 🔥 ጌሙ ከመጀመሩ በፊት ማነው ዴፖዚት አድርጎ የገባው ብሎ ያወጣል 🔥
-                if(GLOBAL_SETTINGS.botWinnerForce === 'mix_loser') {
-                    cacheRecentDepositors();
-                }
 
                 io.emit('game_status', { 
                     state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
@@ -2074,96 +2056,70 @@ setInterval(() => {
             let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
             
-            // 🔥 የ Mix Loser ማስተካከያ: ዴፖዚት ያደረገ ሰው ከሌለ ወደ ቦት (bots) ወይም ኖርማል (mix) ይቀይራል
-            if(forceWinner === 'mix_loser' && (realPlayers.length === 0 || recentDepositorsCache.length === 0)) {
-                forceWinner = 'bots';
-            }
-
+            // የሰው ማለቅና መኖር ቼክ ማድረግ
             if (realPlayers.length === 0) forceWinner = 'bots';
-            if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_loser')) forceWinner = 'real';
+            if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real')) forceWinner = 'real';
             if (realPlayers.length <= 1 && forceWinner === 'mix_real') forceWinner = 'real'; 
 
-            // 1. PURE LUCK
+            // 🔥 1. PURE LUCK (ሰው ብቻ - ቦት በፍፁም አያሸንፍም) 🔥
             if (forceWinner === 'real') {
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
-                if (realWinNum) numToCall = realWinNum; 
-                else numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
+
+                if (realWinNum) {
+                    numToCall = realWinNum; 
+                } else {
+                    numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
+                }
             } 
             
-            // 2. MIX MODE
+            // 🔥 2. MIX MODE (ሰው ከቦት / ሰው ከሰው ጋር እንዲካፈል) 🔥
             else if (forceWinner === 'mix' || forceWinner === 'mix_real') {
-                let maxMixTurn = mixWinTargetTurn || 24; 
+                let maxMixTurn = mixWinTargetTurn || 24; // 🔥 Random የተመረጠውን ተራ ይጠቀማል
+                
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
                 
                 if (realWinNum) {
                     numToCall = realWinNum; 
                 } else if (turn >= maxMixTurn && realPlayers.length > 0) {
+                    // Random የተመረጠው ተራ ሲደርስ ሰው እንዲያሸንፍ ግድ ይለዋል
                     let chosenReal = realPlayers[Math.floor(Math.random() * realPlayers.length)];
                     let tix = chosenReal.ticketsData[0]; 
+                    
                     let safeNum = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
+                    
                     let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
                     tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
                     tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
                     tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
                     tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
                     tix.grid[4][0] = safeNum; 
+                    
                     numToCall = safeNum;
                 } else {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
             }
-
-            // 🔥 3. አዲሱ MIX LOSER ሎጂክ (ዴፖዚት አድርጎ የተሸነፈ ሰው ብቻ ይምረጥ) 🔥
-            else if (forceWinner === 'mix_loser') {
-                let maxMixTurn = mixWinTargetTurn || 24; 
-                let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
-                let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
-                
-                if (realWinNum) {
-                    // እዚህ ጋር ያሸነፈው ሰው ዴፖዚተር ካልሆነ መከልከል እንችላለን፣ ግን Random ስለሆነ እንተወዋለን
-                    numToCall = realWinNum; 
-                } else if (turn >= maxMixTurn && recentDepositorsCache.length > 0) {
-                    
-                    // ከካሼው ላይ (Deposit ካደረጉት) አንዱን ሰው በዘፈቀደ እንመርጣለን
-                    let chosenPhone = recentDepositorsCache[Math.floor(Math.random() * recentDepositorsCache.length)];
-                    let chosenReal = activePlayers[chosenPhone];
-                    
-                    if(chosenReal && chosenReal.ticketsData && chosenReal.ticketsData.length > 0) {
-                        let tix = chosenReal.ticketsData[0]; 
-                        let safeNum = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
-                        
-                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
-                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                        tix.grid[4][0] = safeNum; 
-                        
-                        numToCall = safeNum;
-                    } else {
-                        numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
-                    }
-                } else {
-                    numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
-                }
-            }
             
-            // 4. BOTS 100%
+            // 🔥 3. BOTS 100% WIN (ቦት ብቻ - ሰው አያሸንፍም) 🔥
             else if (forceWinner === 'bots') {
                 let safeFromReal = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
+
                 if (turn >= botWinTargetTurn || safeFromReal.length === 0) {
                     if (botPlayers.length > 0) {
                         let chosenBot = botPlayers[Math.floor(Math.random() * botPlayers.length)];
                         let tix = chosenBot.ticketsData[0]; 
+                        
                         let safeNum = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
+                        
                         let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
                         tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
                         tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
                         tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
                         tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
                         tix.grid[4][0] = safeNum; 
+                        
                         numToCall = safeNum;
                     } else {
                         numToCall = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
@@ -2189,8 +2145,8 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                // Mix ከተመረጠ ቦትን ከአሸናፊዎች ማውጣት
-                if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_loser') {
+                // Mix ወይም Real ከሆነ ቦትን ከአሸናፊዎች ዝርዝር ያወጣል
+                if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_real') {
                     winnersThisRound = winnersThisRound.filter(w => !w.player.isBot);
                 }
 
@@ -2200,8 +2156,8 @@ setInterval(() => {
 
                 let actualReals = winnersThisRound.filter(w => !w.player.isBot);
 
-                // 🔥 የ Mix Loser አከፋፈል ልክ እንደ Mix ነው የሚሰራው (ከቦት ጋር) 🔥
-                if ((forceWinner === 'mix' || forceWinner === 'mix_loser') && actualReals.length > 0) {
+                // Mix (ሰው + ቦት አብረው ይበላሉ)
+                if (forceWinner === 'mix' && actualReals.length > 0) {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
                     let toAdd = Math.min(mixCount, availableBots.length);
@@ -2217,7 +2173,7 @@ setInterval(() => {
                         winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
-                
+                // 🔥 Mix 4 (ሰው + ሰው አብረው ይበላሉ) 🔥
                 else if (forceWinner === 'mix_real' && actualReals.length > 0) {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
                     let winnerPhones = actualReals.map(w => w.player.phone);
