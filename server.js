@@ -1053,10 +1053,24 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
 app.post('/api/admin/bot-master-update-v2', auth, async (req, res) => {
     try {
         let s = await SystemSettings.findOne();
+        
+        // Prevent all zeros bug!
+        let d1 = req.body.botDist1 !== undefined ? req.body.botDist1 : 5;
+        let d2 = req.body.botDist2 !== undefined ? req.body.botDist2 : 4;
+        let d3 = req.body.botDist3 !== undefined ? req.body.botDist3 : 3;
+        let d4 = req.body.botDist4 !== undefined ? req.body.botDist4 : 3;
+        
+        if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) {
+            d1 = 5; d2 = 4; d3 = 3; d4 = 3;
+        }
+
         s.isBotSystemActive = !!req.body.isBotSystemActive;
         s.botWinnerForce = req.body.botWinnerForce;
         s.mixBotCount = req.body.mixBotCount !== undefined ? req.body.mixBotCount : 1;
-        s.botDist1 = req.body.botDist1; s.botDist2 = req.body.botDist2; s.botDist3 = req.body.botDist3; s.botDist4 = req.body.botDist4;
+        s.botDist1 = d1; 
+        s.botDist2 = d2; 
+        s.botDist3 = d3; 
+        s.botDist4 = d4;
         
         s.isBotScheduleActive = !!req.body.isBotScheduleActive;
         if(req.body.botSchedule1) { s.botSchedule1 = req.body.botSchedule1; s.markModified('botSchedule1'); }
@@ -1726,6 +1740,7 @@ let globalTakenTickets = [];
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
 let mixWinTargetTurn = null; // 🔥 ለሰው ማሸነፊያ (Random Turn) 🔥
+let mixDepWinnersHistory = []; // 🔥 5ኛው ምርጫ: ገቢ (Deposit) ያደረጉትን ብቻ መዝግቦ የሚያዞርበት 🔥
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1916,6 +1931,8 @@ setInterval(() => {
                     totalBotsToInject = Math.floor(Math.random() * (mx - mn + 1)) + mn;
                 } else {
                     totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
+                    // 🔥 ቦት 0 ገብቶ እንዳያቆም Fallback (ዳታቤዝ ላይ 0 ቢሆንም ቢያንስ 15 ያስገባል) 🔥
+                    if (totalBotsToInject <= 0) totalBotsToInject = 15;
                 }
 
                 let r1 = GLOBAL_SETTINGS.botDist1; 
@@ -2055,11 +2072,13 @@ setInterval(() => {
 
             let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
+            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // 🔥 NEW: ለ 5ኛው ምርጫ
             
             // የሰው ማለቅና መኖር ቼክ ማድረግ
             if (realPlayers.length === 0) forceWinner = 'bots';
-            if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real')) forceWinner = 'real';
+            if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep')) forceWinner = 'real';
             if (realPlayers.length <= 1 && forceWinner === 'mix_real') forceWinner = 'real'; 
+            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; // Deposit ያደረገ ከሌለ ቦት ይበላል
 
             // 🔥 1. PURE LUCK (ሰው ብቻ - ቦት በፍፁም አያሸንፍም) 🔥
             if (forceWinner === 'real') {
@@ -2099,6 +2118,72 @@ setInterval(() => {
                     numToCall = safeNum;
                 } else {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
+                }
+            }
+            
+            // 🔥 5. MIX DEP (ሰው ከቦት - ለ Deposit ላደረጉት ብቻ) 🔥
+            else if (forceWinner === 'mix_dep') {
+                let maxMixTurn = mixWinTargetTurn || 24;
+
+                // Deposit ያላደረጉ ሰዎች እንዳያሸንፉ መከልከል
+                let winForNonDepositor = [];
+                for(let testNum of currentDrawSequence) {
+                     let tempCalled = [...calledNumbers, testNum];
+                     for(let p of realPlayers) {
+                         if (!p.hasDeposited) {
+                             for(let t of p.ticketsData) {
+                                 if(serverCheckBingo(t.grid, tempCalled)) {
+                                     winForNonDepositor.push(testNum);
+                                     break;
+                                 }
+                             }
+                         }
+                     }
+                }
+
+                let safeFromBotsAndNonDep = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n) && !winForNonDepositor.includes(n));
+                
+                let winForDepositor = [];
+                for(let testNum of safeFromBotsAndNonDep) {
+                     let tempCalled = [...calledNumbers, testNum];
+                     for(let p of depositorPlayers) {
+                         for(let t of p.ticketsData) {
+                             if(serverCheckBingo(t.grid, tempCalled)) {
+                                 winForDepositor.push(testNum);
+                                 break;
+                             }
+                         }
+                     }
+                }
+
+                let depWinNum = winForDepositor.length > 0 ? winForDepositor[0] : null;
+
+                if (depWinNum) {
+                    numToCall = depWinNum; 
+                } else if (turn >= maxMixTurn && depositorPlayers.length > 0) {
+                    // Deposit ካደረጉት ውስጥ ተራው የደረሰውን (ያልበላውን) መምረጥ
+                    let availableDeps = depositorPlayers.filter(p => !mixDepWinnersHistory.includes(p.phone));
+                    if (availableDeps.length === 0) {
+                        mixDepWinnersHistory = []; // ሁሉም ከበሉ ሪሴት አድርግ
+                        availableDeps = depositorPlayers;
+                    }
+
+                    let chosenDep = availableDeps[Math.floor(Math.random() * availableDeps.length)];
+                    let tix = chosenDep.ticketsData[0]; 
+                    
+                    let safeNum = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
+                    
+                    let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
+                    tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
+                    tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
+                    tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
+                    tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
+                    tix.grid[4][0] = safeNum; 
+                    
+                    numToCall = safeNum;
+                } else {
+                    numToCall = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
+                    if(!numToCall) numToCall = currentDrawSequence[0]; // Fallback
                 }
             }
             
@@ -2146,7 +2231,7 @@ setInterval(() => {
 
             if(winnersThisRound.length > 0) {
                 // Mix ወይም Real ከሆነ ቦትን ከአሸናፊዎች ዝርዝር ያወጣል
-                if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_real') {
+                if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep') {
                     winnersThisRound = winnersThisRound.filter(w => !w.player.isBot);
                 }
 
@@ -2189,6 +2274,29 @@ setInterval(() => {
                         tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
                         tix.grid[4][0] = numToCall;
                         winnersThisRound.push({ player: r, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
+                    }
+                }
+                // 🔥 MIX DEP (Deposit ላደረጉት ብቻ + ቦት አብረው ይበላሉ) 🔥
+                else if (forceWinner === 'mix_dep' && actualReals.length > 0) {
+                    actualReals.forEach(w => {
+                        if (!mixDepWinnersHistory.includes(w.player.phone)) {
+                            mixDepWinnersHistory.push(w.player.phone);
+                        }
+                    });
+
+                    let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
+                    let availableBots = botPlayers.sort(() => Math.random() - 0.5);
+                    let toAdd = Math.min(mixCount, availableBots.length);
+                    for (let i = 0; i < toAdd; i++) {
+                        let b = availableBots.pop();
+                        let tix = b.ticketsData[0];
+                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5);
+                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
+                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
+                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
+                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
+                        tix.grid[4][0] = numToCall;
+                        winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
                 
@@ -2257,10 +2365,11 @@ io.on('connection', (socket) => {
             });
 
             if (!activePlayers[data.phone]) {
-                activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false };
+                activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0) };
             } else { 
                 activePlayers[data.phone].tickets += data.ticketCount; 
                 activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
+                activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
             }
             
             totalTickets += data.ticketCount; 
