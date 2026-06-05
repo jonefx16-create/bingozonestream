@@ -239,9 +239,9 @@
                         </label>
                     </div>
 
-                    <!-- 🔥 5ኛው አዲስ ሎጂክ የተጨመረበት (Winner Control) 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">2. Winner Control (ማን ያሸንፍ?)</div>
+                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">* Bots 100% Guaranteed: ሰው መቼም አያሸንፍም!</p>
                         
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
                             <label style="flex:1; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; cursor:pointer;">
@@ -263,12 +263,6 @@
                                 <input type="radio" name="bot-master-winner" value="mix_real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
                                 <span style="color:white; font-size:12px; font-weight:bold;">🤝 Mix 4 (ሰው+ሰው)</span>
                             </label>
-                            
-                            <!-- 🔥 አዲሱ 5ኛው Button 🔥 -->
-                            <label style="flex:1; padding:10px; background: rgba(6, 182, 212, 0.1); border: 1px solid var(--cyan); border-radius:6px; cursor:pointer;">
-                                <input type="radio" name="bot-master-winner" value="mix_depositor" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-                                <span style="color:white; font-size:12px; font-weight:bold;">💔 Loser+Bot (አስገብቶ የተበላ)</span>
-                            </label>
                         </div>
                         
                         <div id="mix-count-container" style="display:none; margin-top:10px;">
@@ -277,7 +271,7 @@
                         </div>
                     </div>
 
-                    <!-- TICKET DISTRIBUTION -->
+                    <!-- 🔥 የጠፋብህ የ TICKET DISTRIBUTION ይሄ ነው 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">3. Ticket Distribution (የቦት ስርጭት)</div>
                         <p style="font-size:10px; color:var(--text-gray); margin-top:0;">የቦቶች <b style="color:var(--faded-green);">ትክክለኛ ብዛት (Exact Quantity)</b>።</p>
@@ -289,7 +283,7 @@
                         </div>
                     </div>
 
-                    <!-- BOT SCHEDULE -->
+                    <!-- 🔥 BOT SCHEDULE 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
                             <div>
@@ -302,6 +296,7 @@
                             </label>
                         </div>
                         
+                        <!-- 🔥 LIVE SCHEDULE STATUS INDICATOR 🔥 -->
                         <div id="active-schedule-info" style="background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none;">
                             <div style="font-size: 14px; margin-bottom: 5px; font-weight:bold;">🟢 Active Schedule: <b id="sch-active-name" style="color: var(--faded-green);">Loading...</b></div>
                             <div style="font-size: 12px; color: var(--text-gray); margin-bottom: 3px;">⏱ Time Range: <b id="sch-active-range" style="color: var(--cyan);">-</b> | Current EAT: <b id="sch-current-time" style="color: var(--gold);">-</b></div>
@@ -1125,7 +1120,7 @@
         let checkedRadio = document.querySelector('input[name="bot-master-winner"]:checked');
         if(checkedRadio) {
             document.getElementById('mix-count-container').style.display = 
-                (checkedRadio.value === 'mix' || checkedRadio.value === 'mix_real' || checkedRadio.value === 'mix_depositor') ? 'block' : 'none';
+                (checkedRadio.value === 'mix' || checkedRadio.value === 'mix_real') ? 'block' : 'none';
         }
     }
     function toggleScheduleDiv() {
