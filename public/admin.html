@@ -263,6 +263,11 @@
                                 <input type="radio" name="bot-master-winner" value="mix_real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
                                 <span style="color:white; font-size:12px; font-weight:bold;">🤝 Mix 4 (ሰው+ሰው)</span>
                             </label>
+
+                            <label style="flex:1; padding:10px; background: rgba(6, 182, 212, 0.1); border: 1px solid var(--cyan); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="mix_dep" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">💎 Mix Dep</span>
+                            </label>
                         </div>
                         
                         <div id="mix-count-container" style="display:none; margin-top:10px;">
@@ -1120,7 +1125,7 @@
         let checkedRadio = document.querySelector('input[name="bot-master-winner"]:checked');
         if(checkedRadio) {
             document.getElementById('mix-count-container').style.display = 
-                (checkedRadio.value === 'mix' || checkedRadio.value === 'mix_real') ? 'block' : 'none';
+                (checkedRadio.value === 'mix' || checkedRadio.value === 'mix_real' || checkedRadio.value === 'mix_dep') ? 'block' : 'none';
         }
     }
     function toggleScheduleDiv() {
@@ -1292,6 +1297,7 @@ async function submitManualDeposit() {
         let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
         let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
         let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
+        if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) { d1 = 5; d2 = 4; d3 = 3; d4 = 3; } // 0 ሆኖ እንዳይበላሽ
 
         let isSchedActive = document.getElementById('bot-schedule-toggle').checked;
         let s1 = { start: parseInt(document.getElementById('s1-start').value)||0, end: parseInt(document.getElementById('s1-end').value)||0, min: parseInt(document.getElementById('s1-min').value)||0, max: parseInt(document.getElementById('s1-max').value)||0 };
