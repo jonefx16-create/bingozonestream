@@ -241,34 +241,46 @@
 
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">2. Winner Control (ማን ያሸንፍ?)</div>
-                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">* Bots 100% Guaranteed: ሰው መቼም አያሸንፍም!</p>
+                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">* የቦት እና የሰው ማሸነፊያ ሎጂክ ይምረጡ</p>
                         
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-    <label style="flex:1; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; cursor:pointer;">
-        <input type="radio" name="bot-master-winner" value="bots" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-        <span style="color:white; font-size:12px; font-weight:bold;">🤖 Bots</span>
-    </label>
-    <label style="flex:1; padding:10px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); border-radius:6px; cursor:pointer;">
-        <input type="radio" name="bot-master-winner" value="real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-        <span style="color:white; font-size:12px; font-weight:bold;">👤 Real</span>
-    </label>
-    <label style="flex:1; padding:10px; background: rgba(234, 88, 12, 0.1); border: 1px solid var(--orange); border-radius:6px; cursor:pointer;">
-        <input type="radio" name="bot-master-winner" value="mix" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-        <span style="color:white; font-size:12px; font-weight:bold;">🔄 Mix</span>
-    </label>
-    <label style="flex:1; padding:10px; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); border-radius:6px; cursor:pointer;">
-        <input type="radio" name="bot-master-winner" value="mix_real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-        <span style="color:white; font-size:12px; font-weight:bold;">🤝 Mix 4</span>
-    </label>
-    <label style="flex:1; padding:10px; background: rgba(6, 182, 212, 0.1); border: 1px solid var(--cyan); border-radius:6px; cursor:pointer;">
-        <input type="radio" name="bot-master-winner" value="mix_dep" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-        <span style="color:white; font-size:12px; font-weight:bold;">💎 Mix Dep</span>
-    </label>
-    <label style="flex:1; padding:10px; background: rgba(251, 191, 36, 0.2); border: 1px solid var(--gold); border-radius:6px; cursor:pointer;">
-        <input type="radio" name="bot-master-winner" value="ai" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-        <span style="color:var(--gold); font-size:12px; font-weight:bold;">🧠 Smart AI</span>
-    </label>
-</div>
+                            <label style="flex:1; padding:10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="bots" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🤖 Bots (100% ቦት)</span>
+                            </label>
+
+                            <label style="flex:1; padding:10px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">👤 Real (ሰው ብቻ)</span>
+                            </label>
+
+                            <label style="flex:1; padding:10px; background: rgba(234, 179, 8, 0.1); border: 1px solid var(--gold); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="mix" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🔄 Mix (ሰው+ቦት)</span>
+                            </label>
+                            
+                            <label style="flex:1; padding:10px; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="mix_real" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🤝 Mix 4 (ሰው+ሰው)</span>
+                            </label>
+
+                            <label style="flex:1; padding:10px; background: rgba(6, 182, 212, 0.1); border: 1px solid var(--cyan); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="mix_dep" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">💎 Mix Dep</span>
+                            </label>
+
+                            <!-- 🔥 አዲሱ የ Smart AI ምርጫ (Hulu Bingo Logic) 🔥 -->
+                            <label style="flex:1; padding:10px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--blue); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="bot-master-winner" value="ai" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
+                                <span style="color:white; font-size:12px; font-weight:bold;">🧠 Smart AI</span>
+                            </label>
+                        </div>
+                        
+                        <div id="mix-count-container" style="display:none; margin-top:10px;">
+                            <label style="font-size:11px; color:var(--gold);">ሰው ሲያሸንፍ ስንት ሰው/ቦት አብሮት ያሸንፍ? (Share Count)</label>
+                            <input type="number" id="mix-bot-count" placeholder="e.g. 1" style="width:100%; margin-top:5px; margin-bottom:0;">
+                        </div>
+                    </div>
 
                     <!-- 🔥 የጠፋብህ የ TICKET DISTRIBUTION ይሄ ነው 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
@@ -1279,57 +1291,53 @@ async function submitManualDeposit() {
         } catch(e) { console.log(e); }
     }
 
-     async function saveBotMasterSettings() {
-    let isActive = document.getElementById('bot-master-toggle').checked;
-    let force = 'bots';
-    let radios = document.getElementsByName('bot-master-winner');
-    for(let r of radios) { if(r.checked) force = r.value; }
-    
-    let mixCount = parseInt(document.getElementById('mix-bot-count').value) || 1;
-    
-    // --- 🛡️ የቦት መጥፋት መከላከያ (Fallback) ---
-    let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
-    let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
-    let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
-    let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
-    
-    // ሁሉም 0 ከሆኑ ጌሙ እንዳይበላሽ ወደ መደበኛው (5,4,3,3) ይቀይረዋል
-    if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) { 
-        d1 = 5; d2 = 4; d3 = 3; d4 = 3; 
-    }
-
-    let isSchedActive = document.getElementById('bot-schedule-toggle').checked;
-    let s1 = { start: parseInt(document.getElementById('s1-start').value)||0, end: parseInt(document.getElementById('s1-end').value)||0, min: parseInt(document.getElementById('s1-min').value)||0, max: parseInt(document.getElementById('s1-max').value)||0 };
-    let s2 = { start: parseInt(document.getElementById('s2-start').value)||0, end: parseInt(document.getElementById('s2-end').value)||0, min: parseInt(document.getElementById('s2-min').value)||0, max: parseInt(document.getElementById('s2-max').value)||0 };
-    let s3 = { start: parseInt(document.getElementById('s3-start').value)||0, end: parseInt(document.getElementById('s3-end').value)||0, min: parseInt(document.getElementById('s3-min').value)||0, max: parseInt(document.getElementById('s3-max').value)||0 };
-    let s4 = { start: parseInt(document.getElementById('s4-start').value)||0, end: parseInt(document.getElementById('s4-end').value)||0, min: parseInt(document.getElementById('s4-min').value)||0, max: parseInt(document.getElementById('s4-max').value)||0 };
-
-    try {
-        let res = await fetch('/api/admin/bot-master-update-v2', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                adminPass: pass, 
-                isBotSystemActive: isActive, 
-                botWinnerForce: force, 
-                mixBotCount: mixCount,
-                botDist1: d1, botDist2: d2, botDist3: d3, botDist4: d4,
-                isBotScheduleActive: isSchedActive,
-                botSchedule1: s1, botSchedule2: s2, botSchedule3: s3, botSchedule4: s4
-            })
-        });
+    async function saveBotMasterSettings() {
+        let isActive = document.getElementById('bot-master-toggle').checked;
+        let force = 'bots';
+        let radios = document.getElementsByName('bot-master-winner');
+        for(let r of radios) { if(r.checked) force = r.value; }
         
-        let data = await res.json();
-        if(data.success) {
-            alert("✅ ሁሉም ሴቲንጎች በትክክል ተቀምጠዋል! (Hulu/Bingo Zone Style)");
-            fullRefresh();
-        } else {
-            alert("❌ ስህተት አጋጥሟል!");
-        }
-    } catch(e) {
-        alert("❌ ከሰርቨር ጋር መገናኘት አልተቻለም!");
+        let mixCount = parseInt(document.getElementById('mix-bot-count').value) || 1;
+        
+        let d1 = parseInt(document.getElementById('bot-d1').value) || 0;
+        let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
+        let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
+        let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
+        if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) { d1 = 5; d2 = 4; d3 = 3; d4 = 3; } // 0 ሆኖ እንዳይበላሽ
+
+        let isSchedActive = document.getElementById('bot-schedule-toggle').checked;
+        let s1 = { start: parseInt(document.getElementById('s1-start').value)||0, end: parseInt(document.getElementById('s1-end').value)||0, min: parseInt(document.getElementById('s1-min').value)||0, max: parseInt(document.getElementById('s1-max').value)||0 };
+        let s2 = { start: parseInt(document.getElementById('s2-start').value)||0, end: parseInt(document.getElementById('s2-end').value)||0, min: parseInt(document.getElementById('s2-min').value)||0, max: parseInt(document.getElementById('s2-max').value)||0 };
+        let s3 = { start: parseInt(document.getElementById('s3-start').value)||0, end: parseInt(document.getElementById('s3-end').value)||0, min: parseInt(document.getElementById('s3-min').value)||0, max: parseInt(document.getElementById('s3-max').value)||0 };
+        let s4 = { start: parseInt(document.getElementById('s4-start').value)||0, end: parseInt(document.getElementById('s4-end').value)||0, min: parseInt(document.getElementById('s4-min').value)||0, max: parseInt(document.getElementById('s4-max').value)||0 };
+
+        try {
+            let res = await fetch('/api/admin/bot-master-update-v2', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({
+                    adminPass: pass, 
+                    isBotSystemActive: isActive, 
+                    botWinnerForce: force, 
+                    mixBotCount: mixCount,
+                    botDist1: d1,
+                    botDist2: d2,
+                    botDist3: d3,
+                    botDist4: d4,
+                    isBotScheduleActive: isSchedActive,
+                    botSchedule1: s1, botSchedule2: s2, botSchedule3: s3, botSchedule4: s4
+                })
+            });
+            let data = await res.json();
+            if(data.success) {
+                alert("✅ Bot Master Settings & Schedule Saved!");
+                isBotInputDirty = false;
+                fullRefresh();
+            } else {
+                alert("❌ Error saving bot settings");
+            }
+        } catch(e) { alert("Network Error"); }
     }
-}
 
     function openEditBotModal(id, name, phone, cards, isActive) {
         document.getElementById('eb-id').value = id;
@@ -1904,7 +1912,7 @@ async function submitManualDeposit() {
                 html += `<tr class="${rowClass}" onclick="handleRowClick(event, 'tx', '${t._id}')">
                     <td><input type="checkbox" class="chk-tx" value="${t._id}" ${isChecked} onchange="toggleIndiv(this, 'tx')"></td>
                     <td>${d.toLocaleTimeString()}</td>
-                    <td><a href="#" style="color:var(--cyan); text-decoration:none; font-weight:bold;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td>
+                    <td><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${t.phone}'); return false;">${t.phone}</a></td>
                     <td style="text-transform:uppercase;">${t.type === 'win' ? '<span class="badge bg-win">🏆 WIN</span>' : t.type}</td>
                     <td>${t.method}</td>
                     <td style="font-weight:bold;">
