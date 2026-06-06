@@ -195,6 +195,18 @@ const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
     date: { type: Date, default: Date.now }
 }));
 
+// 🔥 AI Profit Tracker (Hulu Logic) 🔥
+let dailyHouseProfit = 0;
+let currentDayTracker = new Date().getDate();
+
+setInterval(() => {
+    let today = new Date().getDate();
+    if (today !== currentDayTracker) {
+        dailyHouseProfit = 0;
+        currentDayTracker = today;
+    }
+}, 60000);
+
 let GLOBAL_SETTINGS = {};
 async function loadSettings() {
     let s = await SystemSettings.findOne();
@@ -701,7 +713,6 @@ app.post('/api/admin/inject-jackpot-bonus', auth, (req, res) => {
         jackpotBoostAmount += amount; // ለ Display
         totalPrizePool += amount;     // ለ ትክክለኛው አሸናፊ ክፍያ
         
-        // 🔥 አድሚን ሲጨምር ወዲያውኑ ለተጫዋቾች ሆም ፔጅ ላይ እንዲበራ እና ሪፍሬሽ እንዲያደርግ ተስተካክሏል
         io.emit('game_status', { 
             state: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
@@ -714,7 +725,6 @@ app.post('/api/admin/inject-jackpot-bonus', auth, (req, res) => {
     }
 });
 
-// 🔥 BOT ROUTES & NEW APIs 🔥
 app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
     try {
         let amount = parseInt(req.body.amount);
@@ -1054,7 +1064,6 @@ app.post('/api/admin/bot-master-update-v2', auth, async (req, res) => {
     try {
         let s = await SystemSettings.findOne();
         
-        // Prevent all zeros bug!
         let d1 = req.body.botDist1 !== undefined ? req.body.botDist1 : 5;
         let d2 = req.body.botDist2 !== undefined ? req.body.botDist2 : 4;
         let d3 = req.body.botDist3 !== undefined ? req.body.botDist3 : 3;
@@ -1440,7 +1449,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.telegramChannel !== undefined) s.telegramChannel = req.body.telegramChannel;
 
-    // 🔥 አድሚን Manual የጨመረውን ቦነስ በ Setting በኩል Save ሲደረግም እንዲይዘው 🔥
     if(req.body.jackpotBoostAmount !== undefined) {
         s.jackpotBoostAmount = req.body.jackpotBoostAmount;
         jackpotBoostAmount = req.body.jackpotBoostAmount;
@@ -1544,7 +1552,6 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// 🔥 NEW PROMO BROADCAST LOGIC (TG, WEB, BOTH) 🔥
 let isBroadcasting = false; 
 
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
@@ -1574,7 +1581,6 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
             for (let u of users) {
-                // If it's deposit only, pre-filter for telegram sending (Optional, but good to not spam inactive users)
                 if(depositorsOnly) {
                     if (requireDepositWithinHours > 0) {
                         let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
@@ -1662,7 +1668,6 @@ app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, message: "Error deleting broadcast." }); }
 });
 
-// 🔥 INSTANT LIVE BOT INJECTION (WITH GRADUAL QUEUEING & RATIO) 🔥
 app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
     try {
         if (gameState !== "WAITING") {
@@ -1729,7 +1734,7 @@ let gameState = "WAITING";
 let gameClock = 40; 
 let activePlayers = {}; 
 let totalPrizePool = 0; 
-let jackpotBoostAmount = 0; // 🔥 Added for real-time jackpot boost display
+let jackpotBoostAmount = 0; 
 let totalCollectedMoney = 0; 
 let totalTickets = 0;
 let calledNumbers = []; 
@@ -1739,8 +1744,8 @@ let globalTakenTickets = [];
 
 let gameBotsQueue = [];
 let botWinTargetTurn = null; 
-let mixWinTargetTurn = null; // 🔥 ለሰው ማሸነፊያ (Random Turn) 🔥
-let mixDepWinnersHistory = []; // 🔥 5ኛው ምርጫ: ገቢ (Deposit) ያደረጉትን ብቻ መዝግቦ የሚያዞርበት 🔥
+let mixWinTargetTurn = null; 
+let mixDepWinnersHistory = []; 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1793,22 +1798,23 @@ async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
     
-    // 🔥 እዚህ ጋር አድሚን የጨመረውን ቦነስ ጨምረን ነው ለ Winner የምንሰጠው
     let finalTotalPrize = totalPrizePool + jackpotBoostAmount; 
     let splitPrize = Number((finalTotalPrize / winners.length).toFixed(2));
     
-    let realMoney = 0;
+    let realMoneyIn = 0;
     Object.values(activePlayers).forEach(p => {
-        if(!p.isBot) realMoney += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
+        if(!p.isBot) realMoneyIn += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
     });
     
     let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-    let adminProfit = realMoney * (adminProfitPercent / 100);
+    let adminProfit = realMoneyIn * (adminProfitPercent / 100);
     
     let winnerNames = [];
     let winnerPhones = [];
     let ticketIds = [];
     let winnerDetails = []; 
+    
+    let realMoneyOut = 0;
 
     for (let w of winners) {
         if (!w.player.isBot) {
@@ -1828,6 +1834,7 @@ async function declareWinners(winners) {
                     smsText: `Bingo Win - Ticket #${w.ticket.id}`
                 }).save();
             }
+            realMoneyOut += splitPrize;
         }
         winnerNames.push(w.player.name);
         winnerPhones.push(w.player.phone);
@@ -1841,6 +1848,9 @@ async function declareWinners(winners) {
         });
     }
 
+    // 🔥 AI Profit Tracker Calculation 🔥
+    dailyHouseProfit += (realMoneyIn - realMoneyOut);
+
     let uniqueNames = [...new Set(winnerNames)];
     let displayNames = uniqueNames.join(' እና ');
 
@@ -1849,7 +1859,7 @@ async function declareWinners(winners) {
         ticketId: ticketIds.join(', '), 
         winnerName: displayNames, 
         winnerPhone: winnerPhones.join(', '), 
-        prize: finalTotalPrize, // እዚህም ሙሉ ብሩ ይገባል
+        prize: finalTotalPrize,
         adminProfit, 
         ticketPrice: GLOBAL_SETTINGS.ticketPrice, 
         winningGrid: winners[0].ticket.grid, 
@@ -1875,17 +1885,21 @@ function resetToWaiting() {
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     
-    // 🔥 አዲሱ ዙር ሲጀምር የተጨመረውን ቦነስ (Jackpot Boost) ወደ 0 መመለስ (Reset) 🔥
     jackpotBoostAmount = 0; 
+    
+    // 🔥 ማታ ተጫዋች ሲጠፋ ጃክፖት 200 ብር አድርጎ የሚጀምረው ሎጂክ (Beteseb) 🔥
+    let currentHourEAT = new Date(Date.now() + (3 * 60 * 60 * 1000)).getUTCHours();
+    if (currentHourEAT >= 0 && currentHourEAT <= 9) { // ከሌሊቱ 6 ሰዓት እስከ ጠዋት 3 ሰዓት (Local Time)
+        jackpotBoostAmount = 200; 
+    }
 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
     gameBotsQueue = [];
     botWinTargetTurn = null;
-    mixWinTargetTurn = null; // 🔥
+    mixWinTargetTurn = null; 
     io.emit('update_taken_tickets', globalTakenTickets); 
     
-    // የጨዋታውን Setting Update ማድረግ
     SystemSettings.findOneAndUpdate({}, { jackpotBoostAmount: 0 }).exec();
 }
 
@@ -1902,7 +1916,6 @@ setInterval(() => {
     if (gameState === "WAITING") {
         gameClock--;
         
-        // 🔥 ቦቶች በማንኛውም ሴቲንግ እንዳይታገዱ ተደርጓል 🔥
         if (gameClock === GLOBAL_SETTINGS.gameTimer - 2 && GLOBAL_SETTINGS.isBotSystemActive && gameBotsQueue.length === 0) {
             BotUser.find({isActive: true}).sort({ lastPlayed: 1 }).then(bots => {
                 let availableBots = [...bots];
@@ -1931,7 +1944,6 @@ setInterval(() => {
                     totalBotsToInject = Math.floor(Math.random() * (mx - mn + 1)) + mn;
                 } else {
                     totalBotsToInject = GLOBAL_SETTINGS.botDist1 + GLOBAL_SETTINGS.botDist2 + GLOBAL_SETTINGS.botDist3 + GLOBAL_SETTINGS.botDist4;
-                    // 🔥 ቦት 0 ገብቶ እንዳያቆም Fallback (ዳታቤዝ ላይ 0 ቢሆንም ቢያንስ 15 ያስገባል) 🔥
                     if (totalBotsToInject <= 0) totalBotsToInject = 15;
                 }
 
@@ -1959,13 +1971,10 @@ setInterval(() => {
                 for(let i=0; i<totalBotsToInject; i++) {
                     if(availableBots.length === 0) break;
                     let b = availableBots.shift();
-                    
                     let baseTix = distArray[i] || 1;
-                    
                     let rand = Math.random();
                     if (rand < 0.20 && baseTix < 4) baseTix += 1;
                     else if (rand > 0.90 && baseTix > 1) baseTix -= 1;
-
                     gameBotsQueue.push({ bot: b, tixCount: baseTix });
                 }
                 gameBotsQueue = gameBotsQueue.sort(() => Math.random() - 0.5);
@@ -2024,9 +2033,7 @@ setInterval(() => {
                 gameState = "PLAYING"; gameClock = 3; 
                 currentDrawSequence = getRiggedSequence(); 
                 
-                // 🔥 ቦት ብቻ ከሆነ ከ 12 እስከ 21ኛው ተራ ያሸንፋል
                 botWinTargetTurn = Math.floor(Math.random() * (21 - 12 + 1)) + 12;
-                // 🔥 Mix Mode ከሆነ ከ 15 እስከ 24ኛው ተራ ባለው (Randomly) መርጦ ያሸንፋል
                 mixWinTargetTurn = Math.floor(Math.random() * (24 - 15 + 1)) + 15;
 
                 io.emit('game_status', { 
@@ -2070,17 +2077,34 @@ setInterval(() => {
             let numToCall = null;
             let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
 
+            // 🔥 1. Smart AI (Hulu Bingo Logic) 🔥
+            if (forceWinner === 'ai') {
+                if (dailyHouseProfit < 500) {
+                    forceWinner = 'bots'; // ትርፍ ከሌለ ሰው አያሸንፍም
+                } else {
+                    forceWinner = 'mix_dep'; // ትርፍ ካለ Deposit ላደረጉ ሰዎች ያካፍላል
+                }
+            }
+
             let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
-            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // 🔥 NEW: ለ 5ኛው ምርጫ
+            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
             
-            // የሰው ማለቅና መኖር ቼክ ማድረግ
             if (realPlayers.length === 0) forceWinner = 'bots';
             if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep')) forceWinner = 'real';
             if (realPlayers.length <= 1 && forceWinner === 'mix_real') forceWinner = 'real'; 
-            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; // Deposit ያደረገ ከሌለ ቦት ይበላል
+            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; 
 
-            // 🔥 1. PURE LUCK (ሰው ብቻ - ቦት በፍፁም አያሸንፍም) 🔥
+            // 🔥 2. Liability Shield (Bingo Zone Logic) 🔥
+            if (forceWinner !== 'bots' && totalPrizePool > 300) {
+                let luckyChance = Math.random();
+                if (luckyChance > 0.15) { // 85% chance to force sharing
+                    forceWinner = 'mix';
+                    GLOBAL_SETTINGS.mixBotCount = Math.floor(Math.random() * 2) + 2; // Adds 2 or 3 bots
+                }
+            }
+
+            // PURE LUCK (ሰው ብቻ)
             if (forceWinner === 'real') {
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
@@ -2091,10 +2115,9 @@ setInterval(() => {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
             } 
-            
-            // 🔥 2. MIX MODE (ሰው ከቦት / ሰው ከሰው ጋር እንዲካፈል) 🔥
+            // MIX MODE (ሰው ከቦት / ሰው ከሰው)
             else if (forceWinner === 'mix' || forceWinner === 'mix_real') {
-                let maxMixTurn = mixWinTargetTurn || 24; // 🔥 Random የተመረጠውን ተራ ይጠቀማል
+                let maxMixTurn = mixWinTargetTurn || 24; 
                 
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
@@ -2102,7 +2125,6 @@ setInterval(() => {
                 if (realWinNum) {
                     numToCall = realWinNum; 
                 } else if (turn >= maxMixTurn && realPlayers.length > 0) {
-                    // Random የተመረጠው ተራ ሲደርስ ሰው እንዲያሸንፍ ግድ ይለዋል
                     let chosenReal = realPlayers[Math.floor(Math.random() * realPlayers.length)];
                     let tix = chosenReal.ticketsData[0]; 
                     
@@ -2120,12 +2142,10 @@ setInterval(() => {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
             }
-            
-            // 🔥 5. MIX DEP (ሰው ከቦት - ለ Deposit ላደረጉት ብቻ) 🔥
+            // MIX DEP (ሰው ከቦት - ለ Deposit ላደረጉት ብቻ)
             else if (forceWinner === 'mix_dep') {
                 let maxMixTurn = mixWinTargetTurn || 24;
 
-                // Deposit ያላደረጉ ሰዎች እንዳያሸንፉ መከልከል
                 let winForNonDepositor = [];
                 for(let testNum of currentDrawSequence) {
                      let tempCalled = [...calledNumbers, testNum];
@@ -2161,10 +2181,9 @@ setInterval(() => {
                 if (depWinNum) {
                     numToCall = depWinNum; 
                 } else if (turn >= maxMixTurn && depositorPlayers.length > 0) {
-                    // Deposit ካደረጉት ውስጥ ተራው የደረሰውን (ያልበላውን) መምረጥ
                     let availableDeps = depositorPlayers.filter(p => !mixDepWinnersHistory.includes(p.phone));
                     if (availableDeps.length === 0) {
-                        mixDepWinnersHistory = []; // ሁሉም ከበሉ ሪሴት አድርግ
+                        mixDepWinnersHistory = []; 
                         availableDeps = depositorPlayers;
                     }
 
@@ -2183,11 +2202,10 @@ setInterval(() => {
                     numToCall = safeNum;
                 } else {
                     numToCall = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
-                    if(!numToCall) numToCall = currentDrawSequence[0]; // Fallback
+                    if(!numToCall) numToCall = currentDrawSequence[0]; 
                 }
             }
-            
-            // 🔥 3. BOTS 100% WIN (ቦት ብቻ - ሰው አያሸንፍም) 🔥
+            // BOTS 100% WIN (ቦት ብቻ - ሰው አያሸንፍም)
             else if (forceWinner === 'bots') {
                 let safeFromReal = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
 
@@ -2230,7 +2248,6 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                // Mix ወይም Real ከሆነ ቦትን ከአሸናፊዎች ዝርዝር ያወጣል
                 if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep') {
                     winnersThisRound = winnersThisRound.filter(w => !w.player.isBot);
                 }
@@ -2258,7 +2275,7 @@ setInterval(() => {
                         winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
-                // 🔥 Mix 4 (ሰው + ሰው አብረው ይበላሉ) 🔥
+                // Mix 4 (ሰው + ሰው አብረው ይበላሉ)
                 else if (forceWinner === 'mix_real' && actualReals.length > 0) {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
                     let winnerPhones = actualReals.map(w => w.player.phone);
@@ -2276,7 +2293,7 @@ setInterval(() => {
                         winnersThisRound.push({ player: r, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
-                // 🔥 MIX DEP (Deposit ላደረጉት ብቻ + ቦት አብረው ይበላሉ) 🔥
+                // MIX DEP
                 else if (forceWinner === 'mix_dep' && actualReals.length > 0) {
                     actualReals.forEach(w => {
                         if (!mixDepWinnersHistory.includes(w.player.phone)) {
@@ -2702,7 +2719,6 @@ bot.on('message', async (msg) => {
             }
 
             await new Transaction({ phone: user.phone, type: 'deposit', amount: state.amount, method: state.method, smsText: text, txRef: txRef }).save(); 
-            // 🔥 ቦት ላይ ብር ሲያስገቡ "አድሚን ሲያረጋገጥ ይገባል" የሚል እንዲያሳያቸው ተስተካክሏል 🔥
             bot.sendMessage(chatId, `✅ <b>የገቢ ጥያቄዎ በተሳካ ሁኔታ ተልኳል!</b>\n\n📌 ማረጋገጫ ኮድ: <b>${txRef}</b>\n\nአድሚን ሲያረጋግጠው (Approve ሲያደርገው) ሂሳብዎ ላይ ይገባል።`, { parse_mode: "HTML", ...getMainMenu(user) }); 
             await autoApprovePendingDeposits(); 
         }
