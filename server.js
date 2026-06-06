@@ -2795,10 +2795,10 @@ const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    if (req.path === '/admin' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
+    if (req.path === '/Tside0422' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
         return next(); 
     }
-    if (req.path === '/finance' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
+    if (req.path === '/papi2204' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
         return next(); 
     }
     
@@ -3224,12 +3224,12 @@ app.get('/promo_app', async (req, res) => {
     res.send(html);
 });
 
-app.get('/admin', basicAuth, (req, res) => {
+app.get('/Tside0422', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'admin.html')) ? path.join(__dirname, 'admin.html') : path.join(__dirname, 'public', 'admin.html');
     if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: admin.html አልተገኘም!</h2>");
 });
 
-app.get('/finance', basicAuth, (req, res) => {
+app.get('/papi2204', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html');
     if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>");
 });
