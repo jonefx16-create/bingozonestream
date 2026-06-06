@@ -185,12 +185,19 @@
         <div id="tab-live" class="tab-content active">
             <div class="stats-grid">
                 <div class="stat-card" style="border-bottom: 4px solid var(--gold); grid-column: span 2;">
-                    <h3>💰 Live Jackpot</h3>
+                    <h3>💰 Live Jackpot (የስክሪን ላይ)</h3>
                     <h2 style="color: var(--gold);" id="stat-current-jackpot">0.00 ETB</h2>
                     <div style="font-size:12px; color:var(--text-gray); display:flex; justify-content:space-around; background:rgba(0,0,0,0.3); padding:10px; border-radius:5px; margin-top: 10px; border: 1px solid var(--border);">
                         <span>👤 Real Money: <b style="color:#4ade80; font-size:14px;" id="split-real-money">0.00</b></span>
                         <span>🤖 Bot Money: <b style="color:#f87171; font-size:14px;" id="split-bot-money">0.00</b></span>
                     </div>
+                </div>
+                
+                <!-- 🟢 HIDDEN POOL DISPLAY 🟢 -->
+                <div class="stat-card" style="border-bottom: 4px solid var(--cyan); grid-column: span 2; background: rgba(6, 182, 212, 0.1);">
+                    <h3>💎 Hidden Bank (እውነተኛው ድብቅ ካዝና)</h3>
+                    <p style="font-size:10px; color:gray; margin:0;">ይህ ሲስተሙ ሰው ሲያሸንፍ እውነተኛ ብር የሚከፍልበት ካዝና ነው (ማንም አያየውም)</p>
+                    <h2 style="color: var(--cyan);" id="stat-virtual-pool">0.00 ETB</h2>
                 </div>
 
                 <div class="stat-card live-player-box" style="border-bottom: 4px solid var(--purple); cursor: pointer; transition: 0.3s;" onclick="openLivePlayersModal()">
@@ -270,9 +277,9 @@
                             </label>
 
                             <!-- 🔥 አዲሱ የ Smart AI ምርጫ (Hulu Bingo Logic) 🔥 -->
-                            <label style="flex:1; padding:10px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--blue); border-radius:6px; cursor:pointer;">
-                                <input type="radio" name="bot-master-winner" value="ai" style="width:auto; margin-right:5px;" onchange="toggleMixInput()">
-                                <span style="color:white; font-size:12px; font-weight:bold;">🧠 Smart AI</span>
+                            <label style="flex:1; padding:10px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--blue); border-radius:6px; cursor:pointer; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
+                                <input type="radio" name="bot-master-winner" value="ai" style="width:auto; margin-right:5px;" onchange="toggleMixInput()" checked>
+                                <span style="color:white; font-size:12px; font-weight:bold;">🧠 Smart Casino AI</span>
                             </label>
                         </div>
                         
@@ -355,7 +362,7 @@
                     
                     <div class="card" style="border-left: 4px solid var(--purple); margin: 0;">
                         <h3 style="margin-top:0; color:var(--purple);">➕ Add Bots (ወደ ዳታቤዝ ጨምር)</h3>
-                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከታች ቁጥር በማስገባት አዳዲስ ቦቶችን ወደ ዳታቤዝ መጨመር ይችላሉ (በኢትዮጵያዊ ስም ይፈጠራሉ)።</p>
+                        <p style="font-size:11px; color:var(--text-gray); margin-top:0;">ከታች ቁጥር በማስገባት አዳዲስ ቦቶችን ወደ ዳታቤዝ መጨመር ይችላሉ (በኢትዮጵያዊ የወንድ ስም ይፈጠራሉ)።</p>
                         <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
                             <input type="number" id="add-bot-amount" placeholder="ብዛት (e.g. 30)" style="flex:2; margin-bottom:0;">
                             <button class="action-btn btn-purple" onclick="addCustomBots()" style="flex:1;">🚀 ጨምር</button>
@@ -850,6 +857,29 @@
 
         <!-- SETTINGS & CONTROL -->
         <div id="tab-settings" class="tab-content">
+            <!-- 🟢 VIRTUAL POOL & DECOY SETTINGS 🟢 -->
+            <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
+                <h3 style="margin-top:0; color:var(--cyan);">🧠 AI Illusion Settings (የካዚኖ ጀርባ አሰራር)</h3>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label style="font-weight:bold; color:var(--gold);">💎 Hidden Bank (ካዝና)</label>
+                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ሲስተሙ ለሰው ለመክፈል የሚጠቀምበት (እንዲያድግ/እንዲቀንስ ካልፈለጉ አይንኩት)</p>
+                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                            <input type="number" id="set-virtual-pool" placeholder="Amount">
+                            <button class="action-btn" style="background:var(--gold); color:black;" onclick="updateSettings('virtual_pool')">Save</button>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 250px;">
+                        <label style="font-weight:bold; color:var(--red);">🎭 Decoy Chance (%) - ማደናገሪያ</label>
+                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ካዝናው ቢሞላም እንኳን፣ ቦት ቆርጦ የሚበላበት የዕድል መጠን (0-100)</p>
+                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                            <input type="number" id="set-decoy-chance" placeholder="e.g. 15">
+                            <button class="action-btn" style="background:var(--red); color:white;" onclick="updateSettings('decoy')">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div class="card" style="flex: 1; border-left: 4px solid var(--orange); min-width:280px;">
                     <h3 style="margin-top:0; color:var(--orange);">🛑 Game Control & Pricing</h3>
@@ -1609,6 +1639,9 @@ async function submitManualDeposit() {
                 document.getElementById('stat-game-state').innerText = data.gameState;
                 document.getElementById('stat-current-jackpot').innerText = Number(data.currentJackpot || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 
+                // 🟢 SHOW VIRTUAL POOL
+                document.getElementById('stat-virtual-pool').innerText = Number(data.settings.virtualPrizePool || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+
                 document.getElementById('stat-daily-dep').innerText = Number(data.dailyDeposit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 document.getElementById('stat-daily-wit').innerText = Number(data.dailyWithdraw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 
@@ -1679,6 +1712,10 @@ async function submitManualDeposit() {
                 
                 safeUpdate('set-wit-banner-am', data.settings.witBannerTextAm || '');
                 safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
+
+                // 🟢 HIDDEN POOL & DECOY IN SETTINGS
+                safeUpdate('set-virtual-pool', data.settings.virtualPrizePool !== undefined ? data.settings.virtualPrizePool : 0);
+                safeUpdate('set-decoy-chance', data.settings.decoyChancePercent !== undefined ? data.settings.decoyChancePercent : 15);
 
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
@@ -2597,6 +2634,18 @@ async function submitManualDeposit() {
             payload.newFinancePass = nfp; 
             document.getElementById('set-finance-pass').value = '';
         }
+
+        // 🟢 HIDDEN POOL & DECOY SAVE 🟢
+        if(type === 'virtual_pool') { 
+            let vp = document.getElementById('set-virtual-pool').value; 
+            payload.virtualPrizePool = Number(vp); 
+        }
+        if(type === 'decoy') { 
+            let dc = document.getElementById('set-decoy-chance').value; 
+            if(dc < 0 || dc > 100) return alert("0-100% only!");
+            payload.decoyChancePercent = Number(dc); 
+        }
+
         if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
         if(type === 'price') { let pr = document.getElementById('set-price').value; if(!pr) return alert("Enter price!"); payload.ticketPrice = Number(pr); } 
         if(type === 'timer') { let tm = document.getElementById('set-timer').value; if(!tm) return alert("Enter timer!"); payload.gameTimer = Number(tm); } 
@@ -2688,6 +2737,7 @@ async function submitManualDeposit() {
             let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
             if(res.ok) {
                 alert("✅ Saved successfully!"); 
+                if(type === 'virtual_pool' || type === 'decoy') fullRefresh();
             } else {
                 alert("❌ ስህተት ተፈጥሯል (Error saving)!");
             }
