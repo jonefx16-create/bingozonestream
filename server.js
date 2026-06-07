@@ -2425,19 +2425,6 @@ io.on('connection', (socket) => {
                     await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
                     GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
                 }
-
-                let playDeducted = 0;
-                let mainDeducted = 0;
-                
-                if (user.playBalance >= betAmount) { 
-                    user.playBalance -= betAmount;
-                    playDeducted = betAmount;
-                } else { 
-                    playDeducted = user.playBalance;
-                    mainDeducted = betAmount - user.playBalance;
-                    user.mainBalance -= mainDeducted; 
-                    user.playBalance = 0; 
-                }
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
