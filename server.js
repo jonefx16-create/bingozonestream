@@ -2420,10 +2420,10 @@ io.on('connection', (socket) => {
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 
+                // 🟢 የተስተካከለ የትርፍ አቆጣጠር (Profit Logic)
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
-                // መጀመሪያ ብሩ ከየት እንደተቆረጠ እናሰላለን
                 if (user.playBalance >= betAmount) { 
                     user.playBalance -= betAmount;
                     playDeducted = betAmount;
@@ -2434,7 +2434,7 @@ io.on('connection', (socket) => {
                     user.playBalance = 0; 
                 }
 
-                // 🟢 1. Calculate how much of this bet is REAL MONEY
+                // 1. ዲፖዚት ተደርጎ ያልተጫወተበትን (Real Money) እንለያለን
                 let realBetFromDeposit = 0;
                 if (user.unplayedRealDeposit >= playDeducted) {
                     realBetFromDeposit = playDeducted;
@@ -2444,12 +2444,22 @@ io.on('connection', (socket) => {
                     user.unplayedRealDeposit = 0;
                 }
 
-                let realBetAmount = realBetFromDeposit + mainDeducted;
-
-                // 🟢 2. Calculate Profit and Pool ONLY on Real Money
+                // 2. ትርፍ የምንቆርጠው ከዲፖዚት ብር (playBalance) ላይ ብቻ ነው!
                 let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
-                let poolAddition = realBetAmount - pureAdminProfit;
+                let pureAdminProfit = realBetFromDeposit * (adminProfitPercent / 100); 
+                
+                // 3. ወደ ካዝናው (Pool) የሚገባው ብር ስሌት
+                // ከዲፖዚት ብር ላይ ትርፍ ቀንሰን እንጨምራለን + ያሸነፈውን ብር (mainBalance) 100% ሙሉውን እንጨምራለን
+                let poolAddition = (realBetFromDeposit - pureAdminProfit) + (playDeducted - realBetFromDeposit) + mainDeducted;
+
+                // 🟢 ካዝናውን እና የትርፍ መመዝገቢያውን እናድሳለን
+                if (poolAddition > 0) {
+                    await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
+                    GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
+                }
+                
+                // ትክክለኛውን የቤት ትርፍ (House Profit) ትራከር እናድሳለን
+                dailyHouseProfit += pureAdminProfit;
 
                 // 🟢 3. Add to Hidden Bank
                 if (poolAddition > 0) {
