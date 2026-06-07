@@ -2110,12 +2110,12 @@ setInterval(() => {
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
                 } else {
-                    // 🟢 ህግ 1: 85% ለ Depositor ፣ 15% ለ Free Players
-                    let isDepositorTurn = (Math.random() * 100) <= 85;
+                    // 🟢 ህግ 1: 90% ለ Depositor ፣ 10% ለ Free Players
+                    let isDepositorTurn = (Math.random() * 100) <= 90;
                     let targetCategory = 'bots';
 
                     if (isDepositorTurn) {
-                        // 85% የዲፖዚተር ተራ ነው
+                        // 90% የዲፖዚተር ተራ ነው
                         if (depositorPlayers.length > 0) {
                             targetCategory = 'mix_dep';
                         } else {
@@ -2123,7 +2123,7 @@ setInterval(() => {
                             targetCategory = 'bots'; 
                         }
                     } else {
-                        // 15% የነፃ ሰው ተራ ነው
+                        // 10% የነፃ ሰው ተራ ነው
                         if (freePlayers.length > 0) {
                             targetCategory = 'mix'; 
                         } else if (depositorPlayers.length > 0) {
