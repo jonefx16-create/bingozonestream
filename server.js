@@ -1,4 +1,4 @@
-const express = require('express');
+Fconst express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const http = require('http');
@@ -1908,13 +1908,8 @@ function resetToWaiting() {
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     
+    // ደራሽ (Jackpot) ሁሌም አዲስ ጌም ሲጀምር 0 ይሆናል (አድሚን ካልጨመረ በስተቀር በራሱ አይጨምርም)
     jackpotBoostAmount = 0; 
-    
-    // 🔥 ማታ ተጫዋች ሲጠፋ ጃክፖት 200 ብር አድርጎ የሚጀምረው ሎጂክ (Beteseb) 🔥
-    let currentHourEAT = new Date(Date.now() + (3 * 60 * 60 * 1000)).getUTCHours();
-    if (currentHourEAT >= 0 && currentHourEAT <= 9) { // ከሌሊቱ 6 ሰዓት እስከ ጠዋት 3 ሰዓት (Local Time)
-        jackpotBoostAmount = 200; 
-    }
 
     calledNumbers = []; currentDrawSequence = [];
     gameId = Math.floor(Math.random() * 9000) + 1000; globalTakenTickets = []; 
