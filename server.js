@@ -2384,15 +2384,31 @@ io.on('connection', (socket) => {
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 
+                let playDeducted = 0;
+                let mainDeducted = 0;
+                
+                // መጀመሪያ ብሩ ከየት እንደተቆረጠ እናሰላለን
+                if (user.playBalance >= betAmount) { 
+                    user.playBalance -= betAmount;
+                    playDeducted = betAmount;
+                } else { 
+                    playDeducted = user.playBalance;
+                    mainDeducted = betAmount - user.playBalance;
+                    user.mainBalance -= mainDeducted; 
+                    user.playBalance = 0; 
+                }
+
                 // 🟢 1. Calculate how much of this bet is REAL MONEY
-                let realBetAmount = 0;
-                if (user.unplayedRealDeposit >= betAmount) {
-                    realBetAmount = betAmount;
-                    user.unplayedRealDeposit -= betAmount;
+                let realBetFromDeposit = 0;
+                if (user.unplayedRealDeposit >= playDeducted) {
+                    realBetFromDeposit = playDeducted;
+                    user.unplayedRealDeposit -= playDeducted;
                 } else if (user.unplayedRealDeposit > 0) {
-                    realBetAmount = user.unplayedRealDeposit;
+                    realBetFromDeposit = user.unplayedRealDeposit;
                     user.unplayedRealDeposit = 0;
                 }
+
+                let realBetAmount = realBetFromDeposit + mainDeducted;
 
                 // 🟢 2. Calculate Profit and Pool ONLY on Real Money
                 let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
