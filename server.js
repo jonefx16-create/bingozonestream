@@ -3531,9 +3531,14 @@ setInterval(async () => {
             await u.save();
         }
     } catch (error) {
-    console.log("System Check Error:", error.message);
-}
+        console.log("System Check Error:", error.message);
+    }
 }, 15 * 60 * 1000); 
+
+// ቴሌግራም ላይ ሰዎች ቦቱን Block ቢያደርጉ ሰርቨሩ Crash እንዳያደርግ የሚከላከል ኮድ
+process.on('unhandledRejection', (reason, promise) => {
+    console.log("Unhandled Error Ignored:", reason.message || reason);
+});
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
