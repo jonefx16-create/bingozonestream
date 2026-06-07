@@ -24,7 +24,7 @@ app.use(express.static(__dirname));
 // 🔵 DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F2005t@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log(err));
+mongoose.connect(mongoURI, {...}).then(() => console.log("✅ Database Connected")).catch(err => console.log("DB Error:", err.message));
 
 // ==========================================
 // 🔵 ETHIOPIAN MALE NAMES ARRAY (NO NUMBERS)
@@ -3531,8 +3531,8 @@ setInterval(async () => {
             await u.save();
         }
     } catch (error) {
-        console.log("System Check Error:", error);
-    }
+    console.log("System Check Error:", error.message);
+}
 }, 15 * 60 * 1000); 
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
