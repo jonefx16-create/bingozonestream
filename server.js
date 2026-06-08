@@ -1762,6 +1762,7 @@ let gameBotsQueue = [];
 let botWinTargetTurn = null; 
 let mixWinTargetTurn = null; 
 let mixDepWinnersHistory = []; 
+let recentRealWinners = []; // 🟢 አዲስ: ተከታታይ እንዳይበሉ የሚቆልፈው 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -1834,6 +1835,12 @@ async function declareWinners(winners) {
 
     for (let w of winners) {
         if (!w.player.isBot) {
+            // 🟢 አዲስ: ሰውየው ስላሸነፈ ማቀዝቀዣ ውስጥ ይገባል
+            recentRealWinners.push(w.player.phone);
+            if (recentRealWinners.length > 4) { // ባለፉት 4 ጌሞች የበሉትን ይይዛል
+                recentRealWinners.shift(); 
+            }
+
             const user = await User.findOne({phone: w.player.phone});
             if(user) { 
                 user.mainBalance += splitPrize; 
@@ -2105,27 +2112,46 @@ setInterval(() => {
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
 
-                if (Math.random() < decoyChance) {
-                    // DECOY: Even if we have money, force bots to win to maintain randomness
+                // 🟢 ማቀዝቀዣ: የሚጫወቱት ሰዎች በሙሉ በቅርቡ በልተው ከሆነ ቼክ ያደርጋል
+                let currentRealPlayers = realPlayers.map(p => p.phone);
+                let allRealsWonRecently = currentRealPlayers.length > 0 && currentRealPlayers.every(phone => recentRealWinners.includes(phone));
+
+                // 🟢 የካዝናው አቅም ጥምርታ (Ratio)
+                let poolRatio = finalTotalPrize > 0 ? (hiddenPool / finalTotalPrize) : 0;
+
+                if (Math.random() < decoyChance || allRealsWonRecently || poolRatio < 1.0) {
+                    // 1. DECOY ወይም ሁሉም ተጫዋቾች ማቀዝቀዣ ውስጥ ከሆኑ፣ ወይም ካዝናው ባዶ ከሆነ -> ቦት 100% ይበላል
                     forceWinner = 'bots';
                 } else {
-                    if (hiddenPool >= finalTotalPrize) {
-                        // SCENARIO C: Overflow. We have enough money in the hidden pool to pay out 100%.
-                        forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; // Don't share with bots, let the depositor take it all!
+                    // 2. ካዝናው ውስጥ ብር አለ። 90% ዲፖዚት ላደረገ፣ 10% ለቦነስ
+                    let isDepositorTurn = Math.random() < 0.90; // 90% Chance
+
+                    if (isDepositorTurn && depositorPlayers.length > 0) {
+                        forceWinner = 'mix_dep';
+                    } else if (!isDepositorTurn && (realPlayers.length - depositorPlayers.length) > 0) {
+                        forceWinner = 'mix_real';
                     } else {
-                        // SCENARIO A & B: Pool is too low. Let's see if we can mix it.
-                        let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
-                        
-                        if (neededSplits > 1 && neededSplits <= 5) {
-                            forceWinner = 'mix_dep';
-                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; // Add exactly enough bots to reduce payout
-                        } else {
-                            forceWinner = 'bots'; // Can't even afford a mix, bots take all
-                        }
+                        forceWinner = 'mix_dep'; // Default
+                    }
+
+                    // 🟢 DYNAMIC POT SPLITTING (እንዳዘዙት የተስተካከለ) 🟢
+                    if (poolRatio >= 2.0) {
+                        // ካዝናው 2 እጥፍ እና ከዚያ በላይ አለው! ሰውየው ብቻውን ይብላ
+                        GLOBAL_SETTINGS.mixBotCount = 0; 
+                    } 
+                    else if (poolRatio >= 1.5) {
+                        // ካዝናው ከ 1.5 እስከ 2 እጥፍ አለው። ሰውየው ከ 1 ቦት ጋር ይካፈል
+                        GLOBAL_SETTINGS.mixBotCount = botPlayers.length >= 1 ? 1 : 0;
+                    } 
+                    else if (poolRatio >= 1.0) {
+                        // ካዝናው ከ 1 እስከ 1.5 እጥፍ አለው። ሰውየው ከ 3, 4, ወይም 5 ቦቶች ጋር ይካፈል (ከ 5 አይበልጥም)
+                        let heavySplit = Math.floor(Math.random() * 3) + 3; // 3, 4, ወይም 5 ይመርጣል
+                        GLOBAL_SETTINGS.mixBotCount = botPlayers.length >= heavySplit ? heavySplit : botPlayers.length;
                     }
                 }
             }
+
+            // Fallback safety
 
             // Fallback safety
             if (realPlayers.length === 0) forceWinner = 'bots';
