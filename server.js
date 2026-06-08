@@ -2097,8 +2097,7 @@ setInterval(() => {
 
             let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
-            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // በራሳቸው ብር የገቡ
-            let freePlayers = realPlayers.filter(p => !p.hasDeposited); // በቦነስ የገቡ (ነፃ)
+            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // Users who actually deposited
 
             // 🔥 1. SMART AI (THE ILLUSION & BANK LOGIC) 🔥
             if (forceWinner === 'ai') {
@@ -2106,56 +2105,24 @@ setInterval(() => {
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
 
-                // አድሚን ዳሽቦርድ ላይ በሞላኸው ፐርሰንት መሰረት (Decoy)
                 if (Math.random() < decoyChance) {
+                    // DECOY: Even if we have money, force bots to win to maintain randomness
                     forceWinner = 'bots';
                 } else {
-                    // 🟢 ህግ 1: 90% ለ Depositor ፣ 10% ለ Free Players
-                    let isDepositorTurn = (Math.random() * 100) <= 90;
-                    let targetCategory = 'bots';
-
-                    if (isDepositorTurn) {
-                        // 90% የዲፖዚተር ተራ ነው
-                        if (depositorPlayers.length > 0) {
-                            targetCategory = 'mix_dep';
-                        } else {
-                            // 🔴 ጥብቅ ህግ፡ ዲፖዚተር ከሌለ ለነፃ ሰው አይሰጥም! ቦት ይበላዋል!
-                            targetCategory = 'bots'; 
-                        }
+                    if (hiddenPool >= finalTotalPrize) {
+                        // SCENARIO C: Overflow. We have enough money in the hidden pool to pay out 100%.
+                        forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 0; // Don't share with bots, let the depositor take it all!
                     } else {
-                        // 10% የነፃ ሰው ተራ ነው
-                        if (freePlayers.length > 0) {
-                            targetCategory = 'mix'; 
-                        } else if (depositorPlayers.length > 0) {
-                            targetCategory = 'mix_dep'; // ነፃ ከሌለ ለዲፖዚተር ይሰጣል
-                        }
-                    }
-
-                    // 🟢 ህግ 2: የ 2 እጥፍ ትርፍ ህግ (2x Rule) እና ማካፈል (Hooking)
-                    if (targetCategory !== 'bots') {
-                        if (hiddenPool >= (finalTotalPrize * 2)) {
-                            // ካዝናው 2 እጥፍ ትርፍ ካለው፣ ሰውየው ብቻውን ይብላ
-                            forceWinner = targetCategory;
-                            GLOBAL_SETTINGS.mixBotCount = 0; 
-                        } else if (hiddenPool > 0) {
-                            // ካዝናው ብር አለው ግን 2 እጥፍ አይሞላም... ስለዚህ እናካፍለው
-                            let safePayout = hiddenPool / 2;
-                            let requiredSplits = Math.ceil(finalTotalPrize / safePayout);
-
-                            // ከ 5 ሰው በላይ ማካፈል ስለማንችል (1 ሰው + 4 ቦት)
-                            if (requiredSplits > 1 && requiredSplits <= 5) {
-                                forceWinner = targetCategory;
-                                GLOBAL_SETTINGS.mixBotCount = requiredSplits - 1; 
-                            } else {
-                                // ከ 5 በላይ ከሆነ ያከስረናል፣ ስለዚህ ሙሉ በሙሉ ቦት ይብላ
-                                forceWinner = 'bots'; 
-                            }
+                        // SCENARIO A & B: Pool is too low. Let's see if we can mix it.
+                        let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
+                        
+                        if (neededSplits > 1 && neededSplits <= 5) {
+                            forceWinner = 'mix_dep';
+                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; // Add exactly enough bots to reduce payout
                         } else {
-                            // ካዝናው ባዶ (0) ከሆነ ቦት ብቻ ይብላ
-                            forceWinner = 'bots';
+                            forceWinner = 'bots'; // Can't even afford a mix, bots take all
                         }
-                    } else {
-                        forceWinner = 'bots';
                     }
                 }
             }
@@ -2164,7 +2131,7 @@ setInterval(() => {
             if (realPlayers.length === 0) forceWinner = 'bots';
             if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep')) forceWinner = 'real';
             if (realPlayers.length <= 1 && forceWinner === 'mix_real') forceWinner = 'real'; 
-            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots';
+            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; // 🔥 Strictly protect from bonus players
 
             // PURE LUCK (ሰው ብቻ)
             if (forceWinner === 'real') {
@@ -2320,12 +2287,11 @@ setInterval(() => {
 
                 let actualReals = winnersThisRound.filter(w => !w.player.isBot);
 
-                // Mix (ሰው + ቦት አብረው ይበላሉ - ለ Free Players)
+                // Mix (ሰው + ቦት አብረው ይበላሉ)
                 if (forceWinner === 'mix' && actualReals.length > 0) {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
-                    // 🔴 ማክሲመም 4 ቦት ብቻ ነው የሚጨመረው
-                    let toAdd = Math.min(mixCount, Math.min(4, availableBots.length)); 
+                    let toAdd = Math.min(mixCount, availableBots.length);
                     for (let i = 0; i < toAdd; i++) {
                         let b = availableBots.pop();
                         let tix = b.ticketsData[0];
@@ -2343,8 +2309,7 @@ setInterval(() => {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
                     let winnerPhones = actualReals.map(w => w.player.phone);
                     let availableReals = realPlayers.filter(p => !winnerPhones.includes(p.phone)).sort(() => Math.random() - 0.5);
-                    // 🔴 ማክሲመም 4 ሰው ብቻ ነው የሚጨመረው
-                    let toAdd = Math.min(mixCount, Math.min(4, availableReals.length)); 
+                    let toAdd = Math.min(mixCount, availableReals.length);
                     for (let i = 0; i < toAdd; i++) {
                         let r = availableReals.pop();
                         let tix = r.ticketsData[0];
@@ -2357,7 +2322,7 @@ setInterval(() => {
                         winnersThisRound.push({ player: r, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
-                // MIX DEP (ሰው + ቦት አብረው ይበላሉ - ለ Depositors)
+                // MIX DEP
                 else if (forceWinner === 'mix_dep' && actualReals.length > 0) {
                     actualReals.forEach(w => {
                         if (!mixDepWinnersHistory.includes(w.player.phone)) {
@@ -2367,8 +2332,7 @@ setInterval(() => {
 
                     let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
-                    // 🔴 ማክሲመም 4 ቦት ብቻ ነው የሚጨመረው
-                    let toAdd = Math.min(mixCount, Math.min(4, availableBots.length)); 
+                    let toAdd = Math.min(mixCount, availableBots.length);
                     for (let i = 0; i < toAdd; i++) {
                         let b = availableBots.pop();
                         let tix = b.ticketsData[0];
@@ -2420,10 +2384,10 @@ io.on('connection', (socket) => {
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 
-                // 🟢 የተስተካከለ የትርፍ አቆጣጠር (Profit Logic)
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
+                // መጀመሪያ ብሩ ከየት እንደተቆረጠ እናሰላለን
                 if (user.playBalance >= betAmount) { 
                     user.playBalance -= betAmount;
                     playDeducted = betAmount;
@@ -2434,7 +2398,7 @@ io.on('connection', (socket) => {
                     user.playBalance = 0; 
                 }
 
-                // 1. ዲፖዚት ተደርጎ ያልተጫወተበትን (Real Money) እንለያለን
+                // 🟢 1. Calculate how much of this bet is REAL MONEY
                 let realBetFromDeposit = 0;
                 if (user.unplayedRealDeposit >= playDeducted) {
                     realBetFromDeposit = playDeducted;
@@ -2444,25 +2408,18 @@ io.on('connection', (socket) => {
                     user.unplayedRealDeposit = 0;
                 }
 
-                // 2. ትርፍ የምንቆርጠው ከዲፖዚት ብር (playBalance) ላይ ብቻ ነው!
-                // 1. እውነተኛ ብር (ከዲፖዚት እና ከዊን ባላንስ) ብቻ መለየት
                 let realBetAmount = realBetFromDeposit + mainDeducted;
 
-                // 2. ትርፍ ማስላት (ከእውነተኛ ብር ላይ ብቻ)
+                // 🟢 2. Calculate Profit and Pool ONLY on Real Money
                 let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                 let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
-                
-                // 3. ወደ ካዝናው (Kazena) የሚገባው ትክክለኛ ብር (ትርፍ ተቀንሶ)
                 let poolAddition = realBetAmount - pureAdminProfit;
 
-                // 🟢 4. ካዝናውን ማደስ (አንድ ጊዜ ብቻ!)
+                // 🟢 3. Add to Hidden Bank
                 if (poolAddition > 0) {
                     await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
                     GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
                 }
-                
-                // ትክክለኛውን የቤት ትርፍ (House Profit) ትራከር እናድሳለን
-                dailyHouseProfit += pureAdminProfit;
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
