@@ -1871,8 +1871,11 @@ async function declareWinners(winners) {
         if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; // Safety net
     }
 
-    // 🔥 AI Profit Tracker Calculation 🔥
-    dailyHouseProfit += (realMoneyIn - realMoneyOut);
+    // 🔥 AI Profit Tracker Calculation (Admin Commission Only from REAL MONEY) 🔥
+    // ቦነስ ከሆነ adminProfit 0 ስለሚሆን ምንም አይደመርም፣ እውነተኛ ብር ሲሆን ብቻ ይደምራል።
+    if (adminProfit > 0) {
+        dailyHouseProfit += adminProfit;
+    }
 
     let uniqueNames = [...new Set(winnerNames)];
     let displayNames = uniqueNames.join(' እና ');
