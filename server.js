@@ -2445,14 +2445,17 @@ io.on('connection', (socket) => {
                 }
 
                 // 2. ትርፍ የምንቆርጠው ከዲፖዚት ብር (playBalance) ላይ ብቻ ነው!
-                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                let pureAdminProfit = realBetFromDeposit * (adminProfitPercent / 100); 
-                
-                // 3. ወደ ካዝናው (Pool) የሚገባው ብር ስሌት
-                // ከዲፖዚት ብር ላይ ትርፍ ቀንሰን እንጨምራለን + ያሸነፈውን ብር (mainBalance) 100% ሙሉውን እንጨምራለን
-                let poolAddition = (realBetFromDeposit - pureAdminProfit) + (playDeducted - realBetFromDeposit) + mainDeducted;
+                // 1. እውነተኛ ብር (ከዲፖዚት እና ከዊን ባላንስ) ብቻ መለየት
+                let realBetAmount = realBetFromDeposit + mainDeducted;
 
-                // 🟢 ካዝናውን እና የትርፍ መመዝገቢያውን እናድሳለን
+                // 2. ትርፍ ማስላት (ከእውነተኛ ብር ላይ ብቻ)
+                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
+                
+                // 3. ወደ ካዝናው (Kazena) የሚገባው ትክክለኛ ብር (ትርፍ ተቀንሶ)
+                let poolAddition = realBetAmount - pureAdminProfit;
+
+                // 🟢 4. ካዝናውን ማደስ (አንድ ጊዜ ብቻ!)
                 if (poolAddition > 0) {
                     await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
                     GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
@@ -2460,12 +2463,6 @@ io.on('connection', (socket) => {
                 
                 // ትክክለኛውን የቤት ትርፍ (House Profit) ትራከር እናድሳለን
                 dailyHouseProfit += pureAdminProfit;
-
-                // 🟢 3. Add to Hidden Bank
-                if (poolAddition > 0) {
-                    await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
-                    GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
-                }
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
