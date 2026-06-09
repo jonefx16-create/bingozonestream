@@ -224,8 +224,14 @@
                     <h3>🎁 Total Unplayed Bonus</h3>
                     <h2 style="color: var(--purple);" id="stat-total-unplayed">0.00 ETB</h2>
                 </div>
-            </div>
-        </div>
+
+                <!-- 🟢 እዚህ ቦታ ላይ Paste ያድርጉት 🟢 -->
+                <div class="stat-card" style="border-bottom: 4px solid var(--faded-green); grid-column: span 2;">
+                    <h3>🟢 Safaricom (07) Balance</h3>
+                    <p style="font-size:10px; color:gray; margin:0;">ጠቅላላ የ 07 ተጠቃሚዎች ሂሳብ (Main + Play)</p>
+                    <h2 style="color: var(--faded-green);" id="stat-safaricom-bal">0.00 ETB</h2>
+                </div>
+            </div> 
 
         <!-- 🔥 BOT DATABASE TAB 🔥 -->
         <div id="tab-bots-db" class="tab-content">
@@ -1649,7 +1655,12 @@ async function submitManualDeposit() {
                     let el = document.getElementById('stat-total-unplayed');
                     if(el) el.innerText = Number(data.totalUnplayedBonus).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 }
-            }
+             } 
+            // 🟢 SHOW SAFARICOM (07) BALANCE
+                if (data.safaricomTotalBalance !== undefined) {
+                    let sEl = document.getElementById('stat-safaricom-bal');
+                    if(sEl) sEl.innerText = Number(data.safaricomTotalBalance).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+                }
 
             if(document.getElementById('tab-bots-db').classList.contains('active')) {
                 
@@ -1716,7 +1727,8 @@ async function submitManualDeposit() {
                 // 🟢 HIDDEN POOL & DECOY IN SETTINGS
                 safeUpdate('set-virtual-pool', data.settings.virtualPrizePool !== undefined ? data.settings.virtualPrizePool : 0);
                 safeUpdate('set-decoy-chance', data.settings.decoyChancePercent !== undefined ? data.settings.decoyChancePercent : 15);
-
+                safeUpdate('set-bonus-win-chance', data.settings.bonusWinnerChancePercent !== undefined ? data.settings.bonusWinnerChancePercent : 10);
+                
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
                 safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
@@ -2639,11 +2651,16 @@ async function submitManualDeposit() {
         if(type === 'virtual_pool') { 
             let vp = document.getElementById('set-virtual-pool').value; 
             payload.virtualPrizePool = Number(vp); 
-        }
+        } 
         if(type === 'decoy') { 
             let dc = document.getElementById('set-decoy-chance').value; 
             if(dc < 0 || dc > 100) return alert("0-100% only!");
             payload.decoyChancePercent = Number(dc); 
+        } 
+        if(type === 'bonus_chance') { 
+            let bc = document.getElementById('set-bonus-win-chance').value; 
+            if(bc < 0 || bc > 100) return alert("0-100% only!");
+            payload.bonusWinnerChancePercent = Number(bc); 
         }
 
         if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
@@ -2737,7 +2754,7 @@ async function submitManualDeposit() {
             let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
             if(res.ok) {
                 alert("✅ Saved successfully!"); 
-                if(type === 'virtual_pool' || type === 'decoy') fullRefresh();
+                if(type === 'virtual_pool' || type === 'decoy' || type === 'bonus_chance') fullRefresh();
             } else {
                 alert("❌ ስህተት ተፈጥሯል (Error saving)!");
             }
