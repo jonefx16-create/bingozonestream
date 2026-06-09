@@ -134,9 +134,8 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
     
-    virtualPrizePool: { type: Number, default: 0 }, 
-    decoyChancePercent: { type: Number, default: 15 }, 
-    bonusWinnerChancePercent: { type: Number, default: 10 }, // 🟢 NEW: Bonus chance
+    virtualPrizePool: { type: Number, default: 0 }, // 🟢 NEW: Hidden Bank
+    decoyChancePercent: { type: Number, default: 15 }, // 🟢 NEW: Illusion chance
     
     isBotSystemActive: { type: Boolean, default: false },
     botWinnerForce: { type: String, default: 'bots' }, 
@@ -224,9 +223,8 @@ async function loadSettings() {
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
         
-        virtualPrizePool: s.virtualPrizePool || 0, 
-        decoyChancePercent: s.decoyChancePercent !== undefined ? s.decoyChancePercent : 15, 
-        bonusWinnerChancePercent: s.bonusWinnerChancePercent !== undefined ? s.bonusWinnerChancePercent : 10,
+        virtualPrizePool: s.virtualPrizePool || 0, // 🟢 LOAD HIDDEN POOL
+        decoyChancePercent: s.decoyChancePercent !== undefined ? s.decoyChancePercent : 15, // 🟢 LOAD DECOY
 
         isBotSystemActive: s.isBotSystemActive || false,
         botWinnerForce: s.botWinnerForce || 'bots',
@@ -1014,12 +1012,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
         let totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
 
-        let safaricomUsers = await User.aggregate([
-            { $match: { phone: { $regex: "^07" } } },
-            { $group: { _id: null, totalMain: { $sum: "$mainBalance" }, totalPlay: { $sum: "$playBalance" } } }
-        ]);
-        let safaricomTotalBalance = safaricomUsers.length > 0 ? (safaricomUsers[0].totalMain + safaricomUsers[0].totalPlay) : 0;
-
         let realMoney = 0;
         let botMoney = 0;
         let realCount = 0;
@@ -1073,7 +1065,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             dailyWithdraw, 
             dailyBonus,
             totalUnplayedBonus,
-            safaricomTotalBalance,
             scheduleStatus: { active: GLOBAL_SETTINGS.isBotScheduleActive, time: timeStr, name: activeSchName, min: schMin, max: schMax }
         });
     } catch (e) {
@@ -1433,7 +1424,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     // 🟢 HIDDEN POOL AND DECOY
     if(req.body.decoyChancePercent !== undefined) s.decoyChancePercent = req.body.decoyChancePercent;
     if(req.body.virtualPrizePool !== undefined) s.virtualPrizePool = req.body.virtualPrizePool;
-    if(req.body.bonusWinnerChancePercent !== undefined) s.bonusWinnerChancePercent = req.body.bonusWinnerChancePercent;
 
     if(req.body.ticketPrice !== undefined) s.ticketPrice = req.body.ticketPrice;
     if(req.body.gameTimer !== undefined) s.gameTimer = req.body.gameTimer;
@@ -2108,21 +2098,9 @@ setInterval(() => {
             let numToCall = null;
             let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
 
+            let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
-            let allRealPlayers = Object.values(activePlayers).filter(p => !p.isBot);
-            let depositorPlayers = allRealPlayers.filter(p => p.hasDeposited);
-            let bonusOnlyPlayers = allRealPlayers.filter(p => !p.hasDeposited);
-
-            // 🟢 የቦነስ ተጫዋቾችን ማሸነፊያ ፐርሰንት እዚህ ላይ እናጣራለን
-            let bonusWinChance = GLOBAL_SETTINGS.bonusWinnerChancePercent !== undefined ? GLOBAL_SETTINGS.bonusWinnerChancePercent : 10;
-            let eligibleBonusPlayers = [];
-            
-            if (bonusWinChance > 0 && (Math.random() * 100) <= bonusWinChance) {
-                eligibleBonusPlayers = bonusOnlyPlayers;
-            }
-
-            // ሲስተሙ (AI) አሸናፊ የሚያደርገው ከነዚህ ውስጥ ብቻ ነው
-            let realPlayers = [...depositorPlayers, ...eligibleBonusPlayers];
+            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // Users who actually deposited
 
             // 🔥 1. SMART AI (THE ILLUSION & BANK LOGIC) 🔥
             if (forceWinner === 'ai') {
@@ -2130,8 +2108,9 @@ setInterval(() => {
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
 
-                // 🟢 AI'ው ቦነስ ተጫዋቾችን target የሚያደርገው ከላይ እድሉን (Percentage) አልፈው ከመጡ ብቻ ነው
-                let targetWinner = (eligibleBonusPlayers.length > 0) ? 'mix' : 'mix_dep';
+                // 🟢 10% እድል ለቦነስ ተጫዋቾች፣ 90% እድል ለዲፖዚተሮች
+                let luckyBonusChance = (Math.random() < 0.10);
+                let targetWinner = luckyBonusChance ? 'mix' : 'mix_dep';
 
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
@@ -2433,7 +2412,7 @@ io.on('connection', (socket) => {
                     user.playBalance = 0; 
                 }
 
-                // 🟢 1. ትኩስ አዲስ ገቢ የተደረገ ብርን ብቻ መለየት
+                // 🟢 1. Calculate how much of this bet is FRESH REAL MONEY (አዲስ የገባ ብር)
                 let realBetFromDeposit = 0;
                 if (user.unplayedRealDeposit >= playDeducted) {
                     realBetFromDeposit = playDeducted;
@@ -2445,14 +2424,16 @@ io.on('connection', (socket) => {
 
                 let realBetAmount = realBetFromDeposit + mainDeducted;
 
-                // 🟢 2. ትርፍ (Admin Profit) የሚቆረጠው አዲስ ገቢ ከተደረገው (realBetFromDeposit) ላይ ብቻ ነው
+                // 🟢 2. Calculate Profit ONLY on FRESH DEPOSITS
                 let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                
+                // ትርፍ የሚወሰደው አዲስ ዲፖዚት ከተደረገው ብር ላይ ብቻ ነው
                 let pureAdminProfit = realBetFromDeposit * (adminProfitPercent / 100); 
 
-                // 🟢 3. ወደ ካዝና (Hidden Bank) የሚገባው ብር መጠን:-
-                // (ከአዲሱ ዲፖዚት ላይ ትርፉን ቀንሶ) + (ከ Main Balance ወይም ካሸነፈው ብር ላይ ምንም ሳይቀነስ 100% ይገባል)
+                // ወደ ካዝና የሚገባው ብር (ከአዲሱ ላይ ትርፍ ተቀንሶ + ካሸነፈው ላይ ምንም ሳይቀነስ 100% ይገባል)
                 let poolAddition = (realBetFromDeposit - pureAdminProfit) + mainDeducted;
 
+                // 🟢 3. Add to Hidden Bank
                 if (poolAddition > 0) {
                     await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
                     GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
