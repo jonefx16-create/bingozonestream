@@ -2108,23 +2108,34 @@ setInterval(() => {
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
 
+                // 🟢 10% እድል ለቦነስ ተጫዋቾች፣ 90% እድል ለዲፖዚተሮች
+                let luckyBonusChance = (Math.random() < 0.10);
+                let targetWinner = luckyBonusChance ? 'mix' : 'mix_dep';
+
                 if (Math.random() < decoyChance) {
-                    // DECOY: Even if we have money, force bots to win to maintain randomness
                     forceWinner = 'bots';
                 } else {
+                    // ካዝናው ውስጥ በቂ ብር ካለ...
                     if (hiddenPool >= finalTotalPrize) {
-                        // SCENARIO C: Overflow. We have enough money in the hidden pool to pay out 100%.
-                        forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; // Don't share with bots, let the depositor take it all!
+                        
+                        if (Math.random() < 0.40) {
+                            // 🟢 40% እድል: ለ 1 ሰው ብቻ (100% ክፍያ)
+                            GLOBAL_SETTINGS.mixBotCount = 0; 
+                        } else {
+                            // 🟢 60% እድል: ለ 2 ሰው እንዲካፈል (ማለትም ከ 1 ቦት ጋር እንዲጋራ)
+                            GLOBAL_SETTINGS.mixBotCount = 1; 
+                        }
+                        forceWinner = targetWinner;
+
                     } else {
-                        // SCENARIO A & B: Pool is too low. Let's see if we can mix it.
+                        // ካዝናው ውስጥ በቂ ብር ከሌለ (AI ሞዱ ራሱ አስልቶ ያካፍላል)
                         let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
                         
                         if (neededSplits > 1 && neededSplits <= 5) {
-                            forceWinner = 'mix_dep';
-                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; // Add exactly enough bots to reduce payout
+                            forceWinner = targetWinner;
+                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1;
                         } else {
-                            forceWinner = 'bots'; // Can't even afford a mix, bots take all
+                            forceWinner = 'bots'; // ካዝናው ባዶ ከሆነ ቦት ይበላል
                         }
                     }
                 }
@@ -2401,7 +2412,7 @@ io.on('connection', (socket) => {
                     user.playBalance = 0; 
                 }
 
-                // 🟢 1. Calculate how much of this bet is REAL MONEY
+                // 🟢 1. Calculate how much of this bet is FRESH REAL MONEY (አዲስ የገባ ብር)
                 let realBetFromDeposit = 0;
                 if (user.unplayedRealDeposit >= playDeducted) {
                     realBetFromDeposit = playDeducted;
@@ -2413,10 +2424,14 @@ io.on('connection', (socket) => {
 
                 let realBetAmount = realBetFromDeposit + mainDeducted;
 
-                // 🟢 2. Calculate Profit and Pool ONLY on Real Money
+                // 🟢 2. Calculate Profit ONLY on FRESH DEPOSITS
                 let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
-                let poolAddition = realBetAmount - pureAdminProfit;
+                
+                // ትርፍ የሚወሰደው አዲስ ዲፖዚት ከተደረገው ብር ላይ ብቻ ነው
+                let pureAdminProfit = realBetFromDeposit * (adminProfitPercent / 100); 
+
+                // ወደ ካዝና የሚገባው ብር (ከአዲሱ ላይ ትርፍ ተቀንሶ + ካሸነፈው ላይ ምንም ሳይቀነስ 100% ይገባል)
+                let poolAddition = (realBetFromDeposit - pureAdminProfit) + mainDeducted;
 
                 // 🟢 3. Add to Hidden Bank
                 if (poolAddition > 0) {
