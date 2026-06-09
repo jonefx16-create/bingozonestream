@@ -857,24 +857,33 @@
 
         <!-- SETTINGS & CONTROL -->
         <div id="tab-settings" class="tab-content">
-            <!-- 🟢 VIRTUAL POOL & DECOY SETTINGS 🟢 -->
+            <!-- 🟢 VIRTUAL POOL, DECOY & BONUS SETTINGS 🟢 -->
             <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
-                <h3 style="margin-top:0; color:var(--cyan);">🧠 AI Illusion Settings (የካዚኖ ጀርባ አሰራር)</h3>
+                <h3 style="margin-top:0; color:var(--cyan);">🧠 AI Illusion & Win Settings (የካዚኖ ጀርባ አሰራር)</h3>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
+                    <div style="flex: 1; min-width: 200px;">
                         <label style="font-weight:bold; color:var(--gold);">💎 Hidden Bank (ካዝና)</label>
-                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ሲስተሙ ለሰው ለመክፈል የሚጠቀምበት (እንዲያድግ/እንዲቀንስ ካልፈለጉ አይንኩት)</p>
+                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ሲስተሙ ለመክፈል የሚጠቀምበት</p>
                         <div style="display:flex; gap:10px; margin-bottom: 10px;">
                             <input type="number" id="set-virtual-pool" placeholder="Amount">
                             <button class="action-btn" style="background:var(--gold); color:black;" onclick="updateSettings('virtual_pool')">Save</button>
                         </div>
                     </div>
-                    <div style="flex: 1; min-width: 250px;">
-                        <label style="font-weight:bold; color:var(--red);">🎭 Decoy Chance (%) - ማደናገሪያ</label>
-                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ካዝናው ቢሞላም እንኳን፣ ቦት ቆርጦ የሚበላበት የዕድል መጠን (0-100)</p>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="font-weight:bold; color:var(--red);">🎭 Decoy Chance (%)</label>
+                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ቦት ቆርጦ የሚበላበት ማደናገሪያ</p>
                         <div style="display:flex; gap:10px; margin-bottom: 10px;">
                             <input type="number" id="set-decoy-chance" placeholder="e.g. 15">
                             <button class="action-btn" style="background:var(--red); color:white;" onclick="updateSettings('decoy')">Save</button>
+                        </div>
+                    </div>
+                    <!-- 🔥 አዲሱ የቦነስ ፐርሰንት መቆጣጠሪያ 🔥 -->
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="font-weight:bold; color:var(--purple);">🎁 Bonus Win Chance (%)</label>
+                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ቦነስ የተጫወተ የማሸነፍ ዕድል (0 = አያሸንፍም)</p>
+                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                            <input type="number" id="set-bonus-win-perc" placeholder="e.g. 10" style="border-color:var(--purple);">
+                            <button class="action-btn" style="background:var(--purple); color:white;" onclick="updateSettings('bonus_win')">Save</button>
                         </div>
                     </div>
                 </div>
@@ -1713,9 +1722,10 @@ async function submitManualDeposit() {
                 safeUpdate('set-wit-banner-am', data.settings.witBannerTextAm || '');
                 safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
 
-                // 🟢 HIDDEN POOL & DECOY IN SETTINGS
+                // 🟢 HIDDEN POOL, DECOY & BONUS WIN
                 safeUpdate('set-virtual-pool', data.settings.virtualPrizePool !== undefined ? data.settings.virtualPrizePool : 0);
                 safeUpdate('set-decoy-chance', data.settings.decoyChancePercent !== undefined ? data.settings.decoyChancePercent : 15);
+                safeUpdate('set-bonus-win-perc', data.settings.bonusWinPercent !== undefined ? data.settings.bonusWinPercent : 0);
 
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
@@ -2635,7 +2645,7 @@ async function submitManualDeposit() {
             document.getElementById('set-finance-pass').value = '';
         }
 
-        // 🟢 HIDDEN POOL & DECOY SAVE 🟢
+        // 🟢 HIDDEN POOL, DECOY & BONUS WIN
         if(type === 'virtual_pool') { 
             let vp = document.getElementById('set-virtual-pool').value; 
             payload.virtualPrizePool = Number(vp); 
@@ -2644,6 +2654,11 @@ async function submitManualDeposit() {
             let dc = document.getElementById('set-decoy-chance').value; 
             if(dc < 0 || dc > 100) return alert("0-100% only!");
             payload.decoyChancePercent = Number(dc); 
+        }
+        if(type === 'bonus_win') { 
+            let bw = document.getElementById('set-bonus-win-perc').value; 
+            if(bw < 0 || bw > 100) return alert("0-100% only!");
+            payload.bonusWinPercent = Number(bw); 
         }
 
         if(type === 'profit') { let prof = document.getElementById('set-admin-profit').value; if(!prof || prof < 0 || prof > 100) return alert("0-100!"); payload.adminProfitPercent = Number(prof); }
@@ -2737,7 +2752,7 @@ async function submitManualDeposit() {
             let res = await fetch('/api/admin/update-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }); 
             if(res.ok) {
                 alert("✅ Saved successfully!"); 
-                if(type === 'virtual_pool' || type === 'decoy') fullRefresh();
+                if(type === 'virtual_pool' || type === 'decoy' || type === 'bonus_win') fullRefresh();
             } else {
                 alert("❌ ስህተት ተፈጥሯል (Error saving)!");
             }
