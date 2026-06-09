@@ -1871,11 +1871,8 @@ async function declareWinners(winners) {
         if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; // Safety net
     }
 
-    // 🔥 AI Profit Tracker Calculation (Admin Commission Only from REAL MONEY) 🔥
-    // ቦነስ ከሆነ adminProfit 0 ስለሚሆን ምንም አይደመርም፣ እውነተኛ ብር ሲሆን ብቻ ይደምራል።
-    if (adminProfit > 0) {
-        dailyHouseProfit += adminProfit;
-    }
+    // 🔥 AI Profit Tracker Calculation 🔥
+    dailyHouseProfit += (realMoneyIn - realMoneyOut);
 
     let uniqueNames = [...new Set(winnerNames)];
     let displayNames = uniqueNames.join(' እና ');
@@ -2108,34 +2105,23 @@ setInterval(() => {
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
 
-                // 🟢 10% እድል ለቦነስ ተጫዋቾች፣ 90% እድል ለዲፖዚተሮች
-                let luckyBonusChance = (Math.random() < 0.10);
-                let targetWinner = luckyBonusChance ? 'mix' : 'mix_dep';
-
                 if (Math.random() < decoyChance) {
+                    // DECOY: Even if we have money, force bots to win to maintain randomness
                     forceWinner = 'bots';
                 } else {
-                    // ካዝናው ውስጥ በቂ ብር ካለ...
                     if (hiddenPool >= finalTotalPrize) {
-                        
-                        if (Math.random() < 0.40) {
-                            // 🟢 40% እድል: ለ 1 ሰው ብቻ (100% ክፍያ)
-                            GLOBAL_SETTINGS.mixBotCount = 0; 
-                        } else {
-                            // 🟢 60% እድል: ለ 2 ሰው እንዲካፈል (ማለትም ከ 1 ቦት ጋር እንዲጋራ)
-                            GLOBAL_SETTINGS.mixBotCount = 1; 
-                        }
-                        forceWinner = targetWinner;
-
+                        // SCENARIO C: Overflow. We have enough money in the hidden pool to pay out 100%.
+                        forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 0; // Don't share with bots, let the depositor take it all!
                     } else {
-                        // ካዝናው ውስጥ በቂ ብር ከሌለ (AI ሞዱ ራሱ አስልቶ ያካፍላል)
+                        // SCENARIO A & B: Pool is too low. Let's see if we can mix it.
                         let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
                         
                         if (neededSplits > 1 && neededSplits <= 5) {
-                            forceWinner = targetWinner;
-                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1;
+                            forceWinner = 'mix_dep';
+                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; // Add exactly enough bots to reduce payout
                         } else {
-                            forceWinner = 'bots'; // ካዝናው ባዶ ከሆነ ቦት ይበላል
+                            forceWinner = 'bots'; // Can't even afford a mix, bots take all
                         }
                     }
                 }
@@ -2422,15 +2408,13 @@ io.on('connection', (socket) => {
                     user.unplayedRealDeposit = 0;
                 }
 
-                let realBetAmount = realBetFromDeposit + mainDeducted;
-
                 // 🟢 2. Calculate Profit ONLY on FRESH DEPOSITS
                 let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                 
-                // ትርፍ የሚወሰደው አዲስ ዲፖዚት ከተደረገው ብር ላይ ብቻ ነው
+                // ትርፍ የሚወሰደው አዲስ ዲፖዚት ከተደረገው ብር (realBetFromDeposit) ላይ ብቻ ነው
                 let pureAdminProfit = realBetFromDeposit * (adminProfitPercent / 100); 
 
-                // ወደ ካዝና የሚገባው ብር (ከአዲሱ ላይ ትርፍ ተቀንሶ + ካሸነፈው ላይ ምንም ሳይቀነስ 100% ይገባል)
+                // ወደ ካዝና የሚገባው ብር = (አዲስ ብር - ትርፍ) + ያሸነፈውን የተጫወተበት (ይህ 100% ይገባል)
                 let poolAddition = (realBetFromDeposit - pureAdminProfit) + mainDeducted;
 
                 // 🟢 3. Add to Hidden Bank
@@ -2452,19 +2436,26 @@ io.on('connection', (socket) => {
                 });
 
                 if (!activePlayers[data.phone]) {
-                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
+                    activePlayers[data.phone] = { 
+                        name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, 
+                        isBot: false, hasDeposited: (user.totalDeposited > 0), 
+                        realBetAmount: realBetFromDeposit // ትርፍ የሚሰላው ከዚህ ላይ ብቻ ስለሆነ አዲሱን ብር ብቻ መዘገብን
+                    };
                 } else { 
                     activePlayers[data.phone].tickets += data.ticketCount; 
                     activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
                     activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
-                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetAmount;
+                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetFromDeposit;
                 }
                 
                 totalTickets += data.ticketCount; 
                 totalCollectedMoney += betAmount;
 
-                // The fake UI Pool still grows by the visual amount
-                totalPrizePool += betAmount * ((100 - adminProfitPercent) / 100); 
+                // 🟢 4. Update UI Prize Pool (የሚታየው የሽልማት መጠን)
+                let pureBonusDeducted = playDeducted - realBetFromDeposit; // ንፁህ የመጋበዣ ቦነስ
+                let uiPoolAddition = (realBetFromDeposit - pureAdminProfit) + mainDeducted + (pureBonusDeducted * ((100 - adminProfitPercent) / 100));
+                
+                totalPrizePool += uiPoolAddition; 
                 
                 data.ticketIds.forEach(id => globalTakenTickets.push(id));
                 io.emit('update_taken_tickets', globalTakenTickets); 
@@ -2719,7 +2710,6 @@ bot.on('message', async (msg) => {
         let actualInvites = user.totalInvites || 0; 
         let displayEarned = actualInvites * GLOBAL_SETTINGS.inviteBonus;
 
-        // 🔥 Special Promoter (ምንም አይቀየርም - ሁሉንም ያያሉ)
         if (user.isPromoter) {
             let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
             let promoLink = `https://t.me/bingo_habesha_bot?start=promo_${user.refCode}`;
@@ -2730,13 +2720,9 @@ bot.on('message', async (msg) => {
             msg += `2️⃣ <b>የኮሚሽን ማግኛ ሊንክ (Promoter Link):</b>\nይህንን ለሰው ሲልኩ ወዲያውኑ የመጫወቻ ቦነስ አያገኙም፣ ነገር ግን ሰውየው ብር ሲያስገባ እርስዎ የገንዘብ ፐርሰንት (ኮሚሽን) ያገኛሉ።\n👇\n${promoLink}`;
 
             bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
-        } 
-        // 👤 Regular User (የብር መጠኑ/ETB ብቻ እንዲጠፋ የተደረገ)
-        else {
+        } else {
             let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
-            // እዚህ ጋር የገንዘብ መጠኑን (ETB) የሚያሳዩት መስመሮች ተወግደዋል
-            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው`;
-            
+            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>ያገኙት ቦነስ ጠቅላላ (Bonus Earned):</b> ${displayEarned} ETB\n💰 <b>አሁን ያለው መጫወቻ ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB`;
             bot.sendMessage(chatId, ln.invite_msg(normalLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         }
     } 
