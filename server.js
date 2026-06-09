@@ -2398,7 +2398,7 @@ io.on('connection', (socket) => {
                     user.playBalance = 0; 
                 }
 
-                // 🟢 1. Calculate how much of this bet is FRESH REAL MONEY (አዲስ የገባ ብር)
+                // 🟢 1. Calculate how much of this bet is REAL MONEY
                 let realBetFromDeposit = 0;
                 if (user.unplayedRealDeposit >= playDeducted) {
                     realBetFromDeposit = playDeducted;
@@ -2408,14 +2408,12 @@ io.on('connection', (socket) => {
                     user.unplayedRealDeposit = 0;
                 }
 
-                // 🟢 2. Calculate Profit ONLY on FRESH DEPOSITS
-                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                
-                // ትርፍ የሚወሰደው አዲስ ዲፖዚት ከተደረገው ብር (realBetFromDeposit) ላይ ብቻ ነው
-                let pureAdminProfit = realBetFromDeposit * (adminProfitPercent / 100); 
+                let realBetAmount = realBetFromDeposit + mainDeducted;
 
-                // ወደ ካዝና የሚገባው ብር = (አዲስ ብር - ትርፍ) + ያሸነፈውን የተጫወተበት (ይህ 100% ይገባል)
-                let poolAddition = (realBetFromDeposit - pureAdminProfit) + mainDeducted;
+                // 🟢 2. Calculate Profit and Pool ONLY on Real Money
+                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
+                let poolAddition = realBetAmount - pureAdminProfit;
 
                 // 🟢 3. Add to Hidden Bank
                 if (poolAddition > 0) {
@@ -2436,26 +2434,19 @@ io.on('connection', (socket) => {
                 });
 
                 if (!activePlayers[data.phone]) {
-                    activePlayers[data.phone] = { 
-                        name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, 
-                        isBot: false, hasDeposited: (user.totalDeposited > 0), 
-                        realBetAmount: realBetFromDeposit // ትርፍ የሚሰላው ከዚህ ላይ ብቻ ስለሆነ አዲሱን ብር ብቻ መዘገብን
-                    };
+                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
                 } else { 
                     activePlayers[data.phone].tickets += data.ticketCount; 
                     activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
                     activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
-                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetFromDeposit;
+                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetAmount;
                 }
                 
                 totalTickets += data.ticketCount; 
                 totalCollectedMoney += betAmount;
 
-                // 🟢 4. Update UI Prize Pool (የሚታየው የሽልማት መጠን)
-                let pureBonusDeducted = playDeducted - realBetFromDeposit; // ንፁህ የመጋበዣ ቦነስ
-                let uiPoolAddition = (realBetFromDeposit - pureAdminProfit) + mainDeducted + (pureBonusDeducted * ((100 - adminProfitPercent) / 100));
-                
-                totalPrizePool += uiPoolAddition; 
+                // The fake UI Pool still grows by the visual amount
+                totalPrizePool += betAmount * ((100 - adminProfitPercent) / 100); 
                 
                 data.ticketIds.forEach(id => globalTakenTickets.push(id));
                 io.emit('update_taken_tickets', globalTakenTickets); 
@@ -3545,6 +3536,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
+
 
 
 
