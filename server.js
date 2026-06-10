@@ -2125,18 +2125,18 @@ setInterval(() => {
                 let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
-                let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; // 🔥 የአድሚን Setting
+                let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
 
-                // ቦነስ ተጫዋች ያሸንፋል ወይስ አያሸንፍም? (በ % መሰረት)
                 let isBonusLucky = (Math.random() * 100) < bonusWinChance;
 
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
                 } else {
                     if (hiddenPool >= finalTotalPrize) {
-                        if(isBonusLucky) forceWinner = 'real'; 
-                        else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; 
+                        // 🎯 የባንኩ ብር በቂ ከሆነ 1 ሰው ሙሉውን እንዲበላ ያደርጋል!
+                        if(isBonusLucky) forceWinner = 'real'; // የቦነስ ተጫዋችም ሊበላ ይችላል
+                        else forceWinner = 'mix_dep'; // ዴፖዚት ያደረገ ሰው ብቻ 100% ሙሉውን ይበላል
+                        GLOBAL_SETTINGS.mixBotCount = 0; // ቦት በፍጹም አይቀላቀልም
                     } else {
                         let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
                         if (neededSplits > 1 && neededSplits <= 5) {
@@ -2312,7 +2312,7 @@ setInterval(() => {
 
                 // Mix (ሰው + ቦት አብረው ይበላሉ)
                 if (forceWinner === 'mix' && actualReals.length > 0) {
-                    let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
+                    let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
                     let toAdd = Math.min(mixCount, availableBots.length);
                     for (let i = 0; i < toAdd; i++) {
@@ -2328,8 +2328,8 @@ setInterval(() => {
                     }
                 }
                 // Mix 4 (ሰው + ሰው አብረው ይበላሉ)
-                else if (forceWinner === 'mix_real' && actualReals.length > 0) {
-                    let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
+                else if (forceWinner === 'mix_real' && actualReals.length > 0) { 
+                    let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let winnerPhones = actualReals.map(w => w.player.phone);
                     let availableReals = realPlayers.filter(p => !winnerPhones.includes(p.phone)).sort(() => Math.random() - 0.5);
                     let toAdd = Math.min(mixCount, availableReals.length);
@@ -2353,7 +2353,8 @@ setInterval(() => {
                         }
                     });
 
-                    let mixCount = GLOBAL_SETTINGS.mixBotCount || 1;
+                
+                    let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
                     let toAdd = Math.min(mixCount, availableBots.length);
                     for (let i = 0; i < toAdd; i++) {
