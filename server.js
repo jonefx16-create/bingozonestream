@@ -27,7 +27,7 @@ const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:T01%2F22%2F
 mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log("DB Error:", err.message));
 
 // ==========================================
-// 🔵 ETHIOPIAN MALE NAMES ARRAY (NO NUMBERS)
+// 🔵 ETHIOPIAN MALE NAMES ARRAY
 // ==========================================
 const maleEthNames = ["Abebe", "Kebede", "Chala", "Hagos", "Dawit", "Yosef", "Ephrem", "Tesfaye", "Girma", "Bereket", "Abel", "Eyob", "Samuel", "Biniam", "Mulugeta", "Tewodros", "Lema", "Yonas", "Habtamu", "Surafel", "Natnael", "Nahom", "Kaleb", "Fasika", "Amanuel", "Henok", "Robel", "Mikias", "Abiy", "Bekele", "Zelalem", "Elias", "Daniel", "Ermias", "Tadesse", "Wondimu", "Gizachew", "Tamirat", "Mekonnen", "Getachew"];
 
@@ -45,7 +45,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     inviteBonusEarned: { type: Number, default: 0 },
     mainBalance: { type: Number, default: 0 }, 
     playBalance: { type: Number, default: 0 }, 
-    unplayedRealDeposit: { type: Number, default: 0 }, // 🟢 NEW: Tracks pure real money deposited
+    unplayedRealDeposit: { type: Number, default: 0 }, 
     played: { type: Number, default: 0 }, 
     won: { type: Number, default: 0 }, 
     totalDeposited: { type: Number, default: 0 }, 
@@ -200,7 +200,6 @@ const SupportMessage = mongoose.model('SupportMessage', new mongoose.Schema({
     date: { type: Date, default: Date.now }
 }));
 
-// 🔥 AI Profit Tracker (Hulu Logic) 🔥
 let dailyHouseProfit = 0;
 let currentDayTracker = new Date().getDate();
 
@@ -366,6 +365,15 @@ async function autoApprovePendingDeposits() {
                     user.totalDeposited += actualReceivedAmount;
                     user.unplayedRealDeposit += actualReceivedAmount; 
 
+                    // 🔥 NEW: 30/70 Backend Split Logic
+                    let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30;
+                    let adminCut = actualReceivedAmount * (adminPercent / 100);
+                    let vaultAddition = actualReceivedAmount - adminCut;
+                    
+                    await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: vaultAddition } });
+                    GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+                    dailyHouseProfit += adminCut; 
+
                     if(user.referredBy && user.referredViaPromo) {
                         let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                         if(promoter) {
@@ -473,22 +481,19 @@ app.get('/api/getUser/:phone', async (req, res) => {
     const user = await User.findOne({ phone: req.params.phone }); res.json(user ? { success: true, user } : { success: false });
 });
 
-// 🔥 Network Duplication መከላከያ (Lock)
 const txLocks = new Set();
 
 app.post('/api/request-tx', async (req, res) => {
     try {
         const { phone, type, amount, method, sms, destinationPhone } = req.body; 
         
-        // 1. Lock Check (ሰውየው ቶሎ ቶሎ Click ካረገ ይከለክላል)
         const lockKey = `${phone}_${type}`;
         if (txLocks.has(lockKey)) {
             return res.json({ success: false, message: "⚠️ እባክዎ ትንሽ ይጠብቁ... (Please wait)" });
         }
         txLocks.add(lockKey);
-        setTimeout(() => txLocks.delete(lockKey), 5000); // 5 sec lock
+        setTimeout(() => txLocks.delete(lockKey), 5000); 
 
-        // 2. DB Dup Check (ባለፉት 15 ሰከንዶች ውስጥ የተላከ ተመሳሳይ ጥያቄ ካለ ያቋርጣል)
         let tenSecondsAgo = new Date(Date.now() - 15000);
         let dupCheck = await Transaction.findOne({ 
             phone: phone, type: type, amount: amount, date: { $gte: tenSecondsAgo } 
@@ -723,6 +728,15 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
         user.totalDeposited += actualAmount;
         user.unplayedRealDeposit += actualAmount; 
 
+        // 🔥 NEW: 30/70 Backend Split Logic
+        let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30;
+        let adminCut = actualAmount * (adminPercent / 100);
+        let vaultAddition = actualAmount - adminCut;
+        
+        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: vaultAddition } });
+        GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+        dailyHouseProfit += adminCut;
+
         if(user.referredBy && user.referredViaPromo) {
             let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
             if(promoter) {
@@ -857,7 +871,7 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
         let usersResult = await User.aggregate([{ $group: { _id: null, main: { $sum: "$mainBalance" }, play: { $sum: "$playBalance" } } }]);
         let liability = usersResult.length > 0 ? usersResult[0].main + usersResult[0].play : 0;
 
-        let netProfit = tProf - totalBonusPaid - tPromoterPaid;
+        let netProfit = dailyHouseProfit - totalBonusPaid - tPromoterPaid; 
 
         res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -1024,12 +1038,6 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             if (t._id === 'withdraw') dailyWithdraw = t.total;
         });
 
-        let histStats = await GameHistory.aggregate([
-            { $match: { date: { $gte: startOfDay } } },
-            { $group: { _id: null, totalProfit: { $sum: "$adminProfit" } } }
-        ]);
-        let dailyTotalProfit = histStats.length > 0 ? histStats[0].totalProfit : 0;
-
         let bonusStats = await ActiveBonus.aggregate([
             { $match: { date: { $gte: startOfDay } } },
             { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
@@ -1083,7 +1091,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             activeBotPhones: Object.values(activePlayers).filter(p => p.isBot).map(p => p.phone), 
             gameState: GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState, 
             gameId, 
-            totalProfit: dailyTotalProfit, 
+            totalProfit: dailyHouseProfit, 
             currentJackpot: totalPrizePool, 
             realMoney: realMoney,
             botMoney: botMoney,
@@ -1397,6 +1405,15 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             user.totalDeposited += actualAmount;
             user.unplayedRealDeposit += actualAmount; 
 
+            // 🔥 NEW: 30/70 Backend Split Logic
+            let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; // 30% ትርፍ
+            let adminCut = actualAmount * (adminPercent / 100);
+            let vaultAddition = actualAmount - adminCut;
+            
+            await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: vaultAddition } });
+            GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+            dailyHouseProfit += adminCut;
+
             if(user.referredBy && user.referredViaPromo) {
                 let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
                 if(promoter) {
@@ -1417,6 +1434,12 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         } else if (tx.type === 'withdraw') {
             let set = GLOBAL_SETTINGS;
             user.totalWithdrawn = (user.totalWithdrawn || 0) + tx.amount;
+
+            // 🔥 NEW: Deduct Real Withdraw from Virtual Prize Pool
+            await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: -tx.amount } });
+            GLOBAL_SETTINGS.virtualPrizePool -= tx.amount;
+            if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
+
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
                 let giveBonus = true;
                 if (set.witBonusTimeRestricted) {
@@ -1834,6 +1857,33 @@ function getUnusedFakeTicketId() {
     return Math.floor(Math.random() * 550) + 1;
 }
 
+// 🔥 አዲሱ የቦት ካርቴላ ማስተካከያ (Natural Ticket Generator) 🔥
+function makeNaturalBotTicket(tix, calledNums, winNum) {
+    let winCol = Math.floor((winNum - 1) / 15);
+    if (winCol < 0) winCol = 0; 
+    if (winCol > 4) winCol = 4;
+    
+    // የፍሪ ስፔስ (Free Space) ኮምፕሌክስ እንዳይሆን መሀለኛውን መስመር እንዘለዋለን
+    let validRows = [0, 1, 3, 4]; 
+    let winRow = validRows[Math.floor(Math.random() * validRows.length)];
+    
+    tix.grid[winCol][winRow] = winNum;
+    
+    for (let c = 0; c < 5; c++) {
+        if (c === winCol) continue;
+        
+        let colNumbers = calledNums.filter(n => n !== winNum && Math.floor((n - 1) / 15) === c);
+        
+        if (colNumbers.length > 0) {
+            // ከዚህ በፊት ጌሙ ላይ ከተጠሩት ቁጥሮች ውስጥ እንመርጣለን
+            tix.grid[c][winRow] = colNumbers[Math.floor(Math.random() * colNumbers.length)];
+        } else {
+            // (Failsafe) ከዚህ ኮለም ምንም ቁጥር ካልተጠራ ብቻ ዝም ብሎ ቁጥር ያስገባል
+            tix.grid[c][winRow] = (c * 15) + Math.floor(Math.random() * 15) + 1;
+        }
+    }
+}
+
 async function declareWinners(winners) {
     gameState = "FINISHED"; 
     gameClock = GLOBAL_SETTINGS.winPopupTimer || 12; 
@@ -1841,13 +1891,12 @@ async function declareWinners(winners) {
     let finalTotalPrize = totalPrizePool + jackpotBoostAmount; 
     let splitPrize = Number((finalTotalPrize / winners.length).toFixed(2));
     
-    let realMoneyIn = 0;
+    let realMoneyInThisRound = 0;
     Object.values(activePlayers).forEach(p => {
-        if(!p.isBot) realMoneyIn += (p.realBetAmount || 0); 
+        if(!p.isBot) realMoneyInThisRound += (p.realBetAmount || 0); 
     });
     
-    let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-    let adminProfit = realMoneyIn * (adminProfitPercent / 100);
+    let adminProfit = 0; // 🔥 Profit is now taken on deposit, so it's 0 here
     
     let winnerNames = [];
     let winnerPhones = [];
@@ -1855,6 +1904,7 @@ async function declareWinners(winners) {
     let winnerDetails = []; 
     
     let realMoneyOut = 0;
+    let botWinnersPrize = 0;
 
     for (let w of winners) {
         if (!w.player.isBot) {
@@ -1875,6 +1925,8 @@ async function declareWinners(winners) {
                 }).save();
             }
             realMoneyOut += splitPrize; 
+        } else {
+            botWinnersPrize += splitPrize;
         }
         winnerNames.push(w.player.name);
         winnerPhones.push(w.player.phone);
@@ -1888,13 +1940,19 @@ async function declareWinners(winners) {
         });
     }
 
+    // 🔥 1. Deduct Real Money Won from Vault
     if (realMoneyOut > 0) {
         await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: -realMoneyOut } });
         GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
         if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; 
     }
 
-    dailyHouseProfit += (realMoneyIn - realMoneyOut);
+    // 🔥 2. Recycle: If bots won, take the REAL money wagered this round and return it to vault
+    if (botWinnersPrize > 0 && realMoneyInThisRound > 0) {
+        let amountToReturn = Math.min(botWinnersPrize, realMoneyInThisRound);
+        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: amountToReturn } });
+        GLOBAL_SETTINGS.virtualPrizePool += amountToReturn;
+    }
 
     let uniqueNames = [...new Set(winnerNames)];
     let displayNames = uniqueNames.join(' እና ');
@@ -2120,7 +2178,7 @@ setInterval(() => {
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
             let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // Users who actually deposited
 
-            // 🔥 1. SMART AI (THE ILLUSION & BANK LOGIC) 🔥
+            // 🔥 1. SMART AI (DYNAMIC 20% SAFE LIMIT & SPLITTING) 🔥
             if (forceWinner === 'ai') {
                 let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
@@ -2132,19 +2190,30 @@ setInterval(() => {
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
                 } else {
-                    if (hiddenPool >= finalTotalPrize) {
-                        // 🎯 የባንኩ ብር በቂ ከሆነ 1 ሰው ሙሉውን እንዲበላ ያደርጋል!
-                        if(isBonusLucky) forceWinner = 'real'; // የቦነስ ተጫዋችም ሊበላ ይችላል
-                        else forceWinner = 'mix_dep'; // ዴፖዚት ያደረገ ሰው ብቻ 100% ሙሉውን ይበላል
-                        GLOBAL_SETTINGS.mixBotCount = 0; // ቦት በፍጹም አይቀላቀልም
+                    // 🎯 Risk Management: Max win is 20% of the hidden pool
+                    let maxSafePayout = hiddenPool * 0.20; 
+
+                    if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
+                        // Safe to let 1 person eat the whole thing!
+                        if(isBonusLucky) forceWinner = 'real'; 
+                        else forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 0; // ቦት አይቀላቀልም
                     } else {
-                        let neededSplits = Math.ceil(finalTotalPrize / (hiddenPool > 0 ? hiddenPool : 1));
-                        if (neededSplits > 1 && neededSplits <= 5) {
+                        // ካዝናው ቢኖርም ደራሹ ከ20% በላይ ከሆነ፣ አደጋ እንዳይፈጠር ግዴታ መከፋፈል አለበት
+                        let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
+                        let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
+                        
+                        // ⚠️ ህግ፡ መካፈል ያለበት ቢበዛ ለ 5 ሰው ነው (1 እውነተኛ + 4 ቦት)
+                        if (neededSplits > 5) neededSplits = 5;
+                        if (neededSplits < 2) neededSplits = 2; 
+
+                        // Survival Mode: ካዝናው ዜሮ ከሆነ ወይም ብሩ ለተከፋፈለው እንኳን ካልቻለ 100% ቦት ይበላል
+                        if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
+                            forceWinner = 'bots'; 
+                        } else {
                             if(isBonusLucky) forceWinner = 'mix'; 
                             else forceWinner = 'mix_dep'; 
                             GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; 
-                        } else {
-                            forceWinner = 'bots'; 
                         }
                     }
                 }
@@ -2152,8 +2221,7 @@ setInterval(() => {
 
             // Fallback safety
             if (realPlayers.length === 0) forceWinner = 'bots';
-            if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep')) forceWinner = 'real';
-            if (realPlayers.length <= 1 && forceWinner === 'mix_real') forceWinner = 'real'; 
+            if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_dep')) forceWinner = 'real';
             if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; 
 
             // PURE LUCK (ሰው ብቻ)
@@ -2167,29 +2235,14 @@ setInterval(() => {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
             } 
-            // MIX MODE (ሰው ከቦት / ሰው ከሰው)
-            else if (forceWinner === 'mix' || forceWinner === 'mix_real') {
+            // MIX MODE (ሰው ከቦት) - ❌ የእውነተኛ ሰዎችን ካርቴላ መነካካት አጥፍተነዋል!
+            else if (forceWinner === 'mix') {
                 let maxMixTurn = mixWinTargetTurn || 24; 
-                
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
                 
                 if (realWinNum) {
                     numToCall = realWinNum; 
-                } else if (turn >= maxMixTurn && realPlayers.length > 0) {
-                    let chosenReal = realPlayers[Math.floor(Math.random() * realPlayers.length)];
-                    let tix = chosenReal.ticketsData[0]; 
-                    
-                    let safeNum = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
-                    
-                    let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
-                    tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                    tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                    tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                    tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                    tix.grid[4][0] = safeNum; 
-                    
-                    numToCall = safeNum;
                 } else {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
@@ -2232,32 +2285,12 @@ setInterval(() => {
 
                 if (depWinNum) {
                     numToCall = depWinNum; 
-                } else if (turn >= maxMixTurn && depositorPlayers.length > 0) {
-                    let availableDeps = depositorPlayers.filter(p => !mixDepWinnersHistory.includes(p.phone));
-                    if (availableDeps.length === 0) {
-                        mixDepWinnersHistory = []; 
-                        availableDeps = depositorPlayers;
-                    }
-
-                    let chosenDep = availableDeps[Math.floor(Math.random() * availableDeps.length)];
-                    let tix = chosenDep.ticketsData[0]; 
-                    
-                    let safeNum = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
-                    
-                    let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
-                    tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                    tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                    tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                    tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                    tix.grid[4][0] = safeNum; 
-                    
-                    numToCall = safeNum;
                 } else {
                     numToCall = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
                     if(!numToCall) numToCall = currentDrawSequence[0]; 
                 }
             }
-            // BOTS 100% WIN (ቦት ብቻ - ሰው አያሸንፍም)
+            // BOTS 100% WIN (ቦት ብቻ - አዲሱ የተስተካከለ የካርቴላ ስሪት)
             else if (forceWinner === 'bots') {
                 let safeFromReal = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
 
@@ -2267,15 +2300,10 @@ setInterval(() => {
                         let tix = chosenBot.ticketsData[0]; 
                         
                         let safeNum = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
-                        
-                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5); 
-                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                        tix.grid[4][0] = safeNum; 
-                        
                         numToCall = safeNum;
+                        
+                        // 🎯 አዲሱ የቦት ማሸነፊያ (Natural grid maker)
+                        makeNaturalBotTicket(tix, calledNumbers, numToCall);
                     } else {
                         numToCall = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
                     }
@@ -2300,7 +2328,7 @@ setInterval(() => {
             }
 
             if(winnersThisRound.length > 0) {
-                if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_real' || forceWinner === 'mix_dep') {
+                if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_dep') {
                     winnersThisRound = winnersThisRound.filter(w => !w.player.isBot);
                 }
 
@@ -2310,7 +2338,7 @@ setInterval(() => {
 
                 let actualReals = winnersThisRound.filter(w => !w.player.isBot);
 
-                // Mix (ሰው + ቦት አብረው ይበላሉ)
+                // Mix (ሰው + ቦት አብረው ይበላሉ) - በተፈጥሯዊ የካርቴላ ስሪት
                 if (forceWinner === 'mix' && actualReals.length > 0) {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
@@ -2318,33 +2346,13 @@ setInterval(() => {
                     for (let i = 0; i < toAdd; i++) {
                         let b = availableBots.pop();
                         let tix = b.ticketsData[0];
-                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5);
-                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                        tix.grid[4][0] = numToCall;
+                        
+                        makeNaturalBotTicket(tix, calledNumbers, numToCall); // 🎯
+                        
                         winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
-                // Mix 4 (ሰው + ሰው አብረው ይበላሉ)
-                else if (forceWinner === 'mix_real' && actualReals.length > 0) { 
-                    let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
-                    let winnerPhones = actualReals.map(w => w.player.phone);
-                    let availableReals = realPlayers.filter(p => !winnerPhones.includes(p.phone)).sort(() => Math.random() - 0.5);
-                    let toAdd = Math.min(mixCount, availableReals.length);
-                    for (let i = 0; i < toAdd; i++) {
-                        let r = availableReals.pop();
-                        let tix = r.ticketsData[0];
-                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5);
-                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                        tix.grid[4][0] = numToCall;
-                        winnersThisRound.push({ player: r, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
-                    }
-                }
+                
                 // MIX DEP
                 else if (forceWinner === 'mix_dep' && actualReals.length > 0) {
                     actualReals.forEach(w => {
@@ -2353,19 +2361,15 @@ setInterval(() => {
                         }
                     });
 
-                
                     let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
                     let toAdd = Math.min(mixCount, availableBots.length);
                     for (let i = 0; i < toAdd; i++) {
                         let b = availableBots.pop();
                         let tix = b.ticketsData[0];
-                        let pastCalls = calledNumbers.slice().sort(() => Math.random() - 0.5);
-                        tix.grid[0][0] = pastCalls.length > 0 ? pastCalls.pop() : 1;
-                        tix.grid[1][0] = pastCalls.length > 0 ? pastCalls.pop() : 2;
-                        tix.grid[2][0] = pastCalls.length > 0 ? pastCalls.pop() : 3;
-                        tix.grid[3][0] = pastCalls.length > 0 ? pastCalls.pop() : 4;
-                        tix.grid[4][0] = numToCall;
+                        
+                        makeNaturalBotTicket(tix, calledNumbers, numToCall); // 🎯
+                        
                         winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
@@ -2411,7 +2415,6 @@ io.on('connection', (socket) => {
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
-                // መጀመሪያ ብሩ ከየት እንደተቆረጠ እናሰላለን
                 if (user.playBalance >= betAmount) { 
                     user.playBalance -= betAmount;
                     playDeducted = betAmount;
@@ -2433,17 +2436,6 @@ io.on('connection', (socket) => {
                 }
 
                 let realBetAmount = realBetFromDeposit + mainDeducted;
-
-                // 🟢 2. Calculate Profit and Pool ONLY on Real Money
-                let adminProfitPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                let pureAdminProfit = realBetAmount * (adminProfitPercent / 100); 
-                let poolAddition = realBetAmount - pureAdminProfit;
-
-                // 🟢 3. Add to Hidden Bank
-                if (poolAddition > 0) {
-                    await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: poolAddition } });
-                    GLOBAL_SETTINGS.virtualPrizePool += poolAddition;
-                }
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
@@ -2458,6 +2450,7 @@ io.on('connection', (socket) => {
                 });
 
                 if (!activePlayers[data.phone]) {
+                    // AI tracks realBetAmount so bonus money doesn't trick the vault
                     activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
                 } else { 
                     activePlayers[data.phone].tickets += data.ticketCount; 
@@ -2469,7 +2462,9 @@ io.on('connection', (socket) => {
                 totalTickets += data.ticketCount; 
                 totalCollectedMoney += betAmount;
 
-                totalPrizePool += betAmount * ((100 - adminProfitPercent) / 100); 
+                // UI Display pool calculation
+                let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                totalPrizePool += betAmount * ((100 - uiAdminPercent) / 100); 
                 
                 data.ticketIds.forEach(id => globalTakenTickets.push(id));
                 io.emit('update_taken_tickets', globalTakenTickets); 
@@ -2736,7 +2731,6 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         } else {
             let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
-            // 🔥 አዲሱ የተቀየረው መስመር (የብር መጠኑ የጠፋበት)
             let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n💰 <b>አሁን ያለው መጫወቻ ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB`;
             bot.sendMessage(chatId, ln.invite_msg(normalLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         }
@@ -3554,10 +3548,22 @@ setInterval(async () => {
     }
 }, 15 * 60 * 1000); 
 
+// 🔥 ቴሌግራም ቦት በሰዎች ብሎክ ሲደረግ ሰርቨሩ እንዳይቆም መከላከያ
 process.on('unhandledRejection', (reason, promise) => {
-    console.log("Unhandled Error Ignored:", reason.message || reason);
+    if (reason && reason.message && reason.message.includes('bot was blocked by the user')) {
+        console.log('⚠️ ማሳሰቢያ: አንድ ተጫዋች ቦቱን ብሎክ አድርጓል። ሰርቨሩ ግን ስራውን ይቀጥላል።');
+    } else {
+        console.log("Unhandled Error Ignored:", reason.message || reason);
+    }
 });
 
+process.on('uncaughtException', (err) => {
+    if (err && err.message && err.message.includes('bot was blocked by the user')) {
+        console.log('⚠️ ማሳሰቢያ: ተጠቃሚው ቦቱን ብሎክ አድርጓል።');
+    } else {
+        console.error('Uncaught Exception thrown:', err);
+    }
+});
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
