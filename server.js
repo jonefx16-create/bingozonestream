@@ -2735,7 +2735,8 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, msg, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         } else {
             let normalLink = `https://t.me/bingo_habesha_bot?start=${user.refCode}`;
-            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n🎁 <b>ያገኙት ቦነስ ጠቅላላ (Bonus Earned):</b> ${displayEarned} ETB\n💰 <b>አሁን ያለው መጫወቻ ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB`;
+            // 🔥 አዲሱ የተቀየረው መስመር (የብር መጠኑ የጠፋበት)
+            let statsText = `\n\n📊 <b>የእርስዎ መረጃ (Your Stats):</b>\n👥 <b>የጋበዙት ሰው (Invited):</b> ${actualInvites} ሰው\n💰 <b>አሁን ያለው መጫወቻ ሂሳብዎ:</b> ${user.playBalance.toFixed(2)} ETB`;
             bot.sendMessage(chatId, ln.invite_msg(normalLink) + statsText, { parse_mode: "HTML", disable_web_page_preview: true, ...getMainMenu(user) });
         }
     } 
