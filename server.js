@@ -2411,31 +2411,36 @@ io.on('connection', (socket) => {
             const user = await User.findOne({phone: data.phone});
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-                
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
-                if (user.playBalance >= betAmount) { 
-                    user.playBalance -= betAmount;
-                    playDeducted = betAmount;
+                // 🔥 አዲሱ ማስተካከያ፡ መጀመሪያ ከ Main Balance (ያሸነፈው ብር) ይቀነሳል
+                if (user.mainBalance >= betAmount) { 
+                    user.mainBalance -= betAmount;
+                    mainDeducted = betAmount;
                 } else { 
-                    playDeducted = user.playBalance;
-                    mainDeducted = betAmount - user.playBalance;
-                    user.mainBalance -= mainDeducted; 
-                    user.playBalance = 0; 
+                    mainDeducted = user.mainBalance;
+                    playDeducted = betAmount - user.mainBalance;
+                    user.mainBalance = 0;
+                    user.playBalance -= playDeducted; 
                 }
 
-                // 🟢 1. Calculate how much of this bet is REAL MONEY
+                // 🟢 1. Calculate REAL MONEY (ለካዝናው ሪሳይክል እንዲሆን)
+                // ከ Main Balance የተቀነሰ ብር በሙሉ ሪል ብር ነው (Recyclable)
+                // ከ Play Balance የተቀነሰ ደግሞ Unplayed Real Deposit ካለ ብቻ ነው ሪል የሚሆነው
                 let realBetFromDeposit = 0;
-                if (user.unplayedRealDeposit >= playDeducted) {
-                    realBetFromDeposit = playDeducted;
-                    user.unplayedRealDeposit -= playDeducted;
-                } else if (user.unplayedRealDeposit > 0) {
-                    realBetFromDeposit = user.unplayedRealDeposit;
-                    user.unplayedRealDeposit = 0;
-                } 
-                
-                let realBetAmount = mainDeducted;
+                if (playDeducted > 0) {
+                    if (user.unplayedRealDeposit >= playDeducted) {
+                        realBetFromDeposit = playDeducted;
+                        user.unplayedRealDeposit -= playDeducted;
+                    } else {
+                        realBetFromDeposit = user.unplayedRealDeposit;
+                        user.unplayedRealDeposit = 0;
+                    }
+                }
+
+                // ጠቅላላ ሪል ብር = ከማይን የተቀነሰ + ከዴፖዚት የተቀነሰ
+                let realBetAmount = mainDeducted + realBetFromDeposit;
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
