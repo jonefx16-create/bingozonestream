@@ -729,13 +729,13 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
         user.unplayedRealDeposit += actualAmount; 
 
         // 🔥 NEW: 30/70 Backend Split Logic
-        let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30;
-        let adminCut = actualAmount * (adminPercent / 100);
-        let vaultAddition = actualAmount - adminCut;
-        
-        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: vaultAddition } });
-        GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
-        dailyHouseProfit += adminCut;
+            let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30;
+            let adminCut = actualAmount * (adminPercent / 100);
+            let vaultAddition = actualAmount - adminCut;
+            
+            GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+            await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
+            dailyHouseProfit += adminCut;
 
         if(user.referredBy && user.referredViaPromo) {
             let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
@@ -1434,8 +1434,8 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
         } else if (tx.type === 'withdraw') {
             let set = GLOBAL_SETTINGS;
             user.totalWithdrawn = (user.totalWithdrawn || 0) + tx.amount;
-
-            // 🔥 NEW: Deduct Real Withdraw from Virtual Prize Pool
+            
+           // 🔥 NEW: Deduct Real Withdraw from Virtual Prize Pool
             await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: -tx.amount } });
             GLOBAL_SETTINGS.virtualPrizePool -= tx.amount;
             if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
@@ -1942,16 +1942,16 @@ async function declareWinners(winners) {
 
     // 🔥 1. Deduct Real Money Won from Vault
     if (realMoneyOut > 0) {
-        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: -realMoneyOut } });
         GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
         if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; 
+        await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
     }
 
     // 🔥 2. Recycle: If bots won, take the REAL money wagered this round and return it to vault
     if (botWinnersPrize > 0 && realMoneyInThisRound > 0) {
         let amountToReturn = Math.min(botWinnersPrize, realMoneyInThisRound);
-        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: amountToReturn } });
         GLOBAL_SETTINGS.virtualPrizePool += amountToReturn;
+        await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
     }
 
     let uniqueNames = [...new Set(winnerNames)];
