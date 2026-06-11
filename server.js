@@ -2433,9 +2433,9 @@ io.on('connection', (socket) => {
                 } else if (user.unplayedRealDeposit > 0) {
                     realBetFromDeposit = user.unplayedRealDeposit;
                     user.unplayedRealDeposit = 0;
-                }
-
-                let realBetAmount = realBetFromDeposit + mainDeducted;
+                } 
+                
+                let realBetAmount = mainDeducted;
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
