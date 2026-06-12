@@ -2426,21 +2426,19 @@ io.on('connection', (socket) => {
                 }
 
                 // 🟢 1. Calculate REAL MONEY (ለካዝናው ሪሳይክል እንዲሆን)
-                // ከ Main Balance የተቀነሰ ብር በሙሉ ሪል ብር ነው (Recyclable)
-                // ከ Play Balance የተቀነሰ ደግሞ Unplayed Real Deposit ካለ ብቻ ነው ሪል የሚሆነው
-                let realBetFromDeposit = 0;
+                // ማስተካከያ፡ ዴፖዚት ሲደረግ 70% ቀድሞ ካዝና ስለሚገባ፣ ቦት ሲበላ ወደ ካዝና መመለስ (Recycle) 
+                // መደረግ ያለበት ሰውየው ከ Main Balance (ያሸነፈውን ብር) አውጥቶ ከተጫወተ *ብቻ* ነው!!
+                
                 if (playDeducted > 0) {
                     if (user.unplayedRealDeposit >= playDeducted) {
-                        realBetFromDeposit = playDeducted;
                         user.unplayedRealDeposit -= playDeducted;
                     } else {
-                        realBetFromDeposit = user.unplayedRealDeposit;
                         user.unplayedRealDeposit = 0;
                     }
                 }
 
-                // ጠቅላላ ሪል ብር = ከማይን የተቀነሰ + ከዴፖዚት የተቀነሰ
-                let realBetAmount = mainDeducted + realBetFromDeposit;
+                // ቦት ሲያሸንፍ ወደ ካዝና የሚመለሰው ከ Main Balance የተቆረጠው (mainDeducted) ብቻ ነው!
+                let realBetAmount = mainDeducted;
                 
                 user.played += 1; 
                 user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
