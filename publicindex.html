@@ -1393,17 +1393,17 @@
 
         let sharedListHtml = "";
         if (data.isShared && data.winnerDetails) {
-            sharedListHtml = `<div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; border: 1px solid #4ade80; margin-top: 15px; width: 100%; box-sizing: border-box; max-height: 250px; overflow-y: auto;">
-                <h4 style="margin:0 0 15px 0; color:#4ade80; font-size:16px; text-align:center;">✨ አሸናፊዎች (${data.winnerCount}) ✨</h4>
-                <ul style="list-style:none; padding:0; margin:0; text-align:left;">`;
+            // ፎንቶች አነስ ተደርገዋል፣ max-height: 140px ተደርጓል (በትክክል 3 ሰው ብቻ ያሳያል፣ 4+ ከሆነ scroll ይሆናል)
+            sharedListHtml = `<div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 12px; border: 1px solid #4ade80; margin-top: 10px; width: 100%; box-sizing: border-box;">
+                <h4 style="margin:0 0 8px 0; color:#4ade80; font-size:13px; text-align:center;">✨ አሸናፊዎች (${data.winnerCount}) ✨</h4>
+                <ul style="list-style:none; padding:0; margin:0; text-align:left; max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 4px;">`;
             data.winnerDetails.forEach(w => {
-                sharedListHtml += `<li style="margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                sharedListHtml += `<li style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-size: 20px; font-weight: 900; color: #ffffff;">👤 ${w.name}</div>
-                        <div style="color:#94a3b8; font-size:14px; font-weight:bold; margin-top:3px;">ስልክ: <span style="color:white;">09XXXXXXXX</span></div>
-                        <div style="color:#94a3b8; font-size:14px; font-weight:bold; margin-top:3px;">ካርቴላ: <b style="color:#38bdf8; font-size:22px; text-shadow: 0 0 8px rgba(56,189,248,0.5);">#${w.ticket}</b></div>
+                        <div style="font-size: 13px; font-weight: bold; color: #ffffff;">👤 ${w.name}</div>
+                        <div style="color:#94a3b8; font-size:10px; margin-top:3px;">ስልክ: <span style="color:white;">09XXXXXX</span> | ካርቴላ: <b style="color:#38bdf8; font-size:12px;">#${w.ticket}</b></div>
                     </div>
-                    <div style="color:#fbbf24; font-weight:900; font-size: 20px;">${w.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div>
+                    <div style="color:#fbbf24; font-weight:900; font-size: 14px;">${w.prize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</div>
                 </li>`;
             });
             sharedListHtml += `</ul></div>`;
@@ -1411,45 +1411,61 @@
         }
 
         let winnerCard = document.querySelector('.winner-card');
-        winnerCard.innerHTML = `
-            <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '20px' : '16px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
-            <h1 class="bingo-text">B I N G O !</h1>
-            <div id="win-ticket-display"></div>
-            ${!data.isShared ? `
+
+        if (!data.isShared) {
+            // 1 ሰው ብቻ ሲያሸንፍ (ካርቴላውን ያሳያል)
+            winnerCard.innerHTML = `
+                <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '20px' : '16px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
+                <h1 class="bingo-text">B I N G O !</h1>
+                <div id="win-ticket-display"></div>
                 <h2 id="win-name" style="margin:15px 0 10px 0; color:${amIWinner ? '#fbbf24' : '#ffffff'}; font-size:28px; font-weight:900; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${nameHtml}</h2>
                 <div style="margin-bottom: 20px;">
                     <div style="font-size:16px; color:var(--text-gray); font-weight:bold; margin-bottom:5px;">ስልክ: <span style="color:#fff;">09XXXXXX</span></div>
                     <div style="font-size:16px; color:var(--text-gray); font-weight:bold;">አሸናፊ ካርቴላ: <b id="win-ticket" style="font-size:28px; color:#38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5);">#${data.ticketId}</b></div>
                 </div>
-            ` : `<h2 style="margin:15px 0 10px 0; color:#fbbf24; font-size:24px; font-weight: 900; text-shadow: 0 0 15px rgba(251,191,36,0.5);">${nameHtml}</h2>`}
-            
-            <div style="background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 12px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
-                <p style="margin:0; font-size:12px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">${data.isShared ? "ጠቅላላ የደራሽ ሽልማት" : "የገንዘብ ሽልማት (Prize)"}</p>
-                <h1 style="margin:5px 0 0 0; color:#fff; font-size: 28px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
-            </div>
-            ${sharedListHtml}
-        `;
+                <div style="background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 12px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
+                    <p style="margin:0; font-size:12px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">የገንዘብ ሽልማት (Prize)</p>
+                    <h1 style="margin:5px 0 0 0; color:#fff; font-size: 28px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
+                </div>
+            `;
 
-        let g = data.ticketGrid; let cld = data.calledNumbers;
-        let html = `<div style="width:200px; margin: 15px auto 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
-        html += `<div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
-        for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color:#fff; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; }
-        for(let r=0; r<5; r++){
-            for(let c=0; c<5; c++){
-                let num = g[c][r];
-                if(r===2 && c===2) { 
-                    html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
-                } 
-                else if(cld.includes(num)) { 
-                    html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; 
-                } 
-                else { 
-                    html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; 
+            let g = data.ticketGrid; let cld = data.calledNumbers;
+            let html = `<div style="width:200px; margin: 15px auto 0 auto; border-radius: 30px; overflow: hidden; background: #ffffff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); border: 3px solid #cbd5e1; padding: 6px;">`;
+            html += `<div class="preview-t-grid" style="gap: 1px; background: #cbd5e1; border-radius: 24px; overflow: hidden;">`;
+            for(let i=0; i<5; i++) { html += `<div class="preview-t-head" style="background:${bColors[i]}; color:#fff; height:25px; font-size:12px; display:flex; align-items:center; justify-content:center;">${bHeads[i]}</div>`; }
+            for(let r=0; r<5; r++){
+                for(let c=0; c<5; c++){
+                    let num = g[c][r];
+                    if(r===2 && c===2) { 
+                        html += `<div class="preview-t-cell marked" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-size:18px; text-shadow:0 0 5px #38bdf8;">★</div>`; 
+                    } 
+                    else if(cld.includes(num)) { 
+                        html += `<div class="preview-t-cell" style="background:#fff; height:30px; display:flex; align-items:center; justify-content:center;"><div style="background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color:#fff; font-size: 12px; font-weight: 900; box-shadow: 0 0 8px rgba(34,197,94,0.6);">${num}</div></div>`; 
+                    } 
+                    else { 
+                        html += `<div class="preview-t-cell" style="background:#fff; color:#000; height:30px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center;">${num}</div>`; 
+                    }
                 }
             }
+            html += `</div></div>`; 
+            document.getElementById('win-ticket-display').innerHTML = html;
+
+        } else {
+            // በጋራ ሲያሸንፉ (ካርቴላ አይታይም፣ ቦክሱ ከፍ ይላል)
+            winnerCard.innerHTML = `
+                <h3 style="margin:0; color:${amIWinner ? '#4ade80' : 'white'}; font-size:${amIWinner ? '20px' : '16px'}; letter-spacing: 2px; text-transform: uppercase;">${titleHtml}</h3>
+                <h1 class="bingo-text" style="margin: 5px 0;">B I N G O !</h1>
+                
+                <h2 style="margin:5px 0 10px 0; color:#fbbf24; font-size:22px; font-weight: 900; text-shadow: 0 0 15px rgba(251,191,36,0.5);">${nameHtml}</h2>
+                
+                <div style="background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; border: 1px solid #fbbf24; width: fit-content; margin: 0 auto;">
+                    <p style="margin:0; font-size:11px; color:#fff; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">ጠቅላላ የደራሽ ሽልማት</p>
+                    <h1 style="margin:2px 0 0 0; color:#fff; font-size: 24px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);" id="win-prize">${data.totalPrize.toLocaleString('en-US', {maximumFractionDigits: 0})} ETB</h1>
+                </div>
+                
+                ${sharedListHtml}
+            `;
         }
-        html += `</div></div>`; 
-        document.getElementById('win-ticket-display').innerHTML = html;
 
         for (let i = 0; i < 20; i++) {
             let coin = document.createElement('div');
