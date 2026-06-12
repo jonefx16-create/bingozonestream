@@ -1435,10 +1435,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             let set = GLOBAL_SETTINGS;
             user.totalWithdrawn = (user.totalWithdrawn || 0) + tx.amount;
             
-           // 🔥 NEW: Deduct Real Withdraw from Virtual Prize Pool
-            await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: -tx.amount } });
-            GLOBAL_SETTINGS.virtualPrizePool -= tx.amount;
-            if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
+            // ማስተካከያ፡ ድርብ ቅነሳን ለማስቀረት ከካዝና (Vault) ላይ የሚቀንሰው ኮድ ተወግዷል።
 
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
                 let giveBonus = true;
