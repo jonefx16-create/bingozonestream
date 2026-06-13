@@ -12,6 +12,9 @@ const server = http.createServer(app);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// 🔥 SECURITY: Basic Rate Limiting for Registration Spam
+const registerRateLimiter = new Map();
+
 const io = new Server(server, { 
     cors: { origin: "*" },
     perMessageDeflate: { threshold: 1024 } 
@@ -60,7 +63,9 @@ const User = mongoose.model('User', new mongoose.Schema({
     hasMadeFirstDeposit: { type: Boolean, default: false }, 
     promoterCommissionGenerated: { type: Number, default: 0 },
     referredViaPromo: { type: Boolean, default: false }, 
-    compensatedInvites: { type: Number, default: 0 }
+    compensatedInvites: { type: Number, default: 0 },
+    diagnosticFraudReported: { type: Boolean, default: false },
+    diagnosticNegativeReported: { type: Boolean, default: false }
 }));
 
 const { BotUser, initBotDatabase } = require('./bots/bot.model');
@@ -371,7 +376,6 @@ async function autoApprovePendingDeposits() {
                     user.totalDeposited += actualReceivedAmount;
                     user.unplayedRealDeposit += actualReceivedAmount; 
 
-                    // 🔥 NEW: 3 way Backend Split Logic (Admin, Vault 1, Vault 2)
                     let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
                     let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
                     
@@ -433,12 +437,29 @@ app.post('/api/webhook/iphone-sms', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
+// 🔥 SECURITY: Prevent Bot Registrations and Referrals Exploits
 app.post('/api/register', async (req, res) => {
     try {
-        const { phone, name, password, refCode } = req.body;
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        let lastReqTime = registerRateLimiter.get(clientIp);
+        if (lastReqTime && (Date.now() - lastReqTime) < 10000) { 
+            return res.json({ success: false, message: "⚠️ እባክዎ ትንሽ ይጠብቁ!" });
+        }
+        registerRateLimiter.set(clientIp, Date.now());
+
+        let phone = String(req.body.phone).trim();
+        let name = String(req.body.name).trim();
+        let password = String(req.body.password).trim();
+        let refCode = String(req.body.refCode || "").trim();
+
+        if (!/^(09|07)\d{8}$/.test(phone)) {
+            return res.json({ success: false, message: "❌ እባክዎ ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ! (09... ወይም 07...)" });
+        }
+
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
+        
         let actualRef = "";
-        let cleanRefCode = refCode || "";
+        let cleanRefCode = refCode;
         let isPromoLink = false;
         
         if (cleanRefCode.startsWith('promo_')) {
@@ -446,9 +467,10 @@ app.post('/api/register', async (req, res) => {
             isPromoLink = true;
         }
 
-        if (cleanRefCode) { 
-            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode.trim() }, { refCode: cleanRefCode.trim() }] }); 
-            if (refUser) { 
+        // Prevent Self Referral entirely
+        if (cleanRefCode && cleanRefCode !== phone) { 
+            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
+            if (refUser && refUser.phone !== phone) { 
                 actualRef = refUser.phone;
                 refUser.totalInvites = (refUser.totalInvites || 0) + 1;
                 
@@ -470,14 +492,17 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    let user = await User.findOne({ phone: req.body.phone, password: req.body.password });
+    let phone = String(req.body.phone);
+    let password = String(req.body.password);
+    
+    let user = await User.findOne({ phone: phone, password: password });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
     if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
     res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
 });
 
 app.post('/api/telegram-login', async (req, res) => {
-    let user = await User.findOne({ telegramId: req.body.telegramId.toString() });
+    let user = await User.findOne({ telegramId: String(req.body.telegramId) });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ የታገደ አካውንት!" });
     if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
     if(user) res.json({ success: true, user });
@@ -485,22 +510,33 @@ app.post('/api/telegram-login', async (req, res) => {
 });
 
 app.post('/api/user/change-password', async (req, res) => {
-    const { phone, oldPass, newPass } = req.body;
+    const phone = String(req.body.phone);
+    const oldPass = String(req.body.oldPass);
+    const newPass = String(req.body.newPass);
     let user = await User.findOne({ phone, password: oldPass });
     if (!user) return res.json({ success: false, message: "❌ የድሮው ፓስወርድ ትክክል አይደለም!" });
     user.password = newPass; await user.save();
     res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!" });
 });
 
+// 🔥 SECURITY FIX: Lock Data Fetching Behind Password 🔥
 app.get('/api/getUser/:phone', async (req, res) => {
-    const user = await User.findOne({ phone: req.params.phone }); res.json(user ? { success: true, user } : { success: false });
+    const pass = String(req.query.pass || "");
+    const user = await User.findOne({ phone: String(req.params.phone), password: pass }).select('-password -telegramId -unplayedRealDeposit'); 
+    res.json(user ? { success: true, user } : { success: false });
 });
 
 const txLocks = new Set();
 
 app.post('/api/request-tx', async (req, res) => {
     try {
-        const { phone, type, amount, method, sms, destinationPhone } = req.body; 
+        const phone = String(req.body.phone);
+        const pass = String(req.body.pass || req.body.password || ""); 
+        const type = String(req.body.type);
+        const amount = Number(req.body.amount);
+        const method = String(req.body.method);
+        const sms = String(req.body.sms);
+        const destinationPhone = String(req.body.destinationPhone);
         
         const lockKey = `${phone}_${type}`;
         if (txLocks.has(lockKey)) {
@@ -508,6 +544,14 @@ app.post('/api/request-tx', async (req, res) => {
         }
         txLocks.add(lockKey);
         setTimeout(() => txLocks.delete(lockKey), 5000); 
+
+        let user = await User.findOne({ phone: phone }); 
+        if(!user) { txLocks.delete(lockKey); return res.json({success: false, message: "User not found!"}); }
+        
+        if (user.password !== pass) {
+            txLocks.delete(lockKey); 
+            return res.json({success: false, message: "❌ Authorization Failed. Password incorrect!"});
+        }
 
         let tenSecondsAgo = new Date(Date.now() - 15000);
         let dupCheck = await Transaction.findOne({ 
@@ -517,9 +561,6 @@ app.post('/api/request-tx', async (req, res) => {
             txLocks.delete(lockKey);
             return res.json({ success: false, message: "⚠️ ይህ ጥያቄ በቅርቡ ተልኳል (Duplicate request)!" });
         }
-
-        let user = await User.findOne({phone}); 
-        if(!user) { txLocks.delete(lockKey); return res.json({success: false}); }
 
         if(type === 'withdraw') {
             if(amount < GLOBAL_SETTINGS.minWithdrawLimit) { txLocks.delete(lockKey); return res.json({success: false, message: `❌ ማውጣት የሚችሉት ቢያንስ ${GLOBAL_SETTINGS.minWithdrawLimit} ብር ነው!`}); }
@@ -545,33 +586,34 @@ app.post('/api/request-tx', async (req, res) => {
 
 app.post('/api/promoter/withdraw', async (req, res) => {
     try {
-        const { phone, pass, amount, account } = req.body;
+        const phone = String(req.body.phone);
+        const pass = String(req.body.pass);
         let user = await User.findOne({ phone, password: pass });
         if (!user || !user.isPromoter) return res.json({ success: false, message: "Unauthorized" });
 
-        let reqAmt = Number(amount);
+        let reqAmt = Number(req.body.amount);
         if (isNaN(reqAmt) || reqAmt < 1000) return res.json({ success: false, message: "❌ ቢያንስ 1000 ብር መሆን አለበት!" });
         if (user.promoterUnpaidBalance < reqAmt) return res.json({ success: false, message: "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!" });
 
         user.promoterUnpaidBalance -= reqAmt;
         await user.save();
 
-        await new Transaction({ phone: user.phone, type: 'withdraw', amount: reqAmt, method: "Promoter Comm", smsText: `Transfer to: ${account}` }).save();
+        await new Transaction({ phone: user.phone, type: 'withdraw', amount: reqAmt, method: "Promoter Comm", smsText: `Transfer to: ${req.body.account}` }).save();
 
-        res.json({ success: true, message: `✅ የወጪ ጥያቄዎ ለአድሚን ተልኳል!\nበቅርቡ ${reqAmt} ETB ወደ ${account} ይላካል።` });
+        res.json({ success: true, message: `✅ የወጪ ጥያቄዎ ለአድሚን ተልኳል!\nበቅርቡ ${reqAmt} ETB ወደ ${req.body.account} ይላካል።` });
     } catch (e) { res.json({ success: false, message: "ስህተት አጋጥሟል" }); }
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
     const txs = await Transaction.find({ 
-        phone: req.params.phone, 
+        phone: String(req.params.phone), 
         method: { $ne: 'Promoter Comm' }
     }).sort({ date: -1 }).limit(30);
     res.json({ success: true, txs }); 
 });
 
 app.get('/api/user/my-active-tickets/:phone', (req, res) => {
-    let p = activePlayers[req.params.phone];
+    let p = activePlayers[String(req.params.phone)];
     res.json({ success: true, ticketsData: p ? p.ticketsData : [], calledNumbers: [...calledNumbers], gameState, gameId, globalTakenTickets: [...globalTakenTickets] });
 });
 
@@ -582,22 +624,30 @@ app.get('/api/leaderboard', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+const promoLocks = new Set();
+
 app.post('/api/claim-promo-code', async (req, res) => {
     try {
-        const { phone, pass, code } = req.body;
-        if (!code) return res.json({ success: false, message: "እባክዎ ኮድ ያስገቡ!" });
+        const phone = String(req.body.phone);
+        const pass = String(req.body.pass);
+        const code = String(req.body.code || "");
+        
+        if (promoLocks.has(phone)) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ..." });
+        promoLocks.add(phone);
+
+        if (!code) { promoLocks.delete(phone); return res.json({ success: false, message: "እባክዎ ኮድ ያስገቡ!" }); }
         let user = await User.findOne({ phone, password: pass });
-        if(!user) return res.json({success: false, message: "User not found!"});
+        if(!user) { promoLocks.delete(phone); return res.json({success: false, message: "User not found!"}); }
 
         let isJoined = await checkTelegramJoin(user.telegramId);
-        if(!isJoined) return res.json({ success: false, message: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}` });
+        if(!isJoined) { promoLocks.delete(phone); return res.json({ success: false, message: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}` }); }
         
         let promo = await PromoCode.findOne({ code: code.toUpperCase() });
-        if (!promo) return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" });
+        if (!promo) { promoLocks.delete(phone); return res.json({ success: false, message: "ትክክለኛ ያልሆነ ኮድ!" }); }
         
-        if (new Date(promo.expiresAt) < new Date()) return res.json({ success: false, message: "የዚህ ኩፖን ጊዜ አልፏል!" });
-        if (promo.currentUses >= promo.maxUses) return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" });
-        if (promo.usedBy.includes(user.phone)) return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" });
+        if (new Date(promo.expiresAt) < new Date()) { promoLocks.delete(phone); return res.json({ success: false, message: "የዚህ ኩፖን ጊዜ አልፏል!" }); }
+        if (promo.currentUses >= promo.maxUses) { promoLocks.delete(phone); return res.json({ success: false, message: "ይቅርታ! ይህ ኩፖን በሌሎች ሰዎች ሙሉ በሙሉ ጥቅም ላይ ውሏል።" }); }
+        if (promo.usedBy.includes(user.phone)) { promoLocks.delete(phone); return res.json({ success: false, message: "እርስዎ ይህንን ኩፖን ቀድመው ወስደዋል!" }); }
         
         if (promo.requireDeposit) {
             let minDep = promo.minDepositAmount || 0;
@@ -611,11 +661,13 @@ app.post('/api/claim-promo-code', async (req, res) => {
                     amount: { $gte: minDep } 
                 });
                 if (!recentDep) {
+                    promoLocks.delete(phone);
                     return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${promo.requireDepositWithinHours} ሰዓታት ውስጥ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት!` });
                 }
             } else {
                 let validDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep } });
                 if (!validDep) {
+                    promoLocks.delete(phone);
                     return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ከዚህ በፊት ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት!` });
                 }
             }
@@ -629,22 +681,27 @@ app.post('/api/claim-promo-code', async (req, res) => {
         await user.save();
         io.emit('balance_updated', user.phone);
         
+        promoLocks.delete(phone);
         res.json({ success: true, message: `እንኳን ደስ አሎት! የ ${promo.amount} ETB ቦነስ አግኝተዋል!`, amount: promo.amount });
-    } catch(e) { res.json({success: false}); }
+    } catch(e) { promoLocks.delete(String(req.body.phone)); res.json({success: false}); }
 });
 
 app.post('/api/claim-promo-web', async (req, res) => {
     try {
-        let user = await User.findOne({ phone: req.body.phone });
-        if(!user) return res.json({success: false, message: "User not found!"});
+        let phone = String(req.body.phone);
+        if (promoLocks.has(phone)) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ..." });
+        promoLocks.add(phone);
+
+        let user = await User.findOne({ phone: phone });
+        if(!user) { promoLocks.delete(phone); return res.json({success: false, message: "User not found!"}); }
 
         let isJoined = await checkTelegramJoin(user.telegramId);
-        if(!isJoined) return res.json({ success: false, message: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}` });
+        if(!isJoined) { promoLocks.delete(phone); return res.json({ success: false, message: `❌ ይህንን ቦነስ ለመውሰድ እባክዎ መጀመሪያ የቴሌግራም ቻናላችንን ይቀላቀሉ! ቻናል: ${GLOBAL_SETTINGS.telegramChannel}` }); }
         
         let activeBonus = await ActiveBonus.findOne({ isActive: true, expiresAt: { $gt: new Date() } });
-        if (!activeBonus) return res.json({ success: false, message: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!" });
-        if (activeBonus.currentClaims >= activeBonus.maxUsers) return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" });
-        if (activeBonus.claimedBy.includes(user.phone)) return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" });
+        if (!activeBonus) { promoLocks.delete(phone); return res.json({ success: false, message: "❌ ፕሮሞው አልቋል ወይም ጊዜው አልፏል!" }); }
+        if (activeBonus.currentClaims >= activeBonus.maxUsers) { promoLocks.delete(phone); return res.json({ success: false, message: "❌ ይቅርታ! የሰው ኮታ ሞልቷል።" }); }
+        if (activeBonus.claimedBy.includes(user.phone)) { promoLocks.delete(phone); return res.json({ success: false, message: "❌ እርስዎ ይህንን ቦነስ ቀድመው ወስደዋል!" }); }
         
         if (activeBonus.depositorsOnly) {
             let minDep = activeBonus.minDepositAmount || 0;
@@ -658,11 +715,13 @@ app.post('/api/claim-promo-web', async (req, res) => {
                     amount: { $gte: minDep }
                 });
                 if (!recentDep) {
+                    promoLocks.delete(phone);
                     return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${activeBonus.requireDepositWithinHours} ሰዓታት ውስጥ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት!` });
                 }
             } else {
                 let validDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep } });
                 if (!validDep) {
+                    promoLocks.delete(phone);
                     return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት!` });
                 }
             }
@@ -676,29 +735,41 @@ app.post('/api/claim-promo-web', async (req, res) => {
         await user.save();
         io.emit('balance_updated', user.phone);
         
+        promoLocks.delete(phone);
         res.json({ success: true, amount: activeBonus.amount });
-    } catch(e) { res.json({success: false}); }
+    } catch(e) { promoLocks.delete(String(req.body.phone)); res.json({success: false}); }
 });
 
 const auth = (req, res, next) => { 
-    const pass = req.body.adminPass; 
+    const pass = String(req.body.adminPass || ""); 
     if(pass !== GLOBAL_SETTINGS.adminPass) return res.status(401).json({error:"Unauthorized"}); 
     next(); 
 };
 
 const financeAuth = (req, res, next) => { 
-    const pass = req.body.adminPass || req.body.financePass; 
+    const pass = String(req.body.adminPass || req.body.financePass || ""); 
     if(pass !== GLOBAL_SETTINGS.financePass && pass !== GLOBAL_SETTINGS.adminPass) {
         return res.status(401).json({error:"Unauthorized"}); 
     }
     next(); 
 };
 
-// 🔥 አድሚን Manual ደረሰኝ (TxRef) የሚያስገባበት API 🔥
+app.post('/api/admin/wipe-fake-balances', auth, async (req, res) => {
+    try {
+        let result = await User.updateMany(
+            { totalDeposited: 0, $or: [{ totalInvites: { $gt: 5 } }, { playBalance: { $gt: 50 } }] },
+            { $set: { playBalance: 0, totalInvites: 0, inviteBonusEarned: 0, compensatedInvites: 0 } }
+        );
+        res.json({ success: true, message: `✅ በተሳካ ሁኔታ ${result.modifiedCount} የውሸት አካውንቶች እና የሰረቁት ቦነስ ዜሮ ገብቷል!` });
+    } catch (e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
+
 app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
     try {
         const { phone, amount, txRef, bank } = req.body;
-        let user = await User.findOne({ phone });
+        let user = await User.findOne({ phone: String(phone) });
         if (!user) return res.json({ success: false, message: "❌ ተጠቃሚው አልተገኘም!" });
 
         if (!txRef || !amount) return res.json({ success: false, message: "❌ እባክዎ ደረሰኝ እና የብር መጠን ያስገቡ!" });
@@ -743,7 +814,6 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
         user.totalDeposited += actualAmount;
         user.unplayedRealDeposit += actualAmount; 
 
-        // 🔥 NEW: 3 way Backend Split Logic (Admin, Vault 1, Vault 2)
         let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
         let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
         
@@ -905,7 +975,7 @@ app.post('/api/admin/users', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 30;
-        let search = req.body.search || '';
+        let search = String(req.body.search || '');
         let query = {};
         if (search) {
             query = { $or: [{ phone: new RegExp(search, 'i') }, { name: new RegExp(search, 'i') }] };
@@ -950,8 +1020,8 @@ app.post('/api/admin/transactions', auth, async (req, res) => {
         }
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 30;
-        let search = req.body.search || '';
-        let type = req.body.type || 'deposit';
+        let search = String(req.body.search || '');
+        let type = String(req.body.type || 'deposit');
         
         let query = { hiddenFromAdmin: { $ne: true } }; 
         if (type === 'rejected') { 
@@ -976,7 +1046,7 @@ app.post('/api/admin/history', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 30;
-        let search = req.body.search || '';
+        let search = String(req.body.search || '');
         
         let query = {};
         
@@ -996,8 +1066,7 @@ app.post('/api/admin/history', auth, async (req, res) => {
 
 app.post('/api/admin/search-bets', auth, async (req, res) => {
     try {
-        let search = req.body.search || '';
-        search = search.trim();
+        let search = String(req.body.search || '').trim();
         if (!search) return res.json({ success: true, games: [] });
 
         let query = { $or: [
@@ -1017,9 +1086,10 @@ app.post('/api/admin/search-bets', auth, async (req, res) => {
 
 app.post('/api/admin/user-details', auth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ phone: req.body.phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
+        let phone = String(req.body.phone);
+        let txs = await Transaction.find({ phone: phone, hiddenFromAdmin: { $ne: true } }).sort({ date: -1 }).limit(100);
         
-        let allTxs = await Transaction.find({ phone: req.body.phone, status: 'Approved' });
+        let allTxs = await Transaction.find({ phone: phone, status: 'Approved' });
         let aggDep = 0, aggWit = 0, aggBonus = 0, aggWin = 0;
         allTxs.forEach(t => {
             if(t.type === 'deposit') { aggDep += t.amount; aggBonus += (t.bonusGiven || 0); }
@@ -1169,7 +1239,7 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
         let limit = parseInt(req.body.limit) || 30;
-        let search = req.body.search || '';
+        let search = String(req.body.search || '');
 
         let query = { $or: [{ totalInvites: { $gt: 0 } }, { inviteBonusEarned: { $gt: 0 } }] };
 
@@ -1204,7 +1274,7 @@ app.post('/api/admin/referrals', auth, async (req, res) => {
 
 app.post('/api/admin/referral-details', auth, async (req, res) => {
     try {
-        let users = await User.find({ referredBy: req.body.phone }).select('name phone _id').sort({ _id: -1 });
+        let users = await User.find({ referredBy: String(req.body.phone) }).select('name phone _id').sort({ _id: -1 });
         let mappedUsers = users.map(u => ({
             name: u.name,
             phone: u.phone,
@@ -1266,15 +1336,15 @@ app.post('/api/admin/list-promo-codes', auth, async (req, res) => {
 
 app.post('/api/admin/create-promo-code', auth, async (req, res) => {
     try {
-        let exists = await PromoCode.findOne({ code: req.body.code });
+        let exists = await PromoCode.findOne({ code: String(req.body.code) });
         if(exists) return res.json({ success: false, message: "Code already exists!" });
         await new PromoCode({ 
-            code: req.body.code, 
-            amount: req.body.amount, 
-            maxUses: req.body.maxUses,
-            requireDeposit: req.body.requireDeposit,
-            minDepositAmount: req.body.minDepositAmount || 0,
-            requireDepositWithinHours: req.body.requireDepositWithinHours || 0
+            code: String(req.body.code), 
+            amount: Number(req.body.amount), 
+            maxUses: Number(req.body.maxUses),
+            requireDeposit: !!req.body.requireDeposit,
+            minDepositAmount: Number(req.body.minDepositAmount) || 0,
+            requireDepositWithinHours: Number(req.body.requireDepositWithinHours) || 0
         }).save();
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
@@ -1343,7 +1413,7 @@ app.post('/api/admin/promoters-data', financeAuth, async (req, res) => {
 app.post('/api/admin/set-promoter', auth, async (req, res) => {
     try {
         const { phone, isPromoter, percent } = req.body;
-        let user = await User.findOne({ phone });
+        let user = await User.findOne({ phone: String(phone) });
         if (user) {
             user.isPromoter = isPromoter;
             if (percent !== undefined) user.promoterPercent = percent;
@@ -1357,7 +1427,7 @@ app.post('/api/admin/set-promoter', auth, async (req, res) => {
 
 app.post('/api/admin/promoter-details', auth, async (req, res) => {
     try {
-        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        let p = await User.findOne({ phone: String(req.body.phone), isPromoter: true });
         if(!p) return res.json({ success: false });
 
         let refUsers = await User.find({ referredBy: p.phone, referredViaPromo: true });
@@ -1375,7 +1445,7 @@ app.post('/api/admin/promoter-details', auth, async (req, res) => {
 
 app.post('/api/admin/pay-promoter', auth, async (req, res) => {
     try {
-        let p = await User.findOne({ phone: req.body.phone, isPromoter: true });
+        let p = await User.findOne({ phone: String(req.body.phone), isPromoter: true });
         if(p) {
             let deductAmt = Number(req.body.amount);
             p.promoterUnpaidBalance -= deductAmt;
@@ -1429,7 +1499,6 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             user.totalDeposited += actualAmount;
             user.unplayedRealDeposit += actualAmount; 
 
-            // 🔥 NEW: 3 way Backend Split Logic (Admin, Vault 1, Vault 2)
             let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
             let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
             
@@ -1468,8 +1537,6 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             let set = GLOBAL_SETTINGS;
             user.totalWithdrawn = (user.totalWithdrawn || 0) + tx.amount;
             
-            // ማስተካከያ፡ ድርብ ቅነሳን ለማስቀረት ከካዝና (Vault) ላይ የሚቀንሰው ኮድ ተወግዷል።
-
             if(set.isWitBonusActive && tx.amount >= set.witBonusMinAmount) {
                 let giveBonus = true;
                 if (set.witBonusTimeRestricted) {
@@ -1498,7 +1565,6 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.newPass) s.adminPass = req.body.newPass;
     if(req.body.newFinancePass) s.financePass = req.body.newFinancePass;
     
-    // 👇 እነዚህን 2 አዳዲስ መስመሮች ጨምር 👇
     if(req.body.vaultTwoBalance !== undefined) s.vaultTwoBalance = req.body.vaultTwoBalance;
     if(req.body.vaultTwoPercent !== undefined) s.vaultTwoPercent = req.body.vaultTwoPercent;
 
@@ -1583,17 +1649,20 @@ app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
 
 app.post('/api/admin/edit-user', auth, async (req, res) => {
     try {
-        const { oldPhone, newPhone, name, userPass, mainBalance, playBalance, won } = req.body;
+        const oldPhone = String(req.body.oldPhone);
+        const newPhone = String(req.body.newPhone);
+        const name = String(req.body.name);
+        const userPass = String(req.body.userPass || "");
         
         let updateData = { 
             phone: newPhone, 
             name: name,
-            mainBalance: Number(mainBalance), 
-            playBalance: Number(playBalance), 
-            won: Number(won) 
+            mainBalance: Number(req.body.mainBalance), 
+            playBalance: Number(req.body.playBalance), 
+            won: Number(req.body.won) 
         };
         
-        if (userPass && userPass.trim() !== "") { 
+        if (userPass.trim() !== "") { 
             updateData.password = userPass.trim(); 
         }
         
@@ -1621,8 +1690,8 @@ app.post('/api/admin/edit-user', auth, async (req, res) => {
     }
 });
 
-app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'banned' }); res.json({ success: true }); });
-app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: req.body.phone }, { status: 'active' }); res.json({ success: true }); });
+app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: String(req.body.phone) }, { status: 'banned' }); res.json({ success: true }); });
+app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: String(req.body.phone) }, { status: 'active' }); res.json({ success: true }); });
 
 app.post('/api/admin/factory-reset', auth, async (req, res) => {
     await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({}); 
@@ -1630,7 +1699,7 @@ app.post('/api/admin/factory-reset', auth, async (req, res) => {
 });
 
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
-    let user = await User.findOne({ phone: req.body.phone });
+    let user = await User.findOne({ phone: String(req.body.phone) });
     if(user) { 
         user.playBalance += Number(req.body.amount); 
         await user.save(); 
@@ -1897,13 +1966,11 @@ function getUnusedFakeTicketId() {
     return Math.floor(Math.random() * 550) + 1;
 }
 
-// 🔥 አዲሱ የቦት ካርቴላ ማስተካከያ (Natural Ticket Generator) 🔥
 function makeNaturalBotTicket(tix, calledNums, winNum) {
     let winCol = Math.floor((winNum - 1) / 15);
     if (winCol < 0) winCol = 0; 
     if (winCol > 4) winCol = 4;
     
-    // የፍሪ ስፔስ (Free Space) ኮምፕሌክስ እንዳይሆን መሀለኛውን መስመር እንዘለዋለን
     let validRows = [0, 1, 3, 4]; 
     let winRow = validRows[Math.floor(Math.random() * validRows.length)];
     
@@ -1911,14 +1978,11 @@ function makeNaturalBotTicket(tix, calledNums, winNum) {
     
     for (let c = 0; c < 5; c++) {
         if (c === winCol) continue;
-        
         let colNumbers = calledNums.filter(n => n !== winNum && Math.floor((n - 1) / 15) === c);
         
         if (colNumbers.length > 0) {
-            // ከዚህ በፊት ጌሙ ላይ ከተጠሩት ቁጥሮች ውስጥ እንመርጣለን
             tix.grid[c][winRow] = colNumbers[Math.floor(Math.random() * colNumbers.length)];
         } else {
-            // (Failsafe) ከዚህ ኮለም ምንም ቁጥር ካልተጠራ ብቻ ዝም ብሎ ቁጥር ያስገባል
             tix.grid[c][winRow] = (c * 15) + Math.floor(Math.random() * 15) + 1;
         }
     }
@@ -1936,7 +2000,7 @@ async function declareWinners(winners) {
         if(!p.isBot) realMoneyInThisRound += (p.realBetAmount || 0); 
     });
     
-    let adminProfit = 0; // 🔥 Profit is now taken on deposit, so it's 0 here
+    let adminProfit = 0; 
     
     let winnerNames = [];
     let winnerPhones = [];
@@ -1980,21 +2044,17 @@ async function declareWinners(winners) {
         });
     }
 
-    // 🔥 1. Deduct Real Money Won from Vault
     if (realMoneyOut > 0) {
-        // አዲሱ ህግ፡ ካዝና 2 በቂ ብር ካለው እሱ ይክፈል (ሙሉ በሙሉ ይሰለማል)
         if (botWinnersPrize === 0 && GLOBAL_SETTINGS.vaultTwoBalance >= realMoneyOut) {
             GLOBAL_SETTINGS.vaultTwoBalance -= realMoneyOut;
             await SystemSettings.updateOne({}, { $set: { vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance } });
         } else {
-            // ካዝና 2 በቂ ካልሆነ እንደድሮው ከዋናው ካዝና (Vault 1) ይቀነሳል
             GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
             if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; 
             await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
         }
     }
 
-    // 🔥 2. Recycle: If bots won, take the REAL money wagered this round and return it to vault
     if (botWinnersPrize > 0 && realMoneyInThisRound > 0) {
         let amountToReturn = Math.min(botWinnersPrize, realMoneyInThisRound);
         GLOBAL_SETTINGS.virtualPrizePool += amountToReturn;
@@ -2017,17 +2077,29 @@ async function declareWinners(winners) {
         playersData: Object.values(activePlayers) 
     });
 
+    let maskedPhones = winnerPhones.map(p => {
+        if(p && p.length >= 10) return p.substring(0, 3) + '****' + p.substring(7);
+        return p;
+    }).join(', ');
+
+    let safeWinnerDetails = winnerDetails.map(w => ({
+        name: w.name,
+        phone: w.phone && w.phone.length >= 10 ? w.phone.substring(0, 3) + '****' + w.phone.substring(7) : w.phone,
+        ticket: w.ticket,
+        prize: w.prize
+    }));
+
     io.emit('game_winner', { 
         winnerName: displayNames, 
         ticketId: ticketIds.join(', '), 
         prize: splitPrize, 
         totalPrize: finalTotalPrize, 
-        phone: winnerPhones.join(', '), 
+        phone: maskedPhones, 
         ticketGrid: winners[0].ticket.grid, 
         calledNumbers: [...calledNumbers],
         isShared: winners.length > 1,
         winnerCount: winners.length,
-        winnerDetails: winnerDetails
+        winnerDetails: safeWinnerDetails
     });
 }
 
@@ -2147,7 +2219,7 @@ setInterval(() => {
                 let buyNow = queueItem.tixCount;
                 
                 let cost = buyNow * GLOBAL_SETTINGS.ticketPrice;
-                totalPrizePool += cost; // UI Pool
+                totalPrizePool += cost; 
                 totalTickets += buyNow;
 
                 let ticketsData = [];
@@ -2223,9 +2295,8 @@ setInterval(() => {
 
             let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
-            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); // Users who actually deposited
+            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
 
-            // 🔥 1. SMART AI (DYNAMIC 20% SAFE LIMIT & SPLITTING) 🔥
             if (forceWinner === 'ai') {
                 let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
                 let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;
@@ -2240,24 +2311,19 @@ setInterval(() => {
                 } else {
                     let maxSafePayout = hiddenPool * 0.20; 
 
-                    // 🔥 NEW: Check Vault 2 first for full payout!
                     if (vaultTwo >= finalTotalPrize) {
-                        // Vault 2 can handle the full jackpot! Let human win alone.
                         if(isBonusLucky) forceWinner = 'real'; 
                         else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; // No bots splitting
+                        GLOBAL_SETTINGS.mixBotCount = 0; 
                     }
-                    // Normal Vault 1 logic
                     else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
                         if(isBonusLucky) forceWinner = 'real'; 
                         else forceWinner = 'mix_dep'; 
                         GLOBAL_SETTINGS.mixBotCount = 0;
                     } else {
-                        // SPLIT LOGIC
                         let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
                         let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
                         
-                        // ⚠️ ህግ፡ መካፈል ያለበት ቢበዛ ለ 5 ሰው ነው (1 እውነተኛ + 4 ቦት)
                         if (neededSplits > 5) neededSplits = 5;
                         if (neededSplits < 2) neededSplits = 2; 
 
@@ -2272,12 +2338,10 @@ setInterval(() => {
                 }
             }
 
-            // Fallback safety
             if (realPlayers.length === 0) forceWinner = 'bots';
             if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_dep')) forceWinner = 'real';
             if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; 
 
-            // PURE LUCK (ሰው ብቻ)
             if (forceWinner === 'real') {
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
                 let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
@@ -2288,7 +2352,6 @@ setInterval(() => {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
             } 
-            // MIX MODE (ሰው ከቦት) - ❌ የእውነተኛ ሰዎችን ካርቴላ መነካካት አጥፍተነዋል!
             else if (forceWinner === 'mix') {
                 let maxMixTurn = mixWinTargetTurn || 24; 
                 let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
@@ -2300,7 +2363,6 @@ setInterval(() => {
                     numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
                 }
             }
-            // MIX DEP (ሰው ከቦት - ለ Deposit ላደረጉት ብቻ)
             else if (forceWinner === 'mix_dep') {
                 let maxMixTurn = mixWinTargetTurn || 24;
 
@@ -2343,7 +2405,6 @@ setInterval(() => {
                     if(!numToCall) numToCall = currentDrawSequence[0]; 
                 }
             }
-            // BOTS 100% WIN (ቦት ብቻ - አዲሱ የተስተካከለ የካርቴላ ስሪት)
             else if (forceWinner === 'bots') {
                 let safeFromReal = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
 
@@ -2355,7 +2416,6 @@ setInterval(() => {
                         let safeNum = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
                         numToCall = safeNum;
                         
-                        // 🎯 አዲሱ የቦት ማሸነፊያ (Natural grid maker)
                         makeNaturalBotTicket(tix, calledNumbers, numToCall);
                     } else {
                         numToCall = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
@@ -2391,7 +2451,6 @@ setInterval(() => {
 
                 let actualReals = winnersThisRound.filter(w => !w.player.isBot);
 
-                // Mix (ሰው + ቦት አብረው ይበላሉ) - በተፈጥሯዊ የካርቴላ ስሪት
                 if (forceWinner === 'mix' && actualReals.length > 0) {
                     let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
@@ -2406,7 +2465,6 @@ setInterval(() => {
                     }
                 }
                 
-                // MIX DEP
                 else if (forceWinner === 'mix_dep' && actualReals.length > 0) {
                     actualReals.forEach(w => {
                         if (!mixDepWinnersHistory.includes(w.player.phone)) {
@@ -2447,7 +2505,6 @@ io.on('connection', (socket) => {
     
     socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
     
-    // 🟢 BUY TICKETS (REAL MONEY vs BONUS TRACKING)
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         if (buyingLocks[data.phone]) return; 
@@ -2467,7 +2524,6 @@ io.on('connection', (socket) => {
                 let playDeducted = 0;
                 let mainDeducted = 0;
                 
-                // 🔥 አዲሱ ማስተካከያ፡ መጀመሪያ ከ Main Balance (ያሸነፈው ብር) ይቀነሳል
                 if (user.mainBalance >= betAmount) { 
                     user.mainBalance -= betAmount;
                     mainDeducted = betAmount;
@@ -2478,10 +2534,6 @@ io.on('connection', (socket) => {
                     user.playBalance -= playDeducted; 
                 }
 
-                // 🟢 1. Calculate REAL MONEY (ለካዝናው ሪሳይክል እንዲሆን)
-                // ማስተካከያ፡ ዴፖዚት ሲደረግ 70% ቀድሞ ካዝና ስለሚገባ፣ ቦት ሲበላ ወደ ካዝና መመለስ (Recycle) 
-                // መደረግ ያለበት ሰውየው ከ Main Balance (ያሸነፈውን ብር) አውጥቶ ከተጫወተ *ብቻ* ነው!!
-                
                 if (playDeducted > 0) {
                     if (user.unplayedRealDeposit >= playDeducted) {
                         user.unplayedRealDeposit -= playDeducted;
@@ -2490,7 +2542,6 @@ io.on('connection', (socket) => {
                     }
                 }
 
-                // ቦት ሲያሸንፍ ወደ ካዝና የሚመለሰው ከ Main Balance የተቆረጠው (mainDeducted) ብቻ ነው!
                 let realBetAmount = mainDeducted;
                 
                 user.played += 1; 
@@ -2506,7 +2557,6 @@ io.on('connection', (socket) => {
                 });
 
                 if (!activePlayers[data.phone]) {
-                    // AI tracks realBetAmount so bonus money doesn't trick the vault
                     activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
                 } else { 
                     activePlayers[data.phone].tickets += data.ticketCount; 
@@ -2518,7 +2568,6 @@ io.on('connection', (socket) => {
                 totalTickets += data.ticketCount; 
                 totalCollectedMoney += betAmount;
 
-                // UI Display pool calculation
                 let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                 totalPrizePool += betAmount * ((100 - uiAdminPercent) / 100); 
                 
@@ -2680,9 +2729,9 @@ bot.on('contact', async (msg) => {
                 isPromoLink = true;
             }
 
-            if (cleanRefCode) { 
+            if (cleanRefCode && cleanRefCode !== phone) { 
                 let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
-                if (refUser) { 
+                if (refUser && refUser.phone !== phone) { 
                     actualRef = refUser.phone;
                     if (isPromoLink && refUser.isPromoter) {
                         refUser.totalInvites = (refUser.totalInvites || 0) + 1;
@@ -3604,7 +3653,6 @@ setInterval(async () => {
     }
 }, 15 * 60 * 1000); 
 
-// 🔥 ቴሌግራም ቦት በሰዎች ብሎክ ሲደረግ ሰርቨሩ እንዳይቆም መከላከያ
 process.on('unhandledRejection', (reason, promise) => {
     if (reason && reason.message && reason.message.includes('bot was blocked by the user')) {
         console.log('⚠️ ማሳሰቢያ: አንድ ተጫዋች ቦቱን ብሎክ አድርጓል። ሰርቨሩ ግን ስራውን ይቀጥላል።');
