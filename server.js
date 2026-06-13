@@ -24,10 +24,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
 // ==========================================
-// 🔵 DATABASE CONNECTION
+// 🔵 DATABASE CONNECTION (FIXED)
 // ==========================================
-const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:Jo97BJbi0422@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log("DB Error:", err.message));
+// Render ላይ የሞሉትን MONGO_URI በቀጥታ እንዲጠቀም እና ትርፍ ቦታዎችን እንዲያጠፋ ተደርጓል
+const rawURI = process.env.MONGO_URI || "mongodb+srv://bingostream:Jo97BJbi0422@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+const mongoURI = rawURI.trim(); // ትርፍ ባዶ ቦታ (Space) ካለ ያጠፋል
+
+mongoose.connect(mongoURI, { 
+    autoIndex: true, 
+    maxPoolSize: 500 
+}).then(() => console.log("✅ Database Connected"))
+  .catch(err => console.log("DB Error:", err.message));
 
 // ==========================================
 // 🔵 ETHIOPIAN MALE NAMES ARRAY
