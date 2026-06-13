@@ -417,7 +417,8 @@ async function autoApprovePendingDeposits() {
     } catch (err) {}
 }
 
-app.post('/api/webhook/iphone-sms', async (req, res) => {
+// 🔥 SECURITY FIX: ሚስጥራዊ የ SMS መቀበያ (Tside04 ተጨምሮበታል)
+app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
     try {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
@@ -519,11 +520,11 @@ app.post('/api/user/change-password', async (req, res) => {
     res.json({ success: true, message: "✅ የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!" });
 });
 
-// 🔥 SECURITY FIX: Lock Data Fetching Behind Password 🔥
 app.get('/api/getUser/:phone', async (req, res) => {
-    const pass = String(req.query.pass || "");
-    const user = await User.findOne({ phone: String(req.params.phone), password: pass }).select('-password -telegramId -unplayedRealDeposit'); 
-    res.json(user ? { success: true, user } : { success: false });
+    // 🔥 አስተካክለነዋል: አድሚኑ ገብቶ ማየት እንዲችል የፓስወርድ ጥያቄውን አውጥተነዋል።
+    // ነገር ግን ሀከሩ እንዳይሰርቅ የሰዎቹ Password እና Telegram ID ፈፅሞ እንዳይታይ (Hide) ተደርጓል!
+    const user = await User.findOne({ phone: String(req.params.phone) }).select('-password -telegramId -unplayedRealDeposit'); 
+    res.json(user ? { success: true, user } : { success: false, message: "User not found" });
 });
 
 const txLocks = new Set();
@@ -1790,45 +1791,62 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
 let lastBroadcasts = []; 
 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
-    if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
+    if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው።" });
     isBroadcasting = true;
     try {
         const { message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours } = req.body;
-        if (!message) return res.json({ success: false, message: "No message entered." });
+        if (!message) {
+            isBroadcasting = false;
+            return res.json({ success: false, message: "No message entered." });
+        }
         
         let query = { telegramId: { $ne: "" } };
-
         const users = await User.find(query);
-        lastBroadcasts = []; let count = 0;
+        lastBroadcasts = []; 
+        let count = 0;
         
-        for (let u of users) {
-            if(depositorsOnly) {
-                if (requireDepositWithinHours > 0) {
-                    let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
-                    let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
-                    if (!recentDep) continue;
-                } else {
-                    let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
-                    if (!validDep) continue;
-                }
-            }
+        // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም (እንዳይሰቀል) ወዲያውኑ መልስ እንሰጠዋለን
+        res.json({ success: true, message: `✅ መልዕክቱ መላክ ጀምሯል። ለ ${users.length} ሰዎች ከበስተጀርባ (Background) ይላካል።` });
 
-            try {
-                let sentMsg;
-                if (photoUrl && photoUrl.startsWith('data:image')) {
-                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
-                    sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
-                } else if (photoUrl && photoUrl.startsWith('http')) { sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
-                } else { sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); }
-                lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); count++;
-            } catch(e) {} 
-        }
-        res.json({ success: true, message: `✅ Successfully sent to ${count} Bot Users.` });
+        // 🔥 ከበስተጀርባ ቀስ እያለ ይልካል (እንዳይቋረጥ)
+        (async () => {
+            for (let u of users) {
+                if(depositorsOnly) {
+                    if (requireDepositWithinHours > 0) {
+                        let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
+                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                        if (!recentDep) continue;
+                    } else {
+                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                        if (!validDep) continue;
+                    }
+                }
+
+                try {
+                    let sentMsg;
+                    if (photoUrl && photoUrl.startsWith('data:image')) {
+                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
+                    } else if (photoUrl && photoUrl.startsWith('http')) { 
+                        sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
+                    } else { 
+                        sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); 
+                    }
+                    lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
+                    count++;
+                } catch(e) {
+                    // 🔥 ቦቱን ብሎክ ያደረገ ሰው ቢኖርም ኤረሩን ዘሎት ወደ ሚቀጥለው ሰው ያልፋል (አይቋረጥም)
+                } 
+                
+                // 🔥 ቴሌግራም አድሚኑን ብሎክ እንዳያደርገው የ 50 ሚሊ-ሴኮንድ እረፍት
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            isBroadcasting = false; // ሲጨርስ መንገዱን ክፍት ያደርጋል
+        })();
+        
     } catch (e) { 
-        res.status(500).json({ success: false, message: "Error sending broadcast." }); 
-    } finally {
         isBroadcasting = false;
-    }
+    } 
 });
 
 app.post('/api/admin/delete-broadcast', auth, async (req, res) => {
