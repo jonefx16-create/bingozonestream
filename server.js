@@ -26,7 +26,7 @@ app.use(express.static(__dirname));
 // ==========================================
 // 🔵 DATABASE CONNECTION
 // ==========================================
-const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:Jo97BJbi_0422/@!cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
+const mongoURI = process.env.MONGO_URI || "mongodb+srv://bingostream:Jo97BJbi0422@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
 mongoose.connect(mongoURI, { autoIndex: true, maxPoolSize: 500 }).then(() => console.log("✅ Database Connected")).catch(err => console.log("DB Error:", err.message));
 
 // ==========================================
