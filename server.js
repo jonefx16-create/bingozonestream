@@ -135,6 +135,9 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     gameTimer: { type: Number, default: 40 },
     
     virtualPrizePool: { type: Number, default: 0 }, 
+    vaultTwoBalance: { type: Number, default: 0 }, 
+    vaultTwoPercent: { type: Number, default: 10 }, 
+
     decoyChancePercent: { type: Number, default: 15 }, 
     bonusWinPercent: { type: Number, default: 0 }, 
     
@@ -224,6 +227,9 @@ async function loadSettings() {
         gameTimer: s.gameTimer || 40, 
         
         virtualPrizePool: s.virtualPrizePool || 0, 
+        vaultTwoBalance: s.vaultTwoBalance || 0,
+        vaultTwoPercent: s.vaultTwoPercent !== undefined ? s.vaultTwoPercent : 10,
+
         decoyChancePercent: s.decoyChancePercent !== undefined ? s.decoyChancePercent : 15, 
         bonusWinPercent: s.bonusWinPercent !== undefined ? s.bonusWinPercent : 0, 
 
@@ -365,13 +371,22 @@ async function autoApprovePendingDeposits() {
                     user.totalDeposited += actualReceivedAmount;
                     user.unplayedRealDeposit += actualReceivedAmount; 
 
-                    // 🔥 NEW: 30/70 Backend Split Logic
-                    let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30;
-                    let adminCut = actualReceivedAmount * (adminPercent / 100);
-                    let vaultAddition = actualReceivedAmount - adminCut;
+                    // 🔥 NEW: 3 way Backend Split Logic (Admin, Vault 1, Vault 2)
+                    let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
+                    let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
                     
-                    await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: vaultAddition } });
+                    let adminCut = actualReceivedAmount * (adminPercent / 100);
+                    let vaultTwoCut = actualReceivedAmount * (vaultTwoPercent / 100);
+                    let vaultAddition = actualReceivedAmount - adminCut - vaultTwoCut; 
+                    
+                    await SystemSettings.updateOne({}, { 
+                        $inc: { 
+                            virtualPrizePool: vaultAddition,
+                            vaultTwoBalance: vaultTwoCut 
+                        } 
+                    });
                     GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+                    GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
                     dailyHouseProfit += adminCut; 
 
                     if(user.referredBy && user.referredViaPromo) {
@@ -728,14 +743,23 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
         user.totalDeposited += actualAmount;
         user.unplayedRealDeposit += actualAmount; 
 
-        // 🔥 NEW: 30/70 Backend Split Logic
-            let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30;
-            let adminCut = actualAmount * (adminPercent / 100);
-            let vaultAddition = actualAmount - adminCut;
-            
-            GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
-            await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
-            dailyHouseProfit += adminCut;
+        // 🔥 NEW: 3 way Backend Split Logic (Admin, Vault 1, Vault 2)
+        let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
+        let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
+        
+        let adminCut = actualAmount * (adminPercent / 100);
+        let vaultTwoCut = actualAmount * (vaultTwoPercent / 100);
+        let vaultAddition = actualAmount - adminCut - vaultTwoCut; 
+        
+        await SystemSettings.updateOne({}, { 
+            $inc: { 
+                virtualPrizePool: vaultAddition,
+                vaultTwoBalance: vaultTwoCut 
+            } 
+        });
+        GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+        GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
+        dailyHouseProfit += adminCut;
 
         if(user.referredBy && user.referredViaPromo) {
             let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
@@ -1405,13 +1429,22 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
             user.totalDeposited += actualAmount;
             user.unplayedRealDeposit += actualAmount; 
 
-            // 🔥 NEW: 30/70 Backend Split Logic
-            let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; // 30% ትርፍ
-            let adminCut = actualAmount * (adminPercent / 100);
-            let vaultAddition = actualAmount - adminCut;
+            // 🔥 NEW: 3 way Backend Split Logic (Admin, Vault 1, Vault 2)
+            let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
+            let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
             
-            await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: vaultAddition } });
+            let adminCut = actualAmount * (adminPercent / 100);
+            let vaultTwoCut = actualAmount * (vaultTwoPercent / 100);
+            let vaultAddition = actualAmount - adminCut - vaultTwoCut; 
+            
+            await SystemSettings.updateOne({}, { 
+                $inc: { 
+                    virtualPrizePool: vaultAddition,
+                    vaultTwoBalance: vaultTwoCut 
+                } 
+            });
             GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+            GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
             dailyHouseProfit += adminCut;
 
             if(user.referredBy && user.referredViaPromo) {
@@ -1465,6 +1498,10 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.newPass) s.adminPass = req.body.newPass;
     if(req.body.newFinancePass) s.financePass = req.body.newFinancePass;
     
+    // 👇 እነዚህን 2 አዳዲስ መስመሮች ጨምር 👇
+    if(req.body.vaultTwoBalance !== undefined) s.vaultTwoBalance = req.body.vaultTwoBalance;
+    if(req.body.vaultTwoPercent !== undefined) s.vaultTwoPercent = req.body.vaultTwoPercent;
+
     if(req.body.decoyChancePercent !== undefined) s.decoyChancePercent = req.body.decoyChancePercent;
     if(req.body.virtualPrizePool !== undefined) s.virtualPrizePool = req.body.virtualPrizePool;
     if(req.body.bonusWinPercent !== undefined) s.bonusWinPercent = req.body.bonusWinPercent;
@@ -1594,14 +1631,20 @@ app.post('/api/admin/factory-reset', auth, async (req, res) => {
 
 app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     let user = await User.findOne({ phone: req.body.phone });
-    if(user) { user.playBalance += Number(req.body.amount); await user.save(); io.emit('balance_updated', user.phone); }
-    res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
+    if(user) { 
+        user.playBalance += Number(req.body.amount); 
+        await user.save(); 
+        io.emit('balance_updated', user.phone); 
+        res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
+    } else {
+        res.json({ success: false, message: `❌ User with phone ${req.body.phone} not found! Check the number.` });
+    }
 });
 
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
     else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
-    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent to ALL users!` });
+    res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
 app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
@@ -1759,7 +1802,7 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
         let distArray = [];
         for(let i=0; i<count1; i++) distArray.push(1);
         for(let i=0; i<count2; i++) distArray.push(2);
-        for(let i=0; i<count3; i++) distArray.push(3);
+        for(let i=0; i<count3; i++) distArraypush(3);
         for(let i=0; i<count4; i++) distArray.push(4);
         
         distArray = distArray.sort(() => Math.random() - 0.5);
@@ -1939,9 +1982,16 @@ async function declareWinners(winners) {
 
     // 🔥 1. Deduct Real Money Won from Vault
     if (realMoneyOut > 0) {
-        GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
-        if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; 
-        await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
+        // አዲሱ ህግ፡ ካዝና 2 በቂ ብር ካለው እሱ ይክፈል (ሙሉ በሙሉ ይሰለማል)
+        if (botWinnersPrize === 0 && GLOBAL_SETTINGS.vaultTwoBalance >= realMoneyOut) {
+            GLOBAL_SETTINGS.vaultTwoBalance -= realMoneyOut;
+            await SystemSettings.updateOne({}, { $set: { vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance } });
+        } else {
+            // ካዝና 2 በቂ ካልሆነ እንደድሮው ከዋናው ካዝና (Vault 1) ይቀነሳል
+            GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
+            if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; 
+            await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
+        }
     }
 
     // 🔥 2. Recycle: If bots won, take the REAL money wagered this round and return it to vault
@@ -2178,6 +2228,7 @@ setInterval(() => {
             // 🔥 1. SMART AI (DYNAMIC 20% SAFE LIMIT & SPLITTING) 🔥
             if (forceWinner === 'ai') {
                 let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
+                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
                 let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
@@ -2187,16 +2238,22 @@ setInterval(() => {
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
                 } else {
-                    // 🎯 Risk Management: Max win is 20% of the hidden pool
                     let maxSafePayout = hiddenPool * 0.20; 
 
-                    if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
-                        // Safe to let 1 person eat the whole thing!
+                    // 🔥 NEW: Check Vault 2 first for full payout!
+                    if (vaultTwo >= finalTotalPrize) {
+                        // Vault 2 can handle the full jackpot! Let human win alone.
                         if(isBonusLucky) forceWinner = 'real'; 
                         else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; // ቦት አይቀላቀልም
+                        GLOBAL_SETTINGS.mixBotCount = 0; // No bots splitting
+                    }
+                    // Normal Vault 1 logic
+                    else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
+                        if(isBonusLucky) forceWinner = 'real'; 
+                        else forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 0;
                     } else {
-                        // ካዝናው ቢኖርም ደራሹ ከ20% በላይ ከሆነ፣ አደጋ እንዳይፈጠር ግዴታ መከፋፈል አለበት
+                        // SPLIT LOGIC
                         let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
                         let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
                         
@@ -2204,7 +2261,6 @@ setInterval(() => {
                         if (neededSplits > 5) neededSplits = 5;
                         if (neededSplits < 2) neededSplits = 2; 
 
-                        // Survival Mode: ካዝናው ዜሮ ከሆነ ወይም ብሩ ለተከፋፈለው እንኳን ካልቻለ 100% ቦት ይበላል
                         if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
                             forceWinner = 'bots'; 
                         } else {
