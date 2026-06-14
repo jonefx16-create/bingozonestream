@@ -24,11 +24,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
 // ==========================================
-// 🔵 DATABASE CONNECTION (FIXED)
+// 🔵 DATABASE CONNECTION (ULTIMATE FIX)
 // ==========================================
-// Render ላይ የሞሉትን MONGO_URI በቀጥታ እንዲጠቀም እና ትርፍ ቦታዎችን እንዲያጠፋ ተደርጓል
-const rawURI = process.env.MONGO_URI || "mongodb+srv://bingostream:Jo97BJbi0422@cluster0.hefpgl6.mongodb.net/BingoDB?retryWrites=true&w=majority";
-const mongoURI = rawURI.trim(); // ትርፍ ባዶ ቦታ (Space) ካለ ያጠፋል
+const dbUser = "bingostream";
+const dbPass = encodeURIComponent("Jo97BJbi0422"); // ፓስወርዱን በራሱ አስተካክሎ እንዲያነብ ያደርገዋል
+const dbName = "BingoDB";
+const dbCluster = "cluster0.hefpgl6.mongodb.net";
+
+const mongoURI = `mongodb+srv://${dbUser}:${dbPass}@${dbCluster}/${dbName}?retryWrites=true&w=majority`;
+
+mongoose.connect(mongoURI, { 
+    autoIndex: true, 
+    maxPoolSize: 500 
+}).then(() => console.log("✅ Database Connected Successfully"))
+  .catch(err => console.log("❌ DB Connection Error:", err.message));
 
 mongoose.connect(mongoURI, { 
     autoIndex: true, 
