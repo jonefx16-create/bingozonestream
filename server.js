@@ -39,12 +39,6 @@ mongoose.connect(mongoURI, {
 }).then(() => console.log("✅ Database Connected Successfully"))
   .catch(err => console.log("❌ DB Connection Error:", err.message));
 
-mongoose.connect(mongoURI, { 
-    autoIndex: true, 
-    maxPoolSize: 500 
-}).then(() => console.log("✅ Database Connected"))
-  .catch(err => console.log("DB Error:", err.message));
-
 // ==========================================
 // 🔵 ETHIOPIAN MALE NAMES ARRAY
 // ==========================================
@@ -203,7 +197,8 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminProfitPercent: { type: Number, default: 15 },
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
-    winPopupTimer: { type: Number, default: 12 }
+    winPopupTimer: { type: Number, default: 12 },
+    jackpotBoostAmount: { type: Number, default: 0 }
 }));
 
 const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
@@ -295,8 +290,10 @@ async function loadSettings() {
         adminProfitPercent: s.adminProfitPercent !== undefined ? s.adminProfitPercent : 15, 
         maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
-        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12
+        winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
+        jackpotBoostAmount: s.jackpotBoostAmount !== undefined ? s.jackpotBoostAmount : 0
     };
+    jackpotBoostAmount = GLOBAL_SETTINGS.jackpotBoostAmount;
 }
 loadSettings();
 
@@ -794,6 +791,7 @@ app.post('/api/admin/wipe-fake-balances', auth, async (req, res) => {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
     }
 });
+
 // 🔥 SECURITY FIX: የውሸት (Bot) ሪፈራሎችን ማጥፊያ እና ብር ማስመለሻ
 app.post('/api/admin/delete-fake-referrals', auth, async (req, res) => {
     try {
@@ -833,6 +831,7 @@ app.post('/api/admin/delete-fake-referrals', auth, async (req, res) => {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
     }
 });
+
 app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
     try {
         const { phone, amount, txRef, bank } = req.body;
@@ -1626,6 +1625,7 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     }
     await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
 });
+
 app.post('/api/admin/sms-comparison', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
@@ -1637,18 +1637,18 @@ app.post('/api/admin/sms-comparison', auth, async (req, res) => {
 
         let comparisonData = [];
         for (let sms of smsList) {
-            // በ TxRef አማካኝነት በዩዘሩ የተላከውን ፈልግ
             let tx = await Transaction.findOne({ txRef: sms.txRef });
             comparisonData.push({
                 smsDate: sms.dateReceived,
-                iphoneSms: sms.rawText, // ከእርስዎ iPhone የመጣው
+                iphoneSms: sms.rawText, 
                 txRef: sms.txRef,
                 extraction: sms.amount,
                 systemData: tx ? {
+                    txId: tx._id,
                     phone: tx.phone,
                     amount: tx.amount,
-                    status: tx.status, // Approved, Pending, Rejected
-                    userSms: tx.smsText, // ዩዘሩ የለጠፈው ደረሰኝ
+                    status: tx.status, 
+                    userSms: tx.smsText, 
                     date: tx.date
                 } : null
             });
@@ -1656,6 +1656,7 @@ app.post('/api/admin/sms-comparison', auth, async (req, res) => {
         res.json({ success: true, data: comparisonData, total, page, totalPages: Math.ceil(total / limit) });
     } catch (e) { res.json({ success: false, message: "Error loading data" }); }
 });
+
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
     if(req.body.newPass) s.adminPass = req.body.newPass;
@@ -3096,14 +3097,12 @@ const basicAuth = (req, res, next) => {
     
     // 2. ለፋይናንስ መግቢያ (Finance Path)
     if (req.path === '/papi2204') {
-        // ፋይናንስ በራሱ ፓስወርድ (financePass) ወይም በአድሚን ፓስወርድ መግባት ይችላል
         if ((login === 'finance' && password === GLOBAL_SETTINGS.financePass) || 
             (login === 'admin' && password === GLOBAL_SETTINGS.adminPass)) { 
             return next(); 
         }
     }
     
-    // ፓስወርዱ ካልተገኘ መግባት አይፈቀድም
     res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
     res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username እና Password ያስገቡ።</p>');
 };
@@ -3702,7 +3701,7 @@ app.get('*', (req, res) => {
                                     alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
                                     alertBox.style.borderColor = "#fbbf24";
                                     alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
-                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                    alertBox.innerHTML = "✨ ጠቅላ কমলা የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
                                 }
                                 if(winnerCard) winnerCard.appendChild(alertBox);
 
