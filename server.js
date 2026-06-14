@@ -299,7 +299,7 @@ async function loadSettings() {
 }
 loadSettings();
 
-const telegramToken = 8369500524:AAEUhhLqyIua26Hjcmn-iJisQrVDJSAHcek
+const telegramToken = "8369500524:AAEUhhLqyIua26Hjcmn-iJisQrVDJSAHcek";
 const bot = new TelegramBot(telegramToken, { polling: false }); 
 const WEB_URL = "https://bingohabesha.onrender.com"; 
 
