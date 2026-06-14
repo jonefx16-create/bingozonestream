@@ -554,16 +554,26 @@ app.post('/api/user/change-password', async (req, res) => {
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
-    // 🔥 SECURITY FIX: ሪኩዌስቱ ከዌብሳይቱ ውጪ (በሀከሮች ሶፍትዌር) ከመጣ ይዘጋዋል
+    // 🔥 ADVANCED HACKER BLOCKER (ያለ አድሚን እና ዌብሳይት ለውጥ የሚሰራ)
     const referer = req.headers.referer || req.headers.origin || "";
+    const userAgent = (req.headers['user-agent'] || "").toLowerCase();
+    const fetchSite = req.headers['sec-fetch-site']; // ትክክለኛ ብራውዘር መሆኑን የሚያሳውቅ
+
     const isFromOurSite = referer.includes("bingohabesha.onrender.com") || referer.includes("localhost");
-    
-    if (!isFromOurSite) {
-        return res.status(403).json({ success: false, message: "❌ Access Denied! የተከለከለ" });
+
+    // 1. ሀከሮች የሚጠቀሙትን ሶፍትዌር (Postman, Python, Curl) እና ባዶ ሪኩዌስት ያግዳል
+    const isHackerTool = !userAgent || userAgent.includes("postman") || userAgent.includes("python") || userAgent.includes("curl") || userAgent.includes("axios");
+
+    // 2. ጥያቄው የመጣው ከትክክለኛ ብራውዘር ውጪ ከሆነ (Script ከሆነ) ያግዳል
+    const isFakeBrowser = fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'same-site';
+
+    if (!isFromOurSite || isHackerTool || isFakeBrowser) {
+        console.log(`🚨 HACKER BLOCKED! Phone target: ${req.params.phone}, UA: ${userAgent}`);
+        return res.status(403).json({ success: false, message: "❌ Access Denied! የተከለከለ (Security Block)" });
     }
 
-    // አድሚኑ ማየት የሚችለው ዳታ (ፓስወርድ እና ቴሌግራም አይዲ ተደብቋል)
-    const user = await User.findOne({ phone: String(req.params.phone) }).select('-password -telegramId -unplayedRealDeposit'); 
+    // ከላይ ያሉትን ማጣሪያዎች ካለፈ ብቻ ዳታውን ይሰጣል (አድሚንህ እና ዌብሳይትህ በተለመደው መንገድ ይሰራሉ)
+    const user = await User.findOne({ phone: String(req.params.phone) }).select('-password -telegramId -unplayedRealDeposit');
     res.json(user ? { success: true, user } : { success: false, message: "User not found" });
 });
 
