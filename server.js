@@ -11,6 +11,9 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+const app = express();
+// ሀከሮች የትኛውን ቴክኖሎጂ እንደምትጠቀም እንዳያውቁ ይደብቃል
+app.disable('x-powered-by');    
 
 // 🔥 SECURITY: Basic Rate Limiting for Registration Spam
 const registerRateLimiter = new Map();
@@ -631,10 +634,20 @@ app.post('/api/promoter/withdraw', async (req, res) => {
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
+    // ሪኩዌስቱ የመጣው ከራሱ ከዌብሳይትህ (Frontend) መሆኑን ማረጋገጥ
+    const referer = req.headers.referer || req.headers.origin || "";
+    const isFromOurSite = referer.includes("bingohabesha.onrender.com") || referer.includes("localhost");
+    
+    if (!isFromOurSite) {
+        // ሀከሩ በ Postman ወይም በሶፍትዌር ዳታ ለመስረቅ ከሞከረ ባዶውን ይመልስለታል
+        return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
     const txs = await Transaction.find({ 
         phone: String(req.params.phone), 
         method: { $ne: 'Promoter Comm' }
-    }).sort({ date: -1 }).limit(30);
+    }).select('type amount method status date').sort({ date: -1 }).limit(30); // SMS text እና TxRef ተደብቋል
+    
     res.json({ success: true, txs }); 
 });
 
