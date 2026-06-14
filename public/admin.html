@@ -138,6 +138,9 @@
         <button class="nav-btn" onclick="switchTab('tab-pend-dep', this); loadPendingTxs();"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-wit', this); loadPendingTxs();"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
         
+        <!-- 🔥 SMS COMPARE TAB BUTTON 🔥 -->
+        <button class="nav-btn" onclick="switchTab('tab-sms-compare', this); loadSmsComparison(1);" style="color:var(--cyan);"><div>📱 SMS vs የደንበኛ ደረሰኝ Compare</div></button>
+
         <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Data Base User</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history', this); loadHistoryPage(1);"><div>🏆 Winners History (All Time)</div></button>
         <button class="nav-btn" onclick="switchTab('tab-history-tx', this); loadTxPage(1);"><div>💸 Financial History (Paginated)</div></button>
@@ -152,7 +155,7 @@
         
         <button class="nav-btn" onclick="switchTab('tab-bonus', this)"><div>🎁 Manage Direct Bonus</div></button>
         
-        <!-- 🔥 አዲሱ የካዝና መቆጣጠሪያ እዚህ ተጨምሯል 🔥 -->
+        <!-- 🔥 የካዝና መቆጣጠሪያ 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-vaults', this)" style="color:var(--faded-green); border-bottom:1px solid var(--border);"><div>🏦 ዋና እና ተጠባባቂ ካዝና</div></button>
         
         <button class="nav-btn" onclick="switchTab('tab-admin-profit', this)" style="color:var(--purple);"><div>📉 Admin Profit %</div></button>
@@ -197,7 +200,6 @@
                     </div>
                 </div>
                 
-                <!-- 🟢 HIDDEN POOL DISPLAY 🟢 -->
                 <div class="stat-card" style="border-bottom: 4px solid var(--cyan); grid-column: span 2; background: rgba(6, 182, 212, 0.1);">
                     <h3>💎 Hidden Bank (እውነተኛው ድብቅ ካዝና)</h3>
                     <p style="font-size:10px; color:gray; margin:0;">ይህ ሲስተሙ ሰው ሲያሸንፍ እውነተኛ ብር የሚከፍልበት ካዝና ነው (ማንም አያየውም)</p>
@@ -231,11 +233,33 @@
             </div>
         </div>
 
+        <!-- 🔥 SMS VS USER COMPARISON TAB 🔥 -->
+        <div id="tab-sms-compare" class="tab-content">
+            <div class="card">
+                <h3 style="color:var(--cyan); margin-top:0;">📱 የ iPhone SMS እና የደንበኛ ደረሰኝ ማነፃፀሪያ</h3>
+                <p style="font-size:12px; color:var(--text-gray);">በግራ በኩል ከ iPhoneዎ ወደ ሲስተሙ የገባው ትክክለኛው SMS ሲታይ፣ በቀኝ በኩል ደግሞ ደንበኛው በ App ያስገባው ይታያል። እዚሁ ጋር ሆነው ማፅደቅ (Approve) ይችላሉ።</p>
+                
+                <div class="table-responsive">
+                    <table id="table-sms-compare">
+                        <thead>
+                            <tr>
+                                <th>Date (ቀን)</th>
+                                <th style="background:rgba(59,130,246,0.15); border-left:3px solid var(--blue); color:white;">📱 ከ iPhone የመጣው እውነተኛ SMS</th>
+                                <th style="background:rgba(74,222,128,0.15); border-left:3px solid var(--faded-green); color:white;">🧾 ደንበኛው ያስገባው (App ላይ)</th>
+                                <th>Status & Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sms-compare-body"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pag-sms-compare"></div>
+            </div>
+        </div>
+
         <!-- 🔥 BOT DATABASE TAB 🔥 -->
         <div id="tab-bots-db" class="tab-content">
             <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
                 
-                <!-- MASTER CONTROLS -->
                 <div class="card" style="flex: 2; border-left: 4px solid var(--gold); min-width: 300px;">
                     <h3 style="margin-top:0; color:var(--gold);">🎮 Master Bot Controls</h3>
                     
@@ -280,7 +304,6 @@
                                 <span style="color:white; font-size:12px; font-weight:bold;">💎 Mix Dep</span>
                             </label>
 
-                            <!-- 🔥 አዲሱ የ Smart AI ምርጫ (Hulu Bingo Logic) 🔥 -->
                             <label style="flex:1; padding:10px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--blue); border-radius:6px; cursor:pointer; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
                                 <input type="radio" name="bot-master-winner" value="ai" style="width:auto; margin-right:5px;" onchange="toggleMixInput()" checked>
                                 <span style="color:white; font-size:12px; font-weight:bold;">🧠 Smart Casino AI</span>
@@ -293,7 +316,6 @@
                         </div>
                     </div>
 
-                    <!-- 🔥 የጠፋብህ የ TICKET DISTRIBUTION ይሄ ነው 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom: 10px; color:white;">3. Ticket Distribution (የቦት ስርጭት)</div>
                         <p style="font-size:10px; color:var(--text-gray); margin-top:0;">የቦቶች <b style="color:var(--faded-green);">ትክክለኛ ብዛት (Exact Quantity)</b>።</p>
@@ -305,7 +327,6 @@
                         </div>
                     </div>
 
-                    <!-- 🔥 BOT SCHEDULE 🔥 -->
                     <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom:15px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
                             <div>
@@ -318,7 +339,6 @@
                             </label>
                         </div>
                         
-                        <!-- 🔥 LIVE SCHEDULE STATUS INDICATOR 🔥 -->
                         <div id="active-schedule-info" style="background: rgba(74, 222, 128, 0.1); border: 1px solid var(--faded-green); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none;">
                             <div style="font-size: 14px; margin-bottom: 5px; font-weight:bold;">🟢 Active Schedule: <b id="sch-active-name" style="color: var(--faded-green);">Loading...</b></div>
                             <div style="font-size: 12px; color: var(--text-gray); margin-bottom: 3px;">⏱ Time Range: <b id="sch-active-range" style="color: var(--cyan);">-</b> | Current EAT: <b id="sch-current-time" style="color: var(--gold);">-</b></div>
@@ -361,7 +381,6 @@
                     <button class="action-btn btn-blue" style="width: 100%; padding:15px; font-size:15px;" onclick="saveBotMasterSettings()">💾 Save Master Settings</button>
                 </div>
 
-                <!-- RIGHT SIDE (ADD & INJECT BOTS) -->
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 300px;">
                     
                     <div class="card" style="border-left: 4px solid var(--purple); margin: 0;">
@@ -606,6 +625,14 @@
      
         <!-- REFERRALS -->
         <div id="tab-referral" class="tab-content">
+            
+            <!-- 🔥 የጠላፊዎችን (Hackers) የውሸት አካውንት እና ብር ማፅጃ 🔥 -->
+            <div class="card" style="border-left: 4px solid var(--red); margin-bottom: 15px; background: rgba(239, 68, 68, 0.1);">
+                <h3 style="color:var(--red); margin-top:0;">🛑 የጠላፊዎችን (Hackers) የውሸት አካውንት እና ብር ማፅጃ</h3>
+                <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ ሀከሮች የራስን ሊንክ ለራስ በመላክ የሰበሰቡትን የውሸት ቦነስ አጣርቶ ያጠፋል (ለእውነተኛ ተጫዋቾች አይነካም)።</p>
+                <button class="action-btn btn-red" onclick="cleanFakeReferrals()">🗑️ የውሸት (Hacker) ሪፈራሎችን አፅዳ</button>
+            </div>
+
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
                 <h3 style="color:var(--gold); margin-top:0;">🔧 Fix Missing Invite Bonuses</h3>
                 <p style="font-size:12px; color:var(--text-gray);">ይህ ቁልፍ የሚያገለግለው ቀደም ብሎ ሰው ጋብዘው <b>(Play Balance)</b> ላልተሰጣቸው ሰዎች ለማስተካከል እና ለመክፈል ነው።</p>
@@ -1196,7 +1223,7 @@
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
     let limitPerPage = 30;
     
-    let p_users = 1, p_hist = 1, p_tx = 1, p_ref = 1;
+    let p_users = 1, p_hist = 1, p_tx = 1, p_ref = 1, p_sms = 1;
     let currentHistType = 'deposit';
     let sysSettings = null; 
     let selHistory = new Set(), selTx = new Set();
@@ -1867,6 +1894,7 @@ async function submitManualDeposit() {
         else if (activeTabId === 'tab-promoters') { loadPromoters(); } 
         else if (activeTabId === 'tab-referral') { loadRefPage(p_ref); }
         else if (activeTabId === 'tab-bots-db') { loadBotDB(); }
+        else if (activeTabId === 'tab-sms-compare') { loadSmsComparison(p_sms); }
 
         document.getElementById('login-sec').style.display = 'none'; 
         document.getElementById('dash-sec').style.display = 'flex';
@@ -2559,7 +2587,6 @@ async function submitManualDeposit() {
         }); 
         let data = await res.json(); 
         
-        // 🔴 እዚህ ጋር ነው Error የሚያሳውቀው (If User Not Found)
         alert(data.message); 
         if(data.success) { 
             document.getElementById('sb-phone').value=''; 
@@ -2725,7 +2752,6 @@ async function submitManualDeposit() {
             document.getElementById('set-finance-pass').value = '';
         }
 
-        // 🔥 አዲሱ ማስተካከያ: በአንድ ጊዜ ሁሉንም ካዝናዎች Save ማድረጊያ
         if(type === 'all_vaults') { 
             let v1 = document.getElementById('edit-vault1').value; 
             let v2 = document.getElementById('edit-vault2').value; 
@@ -2776,11 +2802,9 @@ async function submitManualDeposit() {
             let mAmt = document.getElementById('set-dep-min').value; 
             let mPer = document.getElementById('set-dep-perc').value; 
             
-            // Tier 2 Inputs
             let t2Amt = document.getElementById('set-dep-tier2-min').value;
             let t2Per = document.getElementById('set-dep-tier2-perc').value;
 
-            // Tier 3 Inputs (Loyalty)
             let t3Amt = document.getElementById('set-dep-tier3-min').value;
             let t3Per = document.getElementById('set-dep-tier3-perc').value;
 
@@ -2854,6 +2878,93 @@ async function submitManualDeposit() {
 
     async function factoryReset() { if(!confirm("⚠️ ማስጠንቀቂያ፡ እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ? ይህ ድርጊት አይመለስም!")) return; let promptPass = prompt("የአድሚን ፓስወርድዎን በማስገባት ያረጋግጡ፡"); if(promptPass !== pass) return alert("❌ ፓስወርድ ተሳስቷል!"); let res = await fetch('/api/admin/factory-reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) }); let data = await res.json(); alert(data.message); location.reload(); }
     async function deleteLastTelegramPromo() { if(!confirm("Are you sure?")) return; document.querySelector('#tab-telegram .btn-red').innerText = "Deleting..."; let res = await fetch('/api/admin/delete-broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); alert(data.message || "Deleted."); document.querySelector('#tab-telegram .btn-red').innerText = "🗑️ Delete Last"; }
+
+    // 🔥 1. የውሸት ሀከሮችን ማፅጃ ሎጂክ
+    async function cleanFakeReferrals() {
+        if(!confirm("⚠️ እርግጠኛ ነዎት የውሸት ሪፈራል የሰሩ ሌቦችን ማፅዳት ይፈልጋሉ? ይህ ሀከሮች የሰረቁትን ብር ከሂሳባቸው ላይ ይቀንሳል።")) return;
+        try {
+            let res = await fetch('/api/admin/delete-fake-referrals', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass}) });
+            let data = await res.json();
+            alert(data.message);
+            loadRefPage(p_ref);
+        } catch(e) {
+            alert("❌ Error connecting to server.");
+        }
+    }
+
+    // 🔥 2. የ SMS ማነፃፀሪያ ሎጂክ
+    async function loadSmsComparison(page) {
+        p_sms = page;
+        let tbody = document.getElementById('sms-compare-body');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading comparison data...</td></tr>';
+        
+        try {
+            let res = await fetch('/api/admin/sms-comparison', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({adminPass: pass, page: p_sms})
+            });
+            let data = await res.json();
+            
+            if(data.success) {
+                let html = '';
+                data.data.forEach(d => {
+                    let sys = d.systemData;
+                    let dateStr = new Date(d.smsDate).toLocaleString();
+                    
+                    // የ iPhone ገፅታ
+                    let iphoneSide = `
+                        <div style="font-family:monospace; font-size:12px; line-height:1.4; color:#cbd5e1;">${d.iphoneSms}</div>
+                        <div style="margin-top:8px; font-weight:bold; color:var(--cyan);">TxRef: ${d.txRef || 'N/A'}</div>
+                        <div style="color:var(--faded-green); font-weight:bold; font-size:14px;">Extracted: ${d.extraction} ETB</div>
+                    `;
+                    
+                    // የ User ገፅታ
+                    let userSide = '';
+                    let statusAndAction = '';
+                    
+                    if (sys) {
+                        let statusColor = sys.status === 'Approved' ? 'var(--faded-green)' : (sys.status === 'Pending' ? 'var(--orange)' : 'var(--red)');
+                        userSide = `
+                            <div><b>Phone:</b> <a href="#" style="color:var(--cyan);" onclick="fetchAndShowUserInfo('${sys.phone}'); return false;">${sys.phone}</a></div>
+                            <div style="color:var(--orange); font-weight:bold;">Amount: ${sys.amount} ETB</div>
+                            <div style="margin-top:5px; font-size:11px; color:gray; background:#000; padding:5px; border-radius:4px; font-family:monospace;">${sys.userSms}</div>
+                        `;
+                        
+                        statusAndAction = `
+                            <div style="font-weight:bold; color:${statusColor}; margin-bottom:10px;">${sys.status}</div>
+                        `;
+                        if (sys.status === 'Pending') {
+                            statusAndAction += `
+                                <button class="btn-sm" style="background:var(--faded-green); color:black; font-weight:bold; width:100%; margin-bottom:5px; padding:8px;" onclick="actionTx('${sys.txId}', 'Approve'); setTimeout(()=>loadSmsComparison(p_sms), 1000);">✅ Approve</button>
+                                <button class="btn-sm btn-red" style="width:100%; padding:8px;" onclick="actionTx('${sys.txId}', 'Reject'); setTimeout(()=>loadSmsComparison(p_sms), 1000);">❌ Reject</button>
+                            `;
+                        }
+                    } else {
+                        userSide = `<div style="color:var(--red); font-weight:bold; text-align:center; padding:20px 0;">ሰው አላስገባውም<br><span style="font-size:10px; color:gray;">(Not Submitted Yet)</span></div>`;
+                        statusAndAction = `<span style="color:gray;">-</span>`;
+                    }
+                    
+                    html += `
+                    <tr>
+                        <td style="font-size:12px; color:gray;">${dateStr}</td>
+                        <td style="background:rgba(59,130,246,0.05); border-left:3px solid var(--blue); vertical-align:top;">${iphoneSide}</td>
+                        <td style="background:rgba(74,222,128,0.05); border-left:3px solid var(--faded-green); vertical-align:top;">${userSide}</td>
+                        <td style="vertical-align:middle; text-align:center;">${statusAndAction}</td>
+                    </tr>`;
+                });
+                
+                tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center; color:var(--orange);">ምንም መረጃ አልተገኘም (No Data)</td></tr>';
+                renderPagination('pag-sms-compare', data.total, p_sms, 'loadSmsComparison');
+                
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">መረጃ ማምጣት አልተቻለም!</td></tr>';
+            }
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">የኔትወርክ ስህተት!</td></tr>';
+        }
+    }
+
 </script>
 </body>
 </html>
