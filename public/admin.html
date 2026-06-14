@@ -605,7 +605,106 @@
                 </table>
             </div></div>
         </div>
+     <!-- 📱 የ SMS ማነፃፀሪያ ታብ -->
+<div id="sms-tab" class="tab-content" style="display:none; background: #0f172a; border-radius: 12px; padding: 15px; border: 1px solid #334155;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #a855f7; margin: 0;">📱 የደረሰኝ ማነፃፀሪያ (Side-by-Side)</h3>
+        <button onclick="loadSmsComparison(1)" style="background:#a855f7; border:none; color:white; padding:5px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">🔄 Load/Refresh</button>
+    </div>
 
+    <div id="sms-comp-list">
+        <!-- ዳታ እዚህ ይገባል -->
+    </div>
+
+    <!-- ገፅ መለወጫ -->
+    <div style="display: flex; justify-content: space-between; margin-top: 20px; align-items:center; border-top: 1px solid #334155; padding-top: 10px;">
+        <button onclick="loadSmsComparison(currentSmsPage - 1)" style="background:#334155; border:none; color:white; padding:8px 15px; border-radius:5px; cursor:pointer;">⬅️ Prev</button>
+        <span id="sms-page-info" style="color:#94a3b8; font-weight:bold;">Page 1</span>
+        <button onclick="loadSmsComparison(currentSmsPage + 1)" style="background:#4ade80; border:none; color:black; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer;">Next 20 ➡️</button>
+    </div>
+</div>
+
+<script>
+    let currentSmsPage = 1;
+    let smsAdminPass = ""; 
+
+    // ይቺ ፈንክሽን እንደ ሌሎቹ በተኖች ታቡን ትከፍታለች
+    function showTab(tabId) {
+        // መጀመሪያ ሁሉንም ታቦች ደብቅ
+        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+        // ይሄኛውን ታብ ብቻ አሳይ
+        document.getElementById(tabId).style.display = 'block';
+        
+        if(tabId === 'sms-tab') {
+            if(smsAdminPass === "") smsAdminPass = prompt("Admin Password:");
+            loadSmsComparison(1);
+        }
+    }
+
+    async function loadSmsComparison(page) {
+        if(page < 1) return;
+        let list = document.getElementById('sms-comp-list');
+        list.innerHTML = "<p style='text-align:center; padding:20px;'>ዳታ እየጫነ ነው...</p>";
+
+        try {
+            let res = await fetch('/api/admin/sms-comparison', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminPass: smsAdminPass, page: page })
+            });
+            let data = await res.json();
+            if(!data.success) return alert(data.message);
+
+            currentSmsPage = data.page;
+            document.getElementById('sms-page-info').innerText = `ገፅ ${data.page} ከ ${data.totalPages}`;
+            list.innerHTML = "";
+
+            data.data.forEach(item => {
+                // ሁኔታውን (Status) መለየት
+                let statusColor = "#fbbf24"; // Pending
+                let statusText = "⏳ PENDING";
+                if(item.systemData) {
+                    if(item.systemData.status === 'Approved') { statusColor = "#4ade80"; statusText = "✅ APPROVED"; }
+                    else if(item.systemData.status === 'Rejected') { statusColor = "#ef4444"; statusText = "❌ REJECTED"; }
+                } else {
+                    statusColor = "#64748b"; statusText = "⚪ NO REQUEST";
+                }
+
+                list.innerHTML += `
+                    <div style="background:#1e293b; border-radius:10px; margin-bottom:15px; overflow:hidden; border: 1px solid #334155;">
+                        <div style="display: flex; min-height: 100px;">
+                            <!-- ግራ፡ የእርስዎ iPhone -->
+                            <div style="width: 50%; padding: 10px; border-right: 1px solid #334155; background: rgba(56, 189, 248, 0.03);">
+                                <small style="color:#38bdf8; font-weight:bold;">📱 ከእርስዎ iPhone የመጣ፡</small>
+                                <div style="font-size: 11px; font-family: monospace; color:#cbd5e1; margin-top:5px; word-break: break-all;">${item.iphoneSms}</div>
+                            </div>
+                            <!-- ቀኝ፡ ዩዘሩ የለጠፈው -->
+                            <div style="width: 50%; padding: 10px; background: rgba(168, 85, 247, 0.03);">
+                                <small style="color:#a855f7; font-weight:bold;">💻 ዩዘሩ የለጠፈው፡</small>
+                                <div style="font-size: 11px; font-family: monospace; color:#cbd5e1; margin-top:5px; word-break: break-all;">
+                                    ${item.systemData ? item.systemData.userSms : '<span style="color:#64748b;">ዩዘሩ ምንም አላስገባም</span>'}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- የታችኛው ሁኔታ ማሳያ -->
+                        <div style="background:#0f172a; padding: 8px 15px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #334155;">
+                            <div>
+                                <span style="color:${statusColor}; font-weight:900; font-size:12px; letter-spacing:1px;">${statusText}</span>
+                                <small style="color:#64748b; margin-left:10px;">TxRef: ${item.txRef}</small>
+                            </div>
+                            ${item.systemData ? `
+                                <div style="font-size:11px; text-align:right;">
+                                    <span style="color:#94a3b8;">ዩዘር:</span> <b style="color:white;">${item.systemData.phone}</b> | 
+                                    <span style="color:#38bdf8; font-weight:bold;">${item.systemData.amount} ETB</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        } catch(e) { list.innerHTML = "Error!"; }
+    }
+</script>
         <!-- REFERRALS -->
         <div id="tab-referral" class="tab-content">
             <div class="card" style="border-left: 4px solid var(--gold); margin-bottom: 15px;">
@@ -1192,108 +1291,7 @@
         <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">Close</button>
     </div>
 </div>
-<!-- የ SMS ማነፃፀሪያ ክፍሉ -->
-<div id="sms-comparison-section" style="display: none; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #a855f7; margin-top: 20px;">
-    <h3 style="color: #a855f7; margin-top: 0;">📱 የባንክ SMS እና የሲስተም ማነፃፀሪያ</h3>
-    
-    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 13px; color: white;">
-        <thead>
-            <tr style="background: #0f172a; color: #94a3b8; border-bottom: 2px solid #334155;">
-                <th style="padding: 12px; width: 50%;">📱 የባንክ SMS (Forward የተደረገ)</th>
-                <th style="padding: 12px; width: 50%; border-left: 2px solid #334155;">💻 ሲስተሙ ውስጥ (User Request)</th>
-            </tr>
-        </thead>
-        <tbody id="sms-comp-tbody">
-            <!-- ዳታ እዚህ ይገባል -->
-        </tbody>
-    </table>
 
-    <!-- Next እና Prev በተኖች (Pagination) -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-        <button id="sms-prev-btn" onclick="loadSmsComparison(currentSmsPage - 1)" style="padding: 8px 15px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">⬅️ ወደ ኋላ</button>
-        <span id="sms-page-info" style="color: #94a3b8; font-weight: bold;">Page 1</span>
-        <button id="sms-next-btn" onclick="loadSmsComparison(currentSmsPage + 1)" style="padding: 8px 15px; background: #4ade80; color: black; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">ቀጣይ 20 ➡️</button>
-    </div>
-</div>
-
-<script>
-    let currentSmsPage = 1;
-    let maxSmsPages = 1;
-
-    async function loadSmsComparison(page) {
-        if(page < 1) return;
-        
-        let pass = prompt("እባክዎ የ Admin Password ያስገቡ:");
-        if (!pass) return;
-
-        // ፔጁን አሳይ
-        document.getElementById('sms-comparison-section').style.display = 'block';
-        document.getElementById('sms-comp-tbody').innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 20px;">እየጫነ ነው... (Loading...)</td></tr>`;
-
-        try {
-            let res = await fetch('/api/admin/sms-comparison', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminPass: pass, page: page })
-            });
-            let data = await res.json();
-
-            if (data.success) {
-                currentSmsPage = data.page;
-                maxSmsPages = data.totalPages;
-
-                // በተኖቹን መቆጣጠር (disable ማድረግ)
-                document.getElementById('sms-prev-btn').disabled = currentSmsPage === 1;
-                document.getElementById('sms-next-btn').disabled = currentSmsPage === maxSmsPages;
-                document.getElementById('sms-page-info').innerText = `ገፅ ${currentSmsPage} ከ ${maxSmsPages}`;
-
-                let tbody = document.getElementById('sms-comp-tbody');
-                tbody.innerHTML = '';
-
-                data.data.forEach(item => {
-                    let smsDate = new Date(item.smsDate).toLocaleString();
-                    
-                    // በቀኝ በኩል ያለው (የሲስተሙ) ሁኔታ
-                    let systemHtml = '';
-                    if (item.systemData) {
-                        let sysColor = item.systemData.status === 'Approved' ? '#4ade80' : '#fbbf24';
-                        systemHtml = `
-                            <span style="color: ${sysColor}; font-weight:bold;">✅ ጥያቄ ቀርቦበታል (${item.systemData.status})</span><br>
-                            <span style="color: #94a3b8;">የጠየቀው ስልክ:</span> <b style="color: white;">${item.systemData.phone}</b><br>
-                            <span style="color: #94a3b8;">መጠን:</span> <b style="color: #38bdf8;">${item.systemData.amount} ETB</b><br>
-                            <span style="color: #64748b; font-size: 11px;">${new Date(item.systemData.date).toLocaleString()}</span>
-                        `;
-                    } else {
-                        systemHtml = `<span style="color: #ef4444; font-weight:bold;">❌ ይህን SMS ማንም አልተጠቀመበትም (Unclaimed)</span>`;
-                    }
-
-                    // የ SMS (ግራ በኩል) ዲዛይን
-                    let usedBadge = item.isUsed ? `<span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">USED</span>` : `<span style="background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">UNUSED</span>`;
-
-                    tbody.innerHTML += `
-                        <tr style="border-bottom: 1px solid #334155;">
-                            <td style="padding: 15px; border-right: 2px solid #334155;">
-                                <div style="font-size: 10px; color: #94a3b8; margin-bottom: 5px;">${smsDate} | TxRef: <b style="color:#fbbf24;">${item.txRef}</b> ${usedBadge}</div>
-                                <div style="color: #cbd5e1; font-family: monospace; background: #0b111a; padding: 8px; border-radius: 6px; word-break: break-all;">
-                                    ${item.rawText}
-                                </div>
-                                <div style="margin-top: 5px; color: #4ade80; font-weight: bold;">የተገኘው ብር: ${item.extractedAmount || 0} ETB</div>
-                            </td>
-                            <td style="padding: 15px; vertical-align: top;">
-                                ${systemHtml}
-                            </td>
-                        </tr>
-                    `;
-                });
-
-            } else {
-                alert("❌ " + data.message);
-            }
-        } catch(e) {
-            alert("❌ Connection Error");
-        }
-    }
-</script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io(); let pass = ""; let isGameCurrentlyPaused = false;
