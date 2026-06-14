@@ -3003,19 +3003,30 @@ bot.on('callback_query', async (query) => {
     botState[chatId] = state; bot.answerCallbackQuery(query.id);
 });
 
+// 🔥 SECURITY FIX: ለ Admin እና ለ Finance መግቢያ ጥብቅ ቁጥጥር
 const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    if (req.path === '/Tside0422' && login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
-        return next(); 
-    }
-    if (req.path === '/papi2204' && (login === 'finance' || login === 'admin') && (password === GLOBAL_SETTINGS.financePass || password === GLOBAL_SETTINGS.adminPass)) { 
-        return next(); 
+    // 1. ለአድሚን መግቢያ (Admin Path)
+    if (req.path === '/Tside0422') {
+        if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
+            return next(); 
+        }
     }
     
+    // 2. ለፋይናንስ መግቢያ (Finance Path)
+    if (req.path === '/papi2204') {
+        // ፋይናንስ በራሱ ፓስወርድ (financePass) ወይም በአድሚን ፓስወርድ መግባት ይችላል
+        if ((login === 'finance' && password === GLOBAL_SETTINGS.financePass) || 
+            (login === 'admin' && password === GLOBAL_SETTINGS.adminPass)) { 
+            return next(); 
+        }
+    }
+    
+    // ፓስወርዱ ካልተገኘ መግባት አይፈቀድም
     res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
-    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username ("admin" ወይም "finance") እና Password ያስገቡ።</p>');
+    res.status(401).send('<h1>🔒 Private Page. Access Denied.</h1><p>እባክዎ ትክክለኛውን Username እና Password ያስገቡ።</p>');
 };
 
 app.get('/guide', (req, res) => {
