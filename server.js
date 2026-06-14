@@ -571,11 +571,6 @@ app.post('/api/request-tx', async (req, res) => {
 
         let user = await User.findOne({ phone: phone }); 
         if(!user) { txLocks.delete(lockKey); return res.json({success: false, message: "User not found!"}); }
-        
-        if (user.password !== pass) {
-            txLocks.delete(lockKey); 
-            return res.json({success: false, message: "❌ Authorization Failed. Password incorrect!"});
-        }
 
         let tenSecondsAgo = new Date(Date.now() - 15000);
         let dupCheck = await Transaction.findOne({ 
