@@ -1626,50 +1626,35 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     }
     await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
 });
-// 🔥 አዲስ፡ የባንክ SMS እና የሲስተም ዲፖዚት ማነፃፀሪያ (20 በ 20 የሚከፍል)
 app.post('/api/admin/sms-comparison', auth, async (req, res) => {
     try {
         let page = parseInt(req.body.page) || 1;
-        let limit = 20; // 20 ዳታ ብቻ ነው የሚያመጣው (እንዳይጨናነቅ)
+        let limit = 20; 
         let skip = (page - 1) * limit;
 
-        // የባንክ SMS ብዛት
         let total = await BankSMS.countDocuments();
-        // የቅርብ ጊዜ 20 SMSዎችን ማምጣት
         let smsList = await BankSMS.find().sort({ dateReceived: -1 }).skip(skip).limit(limit);
 
         let comparisonData = [];
-
         for (let sms of smsList) {
-            // ከዚህ SMS ጋር የሚመሳሰል TxRef ያለው ትራንዛክሽን ፈልግ
+            // በ TxRef አማካኝነት በዩዘሩ የተላከውን ፈልግ
             let tx = await Transaction.findOne({ txRef: sms.txRef });
-            
             comparisonData.push({
                 smsDate: sms.dateReceived,
-                rawText: sms.rawText,
+                iphoneSms: sms.rawText, // ከእርስዎ iPhone የመጣው
                 txRef: sms.txRef,
-                extractedAmount: sms.amount,
-                isUsed: sms.isUsed,
-                // ሲስተም ውስጥ ከገባ ማንን እንደጠየቀ እናያለን
+                extraction: sms.amount,
                 systemData: tx ? {
                     phone: tx.phone,
                     amount: tx.amount,
-                    status: tx.status,
+                    status: tx.status, // Approved, Pending, Rejected
+                    userSms: tx.smsText, // ዩዘሩ የለጠፈው ደረሰኝ
                     date: tx.date
                 } : null
             });
         }
-
-        res.json({ 
-            success: true, 
-            data: comparisonData, 
-            total: total, 
-            page: page, 
-            totalPages: Math.ceil(total / limit) 
-        });
-    } catch (e) {
-        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
-    }
+        res.json({ success: true, data: comparisonData, total, page, totalPages: Math.ceil(total / limit) });
+    } catch (e) { res.json({ success: false, message: "Error loading data" }); }
 });
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
