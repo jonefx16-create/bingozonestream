@@ -453,7 +453,7 @@ app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
 });
 
 // 🔥 SECURITY FIX: የውሸት አካውንት እና ቦቶችን (Bots) መከላከያ
-const ipCreationCounts = new Map();
+
 
 // 🔥 CLOUD PROXY FIX: የሀከሩን የውሸት IP አጋልጦ ትክክለኛውን እንዲያገኝ ያደርጋል
 app.set('trust proxy', 1);
