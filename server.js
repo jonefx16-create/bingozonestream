@@ -537,8 +537,15 @@ app.post('/api/user/change-password', async (req, res) => {
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
-    // 🔥 አስተካክለነዋል: አድሚኑ ገብቶ ማየት እንዲችል የፓስወርድ ጥያቄውን አውጥተነዋል።
-    // ነገር ግን ሀከሩ እንዳይሰርቅ የሰዎቹ Password እና Telegram ID ፈፅሞ እንዳይታይ (Hide) ተደርጓል!
+    // 🔥 SECURITY FIX: ሪኩዌስቱ ከዌብሳይቱ ውጪ (በሀከሮች ሶፍትዌር) ከመጣ ይዘጋዋል
+    const referer = req.headers.referer || req.headers.origin || "";
+    const isFromOurSite = referer.includes("bingohabesha.onrender.com") || referer.includes("localhost");
+    
+    if (!isFromOurSite) {
+        return res.status(403).json({ success: false, message: "❌ Access Denied! የተከለከለ" });
+    }
+
+    // አድሚኑ ማየት የሚችለው ዳታ (ፓስወርድ እና ቴሌግራም አይዲ ተደብቋል)
     const user = await User.findOne({ phone: String(req.params.phone) }).select('-password -telegramId -unplayedRealDeposit'); 
     res.json(user ? { success: true, user } : { success: false, message: "User not found" });
 });
