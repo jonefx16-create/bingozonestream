@@ -9,9 +9,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const app = express();
 const server = http.createServer(app);
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-const app = express();
 // ሀከሮች የትኛውን ቴክኖሎጂ እንደምትጠቀም እንዳያውቁ ይደብቃል
 app.disable('x-powered-by');    
 
