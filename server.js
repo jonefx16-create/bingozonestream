@@ -517,6 +517,7 @@ app.post('/api/register', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// 🔥 SECURITY FIX: ፓስወርድ ወደ ውጪ እንዳይላክ መዝጊያ
 app.post('/api/login', async (req, res) => {
     let phone = String(req.body.phone);
     let password = String(req.body.password);
@@ -524,7 +525,14 @@ app.post('/api/login', async (req, res) => {
     let user = await User.findOne({ phone: phone, password: password });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
     if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
-    res.json(user ? { success: true, user } : { success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
+    
+    if (user) {
+        let safeUser = user.toObject();
+        delete safeUser.password; // ፓስወርዱን አጥፍቶ ይልካል
+        res.json({ success: true, user: safeUser });
+    } else {
+        res.json({ success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
+    }
 });
 
 app.post('/api/telegram-login', async (req, res) => {
