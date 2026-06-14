@@ -455,14 +455,56 @@ app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
 // 🔥 SECURITY FIX: የውሸት አካውንት እና ቦቶችን (Bots) መከላከያ
 const ipCreationCounts = new Map();
 
-app.post('/api/register', async (req, res) => {
+// 🔥 CLOUD PROXY FIX: የሀከሩን የውሸት IP አጋልጦ ትክክለኛውን እንዲያገኝ ያደርጋል
+app.set('trust proxy', 1);
+
+// 🔥 ANTI-DOS RATE LIMITER (Spam መከላከያ)
+const ddosLimiterMap = new Map();
+const strictRateLimiter = (req, res, next) => {
+    const ip = req.ip; // ትክክለኛው IP (Spoof ማድረግ አይቻልም)
+    const userAgent = req.headers['user-agent'] || "";
+
+    // 1. ያለ ብራውዘር (በ Curl/Script/Postman) የሚመጡ ጥቃቶችን ወዲያው ያግዳል
+    if (!userAgent || userAgent.toLowerCase().includes('curl') || userAgent.toLowerCase().includes('python')) {
+        return res.status(403).json({ success: false, message: "Security Blocked!" });
+    }
+
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1 ደቂቃ
+    const maxRequests = 5; // በአንድ ደቂቃ 5 ሪኩዌስት ብቻ!
+
+    if (!ddosLimiterMap.has(ip)) {
+        ddosLimiterMap.set(ip, { count: 1, resetTime: now + windowMs });
+        return next();
+    }
+
+    const limitData = ddosLimiterMap.get(ip);
+    if (now > limitData.resetTime) {
+        limitData.count = 1;
+        limitData.resetTime = now + windowMs;
+        return next();
+    }
+
+    limitData.count++;
+    if (limitData.count > maxRequests) {
+        console.log(`🚨 DOS ATTACK BLOCKED! IP: ${ip}`);
+        return res.status(429).json({ success: false, message: "Too many requests. Please try again later." });
+    }
+    next();
+};
+
+// የውሸት አካውንት መከላከያ
+const ipCreationCounts = new Map();
+
+// 🚀 ከላይ የሰራነውን ማጣሪያ (strictRateLimiter) መመዝገቢያው ላይ እናስገባዋለን
+app.post('/api/register', strictRateLimiter, async (req, res) => {
     try {
-        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        
+        const clientIp = req.ip;
+
         // 1. IP Block: ከአንድ ኢንተርኔት (ስልክ/ዋይፋይ) ከ 3 አካውንት በላይ መክፈት አይቻልም!
         let count = ipCreationCounts.get(clientIp) || 0;
-        if (count >= 3) { 
-            return res.json({ success: false, message: "❌ ከዚህ ኢንተርኔት (IP) ብዙ አካውንት ተከፍቷል! (Spam Blocked)" });
+        if (count >= 3) {
+            return res.status(429).json({ success: false, message: "❌ ከዚህ ኢንተርኔት (IP) ብዙ አካውንት ተከፍቷል! (Spam Blocked)" });
         }
 
         let phone = String(req.body.phone).trim();
@@ -470,7 +512,6 @@ app.post('/api/register', async (req, res) => {
         let password = String(req.body.password).trim();
         let refCode = String(req.body.refCode || "").trim();
 
-        // 2. የስም እና የቁጥር ማረጋገጫ (Bot የተጠቀማቸውን User544 የመሳሰሉ ስሞች ያግዳል)
         if (!/^(09|07)\d{8}$/.test(phone)) {
             return res.json({ success: false, message: "❌ እባክዎ ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ! (09... ወይም 07...)" });
         }
@@ -479,38 +520,37 @@ app.post('/api/register', async (req, res) => {
         }
 
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
-        
+
         let actualRef = "";
         let cleanRefCode = refCode;
         let isPromoLink = false;
-        
+
         if (cleanRefCode.startsWith('promo_')) {
             cleanRefCode = cleanRefCode.replace('promo_', '');
             isPromoLink = true;
         }
 
-        // 3. የራስን ስልክ መጋበዝ አይቻልም
-        if (cleanRefCode && cleanRefCode !== phone) { 
-            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
-            if (refUser && refUser.phone !== phone) { 
+        if (cleanRefCode && cleanRefCode !== phone) {
+            let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] });
+            if (refUser && refUser.phone !== phone) {
                 actualRef = refUser.phone;
                 refUser.totalInvites = (refUser.totalInvites || 0) + 1;
-                
+
                 if (isPromoLink && refUser.isPromoter) {
                     await refUser.save();
                 } else {
-                    refUser.playBalance += GLOBAL_SETTINGS.inviteBonus; 
+                    refUser.playBalance += GLOBAL_SETTINGS.inviteBonus;
                     refUser.inviteBonusEarned = (refUser.inviteBonusEarned || 0) + GLOBAL_SETTINGS.inviteBonus;
-                    await refUser.save(); 
-                    io.emit('balance_updated', refUser.phone); 
-                    isPromoLink = false; 
+                    await refUser.save();
+                    io.emit('balance_updated', refUser.phone);
+                    isPromoLink = false;
                 }
-            } 
+            }
         }
-        
+
         let myRefCode = generateRefCode();
         await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
-        
+
         // አካውንቱ በተሳካ ሁኔታ ሲከፈት የ IP ቆጣሪውን ይጨምራል
         ipCreationCounts.set(clientIp, count + 1);
         res.json({ success: true });
