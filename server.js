@@ -433,7 +433,6 @@ async function autoApprovePendingDeposits() {
     } catch (err) {}
 }
 
-// 🔥 SECURITY FIX: ሚስጥራዊ የ SMS መቀበያ (Tside04 ተጨምሮበታል)
 app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
     try {
         const { secret, message } = req.body;
