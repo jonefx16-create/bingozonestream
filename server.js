@@ -453,23 +453,30 @@ app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// 🔥 SECURITY: Prevent Bot Registrations and Referrals Exploits
+// 🔥 SECURITY FIX: የውሸት አካውንት እና ቦቶችን (Bots) መከላከያ
+const ipCreationCounts = new Map();
+
 app.post('/api/register', async (req, res) => {
     try {
         const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        let lastReqTime = registerRateLimiter.get(clientIp);
-        if (lastReqTime && (Date.now() - lastReqTime) < 10000) { 
-            return res.json({ success: false, message: "⚠️ እባክዎ ትንሽ ይጠብቁ!" });
+        
+        // 1. IP Block: ከአንድ ኢንተርኔት (ስልክ/ዋይፋይ) ከ 3 አካውንት በላይ መክፈት አይቻልም!
+        let count = ipCreationCounts.get(clientIp) || 0;
+        if (count >= 3) { 
+            return res.json({ success: false, message: "❌ ከዚህ ኢንተርኔት (IP) ብዙ አካውንት ተከፍቷል! (Spam Blocked)" });
         }
-        registerRateLimiter.set(clientIp, Date.now());
 
         let phone = String(req.body.phone).trim();
         let name = String(req.body.name).trim();
         let password = String(req.body.password).trim();
         let refCode = String(req.body.refCode || "").trim();
 
+        // 2. የስም እና የቁጥር ማረጋገጫ (Bot የተጠቀማቸውን User544 የመሳሰሉ ስሞች ያግዳል)
         if (!/^(09|07)\d{8}$/.test(phone)) {
             return res.json({ success: false, message: "❌ እባክዎ ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ! (09... ወይም 07...)" });
+        }
+        if (name.toLowerCase().startsWith('user') && /\d+$/.test(name)) {
+            return res.json({ success: false, message: "❌ ይህን ስም መጠቀም አይቻልም! እባክዎ ትክክለኛ ስምዎን ያስገቡ።" });
         }
 
         if (await User.findOne({ phone })) return res.json({ success: false, message: "ይህ ስልክ ቁጥር ተመዝግቧል!" });
@@ -483,7 +490,7 @@ app.post('/api/register', async (req, res) => {
             isPromoLink = true;
         }
 
-        // Prevent Self Referral entirely
+        // 3. የራስን ስልክ መጋበዝ አይቻልም
         if (cleanRefCode && cleanRefCode !== phone) { 
             let refUser = await User.findOne({ $or: [{ phone: cleanRefCode }, { refCode: cleanRefCode }] }); 
             if (refUser && refUser.phone !== phone) { 
@@ -501,8 +508,12 @@ app.post('/api/register', async (req, res) => {
                 }
             } 
         }
+        
         let myRefCode = generateRefCode();
         await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
+        
+        // አካውንቱ በተሳካ ሁኔታ ሲከፈት የ IP ቆጣሪውን ይጨምራል
+        ipCreationCounts.set(clientIp, count + 1);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -783,7 +794,45 @@ app.post('/api/admin/wipe-fake-balances', auth, async (req, res) => {
         res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
     }
 });
+// 🔥 SECURITY FIX: የውሸት (Bot) ሪፈራሎችን ማጥፊያ እና ብር ማስመለሻ
+app.post('/api/admin/delete-fake-referrals', auth, async (req, res) => {
+    try {
+        // 1. ምንም ብር ሳያስገቡ ብዙ ሰው የጋበዙትን (ሌቦቹን) እንፈልጋለን
+        let scammers = await User.find({ totalDeposited: 0, totalInvites: { $gt: 5 } });
 
+        let totalFakesDeleted = 0;
+        let totalBonusRecovered = 0;
+
+        for (let scammer of scammers) {
+            // 2. ሌባው የጋበዛቸውን እና "ምንም ብር ያላስገቡትን የውሸት አካውንቶች" እንፈልጋለን
+            let fakeAccounts = await User.find({ referredBy: scammer.phone, totalDeposited: 0 });
+
+            for (let fake of fakeAccounts) {
+                // 3. የውሸት አካውንቱን ከዳታቤዝ እናጠፋዋለን
+                await User.findByIdAndDelete(fake._id);
+                totalFakesDeleted++;
+
+                // 4. ሌባው ከዚህ አካውንት የሰረቀውን 10 ብር ከሂሳቡ ላይ እንቀንሳለን
+                scammer.playBalance -= GLOBAL_SETTINGS.inviteBonus;
+                scammer.inviteBonusEarned -= GLOBAL_SETTINGS.inviteBonus;
+                scammer.totalInvites -= 1;
+
+                if (scammer.playBalance < 0) scammer.playBalance = 0;
+                if (scammer.inviteBonusEarned < 0) scammer.inviteBonusEarned = 0;
+                if (scammer.totalInvites < 0) scammer.totalInvites = 0;
+                totalBonusRecovered += GLOBAL_SETTINGS.inviteBonus;
+            }
+            await scammer.save();
+        }
+
+        res.json({ 
+            success: true, 
+            message: `✅ የፅዳት ስራው ተጠናቋል!\n\n🗑️ የጠፉ የውሸት አካውንቶች: ${totalFakesDeleted}\n💰 የተመለሰ የተሰረቀ ቦነስ: ${totalBonusRecovered} ETB` 
+        });
+    } catch (e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
 app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
     try {
         const { phone, amount, txRef, bank } = req.body;
@@ -1577,7 +1626,51 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
     }
     await tx.save(); await user.save(); io.emit('balance_updated', tx.phone); res.json({success: true});
 });
+// 🔥 አዲስ፡ የባንክ SMS እና የሲስተም ዲፖዚት ማነፃፀሪያ (20 በ 20 የሚከፍል)
+app.post('/api/admin/sms-comparison', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = 20; // 20 ዳታ ብቻ ነው የሚያመጣው (እንዳይጨናነቅ)
+        let skip = (page - 1) * limit;
 
+        // የባንክ SMS ብዛት
+        let total = await BankSMS.countDocuments();
+        // የቅርብ ጊዜ 20 SMSዎችን ማምጣት
+        let smsList = await BankSMS.find().sort({ dateReceived: -1 }).skip(skip).limit(limit);
+
+        let comparisonData = [];
+
+        for (let sms of smsList) {
+            // ከዚህ SMS ጋር የሚመሳሰል TxRef ያለው ትራንዛክሽን ፈልግ
+            let tx = await Transaction.findOne({ txRef: sms.txRef });
+            
+            comparisonData.push({
+                smsDate: sms.dateReceived,
+                rawText: sms.rawText,
+                txRef: sms.txRef,
+                extractedAmount: sms.amount,
+                isUsed: sms.isUsed,
+                // ሲስተም ውስጥ ከገባ ማንን እንደጠየቀ እናያለን
+                systemData: tx ? {
+                    phone: tx.phone,
+                    amount: tx.amount,
+                    status: tx.status,
+                    date: tx.date
+                } : null
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            data: comparisonData, 
+            total: total, 
+            page: page, 
+            totalPages: Math.ceil(total / limit) 
+        });
+    } catch (e) {
+        res.json({ success: false, message: "❌ ስህተት አጋጥሟል!" });
+    }
+});
 app.post('/api/admin/update-settings', auth, async (req, res) => {
     let s = await SystemSettings.findOne();
     if(req.body.newPass) s.adminPass = req.body.newPass;
