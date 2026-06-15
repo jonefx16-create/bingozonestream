@@ -2081,24 +2081,6 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
 
 let lastBroadcasts = []; 
 
-// 🔥 Scheduled Broadcast Logic 🔥
-app.post('/api/admin/schedule-telegram', auth, async (req, res) => {
-    try {
-        const { message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours, scheduledTime } = req.body;
-        if (!message || !scheduledTime) return res.json({ success: false, message: "Message & Time are required." });
-
-        await ScheduledBroadcast.create({
-            message, photoUrl, targetPlatform: 'tg',
-            depositorsOnly, minDepositAmount, requireDepositWithinHours,
-            scheduledTime, status: 'pending'
-        });
-
-        res.json({ success: true, message: `✅ Broadcast Scheduled successfully for ${scheduledTime} (EAT)!` });
-    } catch (e) {
-        res.status(500).json({ success: false });
-    }
-});
-
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው።" });
     isBroadcasting = true;
