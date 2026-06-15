@@ -1259,30 +1259,28 @@ app.post('/api/admin/live-players-list', auth, (req, res) => {
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
-        
-        // 🔥 የኢትዮጵያ ሰዓት (EAT) የዛሬን ቀን መነሻ ትክክለኛ አቆጣጠር 🔥
-        let nowEAT = new Date(Date.now() + (3 * 60 * 60 * 1000)); 
-        let startOfDayEAT = new Date(nowEAT);
-        startOfDayEAT.setUTCHours(0, 0, 0, 0);
-        let searchStart = new Date(startOfDayEAT.getTime() - (3 * 60 * 60 * 1000)); 
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-        // 1. የዛሬ Deposit እና Withdraw (ዳታቤዝ በማያጨናንቅ ዘዴ)
-        let todayTxs = await Transaction.find({ date: { $gte: searchStart }, status: 'Approved' }).select('type amount');
+        let txStats = await Transaction.aggregate([
+            { $match: { date: { $gte: startOfDay }, status: 'Approved' } },
+            { $group: { _id: "$type", total: { $sum: "$amount" } } }
+        ]);
         let dailyDeposit = 0;
         let dailyWithdraw = 0;
-        todayTxs.forEach(t => {
-            if (t.type === 'deposit') dailyDeposit += (t.amount || 0);
-            if (t.type === 'withdraw') dailyWithdraw += (t.amount || 0);
+        txStats.forEach(t => {
+            if (t._id === 'deposit') dailyDeposit = t.total;
+            if (t._id === 'withdraw') dailyWithdraw = t.total;
         });
 
-        // 2. Play Balance ድምር (ሰርቨር እንዳያቋርጥ Error Handling የተደረገበት)
-        let totalUnplayedBonus = 0;
-        try {
-            let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
-            totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
-        } catch (err) {
-            totalUnplayedBonus = 0; // ዳታቤዙ ቢቢዚ እንኳን አያቋርጥም
-        }
+        let bonusStats = await ActiveBonus.aggregate([
+            { $match: { date: { $gte: startOfDay } } },
+            { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
+        ]);
+        let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
+
+        let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
+        let totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
 
         let realMoney = 0;
         let botMoney = 0;
@@ -1299,10 +1297,13 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             }
         });
 
+        let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
+        let cHour = eatTime.getUTCHours();
+        let cMin = eatTime.getUTCMinutes();
+        let timeStr = `${cHour.toString().padStart(2, '0')}:${cMin.toString().padStart(2, '0')} (EAT)`;
+        
         let activeSchName = "None";
         let schMin = 0, schMax = 0;
-        let currentHour = nowEAT.getUTCHours();
-        let timeStr = `${currentHour.toString().padStart(2, '0')}:${nowEAT.getUTCMinutes().toString().padStart(2, '0')} (EAT)`;
         
         if (GLOBAL_SETTINGS.isBotScheduleActive) {
             let schedules = [
@@ -1311,7 +1312,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             ];
             for(let s of schedules) {
                 let st = s.d.start || 0; let en = s.d.end || 24;
-                if ((st < en && currentHour >= st && currentHour < en) || (st > en && (currentHour >= st || currentHour < en))) {
+                if ((st < en && cHour >= st && cHour < en) || (st > en && (cHour >= st || cHour < en))) {
                     activeSchName = s.n; schMin = s.d.min; schMax = s.d.max; break;
                 }
             }
@@ -1332,11 +1333,83 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             settings: GLOBAL_SETTINGS, 
             dailyDeposit, 
             dailyWithdraw, 
+            dailyBonus,
             totalUnplayedBonus,
             scheduleStatus: { active: GLOBAL_SETTINGS.isBotScheduleActive, time: timeStr, name: activeSchName, min: schMin, max: schMax }
         });
     } catch (e) {
-        res.status(500).json({ success: false, message: e.message });
+        res.status(500).json({ success: false });
+    }
+});
+
+app.post('/api/admin/bot-master-update-v2', auth, async (req, res) => {
+    try {
+        let s = await SystemSettings.findOne();
+        
+        let d1 = req.body.botDist1 !== undefined ? req.body.botDist1 : 5;
+        let d2 = req.body.botDist2 !== undefined ? req.body.botDist2 : 4;
+        let d3 = req.body.botDist3 !== undefined ? req.body.botDist3 : 3;
+        let d4 = req.body.botDist4 !== undefined ? req.body.botDist4 : 3;
+        
+        if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) {
+            d1 = 5; d2 = 4; d3 = 3; d4 = 3;
+        }
+
+        s.isBotSystemActive = !!req.body.isBotSystemActive;
+        s.botWinnerForce = req.body.botWinnerForce;
+        s.mixBotCount = req.body.mixBotCount !== undefined ? req.body.mixBotCount : 1;
+        s.botDist1 = d1; 
+        s.botDist2 = d2; 
+        s.botDist3 = d3; 
+        s.botDist4 = d4;
+        
+        s.isBotScheduleActive = !!req.body.isBotScheduleActive;
+        if(req.body.botSchedule1) { s.botSchedule1 = req.body.botSchedule1; s.markModified('botSchedule1'); }
+        if(req.body.botSchedule2) { s.botSchedule2 = req.body.botSchedule2; s.markModified('botSchedule2'); }
+        if(req.body.botSchedule3) { s.botSchedule3 = req.body.botSchedule3; s.markModified('botSchedule3'); }
+        if(req.body.botSchedule4) { s.botSchedule4 = req.body.botSchedule4; s.markModified('botSchedule4'); }
+
+        await s.save(); 
+        await loadSettings();
+
+        res.json({success: true});
+    } catch(e) { res.json({success: false}); }
+});
+
+app.post('/api/admin/referrals', auth, async (req, res) => {
+    try {
+        let page = parseInt(req.body.page) || 1;
+        let limit = parseInt(req.body.limit) || 30;
+        let search = String(req.body.search || '');
+
+        let query = { $or: [{ totalInvites: { $gt: 0 } }, { inviteBonusEarned: { $gt: 0 } }] };
+
+        if (search) {
+            query.phone = new RegExp(search, 'i');
+        }
+
+        let total = await User.countDocuments(query);
+        let referrers = await User.find(query)
+            .sort({ totalInvites: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        let mappedData = referrers.map(r => {
+            let actualInvites = r.totalInvites || 0;
+            let bonusAmount = GLOBAL_SETTINGS.inviteBonus || 10; 
+            let expectedEarned = actualInvites * bonusAmount;
+            let alreadyEarned = r.inviteBonusEarned || 0;
+
+            return {
+                _id: r.phone,
+                count: actualInvites,
+                earned: Math.max(expectedEarned, alreadyEarned)
+            };
+        });
+
+        res.json({ success: true, referrals: mappedData, total });
+    } catch(e) {
+        res.json({ success: false });
     }
 });
 
