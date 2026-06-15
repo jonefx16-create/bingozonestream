@@ -1046,7 +1046,6 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// 🔥 የ ፋይናንስ ክራሽ መፍትሄ (Aggregate መጠቀም) 🔥
 app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
     try {
         const { period, customDate, rangeStart, rangeEnd } = req.body;
@@ -1073,40 +1072,83 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
             txQuery.date = dateQuery; gameQuery.date = dateQuery; bonusQuery.date = dateQuery;
         }
 
-        // Aggregate for Transactions (No loop over 1000s of objects)
-        let txStats = await Transaction.aggregate([
-            { $match: txQuery },
-            { $group: { _id: { type: "$type", method: "$method" }, total: { $sum: "$amount" } } }
-        ]);
-
+        let txs = await Transaction.find(txQuery);
         let tDep = 0, tWit = 0, tPromoterPaid = 0;
-        txStats.forEach(t => {
-            if (t._id.type === 'deposit') tDep += t.total;
-            if (t._id.type === 'withdraw' && t._id.method !== 'Promoter Comm') tWit += t.total;
-            if (t._id.type === 'withdraw' && t._id.method === 'Promoter Comm') tPromoterPaid += t.total;
+        txs.forEach(t => {
+            if (t.type === 'deposit') tDep += t.amount;
+            if (t.type === 'withdraw' && t.method !== 'Promoter Comm') tWit += t.amount;
+            if (t.type === 'withdraw' && t.method === 'Promoter Comm') tPromoterPaid += t.amount;
         });
         let netCash = tDep - (tWit + tPromoterPaid);
 
-        // Aggregate for Games
-        let gameStats = await GameHistory.aggregate([
-            { $match: gameQuery },
-            { $group: { _id: null, tWinnings: { $sum: "$prize" }, tProf: { $sum: "$adminProfit" } } }
-        ]);
-        let tWinnings = gameStats.length > 0 ? gameStats[0].tWinnings : 0;
-        let tProf = gameStats.length > 0 ? gameStats[0].tProf : 0;
-        let tTurnover = tWinnings + tProf;
+        let games = await GameHistory.find(gameQuery);
+        let tWinnings = 0, tProf = 0, tTurnover = 0;
+        games.forEach(g => {
+            tWinnings += (g.prize || 0); tProf += (g.adminProfit || 0); tTurnover += ((g.prize || 0) + (g.adminProfit || 0));
+        });
 
-        // Aggregate for Promos/Bonuses
-        let promoStats = await ActiveBonus.aggregate([
-            { $match: bonusQuery },
-            { $group: { _id: null, totalPaid: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
-        ]);
-        let totalBonusPaid = promoStats.length > 0 ? promoStats[0].totalPaid : 0;
+        let promos = await ActiveBonus.find(bonusQuery);
+        let totalBonusPaid = 0;
+        promos.forEach(p => { totalBonusPaid += ((p.amount || 0) * (p.currentClaims || 0)); });
 
         let usersResult = await User.aggregate([{ $group: { _id: null, main: { $sum: "$mainBalance" }, play: { $sum: "$playBalance" } } }]);
         let liability = usersResult.length > 0 ? usersResult[0].main + usersResult[0].play : 0;
 
-        let netProfit = tProf - totalBonusPaid - tPromoterPaid; 
+        let netProfit = dailyHouseProfit - totalBonusPaid - tPromoterPaid; 
+
+        res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
+    try {
+        const { period, customDate, rangeStart, rangeEnd } = req.body;
+        let dateQuery = {};
+        let now = new Date();
+
+        if (period === 'daily') {
+            let start = new Date(); start.setHours(0, 0, 0, 0); dateQuery = { $gte: start };
+        } else if (period === 'weekly') {
+            let start = new Date(); start.setDate(now.getDate() - 7); start.setHours(0, 0, 0, 0); dateQuery = { $gte: start };
+        } else if (period === 'monthly') {
+            let start = new Date(now.getFullYear(), now.getMonth(), 1); dateQuery = { $gte: start };
+        } else if (period === 'custom' && customDate) {
+            let start = new Date(customDate); let end = new Date(customDate); end.setHours(23, 59, 59, 999); dateQuery = { $gte: start, $lte: end };
+        } else if (period === 'range' && rangeStart && rangeEnd) {
+            let start = new Date(rangeStart); let end = new Date(rangeEnd); end.setHours(23, 59, 59, 999); dateQuery = { $gte: start, $lte: end };
+        }
+
+        let txQuery = { status: 'Approved' };
+        let gameQuery = {};
+        let bonusQuery = {};
+        
+        if (Object.keys(dateQuery).length > 0) {
+            txQuery.date = dateQuery; gameQuery.date = dateQuery; bonusQuery.date = dateQuery;
+        }
+
+        let txs = await Transaction.find(txQuery);
+        let tDep = 0, tWit = 0, tPromoterPaid = 0;
+        txs.forEach(t => {
+            if (t.type === 'deposit') tDep += t.amount;
+            if (t.type === 'withdraw' && t.method !== 'Promoter Comm') tWit += t.amount;
+            if (t.type === 'withdraw' && t.method === 'Promoter Comm') tPromoterPaid += t.amount;
+        });
+        let netCash = tDep - (tWit + tPromoterPaid);
+
+        let games = await GameHistory.find(gameQuery);
+        let tWinnings = 0, tProf = 0, tTurnover = 0;
+        games.forEach(g => {
+            tWinnings += (g.prize || 0); tProf += (g.adminProfit || 0); tTurnover += ((g.prize || 0) + (g.adminProfit || 0));
+        });
+
+        let promos = await ActiveBonus.find(bonusQuery);
+        let totalBonusPaid = 0;
+        promos.forEach(p => { totalBonusPaid += ((p.amount || 0) * (p.currentClaims || 0)); });
+
+        let usersResult = await User.aggregate([{ $group: { _id: null, main: { $sum: "$mainBalance" }, play: { $sum: "$playBalance" } } }]);
+        let liability = usersResult.length > 0 ? usersResult[0].main + usersResult[0].play : 0;
+
+        let netProfit = dailyHouseProfit - totalBonusPaid - tPromoterPaid; 
 
         res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
     } catch (e) { res.status(500).json({ success: false }); }
