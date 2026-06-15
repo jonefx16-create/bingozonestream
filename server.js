@@ -1259,28 +1259,30 @@ app.post('/api/admin/live-players-list', auth, (req, res) => {
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
-        let startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
+        
+        // 🔥 የኢትዮጵያ ሰዓት (EAT) የዛሬን ቀን መነሻ ትክክለኛ አቆጣጠር 🔥
+        let nowEAT = new Date(Date.now() + (3 * 60 * 60 * 1000)); 
+        let startOfDayEAT = new Date(nowEAT);
+        startOfDayEAT.setUTCHours(0, 0, 0, 0);
+        let searchStart = new Date(startOfDayEAT.getTime() - (3 * 60 * 60 * 1000)); 
 
-        let txStats = await Transaction.aggregate([
-            { $match: { date: { $gte: startOfDay }, status: 'Approved' } },
-            { $group: { _id: "$type", total: { $sum: "$amount" } } }
-        ]);
+        // 1. የዛሬ Deposit እና Withdraw (ዳታቤዝ በማያጨናንቅ ዘዴ)
+        let todayTxs = await Transaction.find({ date: { $gte: searchStart }, status: 'Approved' }).select('type amount');
         let dailyDeposit = 0;
         let dailyWithdraw = 0;
-        txStats.forEach(t => {
-            if (t._id === 'deposit') dailyDeposit = t.total;
-            if (t._id === 'withdraw') dailyWithdraw = t.total;
+        todayTxs.forEach(t => {
+            if (t.type === 'deposit') dailyDeposit += (t.amount || 0);
+            if (t.type === 'withdraw') dailyWithdraw += (t.amount || 0);
         });
 
-        let bonusStats = await ActiveBonus.aggregate([
-            { $match: { date: { $gte: startOfDay } } },
-            { $group: { _id: null, totalBonus: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
-        ]);
-        let dailyBonus = bonusStats.length > 0 ? bonusStats[0].totalBonus : 0;
-
-        let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
-        let totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
+        // 2. Play Balance ድምር (ሰርቨር እንዳያቋርጥ Error Handling የተደረገበት)
+        let totalUnplayedBonus = 0;
+        try {
+            let bonusAgg = await User.aggregate([{ $group: { _id: null, totalUnplayed: { $sum: "$playBalance" } } }]);
+            totalUnplayedBonus = bonusAgg.length > 0 ? bonusAgg[0].totalUnplayed : 0;
+        } catch (err) {
+            totalUnplayedBonus = 0; // ዳታቤዙ ቢቢዚ እንኳን አያቋርጥም
+        }
 
         let realMoney = 0;
         let botMoney = 0;
@@ -1297,13 +1299,10 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             }
         });
 
-        let eatTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
-        let cHour = eatTime.getUTCHours();
-        let cMin = eatTime.getUTCMinutes();
-        let timeStr = `${cHour.toString().padStart(2, '0')}:${cMin.toString().padStart(2, '0')} (EAT)`;
-        
         let activeSchName = "None";
         let schMin = 0, schMax = 0;
+        let currentHour = nowEAT.getUTCHours();
+        let timeStr = `${currentHour.toString().padStart(2, '0')}:${nowEAT.getUTCMinutes().toString().padStart(2, '0')} (EAT)`;
         
         if (GLOBAL_SETTINGS.isBotScheduleActive) {
             let schedules = [
@@ -1312,7 +1311,7 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             ];
             for(let s of schedules) {
                 let st = s.d.start || 0; let en = s.d.end || 24;
-                if ((st < en && cHour >= st && cHour < en) || (st > en && (cHour >= st || cHour < en))) {
+                if ((st < en && currentHour >= st && currentHour < en) || (st > en && (currentHour >= st || currentHour < en))) {
                     activeSchName = s.n; schMin = s.d.min; schMax = s.d.max; break;
                 }
             }
@@ -1333,12 +1332,11 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             settings: GLOBAL_SETTINGS, 
             dailyDeposit, 
             dailyWithdraw, 
-            dailyBonus,
             totalUnplayedBonus,
             scheduleStatus: { active: GLOBAL_SETTINGS.isBotScheduleActive, time: timeStr, name: activeSchName, min: schMin, max: schMax }
         });
     } catch (e) {
-        res.status(500).json({ success: false });
+        res.status(500).json({ success: false, message: e.message });
     }
 });
 
