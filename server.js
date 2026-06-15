@@ -11,10 +11,8 @@ const server = http.createServer(app);
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-// ሀከሮች የትኛውን ቴክኖሎጂ እንደምትጠቀም እንዳያውቁ ይደብቃል
 app.disable('x-powered-by');    
 
-// 🔥 SECURITY: Basic Rate Limiting for Registration Spam
 const registerRateLimiter = new Map();
 
 const io = new Server(server, { 
@@ -25,11 +23,8 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
-// ==========================================
-// 🔵 DATABASE CONNECTION (ULTIMATE FIX)
-// ==========================================
 const dbUser = "bingostream";
-const dbPass = encodeURIComponent("Jo97BJbi0422"); // ፓስወርዱን በራሱ አስተካክሎ እንዲያነብ ያደርገዋል
+const dbPass = encodeURIComponent("Jo97BJbi0422");
 const dbName = "BingoDB";
 const dbCluster = "cluster0.hefpgl6.mongodb.net";
 
@@ -41,14 +36,8 @@ mongoose.connect(mongoURI, {
 }).then(() => console.log("✅ Database Connected Successfully"))
   .catch(err => console.log("❌ DB Connection Error:", err.message));
 
-// ==========================================
-// 🔵 ETHIOPIAN MALE NAMES ARRAY
-// ==========================================
 const maleEthNames = ["Abebe", "Kebede", "Chala", "Hagos", "Dawit", "Yosef", "Ephrem", "Tesfaye", "Girma", "Bereket", "Abel", "Eyob", "Samuel", "Biniam", "Mulugeta", "Tewodros", "Lema", "Yonas", "Habtamu", "Surafel", "Natnael", "Nahom", "Kaleb", "Fasika", "Amanuel", "Henok", "Robel", "Mikias", "Abiy", "Bekele", "Zelalem", "Elias", "Daniel", "Ermias", "Tadesse", "Wondimu", "Gizachew", "Tamirat", "Mekonnen", "Getachew"];
 
-// ==========================================
-// 🔵 MODELS
-// ==========================================
 const User = mongoose.model('User', new mongoose.Schema({
     phone: { type: String, required: true, unique: true, index: true },
     refCode: { type: String, default: "", index: true }, 
@@ -143,6 +132,19 @@ const PromoCode = mongoose.model('PromoCode', new mongoose.Schema({
     requireDepositWithinHours: { type: Number, default: 0 } 
 }));
 
+// 🔥 አዲስ ሞዴል ለ Scheduled Telegram Broadcast
+const ScheduledBroadcast = mongoose.model('ScheduledBroadcast', new mongoose.Schema({
+    message: String,
+    photoUrl: String,
+    targetPlatform: String,
+    depositorsOnly: Boolean,
+    minDepositAmount: Number,
+    requireDepositWithinHours: Number,
+    scheduledTime: String, // EAT Time (YYYY-MM-DDTHH:mm)
+    status: { type: String, default: 'pending', index: true },
+    date: { type: Date, default: Date.now }
+}));
+
 const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     adminPass: { type: String, default: "bingo1234" }, 
     financePass: { type: String, default: "finance1234" }, 
@@ -151,9 +153,13 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
     
-    virtualPrizePool: { type: Number, default: 0 }, 
-    vaultTwoBalance: { type: Number, default: 0 }, 
+    virtualPrizePool: { type: Number, default: 0 }, // 🏦 ካዝና 1
+    vaultTwoBalance: { type: Number, default: 0 },  // 🛡️ ካዝና 2
     vaultTwoPercent: { type: Number, default: 10 }, 
+    
+    // 🔥 አዲሱ ካዝና 3
+    vaultThreeBalance: { type: Number, default: 0 }, // 🌟 ካዝና 3 (ለ 2 የሚያካፍለው)
+    vaultThreePercent: { type: Number, default: 15 },
 
     decoyChancePercent: { type: Number, default: 15 }, 
     bonusWinPercent: { type: Number, default: 0 }, 
@@ -244,9 +250,12 @@ async function loadSettings() {
         isGamePaused: s.isGamePaused, 
         gameTimer: s.gameTimer || 40, 
         
-        virtualPrizePool: s.virtualPrizePool || 0, 
-        vaultTwoBalance: s.vaultTwoBalance || 0,
+        virtualPrizePool: s.virtualPrizePool || 0, // Vault 1
+        vaultTwoBalance: s.vaultTwoBalance || 0,   // Vault 2
         vaultTwoPercent: s.vaultTwoPercent !== undefined ? s.vaultTwoPercent : 10,
+        
+        vaultThreeBalance: s.vaultThreeBalance || 0, // Vault 3
+        vaultThreePercent: s.vaultThreePercent !== undefined ? s.vaultThreePercent : 15,
 
         decoyChancePercent: s.decoyChancePercent !== undefined ? s.decoyChancePercent : 15, 
         bonusWinPercent: s.bonusWinPercent !== undefined ? s.bonusWinPercent : 0, 
@@ -393,19 +402,23 @@ async function autoApprovePendingDeposits() {
 
                     let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
                     let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
+                    let vaultThreePercent = GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 15; 
                     
                     let adminCut = actualReceivedAmount * (adminPercent / 100);
                     let vaultTwoCut = actualReceivedAmount * (vaultTwoPercent / 100);
-                    let vaultAddition = actualReceivedAmount - adminCut - vaultTwoCut; 
+                    let vaultThreeCut = actualReceivedAmount * (vaultThreePercent / 100);
+                    let vaultAddition = actualReceivedAmount - adminCut - vaultTwoCut - vaultThreeCut; 
                     
                     await SystemSettings.updateOne({}, { 
                         $inc: { 
                             virtualPrizePool: vaultAddition,
-                            vaultTwoBalance: vaultTwoCut 
+                            vaultTwoBalance: vaultTwoCut,
+                            vaultThreeBalance: vaultThreeCut
                         } 
                     });
                     GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
                     GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
+                    GLOBAL_SETTINGS.vaultThreeBalance += vaultThreeCut;
                     dailyHouseProfit += adminCut; 
 
                     if(user.referredBy && user.referredViaPromo) {
@@ -452,26 +465,20 @@ app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// 🔥 SECURITY FIX: የውሸት አካውንት እና ቦቶችን (Bots) መከላከያ
-
-
-// 🔥 CLOUD PROXY FIX: የሀከሩን የውሸት IP አጋልጦ ትክክለኛውን እንዲያገኝ ያደርጋል
 app.set('trust proxy', 1);
 
-// 🔥 ANTI-DOS RATE LIMITER (Spam መከላከያ)
 const ddosLimiterMap = new Map();
 const strictRateLimiter = (req, res, next) => {
-    const ip = req.ip; // ትክክለኛው IP (Spoof ማድረግ አይቻልም)
+    const ip = req.ip; 
     const userAgent = req.headers['user-agent'] || "";
 
-    // 1. ያለ ብራውዘር (በ Curl/Script/Postman) የሚመጡ ጥቃቶችን ወዲያው ያግዳል
     if (!userAgent || userAgent.toLowerCase().includes('curl') || userAgent.toLowerCase().includes('python')) {
         return res.status(403).json({ success: false, message: "Security Blocked!" });
     }
 
     const now = Date.now();
-    const windowMs = 60 * 1000; // 1 ደቂቃ
-    const maxRequests = 5; // በአንድ ደቂቃ 5 ሪኩዌስት ብቻ!
+    const windowMs = 60 * 1000; 
+    const maxRequests = 5; 
 
     if (!ddosLimiterMap.has(ip)) {
         ddosLimiterMap.set(ip, { count: 1, resetTime: now + windowMs });
@@ -493,15 +500,12 @@ const strictRateLimiter = (req, res, next) => {
     next();
 };
 
-// የውሸት አካውንት መከላከያ
 const ipCreationCounts = new Map();
 
-// 🚀 ከላይ የሰራነውን ማጣሪያ (strictRateLimiter) መመዝገቢያው ላይ እናስገባዋለን
 app.post('/api/register', strictRateLimiter, async (req, res) => {
     try {
         const clientIp = req.ip;
 
-        // 1. IP Block: ከአንድ ኢንተርኔት (ስልክ/ዋይፋይ) ከ 3 አካውንት በላይ መክፈት አይቻልም!
         let count = ipCreationCounts.get(clientIp) || 0;
         if (count >= 3) {
             return res.status(429).json({ success: false, message: "❌ ከዚህ ኢንተርኔት (IP) ብዙ አካውንት ተከፍቷል! (Spam Blocked)" });
@@ -551,13 +555,11 @@ app.post('/api/register', strictRateLimiter, async (req, res) => {
         let myRefCode = generateRefCode();
         await new User({ phone, name, password, refCode: myRefCode, referredBy: actualRef, referredViaPromo: isPromoLink, playBalance: GLOBAL_SETTINGS.registerBonus }).save();
 
-        // አካውንቱ በተሳካ ሁኔታ ሲከፈት የ IP ቆጣሪውን ይጨምራል
         ipCreationCounts.set(clientIp, count + 1);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// 🔥 SECURITY FIX: ፓስወርድ ወደ ውጪ እንዳይላክ መዝጊያ
 app.post('/api/login', async (req, res) => {
     let phone = String(req.body.phone);
     let password = String(req.body.password);
@@ -568,7 +570,7 @@ app.post('/api/login', async (req, res) => {
     
     if (user) {
         let safeUser = user.toObject();
-        delete safeUser.password; // ፓስወርዱን አጥፍቶ ይልካል
+        delete safeUser.password; 
         res.json({ success: true, user: safeUser });
     } else {
         res.json({ success: false, message: "ስልክ ቁጥር ወይም ፓስወርድ ተሳስቷል!" });
@@ -594,17 +596,12 @@ app.post('/api/user/change-password', async (req, res) => {
 });
 
 app.get('/api/getUser/:phone', async (req, res) => {
-    // 🔥 ADVANCED HACKER BLOCKER (ያለ አድሚን እና ዌብሳይት ለውጥ የሚሰራ)
     const referer = req.headers.referer || req.headers.origin || "";
     const userAgent = (req.headers['user-agent'] || "").toLowerCase();
-    const fetchSite = req.headers['sec-fetch-site']; // ትክክለኛ ብራውዘር መሆኑን የሚያሳውቅ
+    const fetchSite = req.headers['sec-fetch-site'];
 
     const isFromOurSite = referer.includes("bingohabesha.onrender.com") || referer.includes("localhost");
-
-    // 1. ሀከሮች የሚጠቀሙትን ሶፍትዌር (Postman, Python, Curl) እና ባዶ ሪኩዌስት ያግዳል
     const isHackerTool = !userAgent || userAgent.includes("postman") || userAgent.includes("python") || userAgent.includes("curl") || userAgent.includes("axios");
-
-    // 2. ጥያቄው የመጣው ከትክክለኛ ብራውዘር ውጪ ከሆነ (Script ከሆነ) ያግዳል
     const isFakeBrowser = fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'same-site';
 
     if (!isFromOurSite || isHackerTool || isFakeBrowser) {
@@ -612,7 +609,6 @@ app.get('/api/getUser/:phone', async (req, res) => {
         return res.status(403).json({ success: false, message: "❌ Access Denied! የተከለከለ (Security Block)" });
     }
 
-    // ከላይ ያሉትን ማጣሪያዎች ካለፈ ብቻ ዳታውን ይሰጣል (አድሚንህ እና ዌብሳይትህ በተለመደው መንገድ ይሰራሉ)
     const user = await User.findOne({ phone: String(req.params.phone) }).select('-password -telegramId -unplayedRealDeposit');
     res.json(user ? { success: true, user } : { success: false, message: "User not found" });
 });
@@ -691,19 +687,17 @@ app.post('/api/promoter/withdraw', async (req, res) => {
 });
 
 app.get('/api/user/transactions/:phone', async (req, res) => { 
-    // ሪኩዌስቱ የመጣው ከራሱ ከዌብሳይትህ (Frontend) መሆኑን ማረጋገጥ
     const referer = req.headers.referer || req.headers.origin || "";
     const isFromOurSite = referer.includes("bingohabesha.onrender.com") || referer.includes("localhost");
     
     if (!isFromOurSite) {
-        // ሀከሩ በ Postman ወይም በሶፍትዌር ዳታ ለመስረቅ ከሞከረ ባዶውን ይመልስለታል
         return res.status(403).json({ success: false, message: "Forbidden" });
     }
 
     const txs = await Transaction.find({ 
         phone: String(req.params.phone), 
         method: { $ne: 'Promoter Comm' }
-    }).select('type amount method status date').sort({ date: -1 }).limit(30); // SMS text እና TxRef ተደብቋል
+    }).select('type amount method status date').sort({ date: -1 }).limit(30); 
     
     res.json({ success: true, txs }); 
 });
@@ -862,25 +856,20 @@ app.post('/api/admin/wipe-fake-balances', auth, async (req, res) => {
     }
 });
 
-// 🔥 SECURITY FIX: የውሸት (Bot) ሪፈራሎችን ማጥፊያ እና ብር ማስመለሻ
 app.post('/api/admin/delete-fake-referrals', auth, async (req, res) => {
     try {
-        // 1. ምንም ብር ሳያስገቡ ብዙ ሰው የጋበዙትን (ሌቦቹን) እንፈልጋለን
         let scammers = await User.find({ totalDeposited: 0, totalInvites: { $gt: 5 } });
 
         let totalFakesDeleted = 0;
         let totalBonusRecovered = 0;
 
         for (let scammer of scammers) {
-            // 2. ሌባው የጋበዛቸውን እና "ምንም ብር ያላስገቡትን የውሸት አካውንቶች" እንፈልጋለን
             let fakeAccounts = await User.find({ referredBy: scammer.phone, totalDeposited: 0 });
 
             for (let fake of fakeAccounts) {
-                // 3. የውሸት አካውንቱን ከዳታቤዝ እናጠፋዋለን
                 await User.findByIdAndDelete(fake._id);
                 totalFakesDeleted++;
 
-                // 4. ሌባው ከዚህ አካውንት የሰረቀውን 10 ብር ከሂሳቡ ላይ እንቀንሳለን
                 scammer.playBalance -= GLOBAL_SETTINGS.inviteBonus;
                 scammer.inviteBonusEarned -= GLOBAL_SETTINGS.inviteBonus;
                 scammer.totalInvites -= 1;
@@ -952,19 +941,23 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
 
         let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
         let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
+        let vaultThreePercent = GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 15; 
         
         let adminCut = actualAmount * (adminPercent / 100);
         let vaultTwoCut = actualAmount * (vaultTwoPercent / 100);
-        let vaultAddition = actualAmount - adminCut - vaultTwoCut; 
+        let vaultThreeCut = actualAmount * (vaultThreePercent / 100);
+        let vaultAddition = actualAmount - adminCut - vaultTwoCut - vaultThreeCut; 
         
         await SystemSettings.updateOne({}, { 
             $inc: { 
                 virtualPrizePool: vaultAddition,
-                vaultTwoBalance: vaultTwoCut 
+                vaultTwoBalance: vaultTwoCut,
+                vaultThreeBalance: vaultThreeCut
             } 
         });
         GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
         GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
+        GLOBAL_SETTINGS.vaultThreeBalance += vaultThreeCut;
         dailyHouseProfit += adminCut;
 
         if(user.referredBy && user.referredViaPromo) {
@@ -1053,6 +1046,7 @@ app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// 🔥 የ ፋይናንስ ክራሽ መፍትሄ (Aggregate መጠቀም) 🔥
 app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
     try {
         const { period, customDate, rangeStart, rangeEnd } = req.body;
@@ -1079,29 +1073,40 @@ app.post('/api/admin/finance-stats', financeAuth, async (req, res) => {
             txQuery.date = dateQuery; gameQuery.date = dateQuery; bonusQuery.date = dateQuery;
         }
 
-        let txs = await Transaction.find(txQuery);
+        // Aggregate for Transactions (No loop over 1000s of objects)
+        let txStats = await Transaction.aggregate([
+            { $match: txQuery },
+            { $group: { _id: { type: "$type", method: "$method" }, total: { $sum: "$amount" } } }
+        ]);
+
         let tDep = 0, tWit = 0, tPromoterPaid = 0;
-        txs.forEach(t => {
-            if (t.type === 'deposit') tDep += t.amount;
-            if (t.type === 'withdraw' && t.method !== 'Promoter Comm') tWit += t.amount;
-            if (t.type === 'withdraw' && t.method === 'Promoter Comm') tPromoterPaid += t.amount;
+        txStats.forEach(t => {
+            if (t._id.type === 'deposit') tDep += t.total;
+            if (t._id.type === 'withdraw' && t._id.method !== 'Promoter Comm') tWit += t.total;
+            if (t._id.type === 'withdraw' && t._id.method === 'Promoter Comm') tPromoterPaid += t.total;
         });
         let netCash = tDep - (tWit + tPromoterPaid);
 
-        let games = await GameHistory.find(gameQuery);
-        let tWinnings = 0, tProf = 0, tTurnover = 0;
-        games.forEach(g => {
-            tWinnings += (g.prize || 0); tProf += (g.adminProfit || 0); tTurnover += ((g.prize || 0) + (g.adminProfit || 0));
-        });
+        // Aggregate for Games
+        let gameStats = await GameHistory.aggregate([
+            { $match: gameQuery },
+            { $group: { _id: null, tWinnings: { $sum: "$prize" }, tProf: { $sum: "$adminProfit" } } }
+        ]);
+        let tWinnings = gameStats.length > 0 ? gameStats[0].tWinnings : 0;
+        let tProf = gameStats.length > 0 ? gameStats[0].tProf : 0;
+        let tTurnover = tWinnings + tProf;
 
-        let promos = await ActiveBonus.find(bonusQuery);
-        let totalBonusPaid = 0;
-        promos.forEach(p => { totalBonusPaid += ((p.amount || 0) * (p.currentClaims || 0)); });
+        // Aggregate for Promos/Bonuses
+        let promoStats = await ActiveBonus.aggregate([
+            { $match: bonusQuery },
+            { $group: { _id: null, totalPaid: { $sum: { $multiply: ["$amount", "$currentClaims"] } } } }
+        ]);
+        let totalBonusPaid = promoStats.length > 0 ? promoStats[0].totalPaid : 0;
 
         let usersResult = await User.aggregate([{ $group: { _id: null, main: { $sum: "$mainBalance" }, play: { $sum: "$playBalance" } } }]);
         let liability = usersResult.length > 0 ? usersResult[0].main + usersResult[0].play : 0;
 
-        let netProfit = dailyHouseProfit - totalBonusPaid - tPromoterPaid; 
+        let netProfit = tProf - totalBonusPaid - tPromoterPaid; 
 
         res.json({ success: true, stats: { tDep, tWit, netCash, tTurnover, tWinnings, tProf, totalBonusPaid, tPromoterPaid, liability, netProfit } });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -1637,19 +1642,23 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
 
             let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
             let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
+            let vaultThreePercent = GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 15; 
             
             let adminCut = actualAmount * (adminPercent / 100);
             let vaultTwoCut = actualAmount * (vaultTwoPercent / 100);
-            let vaultAddition = actualAmount - adminCut - vaultTwoCut; 
+            let vaultThreeCut = actualAmount * (vaultThreePercent / 100);
+            let vaultAddition = actualAmount - adminCut - vaultTwoCut - vaultThreeCut; 
             
             await SystemSettings.updateOne({}, { 
                 $inc: { 
                     virtualPrizePool: vaultAddition,
-                    vaultTwoBalance: vaultTwoCut 
+                    vaultTwoBalance: vaultTwoCut,
+                    vaultThreeBalance: vaultThreeCut
                 } 
             });
             GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
             GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
+            GLOBAL_SETTINGS.vaultThreeBalance += vaultThreeCut;
             dailyHouseProfit += adminCut;
 
             if(user.referredBy && user.referredViaPromo) {
@@ -1734,6 +1743,9 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     
     if(req.body.vaultTwoBalance !== undefined) s.vaultTwoBalance = req.body.vaultTwoBalance;
     if(req.body.vaultTwoPercent !== undefined) s.vaultTwoPercent = req.body.vaultTwoPercent;
+    
+    if(req.body.vaultThreeBalance !== undefined) s.vaultThreeBalance = req.body.vaultThreeBalance;
+    if(req.body.vaultThreePercent !== undefined) s.vaultThreePercent = req.body.vaultThreePercent;
 
     if(req.body.decoyChancePercent !== undefined) s.decoyChancePercent = req.body.decoyChancePercent;
     if(req.body.virtualPrizePool !== undefined) s.virtualPrizePool = req.body.virtualPrizePool;
@@ -1861,7 +1873,7 @@ app.post('/api/admin/ban-user', auth, async (req, res) => { await User.findOneAn
 app.post('/api/admin/unban-user', auth, async (req, res) => { await User.findOneAndUpdate({ phone: String(req.body.phone) }, { status: 'active' }); res.json({ success: true }); });
 
 app.post('/api/admin/factory-reset', auth, async (req, res) => {
-    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({}); 
+    await User.deleteMany({}); await Transaction.deleteMany({}); await GameHistory.deleteMany({}); await BankSMS.deleteMany({}); await ActiveBonus.deleteMany({}); await ScheduledBroadcast.deleteMany({});
     res.json({ success: true, message: "✅ ሲስተሙ ሙሉ በሙሉ ፀድቷል! ሁሉም ዳታ ጠፍቷል እንደ አዲስ ይጀምራል።" });
 });
 
@@ -1956,6 +1968,24 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
 
 let lastBroadcasts = []; 
 
+// 🔥 Scheduled Broadcast Logic 🔥
+app.post('/api/admin/schedule-telegram', auth, async (req, res) => {
+    try {
+        const { message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours, scheduledTime } = req.body;
+        if (!message || !scheduledTime) return res.json({ success: false, message: "Message & Time are required." });
+
+        await ScheduledBroadcast.create({
+            message, photoUrl, targetPlatform: 'tg',
+            depositorsOnly, minDepositAmount, requireDepositWithinHours,
+            scheduledTime, status: 'pending'
+        });
+
+        res.json({ success: true, message: `✅ Broadcast Scheduled successfully for ${scheduledTime} (EAT)!` });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
+
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው።" });
     isBroadcasting = true;
@@ -1971,10 +2001,8 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         lastBroadcasts = []; 
         let count = 0;
         
-        // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም (እንዳይሰቀል) ወዲያውኑ መልስ እንሰጠዋለን
         res.json({ success: true, message: `✅ መልዕክቱ መላክ ጀምሯል። ለ ${users.length} ሰዎች ከበስተጀርባ (Background) ይላካል።` });
 
-        // 🔥 ከበስተጀርባ ቀስ እያለ ይልካል (እንዳይቋረጥ)
         (async () => {
             for (let u of users) {
                 if(depositorsOnly) {
@@ -2000,14 +2028,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
                     }
                     lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
                     count++;
-                } catch(e) {
-                    // 🔥 ቦቱን ብሎክ ያደረገ ሰው ቢኖርም ኤረሩን ዘሎት ወደ ሚቀጥለው ሰው ያልፋል (አይቋረጥም)
-                } 
+                } catch(e) {} 
                 
-                // 🔥 ቴሌግራም አድሚኑን ብሎክ እንዳያደርገው የ 50 ሚሊ-ሴኮንድ እረፍት
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
-            isBroadcasting = false; // ሲጨርስ መንገዱን ክፍት ያደርጋል
+            isBroadcasting = false;
         })();
         
     } catch (e) { 
@@ -2054,8 +2079,8 @@ app.post('/api/admin/inject-live-bots', auth, async (req, res) => {
 
         let distArray = [];
         for(let i=0; i<count1; i++) distArray.push(1);
-        for(let i=0; i<count2; i++) distArray.push(2);
-        for(let i=0; i<count3; i++) distArraypush(3);
+        for(let i=0; i<count2; i++) distArraypush(2);
+        for(let i=0; i<count3; i++) distArray.push(3);
         for(let i=0; i<count4; i++) distArray.push(4);
         
         distArray = distArray.sort(() => Math.random() - 0.5);
@@ -2228,21 +2253,22 @@ async function declareWinners(winners) {
         });
     }
 
+    // 🔥 አዲሱ የ 3 ካዝናዎች አከፋፈል ሎጂክ
     if (realMoneyOut > 0) {
         if (botWinnersPrize === 0 && GLOBAL_SETTINGS.vaultTwoBalance >= realMoneyOut) {
             GLOBAL_SETTINGS.vaultTwoBalance -= realMoneyOut;
             await SystemSettings.updateOne({}, { $set: { vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance } });
-        } else {
+        } 
+        else if (winners.length === 2 && botWinnersPrize > 0 && GLOBAL_SETTINGS.vaultThreeBalance >= realMoneyOut) {
+            // 1 ሰው 1 ቦት ከሆነ ከካዝና 3 ይቀነሳል
+            GLOBAL_SETTINGS.vaultThreeBalance -= realMoneyOut;
+            await SystemSettings.updateOne({}, { $set: { vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance } });
+        } 
+        else {
             GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
             if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0; 
             await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
         }
-    }
-
-    if (botWinnersPrize > 0 && realMoneyInThisRound > 0) {
-        let amountToReturn = Math.min(botWinnersPrize, realMoneyInThisRound);
-        GLOBAL_SETTINGS.virtualPrizePool += amountToReturn;
-        await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
     }
 
     let uniqueNames = [...new Set(winnerNames)];
@@ -2481,43 +2507,41 @@ setInterval(() => {
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
             let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
 
+            // 🔥 አዲሱ የ 3 ካዝናዎች AI Logic 🔥
             if (forceWinner === 'ai') {
-                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
-                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;
-                let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
+                let v1 = GLOBAL_SETTINGS.virtualPrizePool || 0;
+                let v2 = GLOBAL_SETTINGS.vaultTwoBalance || 0;
+                let v3 = GLOBAL_SETTINGS.vaultThreeBalance || 0;
+                let prize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
-                let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
-
-                let isBonusLucky = (Math.random() * 100) < bonusWinChance;
+                let isBonusLucky = (Math.random() * 100) < (GLOBAL_SETTINGS.bonusWinPercent || 0);
 
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
                 } else {
-                    let maxSafePayout = hiddenPool * 0.20; 
-
-                    if (vaultTwo >= finalTotalPrize) {
-                        if(isBonusLucky) forceWinner = 'real'; 
-                        else forceWinner = 'mix_dep'; 
+                    if (v2 >= prize) {
+                        // ካዝና 2 ሙሉውን ከቻለ፣ ሰው 100% ይበላዋል
+                        forceWinner = isBonusLucky ? 'real' : 'mix_dep';
                         GLOBAL_SETTINGS.mixBotCount = 0; 
-                    }
-                    else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
-                        if(isBonusLucky) forceWinner = 'real'; 
-                        else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0;
-                    } else {
-                        let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
-                        let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
-                        
-                        if (neededSplits > 5) neededSplits = 5;
-                        if (neededSplits < 2) neededSplits = 2; 
-
-                        if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
-                            forceWinner = 'bots'; 
-                        } else {
-                            if(isBonusLucky) forceWinner = 'mix'; 
-                            else forceWinner = 'mix_dep'; 
-                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; 
-                        }
+                    } 
+                    else if (v3 >= (prize / 2)) {
+                        // ካዝና 3 ግማሹን ከቻለ፣ 1 ሰው እና 1 ቦት ይካፈላሉ
+                        forceWinner = isBonusLucky ? 'mix' : 'mix_dep';
+                        GLOBAL_SETTINGS.mixBotCount = 1; 
+                    } 
+                    else if (v1 >= prize * 1.5) {
+                        // ካዝና 1 በጣም ከሞላ ለሰዎች ያከፋፍላል (አንዳንዴ ለብቻው አንዳንዴ ይከፋፈላሉ)
+                        forceWinner = isBonusLucky ? 'real' : 'mix_dep';
+                        GLOBAL_SETTINGS.mixBotCount = Math.floor(Math.random() * 2); // 0 or 1
+                    } 
+                    else if (v1 >= (prize / 3)) {
+                        // ካዝና 1 በከፊል ከቻለ፣ ለ 3 (1 ሰው 2 ቦት) ወዘተ ይከፈላል
+                        forceWinner = isBonusLucky ? 'mix' : 'mix_dep';
+                        GLOBAL_SETTINGS.mixBotCount = 2; // 2 ቦት 1 ሰው
+                    } 
+                    else {
+                        // የትኛውም ካዝና የማይችል ከሆነ ቦት ይበላዋል
+                        forceWinner = 'bots';
                     }
                 }
             }
@@ -2726,6 +2750,25 @@ io.on('connection', (socket) => {
                     }
                 }
 
+                // 🔥 አዲሱ ከ Main Balance የሚከፈል የካዝና ክፍፍል (ያለ Admin Profit)
+                if (mainDeducted > 0) {
+                    let v2Cut = mainDeducted * (GLOBAL_SETTINGS.vaultTwoPercent / 100);
+                    let v3Cut = mainDeducted * (GLOBAL_SETTINGS.vaultThreePercent / 100);
+                    let v1Cut = mainDeducted - v2Cut - v3Cut;
+
+                    GLOBAL_SETTINGS.vaultTwoBalance += v2Cut;
+                    GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
+                    GLOBAL_SETTINGS.virtualPrizePool += v1Cut;
+
+                    await SystemSettings.updateOne({}, {
+                        $inc: {
+                            vaultTwoBalance: v2Cut,
+                            vaultThreeBalance: v3Cut,
+                            virtualPrizePool: v1Cut
+                        }
+                    });
+                }
+
                 let realBetAmount = mainDeducted;
                 
                 user.played += 1; 
@@ -2787,6 +2830,29 @@ io.on('connection', (socket) => {
                     user.played = Math.max(0, user.played - 1);
                     user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
                     await user.save();
+
+                    // 🔥 Cancel ሲያደርግ ከካዝናዎቹ ላይ ብሩን መልሶ መቀነስ ይኖርብናል (ካዝናው እንዳይሰፋ)
+                    if (refundMain > 0) {
+                        let v2Cut = refundMain * (GLOBAL_SETTINGS.vaultTwoPercent / 100);
+                        let v3Cut = refundMain * (GLOBAL_SETTINGS.vaultThreePercent / 100);
+                        let v1Cut = refundMain - v2Cut - v3Cut;
+
+                        GLOBAL_SETTINGS.vaultTwoBalance -= v2Cut;
+                        GLOBAL_SETTINGS.vaultThreeBalance -= v3Cut;
+                        GLOBAL_SETTINGS.virtualPrizePool -= v1Cut;
+
+                        if (GLOBAL_SETTINGS.vaultTwoBalance < 0) GLOBAL_SETTINGS.vaultTwoBalance = 0;
+                        if (GLOBAL_SETTINGS.vaultThreeBalance < 0) GLOBAL_SETTINGS.vaultThreeBalance = 0;
+                        if (GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
+
+                        await SystemSettings.updateOne({}, {
+                            $set: {
+                                vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance,
+                                vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance,
+                                virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool
+                            }
+                        });
+                    }
 
                     p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
                     p.tickets -= 1;
@@ -3158,14 +3224,12 @@ const basicAuth = (req, res, next) => {
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     
-    // 1. ለአድሚን መግቢያ (Admin Path)
     if (req.path === '/Tside0422') {
         if (login === 'admin' && password === GLOBAL_SETTINGS.adminPass) { 
             return next(); 
         }
     }
     
-    // 2. ለፋይናንስ መግቢያ (Finance Path)
     if (req.path === '/papi2204') {
         if ((login === 'finance' && password === GLOBAL_SETTINGS.financePass) || 
             (login === 'admin' && password === GLOBAL_SETTINGS.adminPass)) { 
@@ -3604,7 +3668,6 @@ app.get('/papi2204', basicAuth, (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'finance.html')) ? path.join(__dirname, 'finance.html') : path.join(__dirname, 'public', 'finance.html');
     if (fs.existsSync(target)) res.sendFile(target); else res.send("<h2 style='color:red;'>❌ Error: finance.html አልተገኘም!</h2>");
 });
-
 app.get('*', (req, res) => {
     let target = fs.existsSync(path.join(__dirname, 'index.html')) ? path.join(__dirname, 'index.html') : path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(target)) {
@@ -3726,7 +3789,6 @@ app.get('*', (req, res) => {
                             });
                         }
                         
-                        // 🔥 Update top header dynamically 🔥
                         let stateHeader = document.getElementById('header-state');
                         let jackpotHeader = document.getElementById('header-jackpot');
                         if(stateHeader && jackpotHeader) {
@@ -3771,7 +3833,7 @@ app.get('*', (req, res) => {
                                     alertBox.style.background = "linear-gradient(135deg, rgba(234,88,12,0.3), rgba(217,119,6,0.3))";
                                     alertBox.style.borderColor = "#fbbf24";
                                     alertBox.style.boxShadow = "0 0 15px rgba(251,191,36,0.5)";
-                                    alertBox.innerHTML = "✨ ጠቅላ কমলা የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
+                                    alertBox.innerHTML = "✨ ጠቅላላ የደራሽ ሽልማትዎን ወስደዋል! ✨<br><span style='font-size:13px; color:#fbbf24; font-weight:bold; display:block; margin-top:5px;'>" + Number(data.prize).toLocaleString('en-US', {maximumFractionDigits: 0}) + " ETB ሂሳብዎ ላይ ገቢ ተደርጓል!</span>";
                                 }
                                 if(winnerCard) winnerCard.appendChild(alertBox);
 
@@ -3808,10 +3870,54 @@ app.get('*', (req, res) => {
 });
 
 setInterval(async () => {
-    try {
-        await autoApprovePendingDeposits();
-    } catch (error) {}
+    try { await autoApprovePendingDeposits(); } catch (error) {}
 }, 30000); 
+
+// 🔥 አዲሱ የ Telegram Scheduled Broadcast Loop (በየ 1 ደቂቃው የሚዞር) 🔥
+setInterval(async () => {
+    try {
+        let nowEAT = new Date(Date.now() + (3 * 60 * 60 * 1000));
+        let currentStr = nowEAT.toISOString().substring(0, 16); 
+        
+        let pendingBroadcasts = await ScheduledBroadcast.find({ status: 'pending', scheduledTime: { $lte: currentStr } });
+        
+        for (let b of pendingBroadcasts) {
+            b.status = 'processing';
+            await b.save();
+
+            let query = { telegramId: { $ne: "" } };
+            const users = await User.find(query);
+            
+            for (let u of users) {
+                if(b.depositorsOnly) {
+                    if (b.requireDepositWithinHours > 0) {
+                        let cutoff = new Date(Date.now() - (b.requireDepositWithinHours * 60 * 60 * 1000));
+                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (b.minDepositAmount || 0) }, date: { $gte: cutoff } });
+                        if (!recentDep) continue;
+                    } else {
+                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (b.minDepositAmount || 0) } });
+                        if (!validDep) continue;
+                    }
+                }
+
+                try {
+                    if (b.photoUrl && b.photoUrl.startsWith('data:image')) {
+                        let base64Data = b.photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                        let photoBuffer = Buffer.from(base64Data, 'base64');
+                        await bot.sendPhoto(u.telegramId, photoBuffer, { caption: b.message, parse_mode: "HTML" });
+                    } else if (b.photoUrl && b.photoUrl.startsWith('http')) { 
+                        await bot.sendPhoto(u.telegramId, b.photoUrl, { caption: b.message, parse_mode: "HTML" });
+                    } else { 
+                        await bot.sendMessage(u.telegramId, b.message, { parse_mode: "HTML" }); 
+                    }
+                } catch(e) {} 
+                await new Promise(resolve => setTimeout(resolve, 50)); 
+            }
+            b.status = 'completed';
+            await b.save();
+        }
+    } catch (error) {}
+}, 60000); 
 
 setInterval(async () => {
     try {
@@ -3841,14 +3947,12 @@ setInterval(async () => {
             u.diagnosticFraudReported = true;
             await u.save();
         }
-    } catch (error) {
-        console.log("System Check Error:", error.message);
-    }
+    } catch (error) {}
 }, 15 * 60 * 1000); 
 
 process.on('unhandledRejection', (reason, promise) => {
     if (reason && reason.message && reason.message.includes('bot was blocked by the user')) {
-        console.log('⚠️ ማሳሰቢያ: አንድ ተጫዋች ቦቱን ብሎክ አድርጓል። ሰርቨሩ ግን ስራውን ይቀጥላል።');
+        console.log('⚠️ ማሳሰቢያ: አንድ ተጫዋች ቦቱን ብሎክ አድርጓል።');
     } else {
         console.log("Unhandled Error Ignored:", reason.message || reason);
     }
@@ -3861,6 +3965,7 @@ process.on('uncaughtException', (err) => {
         console.error('Uncaught Exception thrown:', err);
     }
 });
+
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
