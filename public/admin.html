@@ -138,7 +138,6 @@
         <button class="nav-btn" onclick="switchTab('tab-pend-dep', this); loadPendingTxs();"><div>📥 Pending Deposits</div> <span class="badge-alert" id="badge-dep">0</span></button>
         <button class="nav-btn" onclick="switchTab('tab-pend-wit', this); loadPendingTxs();"><div>📤 Pending Withdraws</div> <span class="badge-alert" id="badge-wit">0</span></button>
         
-        <!-- 🔥 SMS COMPARE TAB BUTTON 🔥 -->
         <button class="nav-btn" onclick="switchTab('tab-sms-compare', this); loadSmsComparison(1);" style="color:var(--cyan);"><div>📱 SMS vs የደንበኛ ደረሰኝ Compare</div></button>
 
         <button class="nav-btn" onclick="switchTab('tab-users', this); loadUsersPage(1);"><div>👥 Data Base User</div></button>
@@ -198,12 +197,6 @@
                         <span>👤 Real Money: <b style="color:#4ade80; font-size:14px;" id="split-real-money">0.00</b></span>
                         <span>🤖 Bot Money: <b style="color:#f87171; font-size:14px;" id="split-bot-money">0.00</b></span>
                     </div>
-                </div>
-                
-                <div class="stat-card" style="border-bottom: 4px solid var(--cyan); grid-column: span 2; background: rgba(6, 182, 212, 0.1);">
-                    <h3>💎 Hidden Bank (እውነተኛው ድብቅ ካዝና)</h3>
-                    <p style="font-size:10px; color:gray; margin:0;">ይህ ሲስተሙ ሰው ሲያሸንፍ እውነተኛ ብር የሚከፍልበት ካዝና ነው (ማንም አያየውም)</p>
-                    <h2 style="color: var(--cyan);" id="stat-virtual-pool">0.00 ETB</h2>
                 </div>
 
                 <div class="stat-card live-player-box" style="border-bottom: 4px solid var(--purple); cursor: pointer; transition: 0.3s;" onclick="openLivePlayersModal()">
@@ -695,48 +688,62 @@
             </div>
         </div>
 
-        <!-- 🔥 VAULTS (ካዝና 1 እና 2) በአንድ ላይ የተሰበሰቡበት 🔥 -->
+        <!-- 🔥 VAULTS (ካዝና 1, 2 እና 3) በአንድ ላይ የተሰበሰቡበት 🔥 -->
         <div id="tab-vaults" class="tab-content">
             <div class="card" style="border-top: 4px solid var(--gold); border-bottom: 4px solid var(--cyan);">
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                     
                     <!-- KAZENA 1 (Main Vault) -->
-                    <div style="flex: 1; min-width: 300px;">
-                        <h3 style="margin-top:0; color:var(--cyan); font-size:22px;">🏦 ካዝና 1 (ዋና ካዝና / Vault 1)</h3>
-                        <p style="font-size:12px; color:var(--text-gray);">ይህ ዋናው ካዝና ነው። አብዛኛው AI ሎጂክ የተንጠለጠለው እዚህ ላይ ነው። ሰው ሲያሸንፍ መጀመሪያ የሚከፈለው ከዚህ ነው።</p>
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3 style="margin-top:0; color:var(--cyan); font-size:18px;">🏦 ካዝና 1 (ዋና ካዝና)</h3>
+                        <p style="font-size:11px; color:var(--text-gray);">በብዛት AI ሎጂክ የሚከፍለው ከዚህ ነው።</p>
                         
                         <div style="background: rgba(6, 182, 212, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--cyan);">
                             <span style="font-size:11px; color:gray; text-transform:uppercase;">Current Balance</span>
-                            <h2 id="disp-vault1" style="margin:5px 0; color:var(--cyan); font-size:28px;">0.00 ETB</h2>
+                            <h2 id="disp-vault1" style="margin:5px 0; color:var(--cyan); font-size:24px;">0.00 ETB</h2>
                         </div>
-
-                        <label style="font-weight:bold; color:white; font-size:13px;">✏️ ካዝና 1ን ያስተካክሉ (Edit Balance):</label>
+                        <label style="font-weight:bold; color:white; font-size:13px;">✏️ ካዝና 1ን ያስተካክሉ (Edit):</label>
                         <input type="number" id="edit-vault1" placeholder="አዲስ መጠን ያስገቡ (Vault 1)" style="margin-top:5px; border-color:var(--cyan);">
                     </div>
 
                     <!-- KAZENA 2 (Backup Vault) -->
-                    <div style="flex: 1; min-width: 300px;">
-                        <h3 style="margin-top:0; color:var(--faded-green); font-size:22px;">🛡️ ካዝና 2 (ተጠባባቂ / Vault 2)</h3>
-                        <p style="font-size:12px; color:var(--text-gray);">ይህ ሁለተኛው ካዝና ነው። ሲሞላ ብቻ ለሰው ክፍያ ይፈፅም እና እንደገና ባዶ ሆኖ ይጀምራል።</p>
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3 style="margin-top:0; color:var(--faded-green); font-size:18px;">🛡️ ካዝና 2 (100% ለሰው)</h3>
+                        <p style="font-size:11px; color:var(--text-gray);">ይህ ሲሞላ 1 እውነተኛ ሰው ብቻ ያሸንፋል።</p>
                         
                         <div style="background: rgba(74, 222, 128, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--faded-green);">
                             <span style="font-size:11px; color:gray; text-transform:uppercase;">Current Balance</span>
-                            <h2 id="disp-vault2" style="margin:5px 0; color:var(--faded-green); font-size:28px;">0.00 ETB</h2>
+                            <h2 id="disp-vault2" style="margin:5px 0; color:var(--faded-green); font-size:24px;">0.00 ETB</h2>
                         </div>
-
-                        <label style="font-weight:bold; color:white; font-size:13px;">✏️ ካዝና 2ን ያስተካክሉ (Edit Balance):</label>
+                        <label style="font-weight:bold; color:white; font-size:13px;">✏️ ካዝና 2ን ያስተካክሉ (Edit):</label>
                         <input type="number" id="edit-vault2" placeholder="አዲስ መጠን ያስገቡ (Vault 2)" style="margin-top:5px; margin-bottom:15px; border-color:var(--faded-green);">
-
                         <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; border: 1px dashed gray;">
-                            <label style="font-weight:bold; color:var(--gold); font-size:12px;">📥 ከ Deposit ስንት ፐርሰንት ይግባ? (%)</label>
+                            <label style="font-weight:bold; color:var(--gold); font-size:12px;">📥 ከ Deposit ስንት ይግባ? (%)</label>
                             <input type="number" id="edit-vault2-perc" placeholder="e.g. 10%" style="margin-top:5px; border-color:var(--gold);">
+                        </div>
+                    </div>
+
+                    <!-- KAZENA 3 (Share Vault) -->
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3 style="margin-top:0; color:var(--purple); font-size:18px;">🌟 ካዝና 3 (ለ 2 ተካፋይ)</h3>
+                        <p style="font-size:11px; color:var(--text-gray);">ይህ ሲሞላ 1 እውነተኛ ሰው እና 1 ቦት ያሸንፋሉ።</p>
+                        
+                        <div style="background: rgba(168, 85, 247, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--purple);">
+                            <span style="font-size:11px; color:gray; text-transform:uppercase;">Current Balance</span>
+                            <h2 id="disp-vault3" style="margin:5px 0; color:var(--purple); font-size:24px;">0.00 ETB</h2>
+                        </div>
+                        <label style="font-weight:bold; color:white; font-size:13px;">✏️ ካዝና 3ን ያስተካክሉ (Edit):</label>
+                        <input type="number" id="edit-vault3" placeholder="አዲስ መጠን ያስገቡ (Vault 3)" style="margin-top:5px; margin-bottom:15px; border-color:var(--purple);">
+                        <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; border: 1px dashed gray;">
+                            <label style="font-weight:bold; color:var(--gold); font-size:12px;">📥 ከ Deposit ስንት ይግባ? (%)</label>
+                            <input type="number" id="edit-vault3-perc" placeholder="e.g. 15%" style="margin-top:5px; border-color:var(--gold);">
                         </div>
                     </div>
                 </div>
 
                 <!-- 🔥 በአንድ ጊዜ ሁሉንም ሴቭ ማድረጊያ አዝራር 🔥 -->
                 <button class="action-btn" style="width: 100%; background: linear-gradient(135deg, var(--gold), var(--orange)); color: black; font-size: 18px; padding: 15px; margin-top: 20px; box-shadow: 0 5px 15px rgba(251, 191, 36, 0.4);" onclick="updateSettings('all_vaults')">
-                    💾 የካዝና 1፣ ካዝና 2፣ እና ፐርሰንቱን በአንድ ጊዜ ሴቭ አድርግ (Save All)
+                    💾 የካዝና 1፣ 2፣ 3 እና ፐርሰንታቸውን በአንድ ጊዜ ሴቭ አድርግ (Save All)
                 </button>
             </div>
         </div>
@@ -849,6 +856,8 @@
         <!-- 🔥 TELEGRAM & WEB BROADCAST 🔥 -->
         <div id="tab-telegram" class="tab-content">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                
+                <!-- 🚀 Promo Bonus Broadcast 🚀 -->
                 <div class="card" style="border-left: 4px solid var(--orange);">
                     <h3 style="margin-top:0; color:var(--orange);">🚀 Promo Bonus + Broadcast</h3>
                     
@@ -880,13 +889,14 @@
                         <div style="flex-basis: 100%; font-size:11px; color:gray;">* ሰዓቱን ባዶ ከተዉት ከዚህ በፊት መቼም ቢሆን ብር ያስገባን ሰው ያጠቃልላል።</div>
                     </div>
 
-                    <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">Create Promo & Broadcast</button>
+                    <button class="action-btn btn-orange" id="btn-send-promo" style="width:100%;" onclick="createClaimBonus()">🚀 አሁኑኑ ላክ (Send Now)</button>
                     <button class="action-btn btn-blue" style="width:100%; margin-top:10px;" onclick="viewClaimedUsers()">👁️ View Claimed Users</button>
                 </div>
 
+                <!-- ✈️ Normal Broadcast & Schedule ✈️ -->
                 <div class="card" style="border-left: 4px solid var(--blue);">
                     <h3 style="margin-top:0; color:var(--blue);">✈️ Normal Telegram Broadcast</h3>
-                    <p style="font-size:11px; color:gray;">ይህ ቴሌግራም ላይ ብቻ መረጃ ለመላክ ያገለግላል። (ያለ ቦነስ)</p>
+                    <p style="font-size:11px; color:gray;">ይህ ቴሌግራም ላይ ብቻ መረጃ ለመላክ ያገለግላል።</p>
                     
                     <label style="color:var(--cyan); font-weight:bold; font-size:12px; display:block; margin-bottom:5px;">📷 ፎቶ ይምረጡ (አማራጭ):</label>
                     <input type="text" id="tg-photo-url" placeholder="🔗 የፎቶ ሊንክ (URL)" style="margin-bottom:5px;">
@@ -903,9 +913,17 @@
                         <input type="number" id="tg-dep-hours" placeholder="በስንት ሰዓት ውስጥ?" style="flex:1; margin-bottom:0;">
                     </div>
 
-                    <div style="display:flex; gap:10px;">
-                        <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">Broadcast to Telegram</button>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <button class="action-btn btn-blue" style="flex:2;" onclick="sendTelegramPromo('normal')">🚀 አሁኑኑ ላክ (Send Now)</button>
                         <button class="action-btn btn-red" style="flex:1; font-size:11px;" onclick="deleteLastTelegramPromo()">🗑️ Delete Last</button>
+                    </div>
+
+                    <!-- 🔥 SCHEDULE BROADCAST UI 🔥 -->
+                    <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); padding: 15px; border-radius: 8px;">
+                        <label style="color:var(--purple); font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">⏳ በተመረጠ ሰዓት ላክ (Schedule in EAT)</label>
+                        <p style="font-size:10px; color:gray; margin-top:0;">(ለምሳሌ ከላይ ያለውን ፎቶ እና ፅሁፍ ማታ 2፡30 እንዲላክ ከፈለጉ፣ እዚህ ሰዓቱን ይምረጡ)</p>
+                        <input type="datetime-local" id="tg-schedule-time" style="background:#000; border-color:var(--purple); margin-bottom:10px;">
+                        <button class="action-btn btn-purple" style="width:100%;" onclick="scheduleTelegramPromo()">📅 Schedule Broadcast</button>
                     </div>
                 </div>
             </div>
@@ -938,14 +956,7 @@
             <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--cyan);">🧠 AI Illusion & Win Settings (የካዚኖ ጀርባ አሰራር)</h3>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="font-weight:bold; color:var(--gold);">💎 Hidden Bank (ካዝና)</label>
-                        <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ሲስተሙ ለመክፈል የሚጠቀምበት</p>
-                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                            <input type="number" id="set-virtual-pool" placeholder="Amount">
-                            <button class="action-btn" style="background:var(--gold); color:black;" onclick="updateSettings('virtual_pool')">Save</button>
-                        </div>
-                    </div>
+                    
                     <div style="flex: 1; min-width: 200px;">
                         <label style="font-weight:bold; color:var(--red);">🎭 Decoy Chance (%)</label>
                         <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ቦት ቆርጦ የሚበላበት ማደናገሪያ</p>
@@ -954,7 +965,7 @@
                             <button class="action-btn" style="background:var(--red); color:white;" onclick="updateSettings('decoy')">Save</button>
                         </div>
                     </div>
-                    <!-- 🔥 አዲሱ የቦነስ ፐርሰንት መቆጣጠሪያ 🔥 -->
+                    
                     <div style="flex: 1; min-width: 200px;">
                         <label style="font-weight:bold; color:var(--purple);">🎁 Bonus Win Chance (%)</label>
                         <p style="font-size:10px; color:gray; margin-bottom:5px; margin-top:0;">ቦነስ የተጫወተ የማሸነፍ ዕድል (0 = አያሸንፍም)</p>
@@ -1258,7 +1269,7 @@
         localStorage.removeItem('bingo_admin_pass');
         location.reload();
     }
-   // 🔥 አድሚን Manual ደረሰኝ (TxRef) ሞልቶ ብር የሚሞላበት Function 🔥
+
 async function submitManualDeposit() {
     let phone = document.getElementById('ui-phone').innerText; 
     let txRef = document.getElementById('man-txref').value.trim();
@@ -1281,7 +1292,6 @@ async function submitManualDeposit() {
             alert("✅ " + data.message);
             document.getElementById('man-txref').value = '';
             document.getElementById('man-amount').value = '';
-            // መረጃውን እንዲያድስ
             fetchAndShowUserInfo(phone); 
             if(typeof loadPendingTxs === 'function') loadPendingTxs(); 
         } else {
@@ -1419,7 +1429,7 @@ async function submitManualDeposit() {
         let d2 = parseInt(document.getElementById('bot-d2').value) || 0;
         let d3 = parseInt(document.getElementById('bot-d3').value) || 0;
         let d4 = parseInt(document.getElementById('bot-d4').value) || 0;
-        if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) { d1 = 5; d2 = 4; d3 = 3; d4 = 3; } // 0 ሆኖ እንዳይበላሽ
+        if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) { d1 = 5; d2 = 4; d3 = 3; d4 = 3; } 
 
         let isSchedActive = document.getElementById('bot-schedule-toggle').checked;
         let s1 = { start: parseInt(document.getElementById('s1-start').value)||0, end: parseInt(document.getElementById('s1-end').value)||0, min: parseInt(document.getElementById('s1-min').value)||0, max: parseInt(document.getElementById('s1-max').value)||0 };
@@ -1725,7 +1735,7 @@ async function submitManualDeposit() {
                 document.getElementById('stat-game-state').innerText = data.gameState;
                 document.getElementById('stat-current-jackpot').innerText = Number(data.currentJackpot || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
                 
-                // 🟢 SHOW VIRTUAL POOL
+                // 🟢 HIDDEN POOL (VAULT 1)
                 document.getElementById('stat-virtual-pool').innerText = Number(data.settings.virtualPrizePool || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
 
                 document.getElementById('stat-daily-dep').innerText = Number(data.dailyDeposit || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
@@ -1799,8 +1809,6 @@ async function submitManualDeposit() {
                 safeUpdate('set-wit-banner-am', data.settings.witBannerTextAm || '');
                 safeUpdate('set-wit-banner-en', data.settings.witBannerTextEn || '');
 
-                // 🟢 HIDDEN POOL, DECOY & BONUS WIN
-                safeUpdate('set-virtual-pool', data.settings.virtualPrizePool !== undefined ? data.settings.virtualPrizePool : 0);
                 safeUpdate('set-decoy-chance', data.settings.decoyChancePercent !== undefined ? data.settings.decoyChancePercent : 15);
                 safeUpdate('set-bonus-win-perc', data.settings.bonusWinPercent !== undefined ? data.settings.bonusWinPercent : 0);
 
@@ -1865,7 +1873,7 @@ async function submitManualDeposit() {
                     }
                 }
                 
-                // 👇 አዲሱ የካዝና መቆጣጠሪያ 👇
+                // 👇 የካዝና መቆጣጠሪያ 👇
                 if(document.getElementById('disp-vault1')) {
                     document.getElementById('disp-vault1').innerText = Number(data.settings.virtualPrizePool || 0).toLocaleString() + " ETB";
                     safeUpdate('edit-vault1', data.settings.virtualPrizePool !== undefined ? data.settings.virtualPrizePool : 0);
@@ -1874,6 +1882,11 @@ async function submitManualDeposit() {
                     document.getElementById('disp-vault2').innerText = Number(data.settings.vaultTwoBalance || 0).toLocaleString() + " ETB";
                     safeUpdate('edit-vault2', data.settings.vaultTwoBalance !== undefined ? data.settings.vaultTwoBalance : 0);
                     safeUpdate('edit-vault2-perc', data.settings.vaultTwoPercent !== undefined ? data.settings.vaultTwoPercent : 10);
+                }
+                if(document.getElementById('disp-vault3')) {
+                    document.getElementById('disp-vault3').innerText = Number(data.settings.vaultThreeBalance || 0).toLocaleString() + " ETB";
+                    safeUpdate('edit-vault3', data.settings.vaultThreeBalance !== undefined ? data.settings.vaultThreeBalance : 0);
+                    safeUpdate('edit-vault3-perc', data.settings.vaultThreePercent !== undefined ? data.settings.vaultThreePercent : 15);
                 }
             }
         } catch(e) { console.log(e); }
@@ -2647,7 +2660,7 @@ async function submitManualDeposit() {
                 toggleBroadcastDepOptions('cb');
             } 
         } catch(e) { alert("Error"); } 
-        btn.innerText = "Create Promo & Broadcast"; 
+        btn.innerText = "🚀 አሁኑኑ ላክ (Send Now)"; 
     }
 
     async function viewClaimedUsers() { try { document.querySelector('#btn-send-promo').nextElementSibling.innerText = "Loading..."; let res = await fetch('/api/admin/claim-bonus-list', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass})}); let data = await res.json(); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; if(data.success) { document.getElementById('claimed-count').innerText = data.claimedBy.length; document.getElementById('claimed-max').innerText = data.max; let listHtml = data.claimedBy.map((p, i) => `<div style="padding:8px 5px; border-bottom:1px solid #333; font-family:monospace; font-size:13px; color:#cbd5e1;">${i+1}. <a href="#" style="color:#cbd5e1; text-decoration:none;" onclick="fetchAndShowUserInfo('${p}'); return false;">${p}</a></div>`).join(''); document.getElementById('claimed-list').innerHTML = listHtml || `<div style="text-align:center; color:gray;">No claims yet.</div>`; document.getElementById('claimed-users-modal').style.display = 'flex'; } else { alert(data.message || "No promo active."); } } catch(e) { alert("Error fetching data."); document.querySelector('#btn-send-promo').nextElementSibling.innerText = "👁️ View Claimed Users"; } }
@@ -2681,6 +2694,49 @@ async function submitManualDeposit() {
             sendPayloadToTelegram(payload, btn); 
         } 
     }
+
+    // 🔥 Schedule ፎርሙን ሞልቶ ወደ ሰርቨር የሚልከው 🔥
+    async function scheduleTelegramPromo() {
+        let msg = document.getElementById('tg-msg').value; 
+        let photoUrl = document.getElementById('tg-photo-url').value.trim(); 
+        let fileInput = document.getElementById('tg-photo-file'); 
+        let depOnly = document.getElementById('tg-dep-only').checked; 
+        let minDep = document.getElementById('tg-min-dep').value;
+        let depHours = document.getElementById('tg-dep-hours').value;
+        let schedTime = document.getElementById('tg-schedule-time').value;
+
+        if(!msg) return alert("እባክዎ መጀመሪያ መልዕክትዎን ይፃፉ!"); 
+        if(!schedTime) return alert("እባክዎ የሚላክበትን ሰዓት ይምረጡ!"); 
+        
+        let payload = {
+            adminPass: pass, message: msg, photoUrl: photoUrl, depositorsOnly: depOnly,
+            minDepositAmount: depOnly && minDep ? Number(minDep) : 0,
+            requireDepositWithinHours: depOnly && depHours ? Number(depHours) : 0,
+            scheduledTime: schedTime
+        };
+
+        let sendReq = async (finalPayload) => {
+            try {
+                let res = await fetch('/api/admin/schedule-telegram', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(finalPayload)});
+                let data = await res.json();
+                alert(data.message || "Scheduled successfully!");
+                if(data.success) {
+                    document.getElementById('tg-msg').value = '';
+                    document.getElementById('tg-photo-file').value = '';
+                    document.getElementById('tg-photo-url').value = '';
+                    document.getElementById('tg-schedule-time').value = '';
+                }
+            } catch(e) { alert("Error scheduling broadcast."); }
+        };
+
+        if (fileInput.files.length > 0) { 
+            let reader = new FileReader(); 
+            reader.readAsDataURL(fileInput.files[0]); 
+            reader.onload = async function () { payload.photoUrl = reader.result; sendReq(payload); }; 
+        } else { 
+            sendReq(payload); 
+        } 
+    }
     
     async function sendPayloadToTelegram(payload, btn) { 
         try { 
@@ -2699,7 +2755,7 @@ async function submitManualDeposit() {
         } catch(e) { 
             alert("Error sending."); 
         } 
-        btn.innerText = "Broadcast to Telegram"; 
+        btn.innerText = "🚀 አሁኑኑ ላክ (Send Now)"; 
     }
 
     async function actionTx(txId, action) { if(confirm(`Are you sure?`)){ await fetch('/api/admin/action-tx', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminPass: pass, txId, action})}); loadPendingTxs(); loadTxPage(p_tx); } }
@@ -2752,16 +2808,25 @@ async function submitManualDeposit() {
             document.getElementById('set-finance-pass').value = '';
         }
 
+        // 🔥 አዲሱ ካዝናዎችን ሴቭ ማድረጊያ 🔥
         if(type === 'all_vaults') { 
             let v1 = document.getElementById('edit-vault1').value; 
             let v2 = document.getElementById('edit-vault2').value; 
             let v2p = document.getElementById('edit-vault2-perc').value; 
+            let v3 = document.getElementById('edit-vault3').value; 
+            let v3p = document.getElementById('edit-vault3-perc').value; 
 
             if(v1 !== '') payload.virtualPrizePool = Number(v1);
             if(v2 !== '') payload.vaultTwoBalance = Number(v2);
+            if(v3 !== '') payload.vaultThreeBalance = Number(v3);
+
             if(v2p !== '') {
                 if(v2p < 0 || v2p > 100) return alert("ካዝና 2 ፐርሰንት ከ 0 እስከ 100 ብቻ መሆን አለበት!");
                 payload.vaultTwoPercent = Number(v2p);
+            }
+            if(v3p !== '') {
+                if(v3p < 0 || v3p > 100) return alert("ካዝና 3 ፐርሰንት ከ 0 እስከ 100 ብቻ መሆን አለበት!");
+                payload.vaultThreePercent = Number(v3p);
             }
         }
 
