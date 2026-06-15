@@ -234,6 +234,7 @@
             else if(period === 'range') displayStr = `From: ${new Date(currentStartDate).toLocaleDateString('en-US', opts)} — To: ${new Date(currentEndDate).toLocaleDateString('en-US', opts)}`;
             document.getElementById('date-display').innerText = displayStr;
 
+            // ይሄ ነው ዋናው - Aggregated Finance Data ከሰርቨር ማምጣት
             let payload = { adminPass: pass, period: period, customDate: currentCustomDate, rangeStart: currentStartDate, rangeEnd: currentEndDate };
             let res = await fetch('/api/admin/finance-stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
             
@@ -269,7 +270,7 @@
     function loadFinancialData() { fetchAndRenderData(currentFilter); }
 </script>
 </body>
-</html>
+</html
 
 
 
