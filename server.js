@@ -2535,8 +2535,11 @@ setInterval(() => {
             let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
 
             if (forceWinner === 'ai') {
-                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
-                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;
+                // 1. ሦስቱንም ካዝናዎች (Vaults) ቼክ ያደርጋል
+                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;  // Vault 1
+                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     // Vault 2
+                let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; // Vault 3
+                
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
                 let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
@@ -2548,16 +2551,26 @@ setInterval(() => {
                 } else {
                     let maxSafePayout = hiddenPool * 0.20; 
 
+                    // 🎯 ቼክ 1: Vault 2 ውስጥ ለአንድ ሙሉ ሰው (Real) ለመክፈል የሚበቃ ብር ካለ?
                     if (vaultTwo >= finalTotalPrize) {
                         if(isBonusLucky) forceWinner = 'real'; 
                         else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; 
+                        GLOBAL_SETTINGS.mixBotCount = 0; // ቦት አያስገባም፣ ለሰውየው ብቻ ይከፍላል
                     }
+                    // 🎯 ቼክ 2: Vault 3 ውስጥ ለግማሽ ሰው ለመክፈል የሚበቃ ብር ካለ? (1 ሰው እና 1 ቦት ያካፍላል)
+                    else if (vaultThree >= (finalTotalPrize / 2)) {
+                        if(isBonusLucky) forceWinner = 'mix'; 
+                        else forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 1; // ሽልማቱን ለ 2 ይከፍላል (1 ቦት እና 1 ሰው)
+                    }
+                    // 🎯 ቼክ 3: Vault 1 ውስጥ ለመክፈል የሚበቃ ደህንነቱ የተጠበቀ ብር ካለ?
                     else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
                         if(isBonusLucky) forceWinner = 'real'; 
                         else forceWinner = 'mix_dep'; 
                         GLOBAL_SETTINGS.mixBotCount = 0;
-                    } else {
+                    } 
+                    // 🎯 ቼክ 4: ካዝናዎቹ ውስጥ በቂ ብር ከሌለ (ወይም ካነሰ) ለቦቶች ብቻ ይሰጣል
+                    else {
                         let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
                         let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
                         
@@ -2565,7 +2578,7 @@ setInterval(() => {
                         if (neededSplits < 2) neededSplits = 2; 
 
                         if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
-                            forceWinner = 'bots'; 
+                            forceWinner = 'bots'; // ካዝናው ባዶ ከሆነ ቦት ብቻ ያሸንፋል
                         } else {
                             if(isBonusLucky) forceWinner = 'mix'; 
                             else forceWinner = 'mix_dep'; 
