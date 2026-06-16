@@ -2874,7 +2874,6 @@ io.on('connection', (socket) => {
                     totalTickets -= 1;
                     totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
                     
-                    // 🔥 ከላይ ሲገዙ እንደተሰላው ጃክፖት ላይ ሲመለስም በትክክል ይቀንሳል
                     let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                     totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
 
