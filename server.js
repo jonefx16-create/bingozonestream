@@ -2735,6 +2735,11 @@ setInterval(() => {
                     }
                 }
                 
+                // ✅ አሸናፊዎቹ ከ 5 በላይ ከሆኑ (ቦቶችም ቢሆኑ) 5ቱን ብቻ መርጦ ይቆርጣል
+                if (winnersThisRound.length > 5) {
+                    winnersThisRound = winnersThisRound.sort(() => Math.random() - 0.5).slice(0, 5);
+                }
+
                 declareWinners(winnersThisRound);
                 return;
             }
