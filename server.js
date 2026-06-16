@@ -2855,26 +2855,50 @@ io.on('connection', (socket) => {
                 let canceledTicket = p ? p.ticketsData.find(t => t.id === data.ticketId) : null;
                 
                 if(p && canceledTicket) {
-                    
                     let refundPlay = canceledTicket.paidFromPlay || 0;
                     let refundMain = canceledTicket.paidFromMain || 0;
-                    
-                    if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
 
+                    // 🔥 አዲሱ ማስተካከያ፡ ከ Main Wallet ተቆርጦ ከነበረ ከካዝናዎቹ ላይ መልሶ ይቀንሳል
+                    if (refundMain > 0) {
+                        let v2Undo = refundMain * ((GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10) / 100);
+                        let v3Undo = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
+                        let v1Undo = refundMain - v2Undo - v3Undo;
+
+                        // ከጀርባ ካለው ዳታቤዝ ላይ ይቀንሳል
+                        await SystemSettings.updateOne({}, { 
+                            $inc: { 
+                                virtualPrizePool: -v1Undo, 
+                                vaultTwoBalance: -v2Undo, 
+                                vaultThreeBalance: -v3Undo 
+                            } 
+                        });
+
+                        // አሁን ባለው ሰርቨር (Memory) ላይ ያለውን ዳታ ያስተካክላል
+                        GLOBAL_SETTINGS.virtualPrizePool -= v1Undo;
+                        GLOBAL_SETTINGS.vaultTwoBalance -= v2Undo;
+                        GLOBAL_SETTINGS.vaultThreeBalance -= v3Undo;
+                        
+                        // ካዝናዎቹ ከዜሮ በታች እንዳይወርዱ ጥንቃቄ ያደርጋል
+                        if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
+                        if(GLOBAL_SETTINGS.vaultTwoBalance < 0) GLOBAL_SETTINGS.vaultTwoBalance = 0;
+                        if(GLOBAL_SETTINGS.vaultThreeBalance < 0) GLOBAL_SETTINGS.vaultThreeBalance = 0;
+                    }
+                    
+                    // ለሰውየው ብሩን ይመልስለታል
                     user.playBalance += refundPlay;
                     user.mainBalance += refundMain;
                     user.played = Math.max(0, user.played - 1);
                     user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
                     await user.save();
 
+                    // ከጨዋታው ዝርዝር ውስጥ ትኬቱን ያጠፋል
                     p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
                     p.tickets -= 1;
                     if(p.tickets === 0) delete activePlayers[data.phone];
 
+                    // በስክሪን ላይ የሚታየውን ጃክፖት ይቀንሳል
                     totalTickets -= 1;
                     totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
-                    
-                    // 🔥 ከላይ ሲገዙ እንደተሰላው ሲመለስም በትክክል ይቀንሳል
                     let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                     totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
 
@@ -2885,12 +2909,12 @@ io.on('connection', (socket) => {
                     socket.emit('ticket_cancelled_success', data.ticketId);
                 }
             }
+        } catch (e) {
+            console.error("Cancel Ticket Error:", e);
         } finally {
             delete buyingLocks[data.phone];
         }
     });
-
-});
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
