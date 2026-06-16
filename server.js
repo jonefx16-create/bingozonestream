@@ -2866,29 +2866,16 @@ io.on('connection', (socket) => {
                     user.played = Math.max(0, user.played - 1);
                     user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
                     await user.save();
-
-                    p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
-                    p.tickets -= 1;
-                    if(p.tickets === 0) delete activePlayers[data.phone];
-
-                    totalTickets -= 1;
-                    totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
-                    
-                    let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                    totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
-
-                    // 🚨 BUG FIX: ትኬቱ ከ Main Wallet የተገዛ ከነበረ፣ ሲሰረዝ ከ 3ቱም ካዝናዎች ላይ ተመልሶ መቀነስ አለበት! 🚨
+               // 🚨 ከ Main Wallet የተገዛ ከነበረ፣ ሲሰረዝ ከ 3ቱም ካዝናዎች ላይ ይቀንሳል
                     if (refundMain > 0) {
-                        let v2Cut = refundMain * ((GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10) / 100);
-                        let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
+                        let v2Cut = refundMain * ((GLOBAL_SETTINGS.vaultTwoPercent || 10) / 100);
+                        let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
                         let v1Cut = refundMain - v2Cut - v3Cut;
 
-                        // ከካዝናው ላይ ተመልሶ ይቀነሳል (ከ 0 በታች እንዳይወርድ Math.max ተጠቅመናል)
                         GLOBAL_SETTINGS.virtualPrizePool = Math.max(0, GLOBAL_SETTINGS.virtualPrizePool - v1Cut);
                         GLOBAL_SETTINGS.vaultTwoBalance = Math.max(0, GLOBAL_SETTINGS.vaultTwoBalance - v2Cut);
                         GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
 
-                        // ዳታቤዝ ላይ ሴቭ ይደረጋል
                         await SystemSettings.updateOne({}, { 
                             $set: { 
                                 virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
@@ -2896,7 +2883,18 @@ io.on('connection', (socket) => {
                                 vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
                             } 
                         });
-                    }
+                    }  
+                    
+                    p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
+                    p.tickets -= 1;
+                    if(p.tickets === 0) delete activePlayers[data.phone];
+
+                    totalTickets -= 1;
+                    totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                    
+                    // 🔥 ከላይ ሲገዙ እንደተሰላው ሲመለስም በትክክል ይቀንሳል
+                    let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                    totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
 
                     globalTakenTickets = globalTakenTickets.filter(id => id !== data.ticketId);
 
@@ -2909,6 +2907,8 @@ io.on('connection', (socket) => {
             delete buyingLocks[data.phone];
         }
     });
+
+});
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
