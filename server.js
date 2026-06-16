@@ -2298,12 +2298,6 @@ async function declareWinners(winners) {
         }
     }
 
-    if (botWinnersPrize > 0 && realMoneyInThisRound > 0) {
-        let amountToReturn = Math.min(botWinnersPrize, realMoneyInThisRound);
-        GLOBAL_SETTINGS.virtualPrizePool += amountToReturn;
-        await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
-    }
-
     let uniqueNames = [...new Set(winnerNames)];
     let displayNames = uniqueNames.join(' እና ');
 
