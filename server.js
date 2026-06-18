@@ -2799,20 +2799,17 @@ io.on('connection', (socket) => {
 
                 let realBetAmount = mainDeducted;
 
-                // 🔥 ከ Main Wallet ለተቆረጠው አድሚን ትርፍ ሳይወስድ ለ 3ቱም ካዝና ያከፋፍላል 🔥
+                // 🔥 ከ Main Wallet የተቆረጠው ወደ ካዝና 1 እና 3 ብቻ ይገባል (ካዝና 2ን ይዘለዋል) 🔥
                 if (mainDeducted > 0) {
-                    let v2Cut = mainDeducted * ((GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10) / 100);
                     let v3Cut = mainDeducted * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
-                    let v1Cut = mainDeducted - v2Cut - v3Cut;
+                    let v1Cut = mainDeducted - v3Cut;
 
                     GLOBAL_SETTINGS.virtualPrizePool += v1Cut;
-                    GLOBAL_SETTINGS.vaultTwoBalance += v2Cut;
                     GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
 
                     await SystemSettings.updateOne({}, { 
                         $inc: { 
                             virtualPrizePool: v1Cut, 
-                            vaultTwoBalance: v2Cut, 
                             vaultThreeBalance: v3Cut 
                         } 
                     });
@@ -2878,20 +2875,17 @@ io.on('connection', (socket) => {
                     user.played = Math.max(0, user.played - 1);
                     user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
                     await user.save();
-               // 🚨 ከ Main Wallet የተገዛ ከነበረ፣ ሲሰረዝ ከ 3ቱም ካዝናዎች ላይ ይቀንሳል
+               // 🚨 ከ Main Wallet የተገዛ ከነበረ፣ ሲሰረዝ ከካዝና 1 እና 3 ላይ ብቻ ይቀንሳል
                     if (refundMain > 0) {
-                        let v2Cut = refundMain * ((GLOBAL_SETTINGS.vaultTwoPercent || 10) / 100);
                         let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
-                        let v1Cut = refundMain - v2Cut - v3Cut;
+                        let v1Cut = refundMain - v3Cut;
 
                         GLOBAL_SETTINGS.virtualPrizePool = Math.max(0, GLOBAL_SETTINGS.virtualPrizePool - v1Cut);
-                        GLOBAL_SETTINGS.vaultTwoBalance = Math.max(0, GLOBAL_SETTINGS.vaultTwoBalance - v2Cut);
                         GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
 
                         await SystemSettings.updateOne({}, { 
                             $set: { 
                                 virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
-                                vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance, 
                                 vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
                             } 
                         });
