@@ -1041,15 +1041,58 @@ app.post('/api/admin/bots-rename-all', auth, async (req, res) => {
         let limit = parseInt(req.body.limit) || 0;
         let query = BotUser.find();
         if(limit > 0) query = query.sort({lastPlayed: -1}).limit(limit);
-        
+
         let bots = await query.exec();
+
+        // 1. ከእውነተኛ ተጠቃሚዎች Database ስም እንውሰድ (በቦቶቹ ልክ)
+        let realUsers = await User.aggregate([
+            { $match: { name: { $ne: null, $ne: "" } } },
+            { $sample: { size: bots.length > 50 ? bots.length : 50 } },
+            { $project: { name: 1 } }
+        ]);
+        
+        // ስሞቹን አውጥተን በደንብ እናደባልቃቸዋለን (Shuffle)
+        let userNames = realUsers.map(u => u.name).filter(n => n && n.length > 2);
+        userNames = userNames.sort(() => Math.random() - 0.5); 
+
+        // 2. ስሙን ሰው እንዳይጠረጥር አድርጎ የሚቀይር ሎጂክ
+        function tweakName(name) {
+            let tweaked = name.trim().split(' ')[0]; // የመጀመሪያውን ስም ብቻ ይወስዳል
+
+            let capRand = Math.random();
+            if (capRand < 0.60) { 
+                tweaked = tweaked.charAt(0).toUpperCase() + tweaked.slice(1).toLowerCase();
+            } else if (capRand < 0.90) { 
+                tweaked = tweaked.toLowerCase();
+            } else { 
+                tweaked = tweaked.toUpperCase();
+            }
+            
+            let addRand = Math.random();
+            if (addRand < 0.90) {
+                // 90% ምንም አይጨምርም
+            } else if (addRand < 0.95) {
+                tweaked = tweaked + Math.floor(Math.random() * 99);
+            } else {
+                let specialChar = (Math.random() > 0.5) ? '_' : '.';
+                let addNum = (Math.random() > 0.5) ? Math.floor(Math.random() * 99) : ''; 
+                tweaked = tweaked + specialChar + addNum; 
+            }
+
+            return tweaked;
+        }
+
         for(let b of bots) {
-            b.name = maleEthNames[Math.floor(Math.random() * maleEthNames.length)];
-            b.phone = "09" + Math.floor(10000000 + Math.random() * 90000000);
+            // userNames.pop() -> የተጠቀመውን ስም ከዝርዝሩ ውስጥ ያጠፋዋል (ስለዚህ ፈፅሞ አይደገምም!)
+            let baseName = userNames.length > 0 ? userNames.pop() : maleEthNames[Math.floor(Math.random() * maleEthNames.length)];
+            
+            b.name = tweakName(baseName); // ስሙን ይቀይረዋል (ስልኩን አይነካም)
             await b.save();
         }
-        res.json({ success: true, message: `✅ የተመረጡት ${bots.length} ቦቶች ስም እና ስልክ ተቀይሯል!` });
-    } catch(e) { res.json({ success: false }); }
+        res.json({ success: true, message: `✅ የተመረጡት ${bots.length} ቦቶች ስም ከዋናው ዳታቤዝ ተወስዶ (ያለ ምንም ድግግሞሽ) ተስተካክሏል!` });
+    } catch(e) { 
+        res.json({ success: false }); 
+    }
 });
 
 const botRoutes = require('./bots/bot.routes');
@@ -2632,11 +2675,21 @@ setInterval(() => {
                 }
 
                 let safeFromBotsAndNonDep = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n) && !winForNonDepositor.includes(n));
-                
+
+                // 🌟 አዲስ ማስተካከያ: ከዚህ በፊት ያላሸነፉ ሰዎችን (Fresh) እንለይ
+                let freshDepositors = depositorPlayers.filter(p => !mixDepWinnersHistory.includes(p.phone));
+
+                // ሁሉም ሰው አሸንፎ ከነበረ፣ ታሪኩን እናጥፋና ለሁሉም እንደአዲስ እድል እንስጥ
+                if (freshDepositors.length === 0 && depositorPlayers.length > 0) {
+                    mixDepWinnersHistory = [];
+                    freshDepositors = depositorPlayers;
+                }
+
                 let winForDepositor = [];
                 for(let testNum of safeFromBotsAndNonDep) {
                      let tempCalled = [...calledNumbers, testNum];
-                     for(let p of depositorPlayers) {
+                     // ቅድሚያ ገና ላላሸነፉት (Fresh) ተጫዋቾች እንፈልግ
+                     for(let p of freshDepositors) {
                          for(let t of p.ticketsData) {
                              if(serverCheckBingo(t.grid, tempCalled)) {
                                  winForDepositor.push(testNum);
@@ -2646,13 +2699,28 @@ setInterval(() => {
                      }
                 }
 
+                // Fresh ተጫዋች ካልተገኘ፣ ለማንኛውም Depositor እንፈልግ (Fallback)
+                if(winForDepositor.length === 0) {
+                    for(let testNum of safeFromBotsAndNonDep) {
+                         let tempCalled = [...calledNumbers, testNum];
+                         for(let p of depositorPlayers) {
+                             for(let t of p.ticketsData) {
+                                 if(serverCheckBingo(t.grid, tempCalled)) {
+                                     winForDepositor.push(testNum);
+                                     break;
+                                 }
+                             }
+                         }
+                    }
+                }
+
                 let depWinNum = winForDepositor.length > 0 ? winForDepositor[0] : null;
 
                 if (depWinNum) {
-                    numToCall = depWinNum; 
+                    numToCall = depWinNum;
                 } else {
                     numToCall = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
-                    if(!numToCall) numToCall = currentDrawSequence[0]; 
+                    if(!numToCall) numToCall = currentDrawSequence[0];
                 }
             }
             else if (forceWinner === 'bots') {
@@ -2778,15 +2846,17 @@ io.on('connection', (socket) => {
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 let playDeducted = 0;
                 let mainDeducted = 0;
-                
-                if (user.mainBalance >= betAmount) { 
-                    user.mainBalance -= betAmount;
-                    mainDeducted = betAmount;
-                } else { 
-                    mainDeducted = user.mainBalance;
-                    playDeducted = betAmount - user.mainBalance;
-                    user.mainBalance = 0;
-                    user.playBalance -= playDeducted; 
+
+                // መጀመሪያ ከ Play Wallet ይቆርጣል
+                if (user.playBalance >= betAmount) {
+                    user.playBalance -= betAmount;
+                    playDeducted = betAmount;
+                } else {
+                    // Play Wallet ካነሰ፣ ያለውን ጨርሶ ቀሪውን ከ Main Wallet ይወስዳል
+                    playDeducted = user.playBalance;
+                    mainDeducted = betAmount - user.playBalance;
+                    user.playBalance = 0;
+                    user.mainBalance -= mainDeducted;
                 }
 
                 if (playDeducted > 0) {
