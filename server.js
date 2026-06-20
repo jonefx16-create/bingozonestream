@@ -94,6 +94,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     smsText: {type: String, default: ""},
     txRef: { type: String, default: "", index: true },
     hiddenFromAdmin: { type: Boolean, default: false } 
+}));
 // የተጠቀሙባቸውን ደረሰኞች (TxRef) ብቻ ለዘላለም የሚይዝ ማህደር
 const TxArchive = mongoose.model('TxArchive', new mongoose.Schema({
     txRef: { type: String, unique: true, index: true }
