@@ -1048,52 +1048,58 @@ app.post('/api/admin/bots-rename-all', auth, async (req, res) => {
 
         let bots = await query.exec();
 
-        // 1. ከእውነተኛ ተጠቃሚዎች Database ስም እንውሰድ (በቦቶቹ ልክ)
+        // 1. ከእውነተኛ ተጠቃሚዎች Database ስም እንውሰድ
         let realUsers = await User.aggregate([
             { $match: { name: { $ne: null, $ne: "" } } },
             { $sample: { size: bots.length > 50 ? bots.length : 50 } },
             { $project: { name: 1 } }
         ]);
         
-        // ስሞቹን አውጥተን በደንብ እናደባልቃቸዋለን (Shuffle)
-        let userNames = realUsers.map(u => u.name).filter(n => n && n.length > 2);
+        // ማጣሪያ: አላስፈላጊ ስሞችን (user12, 0911...) እናጣራለን
+        let userNames = realUsers.map(u => u.name).filter(n => {
+            if (!n || n.length <= 2) return false;
+            let lower = n.toLowerCase();
+            if (lower.includes('user') || /\d/.test(n)) return false; 
+            return true;
+        });
+
         userNames = userNames.sort(() => Math.random() - 0.5); 
 
-        // 2. ስሙን ሰው እንዳይጠረጥር አድርጎ የሚቀይር ሎጂክ
+        // 🚨 በጣም ቀላል እና ተፈጥሯዊ የሆነ ለውጥ (Subtle Tweak)
         function tweakName(name) {
-            let tweaked = name.trim().split(' ')[0]; // የመጀመሪያውን ስም ብቻ ይወስዳል
+            // ተጠቃሚው ያስገባውን ስም እንዳለ እንወስዳለን (ያለ አላስፈላጊ ክፍተት)
+            let tweaked = name.trim(); 
 
-            let capRand = Math.random();
-            if (capRand < 0.60) { 
-                tweaked = tweaked.charAt(0).toUpperCase() + tweaked.slice(1).toLowerCase();
-            } else if (capRand < 0.90) { 
-                tweaked = tweaked.toLowerCase();
-            } else { 
-                tweaked = tweaked.toUpperCase();
-            }
-            
-            let addRand = Math.random();
-            if (addRand < 0.90) {
-                // 90% ምንም አይጨምርም
-            } else if (addRand < 0.95) {
-                tweaked = tweaked + Math.floor(Math.random() * 99);
+            let randStyle = Math.random();
+
+            if (randStyle < 0.60) {
+                // 60% ዕድል: ምንም አይቀይርም! (እንዳለ ይጠቀመዋል)
+                return tweaked;
+            } else if (randStyle < 0.80) {
+                // 20% ዕድል: ሁሉንም በትንሽ ፊደል ያደርገዋል (ምሳሌ: abebe)
+                return tweaked.toLowerCase();
+            } else if (randStyle < 0.90) {
+                // 10% ዕድል: ከስሙ ጀርባ ትንሽ ቁጥር ይጨምራል (ምሳሌ: Abebe4)
+                let rndNum = Math.floor(Math.random() * 99) + 1;
+                return tweaked + rndNum;
             } else {
-                let specialChar = (Math.random() > 0.5) ? '_' : '.';
-                let addNum = (Math.random() > 0.5) ? Math.floor(Math.random() * 99) : ''; 
-                tweaked = tweaked + specialChar + addNum; 
+                // 10% ዕድል: ከስሙ ጀርባ ነጥብ ወይ አንደርስኮር ያደርጋል (ምሳሌ: Abebe.)
+                let sym = Math.random() > 0.5 ? '_' : '.';
+                // ስሙ ላይ ቀድሞ ምልክት ከሌለ ብቻ ይጨምራል
+                if(!tweaked.endsWith('_') && !tweaked.endsWith('.')) {
+                    return tweaked + sym;
+                }
+                return tweaked;
             }
-
-            return tweaked;
         }
 
         for(let b of bots) {
-            // userNames.pop() -> የተጠቀመውን ስም ከዝርዝሩ ውስጥ ያጠፋዋል (ስለዚህ ፈፅሞ አይደገምም!)
             let baseName = userNames.length > 0 ? userNames.pop() : maleEthNames[Math.floor(Math.random() * maleEthNames.length)];
             
-            b.name = tweakName(baseName); // ስሙን ይቀይረዋል (ስልኩን አይነካም)
+            b.name = tweakName(baseName); 
             await b.save();
         }
-        res.json({ success: true, message: `✅ የተመረጡት ${bots.length} ቦቶች ስም ከዋናው ዳታቤዝ ተወስዶ (ያለ ምንም ድግግሞሽ) ተስተካክሏል!` });
+        res.json({ success: true, message: `✅ የተመረጡት ${bots.length} ቦቶች ስም ከዋናው ዳታቤዝ ተወስዶ በተፈጥሯዊ መንገድ ተስተካክሏል!` });
     } catch(e) { 
         res.json({ success: false }); 
     }
