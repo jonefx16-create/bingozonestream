@@ -94,6 +94,9 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     smsText: {type: String, default: ""},
     txRef: { type: String, default: "", index: true },
     hiddenFromAdmin: { type: Boolean, default: false } 
+// የተጠቀሙባቸውን ደረሰኞች (TxRef) ብቻ ለዘላለም የሚይዝ ማህደር
+const TxArchive = mongoose.model('TxArchive', new mongoose.Schema({
+    txRef: { type: String, unique: true, index: true }
 }));
 
 const BankSMS = mongoose.model('BankSMS', new mongoose.Schema({
@@ -3985,12 +3988,6 @@ app.get('*', (req, res) => {
 
 setInterval(async () => {
     try {
-        await autoApprovePendingDeposits();
-    } catch (error) {}
-}, 30000); 
-
-setInterval(async () => {
-    try {
         await User.updateMany({ totalDeposited: { $gt: 0 }, diagnosticFraudReported: true }, { $set: { diagnosticFraudReported: false } });
         await User.updateMany({ mainBalance: { $gte: 0 }, playBalance: { $gte: 0 }, diagnosticNegativeReported: true }, { $set: { diagnosticNegativeReported: false } });
 
@@ -4022,6 +4019,61 @@ setInterval(async () => {
     }
 }, 15 * 60 * 1000); 
 
+// ==========================================
+// 🧹 አዲሱ የ AUTO-CLEANUP ኮድ (DATABASE PRUNING)
+// የገንዘብ ታሪክ (Transaction) መቼም አይጠፋም። ሌሎች ብቻ ይፀዳሉ።
+// ==========================================
+setInterval(async () => {
+    try {
+        // 1. GameHistory Cleanup (የቅርብ ጊዜ 5000 ጌሞችን ብቻ አስቀርቶ የድሮውን ያጠፋል)
+        const gameCount = await GameHistory.countDocuments();
+        if (gameCount > 11000) {
+            const latestGames = await GameHistory.find().sort({ date: -1 }).limit(11000);
+            const oldestGameToKeep = latestGames[latestGames.length - 1];
+            if (oldestGameToKeep) {
+                await GameHistory.deleteMany({ date: { $lt: oldestGameToKeep.date } });
+            }
+        }
+
+        // 2. BankSMS Cleanup (ጥቅም ላይ የዋሉ 1000 ሜሴጆችን ብቻ አስቀርቶ ያጠፋል)
+        const smsCount = await BankSMS.countDocuments();
+        if (smsCount > 1000) {
+            const latestSMS = await BankSMS.find().sort({ dateReceived: -1 }).limit(1000);
+            const oldestSMSToKeep = latestSMS[latestSMS.length - 1];
+            if (oldestSMSToKeep) {
+                await BankSMS.deleteMany({ dateReceived: { $lt: oldestSMSToKeep.dateReceived }, isUsed: true });
+            }
+        }
+
+        // 3. SystemLog Cleanup (የሲስተም ሎግ 1000 ብቻ አስቀርቶ ያጠፋል)
+        const logCount = await SystemLog.countDocuments();
+        if (logCount > 1000) {
+            const latestLogs = await SystemLog.find().sort({ date: -1 }).limit(1000);
+            const oldestLogToKeep = latestLogs[latestLogs.length - 1];
+            if (oldestLogToKeep) {
+                await SystemLog.deleteMany({ date: { $lt: oldestLogToKeep.date } });
+            }
+        }
+
+        // 4. SupportMessage Cleanup (የእርዳታ መልዕክት 1000 ብቻ አስቀርቶ ያጠፋል)
+        const msgCount = await SupportMessage.countDocuments();
+        if (msgCount > 1000) {
+            const latestMsgs = await SupportMessage.find().sort({ date: -1 }).limit(1000);
+            const oldestMsgToKeep = latestMsgs[latestMsgs.length - 1];
+            if (oldestMsgToKeep) {
+                await SupportMessage.deleteMany({ date: { $lt: oldestMsgToKeep.date } });
+            }
+        }
+        
+    } catch (error) {
+        console.log("⚠️ DB Cleanup Error:", error.message);
+    }
+}, 60 * 60 * 1000); // በየ 1 ሰዓቱ (60 ደቂቃ) ይሰራል
+
+
+// ==========================================
+// 🔴 የ ERROR መቆጣጠሪያ እና ሰርቨር ማስነሻ
+// ==========================================
 process.on('unhandledRejection', (reason, promise) => {
     if (reason && reason.message && reason.message.includes('bot was blocked by the user')) {
         console.log('⚠️ ማሳሰቢያ: አንድ ተጫዋች ቦቱን ብሎክ አድርጓል። ሰርቨሩ ግን ስራውን ይቀጥላል።');
@@ -4037,6 +4089,8 @@ process.on('uncaughtException', (err) => {
         console.error('Uncaught Exception thrown:', err);
     }
 });
+
+// የሰርቨሩ መጨረሻ
 server.listen(process.env.PORT || 3000, () => console.log(`🚀 Server running on port 3000`));
 
 
