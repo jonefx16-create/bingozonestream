@@ -761,22 +761,22 @@ app.post('/api/claim-promo-code', async (req, res) => {
             let minDep = promo.minDepositAmount || 0;
             if (promo.requireDepositWithinHours > 0) {
                 let cutoff = new Date(Date.now() - (promo.requireDepositWithinHours * 60 * 60 * 1000));
-                let recentDep = await Transaction.findOne({ 
-                    phone: user.phone, 
-                    type: 'deposit', 
-                    status: 'Approved', 
-                    date: { $gte: cutoff },
-                    amount: { $gte: minDep } 
-                });
-                if (!recentDep) {
+                // የተቆራረጡም ሆነ በአንድ ጊዜ የገቡ ዴፖዚቶችን ፈልጎ ድምሩን ያሰላል
+                let recentDeps = await Transaction.find({ phone: user.phone, type: 'deposit', status: 'Approved', date: { $gte: cutoff } });
+                let totalRecent = recentDeps.reduce((sum, tx) => sum + tx.amount, 0);
+                
+                if (totalRecent < minDep) {
                     promoLocks.delete(phone);
-                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ባለፉት ${promo.requireDepositWithinHours} ሰዓታት ውስጥ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት!` });
+                    return res.json({ success: false, message: `ይህንን የፕሮሞ ኮድ ለመጠቀም ባለፉት ${promo.requireDepositWithinHours} ሰዓታት ውስጥ ጠቅላላ ቢያንስ ${minDep} ብር ገቢ አድርገው መሆን አለበት! (ያለዎት: ${totalRecent} ብር)` });
                 }
             } else {
-                let validDep = await Transaction.findOne({ phone: user.phone, type: 'deposit', status: 'Approved', amount: { $gte: minDep } });
-                if (!validDep) {
+                // የትኛውንም ጊዜ የተቆራረጡም ሆነ በአንድ ጊዜ የገቡትን ድምር ያሰላል
+                let allDeps = await Transaction.find({ phone: user.phone, type: 'deposit', status: 'Approved' });
+                let totalAll = allDeps.reduce((sum, tx) => sum + tx.amount, 0);
+                
+                if (totalAll < minDep) {
                     promoLocks.delete(phone);
-                    return res.json({ success: false, message: `ይህንን ቦነስ ለማግኘት ከዚህ በፊት ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት!` });
+                    return res.json({ success: false, message: `ይህንን የፕሮሞ ኮድ ለመጠቀም ጠቅላላ ቢያንስ ${minDep} ብር ገቢ (Deposit) አድርገው መሆን አለበት! (ያለዎት: ${totalAll} ብር)` });
                 }
             }
         }
