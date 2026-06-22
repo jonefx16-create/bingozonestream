@@ -2851,7 +2851,6 @@ setInterval(() => {
 }, 1000);
 
 let buyingLocks = {}; 
-
     io.on('connection', (socket) => {
         let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
         socket.emit('game_status', { 
@@ -2863,42 +2862,37 @@ let buyingLocks = {};
         socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
         
         // ==========================================
-        // 🔒 FIX: INSTANT MEMORY SYNC (No Annoying Locks)
+        // 🔒 FIX: HACKER PROOF TICKET BUYING
         // ==========================================
         socket.on('buy_tickets', async (data) => {
             if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
             
-            // 🚨 ዳታ ካጠፉ ምንም አይሰራም
-            if (!socket.connected) return;
-
+            // 🚨 HACK FIX 1: ባዶ ወይም የተጭበረበረ ዳታ እንዳይገባ ማገጃ
             if (!data || !data.phone || !data.ticketsData || !Array.isArray(data.ticketsData)) return;
 
             let requestedCount = parseInt(data.ticketCount);
-            if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) return;
-            if (requestedCount !== data.ticketsData.length) return;
-
-            // 🔥 1. የተደጋገመ ክሊክ (Double Click) ማገጃ 
-            // አንድ ካርቴላ ቀድሞ ከተያዘ (globalTakenTickets ውስጥ ካለ) ትዕዛዙን በፀጥታ ይጥለዋል
-            let isDuplicate = false;
-            if (Array.isArray(data.ticketIds)) {
-                for (let tId of data.ticketIds) {
-                    if (globalTakenTickets.includes(String(tId))) {
-                        isDuplicate = true; break;
-                    }
-                }
+            
+            // 🚨 HACK FIX 2: ቁጥሩ ኔጌቲቭ እንዳይሆን እና ከተፈቀደው በላይ እንዳይሆን መቆጣጠሪያ
+            if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
+                socket.emit('bet_error', `❌ የተሳሳተ የካርቴላ ብዛት!`);
+                return;
             }
-            if (isDuplicate) return; 
 
-            // 🔥 2. ትዕዛዙ እንደመጣ ወዲያውኑ (በ 0.001 ሴኮንድ) ካርቴላዎቹን ለሌላ ሰው እንዳይሸጡ ይቆልፋል
-            data.ticketIds.slice(0, requestedCount).forEach(id => globalTakenTickets.push(String(id)));
-            io.emit('update_taken_tickets', globalTakenTickets); 
+            // 🚨 HACK FIX 3: 1 ካርቴላ ገዝተው የ 4 ካርቴላ መረጃ (Array) ልከው ብር እንዳይሰርቁ መቆጣጠሪያ
+            if (requestedCount !== data.ticketsData.length) {
+                socket.emit('bet_error', `❌ የካርቴላው መረጃ አልተገናኘም (System Error)!`);
+                return;
+            }
+
+            if (buyingLocks[data.phone]) {
+                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ...`);
+                return; 
+            }
+            buyingLocks[data.phone] = true;
 
             try {
                 let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
                 if (currentTickets + requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
-                    // ከተፈቀደው በላይ ከገዙ፣ የያዝነውን ካርቴላ መልሰን እንለቀዋለን
-                    globalTakenTickets = globalTakenTickets.filter(id => !data.ticketIds.map(String).includes(String(id)));
-                    io.emit('update_taken_tickets', globalTakenTickets);
                     socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
                     return;
                 }
@@ -2910,10 +2904,12 @@ let buyingLocks = {};
                     let playDeducted = 0;
                     let mainDeducted = 0;
 
+                    // መጀመሪያ ከ Play Wallet ይቆርጣል
                     if (user.playBalance >= betAmount) {
                         user.playBalance -= betAmount;
                         playDeducted = betAmount;
                     } else {
+                        // Play Wallet ካነሰ፣ ያለውን ጨርሶ ቀሪውን ከ Main Wallet ይወስዳል
                         playDeducted = user.playBalance;
                         mainDeducted = betAmount - user.playBalance;
                         user.playBalance = 0;
@@ -2937,7 +2933,12 @@ let buyingLocks = {};
                         GLOBAL_SETTINGS.virtualPrizePool += v1Cut;
                         GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
 
-                        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: v1Cut, vaultThreeBalance: v3Cut } });
+                        await SystemSettings.updateOne({}, { 
+                            $inc: { 
+                                virtualPrizePool: v1Cut, 
+                                vaultThreeBalance: v3Cut 
+                            } 
+                        });
                     }
                     
                     user.played += 1; 
@@ -2947,9 +2948,15 @@ let buyingLocks = {};
                     let playPerTicket = playDeducted / requestedCount;
                     let mainPerTicket = mainDeducted / requestedCount;
                     
+                    // 🚨 HACK FIX 4: ሌባው ከክላይንት የላከውን ዋጋ ሰርዘን፣ ሰርቨሩ በራሱ ዋጋ መድቦ ያስቀምጣል
                     let cleanTicketsData = [];
                     data.ticketsData.forEach(t => {
-                        cleanTicketsData.push({ id: String(t.id), grid: t.grid, paidFromPlay: playPerTicket, paidFromMain: mainPerTicket });
+                        cleanTicketsData.push({
+                            id: String(t.id),
+                            grid: t.grid,
+                            paidFromPlay: playPerTicket,
+                            paidFromMain: mainPerTicket
+                        });
                     });
 
                     if (!activePlayers[data.phone]) {
@@ -2967,88 +2974,100 @@ let buyingLocks = {};
                     let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                     totalPrizePool += (playDeducted * ((100 - uiAdminPercent) / 100)) + mainDeducted; 
                     
+                    if (Array.isArray(data.ticketIds)) {
+                        data.ticketIds.slice(0, requestedCount).forEach(id => globalTakenTickets.push(String(id)));
+                    }
+                    
+                    io.emit('update_taken_tickets', globalTakenTickets); 
                     socket.emit('balance_updated', data.phone);
                 } else {
-                    // ብር ከሌላቸው የያዙትን ካርቴላ መልሰን እንለቀዋለን
-                    globalTakenTickets = globalTakenTickets.filter(id => !data.ticketIds.map(String).includes(String(id)));
-                    io.emit('update_taken_tickets', globalTakenTickets);
                     socket.emit('bet_error', `❌ በቂ ሂሳብ የለዎትም!`);
                 }
             } catch (err) {
                 console.error("Ticket Buy Error:", err);
+                socket.emit('bet_error', `❌ የኔትወርክ መቆራረጥ አጋጥሟል! እባክዎ እንደገና ይሞክሩ።`);
+            } finally {
+                delete buyingLocks[data.phone];
             }
         });
 
         // ==========================================
-        // 🔒 FIX: CANCEL TICKET (Solves the UI Desync Bug)
+        // 🔒 FIX: HACKER PROOF TICKET CANCELING
         // ==========================================
         socket.on('cancel_ticket', async (data) => {
             if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-            if (!socket.connected) return;
+            
+            // 🚨 HACK FIX 5: የተጭበረበረ ዳታ ማገጃ
             if (!data || !data.phone || !data.ticketId) return;
 
-            try {
-                let p = activePlayers[data.phone];
-                let canceledTicketIndex = p ? p.ticketsData.findIndex(t => String(t.id) === String(data.ticketId)) : -1;
-                
-                // 🔥 1. ካርቴላው ገና በዳታቤዝ እየተመዘገበ ከሆነ (Race Condition Fix)
-                if (canceledTicketIndex === -1) {
-                    if (globalTakenTickets.includes(String(data.ticketId))) {
-                        // ሲስተሙ ካርቴላው እንደተያዘ ያውቃል፣ ግን ገና አካውንትህ ላይ አልገባም። 
-                        // ይሄ የሚሆነው ገዝተህ በ 1 ሰከንድ ውስጥ ስትሰርዘው ነው።
-                        socket.emit('bet_error', `⏳ ካርቴላው ገና እየተመዘገበ ነው፣ እባክዎ 1 ሰከንድ ጠብቀው ይሰርዙት!`);
-                        return;
-                    }
-                    // ካርቴላው ቀድሞውኑ ከጠፋ አፕሊኬሽኑን ለማስተካከል success እንልካለን
-                    socket.emit('ticket_cancelled_success', data.ticketId);
-                    return;
-                }
-                
-                // 🔥 2. ካርቴላው ከተገኘ ወዲያውኑ (በ 0.001 ሰከንድ) ከአካውንትህ ላይ እናጠፋዋለን
-                let canceledTicket = p.ticketsData.splice(canceledTicketIndex, 1)[0];
-                p.tickets -= 1;
-                if(p.tickets <= 0) delete activePlayers[data.phone];
-                
-                globalTakenTickets = globalTakenTickets.filter(id => String(id) !== String(data.ticketId));
-                io.emit('update_taken_tickets', globalTakenTickets); 
+            if (buyingLocks[data.phone]) {
+                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ... (Network Sync)`);
+                return; 
+            }
+            buyingLocks[data.phone] = true;
 
-                // 3. ከዛ ብሩን በዝግታ ዳታቤዝ ላይ እንመልሳለን
+            try {
                 const user = await User.findOne({phone: data.phone});
                 if(user) {
-                    let refundPlay = Number(canceledTicket.paidFromPlay) || 0;
-                    let refundMain = Number(canceledTicket.paidFromMain) || 0;
+                    let p = activePlayers[data.phone];
                     
-                    if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
-
-                    user.playBalance += refundPlay;
-                    user.mainBalance += refundMain;
-                    user.played = Math.max(0, user.played - 1);
-                    user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
-                    await user.save();
-               
-                    if (refundMain > 0) {
-                        let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
-                        let v1Cut = refundMain - v3Cut;
-
-                        GLOBAL_SETTINGS.virtualPrizePool = Math.max(0, GLOBAL_SETTINGS.virtualPrizePool - v1Cut);
-                        GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
-
-                        await SystemSettings.updateOne({}, { 
-                            $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance } 
-                        });
-                    }  
-
-                    totalTickets -= 1;
-                    totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                    // 🚨 HACK FIX 6: አንድ ካርቴላ ሁለቴ እንዳይሰረዝ ጥብቅ ማጣሪያ
+                    let canceledTicketIndex = p ? p.ticketsData.findIndex(t => String(t.id) === String(data.ticketId)) : -1;
                     
-                    let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                    totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
+                    if(p && canceledTicketIndex !== -1) {
+                        let canceledTicket = p.ticketsData[canceledTicketIndex];
+                        
+                        let refundPlay = Number(canceledTicket.paidFromPlay) || 0;
+                        let refundMain = Number(canceledTicket.paidFromMain) || 0;
+                        
+                        if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
 
-                    socket.emit('balance_updated', data.phone);
-                    socket.emit('ticket_cancelled_success', data.ticketId);
+                        user.playBalance += refundPlay;
+                        user.mainBalance += refundMain;
+                        user.played = Math.max(0, user.played - 1);
+                        user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
+                        await user.save();
+                   
+                        if (refundMain > 0) {
+                            let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
+                            let v1Cut = refundMain - v3Cut;
+
+                            GLOBAL_SETTINGS.virtualPrizePool = Math.max(0, GLOBAL_SETTINGS.virtualPrizePool - v1Cut);
+                            GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
+
+                            await SystemSettings.updateOne({}, { 
+                                $set: { 
+                                    virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
+                                    vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
+                                } 
+                            });
+                        }  
+                        
+                        // 🚨 HACK FIX 7: ካርቴላውን ከ Array ላይ ጠራርጎ ማጥፋት (Splice)
+                        p.ticketsData.splice(canceledTicketIndex, 1);
+                        p.tickets -= 1;
+                        if(p.tickets <= 0) delete activePlayers[data.phone];
+
+                        totalTickets -= 1;
+                        totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                        
+                        let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                        totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
+
+                        globalTakenTickets = globalTakenTickets.filter(id => String(id) !== String(data.ticketId));
+
+                        io.emit('update_taken_tickets', globalTakenTickets); 
+                        socket.emit('balance_updated', data.phone);
+                        socket.emit('ticket_cancelled_success', data.ticketId);
+                    } else {
+                        socket.emit('bet_error', `❌ ይህ ካርቴላ አልተገኘም ወይም ቀድሞ ተሰርዟል!`);
+                    }
                 }
             } catch (err) {
                 console.error("Cancel Ticket Error:", err);
+                socket.emit('bet_error', `❌ የኔትወርክ መቆራረጥ አጋጥሟል! እባክዎ እንደገና ይሞክሩ።`);
+            } finally {
+                delete buyingLocks[data.phone];
             }
         });
 
