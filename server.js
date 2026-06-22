@@ -2851,6 +2851,8 @@ setInterval(() => {
 }, 1000);
 
 let buyingLocks = {}; 
+    let buyCooldowns = {}; // 🔥 አዲስ: ዳታ አጥፍተው ለሚያጨናንቁት ማገጃ
+
     io.on('connection', (socket) => {
         let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
         socket.emit('game_status', { 
@@ -2862,35 +2864,60 @@ let buyingLocks = {};
         socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
         
         // ==========================================
-        // 🔒 FIX: HACKER PROOF TICKET BUYING
+        // 🔒 FIX: HACKER, NETWORK & "DATA OFF" PROOF
         // ==========================================
         socket.on('buy_tickets', async (data) => {
             if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
             
-            // 🚨 HACK FIX 1: ባዶ ወይም የተጭበረበረ ዳታ እንዳይገባ ማገጃ
+            // 🚨 1. ዳታ አጥፍተው ከሆነ (Connection ከሌለ) ወዲያውኑ ያቋርጠዋል!
+            if (!socket.connected) return;
+
             if (!data || !data.phone || !data.ticketsData || !Array.isArray(data.ticketsData)) return;
 
             let requestedCount = parseInt(data.ticketCount);
             
-            // 🚨 HACK FIX 2: ቁጥሩ ኔጌቲቭ እንዳይሆን እና ከተፈቀደው በላይ እንዳይሆን መቆጣጠሪያ
             if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
                 socket.emit('bet_error', `❌ የተሳሳተ የካርቴላ ብዛት!`);
                 return;
             }
 
-            // 🚨 HACK FIX 3: 1 ካርቴላ ገዝተው የ 4 ካርቴላ መረጃ (Array) ልከው ብር እንዳይሰርቁ መቆጣጠሪያ
             if (requestedCount !== data.ticketsData.length) {
                 socket.emit('bet_error', `❌ የካርቴላው መረጃ አልተገናኘም (System Error)!`);
                 return;
             }
 
+            // 🚨 2. COOLDOWN (ዳታ አጥፍተው ያመቁትን በአንዴ እንዳይለቁት ማገጃ)
+            // አንድ ሰው አንዴ ከገዛ፣ ለቀጣይ 3 ሰከንድ ሌላ መግዛት አይችልም!
+            const now = Date.now();
+            if (buyCooldowns[data.phone] && (now - buyCooldowns[data.phone] < 3000)) {
+                socket.emit('bet_error', `⚠️ እባክዎ 3 ሰከንድ ይጠብቁ (Anti-Spam)...`);
+                return;
+            }
+
+            // 🚨 3. የድሮው Lock ማጣሪያ
             if (buyingLocks[data.phone]) {
-                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ...`);
+                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ (Network Sync)...`);
                 return; 
             }
             buyingLocks[data.phone] = true;
+            buyCooldowns[data.phone] = now; // ሰዓቱን ይመዘግባል
 
             try {
+                // 🚨 4. ዳታ አብርተው ለሚመጣ Duplicate ማገጃ
+                let isDuplicate = false;
+                if (Array.isArray(data.ticketIds)) {
+                    for (let tId of data.ticketIds) {
+                        if (globalTakenTickets.includes(String(tId))) {
+                            isDuplicate = true;
+                            break;
+                        }
+                    }
+                }
+                if (isDuplicate) {
+                    socket.emit('bet_error', `⚠️ ይህ ትዕዛዝ ቀድሞ ተሰርቷል (Duplicate Request)!`);
+                    return; 
+                }
+
                 let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
                 if (currentTickets + requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
                     socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
@@ -2904,12 +2931,10 @@ let buyingLocks = {};
                     let playDeducted = 0;
                     let mainDeducted = 0;
 
-                    // መጀመሪያ ከ Play Wallet ይቆርጣል
                     if (user.playBalance >= betAmount) {
                         user.playBalance -= betAmount;
                         playDeducted = betAmount;
                     } else {
-                        // Play Wallet ካነሰ፣ ያለውን ጨርሶ ቀሪውን ከ Main Wallet ይወስዳል
                         playDeducted = user.playBalance;
                         mainDeducted = betAmount - user.playBalance;
                         user.playBalance = 0;
@@ -2933,12 +2958,7 @@ let buyingLocks = {};
                         GLOBAL_SETTINGS.virtualPrizePool += v1Cut;
                         GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
 
-                        await SystemSettings.updateOne({}, { 
-                            $inc: { 
-                                virtualPrizePool: v1Cut, 
-                                vaultThreeBalance: v3Cut 
-                            } 
-                        });
+                        await SystemSettings.updateOne({}, { $inc: { virtualPrizePool: v1Cut, vaultThreeBalance: v3Cut } });
                     }
                     
                     user.played += 1; 
@@ -2948,15 +2968,9 @@ let buyingLocks = {};
                     let playPerTicket = playDeducted / requestedCount;
                     let mainPerTicket = mainDeducted / requestedCount;
                     
-                    // 🚨 HACK FIX 4: ሌባው ከክላይንት የላከውን ዋጋ ሰርዘን፣ ሰርቨሩ በራሱ ዋጋ መድቦ ያስቀምጣል
                     let cleanTicketsData = [];
                     data.ticketsData.forEach(t => {
-                        cleanTicketsData.push({
-                            id: String(t.id),
-                            grid: t.grid,
-                            paidFromPlay: playPerTicket,
-                            paidFromMain: mainPerTicket
-                        });
+                        cleanTicketsData.push({ id: String(t.id), grid: t.grid, paidFromPlay: playPerTicket, paidFromMain: mainPerTicket });
                     });
 
                     if (!activePlayers[data.phone]) {
@@ -2992,16 +3006,18 @@ let buyingLocks = {};
         });
 
         // ==========================================
-        // 🔒 FIX: HACKER PROOF TICKET CANCELING
+        // 🔒 FIX: STRICT TICKET CANCELING
         // ==========================================
         socket.on('cancel_ticket', async (data) => {
             if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
             
-            // 🚨 HACK FIX 5: የተጭበረበረ ዳታ ማገጃ
+            // 🚨 ዳታ ካጠፉ ወዲያውኑ ያቋርጠዋል
+            if (!socket.connected) return;
+
             if (!data || !data.phone || !data.ticketId) return;
 
             if (buyingLocks[data.phone]) {
-                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ... (Network Sync)`);
+                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ (Network Sync)...`);
                 return; 
             }
             buyingLocks[data.phone] = true;
@@ -3011,7 +3027,6 @@ let buyingLocks = {};
                 if(user) {
                     let p = activePlayers[data.phone];
                     
-                    // 🚨 HACK FIX 6: አንድ ካርቴላ ሁለቴ እንዳይሰረዝ ጥብቅ ማጣሪያ
                     let canceledTicketIndex = p ? p.ticketsData.findIndex(t => String(t.id) === String(data.ticketId)) : -1;
                     
                     if(p && canceledTicketIndex !== -1) {
@@ -3036,14 +3051,10 @@ let buyingLocks = {};
                             GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
 
                             await SystemSettings.updateOne({}, { 
-                                $set: { 
-                                    virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
-                                    vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
-                                } 
+                                $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance } 
                             });
                         }  
                         
-                        // 🚨 HACK FIX 7: ካርቴላውን ከ Array ላይ ጠራርጎ ማጥፋት (Splice)
                         p.ticketsData.splice(canceledTicketIndex, 1);
                         p.tickets -= 1;
                         if(p.tickets <= 0) delete activePlayers[data.phone];
