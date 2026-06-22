@@ -2851,7 +2851,6 @@ setInterval(() => {
 }, 1000);
 
 let buyingLocks = {}; 
-    let buyCooldowns = {}; // 🔥 አዲስ: ዳታ አጥፍተው ለሚያጨናንቁት ማገጃ
 
     io.on('connection', (socket) => {
         let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
@@ -2864,63 +2863,43 @@ let buyingLocks = {};
         socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
         
         // ==========================================
-        // 🔒 FIX: HACKER, NETWORK & "DATA OFF" PROOF
+        // 🔒 FIX: HACKER PROOF & DATA-OFF BLOCKER
         // ==========================================
         socket.on('buy_tickets', async (data) => {
             if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
             
-            // 🚨 1. ዳታ አጥፍተው ከሆነ (Connection ከሌለ) ወዲያውኑ ያቋርጠዋል!
+            // 🚨 1. ኢንተርኔት (ዳታ) ከሌላቸው ምንም አይነት ጥያቄ አይቀበልም (ዝም ብሎ ያልፈዋል)
             if (!socket.connected) return;
 
             if (!data || !data.phone || !data.ticketsData || !Array.isArray(data.ticketsData)) return;
 
             let requestedCount = parseInt(data.ticketCount);
             
-            if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
-                socket.emit('bet_error', `❌ የተሳሳተ የካርቴላ ብዛት!`);
-                return;
-            }
+            // 🚨 2. የተሳሳተ ዳታ (ለሀከሮች) በፀጥታ ይቋረጣል
+            if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) return;
+            if (requestedCount !== data.ticketsData.length) return;
 
-            if (requestedCount !== data.ticketsData.length) {
-                socket.emit('bet_error', `❌ የካርቴላው መረጃ አልተገናኘም (System Error)!`);
-                return;
-            }
-
-            // 🚨 2. COOLDOWN (ዳታ አጥፍተው ያመቁትን በአንዴ እንዳይለቁት ማገጃ)
-            // አንድ ሰው አንዴ ከገዛ፣ ለቀጣይ 3 ሰከንድ ሌላ መግዛት አይችልም!
-            const now = Date.now();
-            if (buyCooldowns[data.phone] && (now - buyCooldowns[data.phone] < 3000)) {
-                socket.emit('bet_error', `⚠️ እባክዎ 3 ሰከንድ ይጠብቁ (Anti-Spam)...`);
-                return;
-            }
-
-            // 🚨 3. የድሮው Lock ማጣሪያ
-            if (buyingLocks[data.phone]) {
-                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ (Network Sync)...`);
-                return; 
-            }
-            buyingLocks[data.phone] = true;
-            buyCooldowns[data.phone] = now; // ሰዓቱን ይመዘግባል
-
-            try {
-                // 🚨 4. ዳታ አብርተው ለሚመጣ Duplicate ማገጃ
-                let isDuplicate = false;
-                if (Array.isArray(data.ticketIds)) {
-                    for (let tId of data.ticketIds) {
-                        if (globalTakenTickets.includes(String(tId))) {
-                            isDuplicate = true;
-                            break;
-                        }
+            // 🚨 3. ኢንተርኔት አቋርጦ/አጥፍቶ ለሚያጨናንቅ (Offline Buffering)
+            // የተደጋገመ ካርቴላ (Duplicate ID) ከመጣ Error ሳያሳይ ዝም ብሎ ይጥለዋል
+            let isDuplicate = false;
+            if (Array.isArray(data.ticketIds)) {
+                for (let tId of data.ticketIds) {
+                    if (globalTakenTickets.includes(String(tId))) {
+                        isDuplicate = true;
+                        break;
                     }
                 }
-                if (isDuplicate) {
-                    socket.emit('bet_error', `⚠️ ይህ ትዕዛዝ ቀድሞ ተሰርቷል (Duplicate Request)!`);
-                    return; 
-                }
+            }
+            if (isDuplicate) return; 
 
+            // 🚨 4. በአንዴ ለሚመጡ ትርፍ ክሊኮች (Spam) Error ሳያሳይ ፀጥ ብሎ ያግዳል
+            if (buyingLocks[data.phone]) return; 
+            buyingLocks[data.phone] = true;
+
+            try {
                 let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
                 if (currentTickets + requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
-                    socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
+                    socket.emit('bet_error', `❌ በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
                     return;
                 }
 
@@ -2999,27 +2978,24 @@ let buyingLocks = {};
                 }
             } catch (err) {
                 console.error("Ticket Buy Error:", err);
-                socket.emit('bet_error', `❌ የኔትወርክ መቆራረጥ አጋጥሟል! እባክዎ እንደገና ይሞክሩ።`);
             } finally {
                 delete buyingLocks[data.phone];
             }
         });
 
         // ==========================================
-        // 🔒 FIX: STRICT TICKET CANCELING
+        // 🔒 FIX: CANCELING (SILENT & STRICT)
         // ==========================================
         socket.on('cancel_ticket', async (data) => {
             if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
             
-            // 🚨 ዳታ ካጠፉ ወዲያውኑ ያቋርጠዋል
+            // 🚨 ዳታ ካጠፉ ምንም አይሰራም
             if (!socket.connected) return;
 
             if (!data || !data.phone || !data.ticketId) return;
 
-            if (buyingLocks[data.phone]) {
-                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ (Network Sync)...`);
-                return; 
-            }
+            // 🔥 በተደጋጋሚ ሲጫኑ Error ሳያሳይ ዝም ብሎ ያግዳል
+            if (buyingLocks[data.phone]) return; 
             buyingLocks[data.phone] = true;
 
             try {
@@ -3070,13 +3046,10 @@ let buyingLocks = {};
                         io.emit('update_taken_tickets', globalTakenTickets); 
                         socket.emit('balance_updated', data.phone);
                         socket.emit('ticket_cancelled_success', data.ticketId);
-                    } else {
-                        socket.emit('bet_error', `❌ ይህ ካርቴላ አልተገኘም ወይም ቀድሞ ተሰርዟል!`);
                     }
                 }
             } catch (err) {
                 console.error("Cancel Ticket Error:", err);
-                socket.emit('bet_error', `❌ የኔትወርክ መቆራረጥ አጋጥሟል! እባክዎ እንደገና ይሞክሩ።`);
             } finally {
                 delete buyingLocks[data.phone];
             }
