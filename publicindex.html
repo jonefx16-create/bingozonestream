@@ -1229,7 +1229,32 @@
         called.forEach((num, idx) => { updateLiveUI(num, idx === called.length - 1); });
     });
 
-    socket.on('update_taken_tickets', (ticketsArr) => { globalTakenTickets = ticketsArr; renderGridTakenStates(); });
+    // በ index.html (ወይም ጌሙ በሚጫወትበት ጃቫስክሪፕት ውስጥ) ይህንን ያስገቡ፡
+
+socket.on('update_taken_tickets', (takenIds) => {
+    if (!takenIds) return;
+    
+    // 1. መጀመሪያ ከሰርቨር የመጡትን ቁጥሮች በሙሉ ወደ String እንቀይራቸዋለን
+    let stringTakenIds = takenIds.map(id => String(id));
+    
+    // 2. በስክሪኑ ላይ ያሉትን ካርቴላዎች በሙሉ እንፈልጋለን
+    // (ማሳሰቢያ፡ '.ticket-card' የሚለውን ቃል በእርስዎ ዌብሳይት የካርቴላ ክላስ ስም ይተኩ)
+    document.querySelectorAll('.ticket-card').forEach(ticket => {
+        let ticketId = String(ticket.getAttribute('data-id')); // የካርቴላውን ቁጥር እናነባለን
+        
+        // 3. የእኔ ያልሆነ እና ሌላ ሰው የገዛው ከሆነ አደብዝዘው (Blur / Disable)
+        if (stringTakenIds.includes(ticketId) && !myPurchasedTicketIds.includes(ticketId)) {
+            ticket.classList.add('blurred');    // አደብዝዝ
+            ticket.style.pointerEvents = 'none'; // እንዳይነካ አድርግ
+            ticket.style.opacity = '0.5';        // ቀለሙን አጥፋው
+        } else {
+            // ካልተገዛ (ወይም እኔ ከገዛሁት) ፍታው
+            ticket.classList.remove('blurred');
+            ticket.style.pointerEvents = 'auto';
+            ticket.style.opacity = '1';
+        }
+    });
+});
 
     function renderGridTakenStates() {
         document.querySelectorAll('.num-btn').forEach(btn => {
