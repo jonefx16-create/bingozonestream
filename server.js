@@ -2864,20 +2864,16 @@ io.on('connection', (socket) => {
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         
-        // 🔥 1. HACKER BLOCKER: ዳታው ትክክል መሆኑን ማረጋገጥ
         if (!data || typeof data !== 'object') return;
         let phone = String(data.phone || "");
         let ticketCount = parseInt(data.ticketCount);
 
-        // ሀከሩ ቁጥሩን በኔጌቲቭ (Negative) ወይም ከዜሮ በታች አድርጎ እንዳይሰርቅ መዝጊያ
         if (isNaN(ticketCount) || ticketCount <= 0 || ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) return;
         if (!Array.isArray(data.ticketsData) || data.ticketsData.length !== ticketCount) return;
 
-        // 🔥 2. ትክክለኛው ማስተካከያ (Blur እንዲያደርግ): የካርቴላ ቁጥሮችን በትክክል መቀበል
         let incomingIds = data.ticketIds || data.ticketsData.map(t => t.id);
         if (!Array.isArray(incomingIds) || incomingIds.length === 0) return;
 
-        // SPAM BLOCKER: እባብ/ሀከር ዳታ አጥፍቶ አንድ ካርቴላ ደጋግሞ እንዳይገዛ መዝጊያ
         let isDuplicate = incomingIds.some(id => 
             globalTakenTickets.includes(id) || 
             globalTakenTickets.includes(String(id)) || 
@@ -2908,12 +2904,10 @@ io.on('connection', (socket) => {
                 let playDeducted = 0;
                 let mainDeducted = 0;
 
-                // መጀመሪያ ከ Play Wallet ይቆርጣል
                 if (user.playBalance >= betAmount) {
                     user.playBalance -= betAmount;
                     playDeducted = betAmount;
                 } else {
-                    // Play Wallet ካነሰ፣ ያለውን ጨርሶ ቀሪውን ከ Main Wallet ይወስዳል
                     playDeducted = user.playBalance;
                     mainDeducted = betAmount - user.playBalance;
                     user.playBalance = 0;
@@ -2930,7 +2924,6 @@ io.on('connection', (socket) => {
 
                 let realBetAmount = mainDeducted;
 
-                // ከ Main Wallet የተቆረጠው ወደ ካዝና 1 እና 3 ብቻ ይገባል
                 if (mainDeducted > 0) {
                     let v3Cut = mainDeducted * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
                     let v1Cut = mainDeducted - v3Cut;
@@ -2939,10 +2932,7 @@ io.on('connection', (socket) => {
                     GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
 
                     await SystemSettings.updateOne({}, { 
-                        $inc: { 
-                            virtualPrizePool: v1Cut, 
-                            vaultThreeBalance: v3Cut 
-                        } 
+                        $inc: { virtualPrizePool: v1Cut, vaultThreeBalance: v3Cut } 
                     });
                 }
                 
@@ -2973,10 +2963,19 @@ io.on('connection', (socket) => {
                 let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                 totalPrizePool += (playDeducted * ((100 - uiAdminPercent) / 100)) + mainDeducted; 
                 
-                // 🔥 3. ለሁሉም ሰው እና ለቦቶች BLUR እንዲያደርግ ዳታውን መላክ (THE FIX)
                 incomingIds.forEach(id => {
                     if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id);
                 });
+
+                // 🔥 አዲስ የተጨመረ: ስክሪኑ ዳታ ቢያቋርጥ እንኳን በትክክል Sync እንዲያደርግ ያስገድደዋል
+                let currentState = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
+                socket.emit('sync_data', { 
+                    gameState: currentState, 
+                    globalTakenTickets: globalTakenTickets, 
+                    calledNumbers: calledNumbers, 
+                    myTickets: activePlayers[phone].ticketsData 
+                });
+
                 io.emit('update_taken_tickets', globalTakenTickets); 
                 socket.emit('balance_updated', phone);
             }
@@ -2988,7 +2987,6 @@ io.on('connection', (socket) => {
     socket.on('cancel_ticket', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
         
-        // 🔥 4. REFUND HACK BLOCKER
         if (!data || typeof data !== 'object') return;
         let phone = String(data.phone || "");
         let ticketId = data.ticketId;
@@ -3012,7 +3010,6 @@ io.on('connection', (socket) => {
                     
                     if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
 
-                    // ብሩን ከመመለሱ በፊት ካርቴላውን ከ ሲስተም ላይ ያጠፋዋል (Double Refund መከላከያ)
                     p.ticketsData.splice(canceledTicketIndex, 1);
                     p.tickets -= 1;
 
@@ -3030,14 +3027,16 @@ io.on('connection', (socket) => {
                         GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
 
                         await SystemSettings.updateOne({}, { 
-                            $set: { 
-                                virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
-                                vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
-                            } 
+                            $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance } 
                         });
                     }  
                     
-                    if(p.tickets === 0) delete activePlayers[phone];
+                    let activeTicketsToSync = p.ticketsData;
+
+                    if(p.tickets === 0) {
+                        activeTicketsToSync = [];
+                        delete activePlayers[phone];
+                    }
 
                     totalTickets -= 1;
                     totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
@@ -3045,8 +3044,16 @@ io.on('connection', (socket) => {
                     let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                     totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
 
-                    // የተሰረዘው ካርቴላ ለሌሎች ብዥ ማለቱ እንዲቆም ያደርገዋል
                     globalTakenTickets = globalTakenTickets.filter(id => String(id) !== String(ticketId));
+
+                    // 🔥 አዲስ የተጨመረ: Cancel ካደረጉ በኋላ ዌብሳይቱ (UI) ያንኑ ካርቴላ ይዞ እንዳይቀር FORCE SYNC ያደርጋል
+                    let currentState = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
+                    socket.emit('sync_data', { 
+                        gameState: currentState, 
+                        globalTakenTickets: globalTakenTickets, 
+                        calledNumbers: calledNumbers, 
+                        myTickets: activeTicketsToSync
+                    });
 
                     io.emit('update_taken_tickets', globalTakenTickets); 
                     socket.emit('balance_updated', phone);
