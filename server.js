@@ -357,92 +357,100 @@ async function isSmsAlreadyUsed(userInputSms) {
 
 async function autoApprovePendingDeposits() {
     try {
-        const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' }).limit(500);
-        const unusedSMS = await BankSMS.find({ isUsed: false }).limit(500);
+        const pendingTxs = await Transaction.find({ type: 'deposit', status: 'Pending' }).sort({ _id: -1 }).limit(1000);
+        const unusedSMS = await BankSMS.find({ isUsed: false }).sort({ _id: -1 }).limit(1000);
+        
         for (let tx of pendingTxs) {
-            if (!tx.txRef) continue; 
-            let matchedSMS = unusedSMS.find(sms => sms.txRef === tx.txRef);
-            if (matchedSMS) {
-                let user = await User.findOne({ phone: tx.phone });
-                if (user) {
-                    let actualReceivedAmount = matchedSMS.amount;
-                    let bonus = 0;
-                    let set = GLOBAL_SETTINGS;
-                    let giveBonus = true;
-                    
-                    if (set.depBonusTimeRestricted) {
-                        let currentHour = new Date().getHours();
-                        if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
-                    }
-                    
-                    if (giveBonus) {
-                        if (set.depBonusTier3Min && actualReceivedAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
-                            bonus = actualReceivedAmount * (set.depBonusTier3Percent / 100);
+            try { 
+                if (!tx.txRef) continue; 
+                
+                let matchedSMS = unusedSMS.find(sms => sms.txRef && sms.txRef.trim() === tx.txRef.trim());
+                
+                if (matchedSMS) {
+                    let user = await User.findOne({ phone: tx.phone });
+                    if (user) {
+                        let actualReceivedAmount = matchedSMS.amount;
+                        let bonus = 0;
+                        let set = GLOBAL_SETTINGS;
+                        let giveBonus = true;
+                        
+                        if (set.depBonusTimeRestricted) {
+                            let currentHour = new Date().getHours();
+                            if (currentHour < set.happyHourStart || currentHour > set.happyHourEnd) { giveBonus = false; }
                         }
-                        else if (set.depBonusTier2Min && actualReceivedAmount >= set.depBonusTier2Min) {
-                            bonus = actualReceivedAmount * (set.depBonusTier2Percent / 100);
-                        } 
-                        else if (set.depBonusMinAmount && actualReceivedAmount >= set.depBonusMinAmount) {
-                            bonus = actualReceivedAmount * (set.depBonusPercent / 100);
+                        
+                        if (giveBonus) {
+                            if (set.depBonusTier3Min && actualReceivedAmount >= set.depBonusTier3Min && user.hasMadeFirstDeposit) {
+                                bonus = actualReceivedAmount * (set.depBonusTier3Percent / 100);
+                            }
+                            else if (set.depBonusTier2Min && actualReceivedAmount >= set.depBonusTier2Min) {
+                                bonus = actualReceivedAmount * (set.depBonusTier2Percent / 100);
+                            } 
+                            else if (set.depBonusMinAmount && actualReceivedAmount >= set.depBonusMinAmount) {
+                                bonus = actualReceivedAmount * (set.depBonusPercent / 100);
+                            }
                         }
-                    }
-                    
-                    let totalCredit = actualReceivedAmount + bonus;
-                    tx.amount = actualReceivedAmount; 
-                    tx.bonusGiven = bonus; 
-                    tx.status = 'Approved';
-                    await tx.save();
-                    matchedSMS.isUsed = true;
-                    await matchedSMS.save();
-                    
-                    user.playBalance += totalCredit;
-                    user.totalDeposited += actualReceivedAmount;
-                    user.unplayedRealDeposit += actualReceivedAmount; 
+                        
+                        let totalCredit = actualReceivedAmount + bonus;
+                        tx.amount = actualReceivedAmount; 
+                        tx.bonusGiven = bonus; 
+                        tx.status = 'Approved';
+                        await tx.save();
+                        
+                        matchedSMS.isUsed = true;
+                        await matchedSMS.save();
+                        
+                        user.playBalance += totalCredit;
+                        user.totalDeposited += actualReceivedAmount;
+                        user.unplayedRealDeposit += actualReceivedAmount; 
 
-                    let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
-                    let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
-                    let vaultThreePercent = GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10; 
-                    
-                    let adminCut = actualReceivedAmount * (adminPercent / 100);
-                    let vaultTwoCut = actualReceivedAmount * (vaultTwoPercent / 100);
-                    let vaultThreeCut = actualReceivedAmount * (vaultThreePercent / 100);
-                    let vaultAddition = actualReceivedAmount - adminCut - vaultTwoCut - vaultThreeCut; 
-                    
-                    await SystemSettings.updateOne({}, { 
-                        $inc: { 
-                            virtualPrizePool: vaultAddition,
-                            vaultTwoBalance: vaultTwoCut,
-                            vaultThreeBalance: vaultThreeCut
-                        } 
-                    });
-                    GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
-                    GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
-                    GLOBAL_SETTINGS.vaultThreeBalance += vaultThreeCut;
-                    dailyHouseProfit += adminCut; 
+                        let adminPercent = GLOBAL_SETTINGS.adminProfitPercent || 30; 
+                        let vaultTwoPercent = GLOBAL_SETTINGS.vaultTwoPercent !== undefined ? GLOBAL_SETTINGS.vaultTwoPercent : 10; 
+                        let vaultThreePercent = GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10; 
+                        
+                        let adminCut = actualReceivedAmount * (adminPercent / 100);
+                        let vaultTwoCut = actualReceivedAmount * (vaultTwoPercent / 100);
+                        let vaultThreeCut = actualReceivedAmount * (vaultThreePercent / 100);
+                        let vaultAddition = actualReceivedAmount - adminCut - vaultTwoCut - vaultThreeCut; 
+                        
+                        await SystemSettings.updateOne({}, { 
+                            $inc: { 
+                                virtualPrizePool: vaultAddition,
+                                vaultTwoBalance: vaultTwoCut,
+                                vaultThreeBalance: vaultThreeCut
+                            } 
+                        });
+                        GLOBAL_SETTINGS.virtualPrizePool += vaultAddition;
+                        GLOBAL_SETTINGS.vaultTwoBalance += vaultTwoCut;
+                        GLOBAL_SETTINGS.vaultThreeBalance += vaultThreeCut;
+                        dailyHouseProfit += adminCut; 
 
-                    if(user.referredBy && user.referredViaPromo) {
-                        let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
-                        if(promoter) {
-                            let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
-                            promoter.promoterUnpaidBalance += commission; 
-                            promoter.promoterEarned += commission;
-                            await promoter.save();
-                            user.promoterCommissionGenerated += commission; 
-                            io.emit('balance_updated', promoter.phone);
+                        if(user.referredBy && user.referredViaPromo) {
+                            let promoter = await User.findOne({ phone: user.referredBy, isPromoter: true });
+                            if(promoter) {
+                                let commission = actualReceivedAmount * (promoter.promoterPercent / 100);
+                                promoter.promoterUnpaidBalance += commission; 
+                                promoter.promoterEarned += commission;
+                                await promoter.save();
+                                user.promoterCommissionGenerated += commission; 
+                                io.emit('balance_updated', promoter.phone);
+                            }
                         }
-                    }
-                    if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true; 
-                    await user.save();
-                    io.emit('balance_updated', tx.phone);
-                    
-                    if(bonus > 0) {
-                        io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualReceivedAmount, bonusAmount: bonus });
+                        if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true; 
+                        await user.save();
+                        io.emit('balance_updated', tx.phone);
+                        
+                        if(bonus > 0) {
+                            io.emit('deposit_bonus_alert', { phone: tx.phone, depositAmount: actualReceivedAmount, bonusAmount: bonus });
+                        }
                     }
                 }
-            }
+            } catch (innerErr) {}
         }
     } catch (err) {}
 }
+
+setInterval(autoApprovePendingDeposits, 20000);
 
 app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
     try {
