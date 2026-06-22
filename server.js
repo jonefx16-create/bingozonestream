@@ -2322,32 +2322,39 @@ async function declareWinners(winners) {
     let totalWinners = winners.length;
     let realWinnersCount = winners.filter(w => !w.player.isBot).length;
     let botWinnersCount = winners.filter(w => w.player.isBot).length;
+    
+    // ማረጋገጫ፡ ያሸነፈው እውነተኛ ሰው ዲፖዚተር መሆኑን ማጣራት
+    let isWinnerDepositor = winners.some(w => !w.player.isBot && w.player.hasDeposited);
 
     if (realMoneyOut > 0) {
-        if (realWinnersCount === 1 && botWinnersCount === 1 && totalWinners === 2) {
-            GLOBAL_SETTINGS.vaultThreeBalance -= realMoneyOut;
-            if(GLOBAL_SETTINGS.vaultThreeBalance < 0) GLOBAL_SETTINGS.vaultThreeBalance = 0;
-            await SystemSettings.updateOne({}, { $set: { vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance } });
-        } 
-        else if (totalWinners >= 3) {
+        // የቦነስ ሰው ካሸነፈ፤ ካዝና 2 እና 3ን መንካት አይችልም። ከካዝና 1 ብቻ ይቆረጣል።
+        if (!isWinnerDepositor) {
             GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
             if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
             await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
         } 
-        else if (totalWinners === 1 && realWinnersCount === 1) {
-            if (GLOBAL_SETTINGS.vaultTwoBalance >= realMoneyOut) {
-                GLOBAL_SETTINGS.vaultTwoBalance -= realMoneyOut;
-                await SystemSettings.updateOne({}, { $set: { vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance } });
-            } else {
+        // ዲፖዚተር ካሸነፈ፤ እንደየሁኔታው ከካዝና 2፣ 3 ወይም 1 ይቆረጣል።
+        else {
+            if (realWinnersCount === 1 && botWinnersCount === 1 && totalWinners === 2) {
+                GLOBAL_SETTINGS.vaultThreeBalance -= realMoneyOut;
+                if(GLOBAL_SETTINGS.vaultThreeBalance < 0) GLOBAL_SETTINGS.vaultThreeBalance = 0;
+                await SystemSettings.updateOne({}, { $set: { vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance } });
+            } 
+            else if (totalWinners === 1 && realWinnersCount === 1) {
+                if (GLOBAL_SETTINGS.vaultTwoBalance >= realMoneyOut) {
+                    GLOBAL_SETTINGS.vaultTwoBalance -= realMoneyOut;
+                    await SystemSettings.updateOne({}, { $set: { vaultTwoBalance: GLOBAL_SETTINGS.vaultTwoBalance } });
+                } else {
+                    GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
+                    if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
+                    await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
+                }
+            } 
+            else {
                 GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
                 if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
                 await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
             }
-        } 
-        else {
-            GLOBAL_SETTINGS.virtualPrizePool -= realMoneyOut;
-            if(GLOBAL_SETTINGS.virtualPrizePool < 0) GLOBAL_SETTINGS.virtualPrizePool = 0;
-            await SystemSettings.updateOne({}, { $set: { virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool } });
         }
     }
 
@@ -2588,15 +2595,16 @@ setInterval(() => {
             let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
 
             if (forceWinner === 'ai') {
-                // 1. ሦስቱንም ካዝናዎች (Vaults) ቼክ ያደርጋል
-                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;  // Vault 1
-                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     // Vault 2
-                let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; // Vault 3
+                // ሦስቱንም ካዝናዎች (Vaults) ቼክ ያደርጋል
+                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;  // Vault 1 (ለማካፈል፣ ለቦነስ እና ለዲፖዚተሮች)
+                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     // Vault 2 (ለዲፖዚተሮች ብቻ)
+                let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; // Vault 3 (ለዲፖዚተሮች ብቻ)
                 
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
+                
+                // አድሚን ዳሽቦርድ ላይ ለቦነስ የሰጠው ፐርሰንት (ምሳሌ 10%)
                 let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
-
                 let isBonusLucky = (Math.random() * 100) < bonusWinChance;
 
                 if (Math.random() < decoyChance) {
@@ -2604,25 +2612,27 @@ setInterval(() => {
                 } else {
                     let maxSafePayout = hiddenPool * 0.20; 
 
-                    // 🎯 ቼክ 1: Vault 2 ውስጥ ለአንድ ሙሉ ሰው (Real) ለመክፈል የሚበቃ ብር ካለ?
-                    if (vaultTwo >= finalTotalPrize) {
-                        if(isBonusLucky) forceWinner = 'real'; 
-                        else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 0; // ቦት አያስገባም፣ ለሰውየው ብቻ ይከፍላል
+                    // 🎯 ቼክ 1: Vault 2 ውስጥ ብር ካለ፣ ለዲፖዚተር ብቻ ይሰጣል! (ቦነስ እዚህ አይደርስም)
+                    if (vaultTwo >= finalTotalPrize && depositorPlayers.length > 0) {
+                        forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 0; 
                     }
-                    // 🎯 ቼክ 2: Vault 3 ውስጥ ለግማሽ ሰው ለመክፈል የሚበቃ ብር ካለ? (1 ሰው እና 1 ቦት ያካፍላል)
-                    else if (vaultThree >= (finalTotalPrize / 2)) {
-                        if(isBonusLucky) forceWinner = 'mix'; 
-                        else forceWinner = 'mix_dep'; 
-                        GLOBAL_SETTINGS.mixBotCount = 1; // ሽልማቱን ለ 2 ይከፍላል (1 ቦት እና 1 ሰው)
+                    // 🎯 ቼክ 2: Vault 3 ውስጥ ብር ካለ፣ ለዲፖዚተር ብቻ ያካፍላል! (ቦነስ እዚህ አይደርስም)
+                    else if (vaultThree >= (finalTotalPrize / 2) && depositorPlayers.length > 0) {
+                        forceWinner = 'mix_dep'; 
+                        GLOBAL_SETTINGS.mixBotCount = 1; 
                     }
-                    // 🎯 ቼክ 3: Vault 1 ውስጥ ለመክፈል የሚበቃ ደህንነቱ የተጠበቀ ብር ካለ?
+                    // 🎯 ቼክ 3: Vault 1 ውስጥ ሙሉ ብር ካለ
                     else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
-                        if(isBonusLucky) forceWinner = 'real'; 
-                        else forceWinner = 'mix_dep'; 
+                        // የ 10% ዕድሉ ከደረሰ (isBonusLucky) ለቦነስ ሰው ይፈቀዳል፣ ካልሆነ ግን ለዲፖዚተር ብቻ (ወይም ቦት)
+                        if(isBonusLucky) {
+                            forceWinner = 'real'; 
+                        } else {
+                            forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots';
+                        }
                         GLOBAL_SETTINGS.mixBotCount = 0;
                     } 
-                    // 🎯 ቼክ 4: ካዝናዎቹ ውስጥ በቂ ብር ከሌለ (ወይም ካነሰ) ለቦቶች ብቻ ይሰጣል
+                    // 🎯 ቼክ 4: የድሮው ህግ (Vault 1 ላይ ብር ሲያንስ ለ 3፣ 4 ወይም 5 ያካፍላል)
                     else {
                         let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
                         let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
@@ -2630,11 +2640,16 @@ setInterval(() => {
                         if (neededSplits > 5) neededSplits = 5;
                         if (neededSplits < 2) neededSplits = 2; 
 
+                        // ለማካፈልም ሆነ ለምንም ካዝና 1 ባዶ ከሆነ (ቦት ብቻ ይበላዋል!)
                         if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
-                            forceWinner = 'bots'; // ካዝናው ባዶ ከሆነ ቦት ብቻ ያሸንፋል
+                            forceWinner = 'bots'; 
                         } else {
-                            if(isBonusLucky) forceWinner = 'mix'; 
-                            else forceWinner = 'mix_dep'; 
+                            // ለማካፈል የሚበቃ ብር ካዝና 1 ውስጥ ካለ፣ የ 10% ዕድሉን ያየዋል
+                            if(isBonusLucky) {
+                                forceWinner = 'mix'; // ቦነሱም ያካፍላል
+                            } else {
+                                forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots'; // ዲፖዚተር ካለ ያካፍላል፣ ከሌለ ቦት ይበላዋል
+                            }
                             GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; 
                         }
                     }
