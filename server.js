@@ -3057,6 +3057,7 @@ io.on('connection', (socket) => {
             delete buyingLocks[phone];
         }
     });
+});
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
