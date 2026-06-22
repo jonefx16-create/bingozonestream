@@ -2851,173 +2851,227 @@ setInterval(() => {
 }, 1000);
 
 let buyingLocks = {}; 
-io.on('connection', (socket) => {
-    let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
-    socket.emit('game_status', { 
-        state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
-        totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
-        maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
-    });
-    
-    socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
-    
-    socket.on('buy_tickets', async (data) => {
-        if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-        if (buyingLocks[data.phone]) return; 
-        buyingLocks[data.phone] = true;
+    io.on('connection', (socket) => {
+        let stateToSend = GLOBAL_SETTINGS.isGamePaused ? "MAINTENANCE" : gameState;
+        socket.emit('game_status', { 
+            state: stateToSend, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
+            totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
+            maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit 
+        });
+        
+        socket.on('get_initial_data', (phone) => { let myData = activePlayers[phone]; socket.emit('sync_data', { gameState: stateToSend, globalTakenTickets, calledNumbers, myTickets: myData ? myData.ticketsData : [] }); });
+        
+        // ==========================================
+        // 🔒 FIX: HACKER PROOF TICKET BUYING
+        // ==========================================
+        socket.on('buy_tickets', async (data) => {
+            if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
+            
+            // 🚨 HACK FIX 1: ባዶ ወይም የተጭበረበረ ዳታ እንዳይገባ ማገጃ
+            if (!data || !data.phone || !data.ticketsData || !Array.isArray(data.ticketsData)) return;
 
-        try {
-            let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
-            if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
-                socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
+            let requestedCount = parseInt(data.ticketCount);
+            
+            // 🚨 HACK FIX 2: ቁጥሩ ኔጌቲቭ እንዳይሆን እና ከተፈቀደው በላይ እንዳይሆን መቆጣጠሪያ
+            if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
+                socket.emit('bet_error', `❌ የተሳሳተ የካርቴላ ብዛት!`);
                 return;
             }
 
-            const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
-            const user = await User.findOne({phone: data.phone});
-            
-            if(user && (user.playBalance + user.mainBalance) >= betAmount) {
-                let playDeducted = 0;
-                let mainDeducted = 0;
-
-                // መጀመሪያ ከ Play Wallet ይቆርጣል
-                if (user.playBalance >= betAmount) {
-                    user.playBalance -= betAmount;
-                    playDeducted = betAmount;
-                } else {
-                    // Play Wallet ካነሰ፣ ያለውን ጨርሶ ቀሪውን ከ Main Wallet ይወስዳል
-                    playDeducted = user.playBalance;
-                    mainDeducted = betAmount - user.playBalance;
-                    user.playBalance = 0;
-                    user.mainBalance -= mainDeducted;
-                }
-
-                if (playDeducted > 0) {
-                    if (user.unplayedRealDeposit >= playDeducted) {
-                        user.unplayedRealDeposit -= playDeducted;
-                    } else {
-                        user.unplayedRealDeposit = 0;
-                    }
-                }
-
-                let realBetAmount = mainDeducted;
-
-                // 🔥 ከ Main Wallet የተቆረጠው ወደ ካዝና 1 እና 3 ብቻ ይገባል (ካዝና 2ን ይዘለዋል) 🔥
-                if (mainDeducted > 0) {
-                    let v3Cut = mainDeducted * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
-                    let v1Cut = mainDeducted - v3Cut;
-
-                    GLOBAL_SETTINGS.virtualPrizePool += v1Cut;
-                    GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
-
-                    await SystemSettings.updateOne({}, { 
-                        $inc: { 
-                            virtualPrizePool: v1Cut, 
-                            vaultThreeBalance: v3Cut 
-                        } 
-                    });
-                }
-                
-                user.played += 1; 
-                user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
-                await user.save();
-
-                let playPerTicket = playDeducted / data.ticketCount;
-                let mainPerTicket = mainDeducted / data.ticketCount;
-                
-                data.ticketsData.forEach(t => {
-                    t.paidFromPlay = playPerTicket;
-                    t.paidFromMain = mainPerTicket;
-                });
-
-                if (!activePlayers[data.phone]) {
-                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
-                } else { 
-                    activePlayers[data.phone].tickets += data.ticketCount; 
-                    activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
-                    activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
-                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetAmount;
-                }
-                
-                totalTickets += data.ticketCount; 
-                totalCollectedMoney += betAmount;
-
-                let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                // 🔥 ከ Main Wallet የተገዛው ሙሉ በሙሉ ወደ Prize Pool ስለሚሄድ (አድሚን ስለማይቆርጥ) ስሌቱ ተስተካክሏል
-                totalPrizePool += (playDeducted * ((100 - uiAdminPercent) / 100)) + mainDeducted; 
-                
-                data.ticketIds.forEach(id => globalTakenTickets.push(id));
-                io.emit('update_taken_tickets', globalTakenTickets); 
-                socket.emit('balance_updated', data.phone);
+            // 🚨 HACK FIX 3: 1 ካርቴላ ገዝተው የ 4 ካርቴላ መረጃ (Array) ልከው ብር እንዳይሰርቁ መቆጣጠሪያ
+            if (requestedCount !== data.ticketsData.length) {
+                socket.emit('bet_error', `❌ የካርቴላው መረጃ አልተገናኘም (System Error)!`);
+                return;
             }
-        } finally {
-            delete buyingLocks[data.phone];
-        }
-    });
 
-    socket.on('cancel_ticket', async (data) => {
-        if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-        if (buyingLocks[data.phone]) return; 
-        buyingLocks[data.phone] = true;
+            if (buyingLocks[data.phone]) {
+                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ...`);
+                return; 
+            }
+            buyingLocks[data.phone] = true;
 
-        try {
-            const user = await User.findOne({phone: data.phone});
-            if(user) {
-                let p = activePlayers[data.phone];
-                let canceledTicket = p ? p.ticketsData.find(t => t.id === data.ticketId) : null;
+            try {
+                let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
+                if (currentTickets + requestedCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
+                    socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
+                    return;
+                }
+
+                const betAmount = requestedCount * GLOBAL_SETTINGS.ticketPrice;
+                const user = await User.findOne({phone: data.phone});
                 
-                if(p && canceledTicket) {
-                    
-                    let refundPlay = canceledTicket.paidFromPlay || 0;
-                    let refundMain = canceledTicket.paidFromMain || 0;
-                    
-                    if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
+                if(user && (user.playBalance + user.mainBalance) >= betAmount) {
+                    let playDeducted = 0;
+                    let mainDeducted = 0;
 
-                    user.playBalance += refundPlay;
-                    user.mainBalance += refundMain;
-                    user.played = Math.max(0, user.played - 1);
-                    user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
-                    await user.save();
-               // 🚨 ከ Main Wallet የተገዛ ከነበረ፣ ሲሰረዝ ከካዝና 1 እና 3 ላይ ብቻ ይቀንሳል
-                    if (refundMain > 0) {
-                        let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
-                        let v1Cut = refundMain - v3Cut;
+                    // መጀመሪያ ከ Play Wallet ይቆርጣል
+                    if (user.playBalance >= betAmount) {
+                        user.playBalance -= betAmount;
+                        playDeducted = betAmount;
+                    } else {
+                        // Play Wallet ካነሰ፣ ያለውን ጨርሶ ቀሪውን ከ Main Wallet ይወስዳል
+                        playDeducted = user.playBalance;
+                        mainDeducted = betAmount - user.playBalance;
+                        user.playBalance = 0;
+                        user.mainBalance -= mainDeducted;
+                    }
 
-                        GLOBAL_SETTINGS.virtualPrizePool = Math.max(0, GLOBAL_SETTINGS.virtualPrizePool - v1Cut);
-                        GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
+                    if (playDeducted > 0) {
+                        if (user.unplayedRealDeposit >= playDeducted) {
+                            user.unplayedRealDeposit -= playDeducted;
+                        } else {
+                            user.unplayedRealDeposit = 0;
+                        }
+                    }
+
+                    let realBetAmount = mainDeducted;
+
+                    if (mainDeducted > 0) {
+                        let v3Cut = mainDeducted * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
+                        let v1Cut = mainDeducted - v3Cut;
+
+                        GLOBAL_SETTINGS.virtualPrizePool += v1Cut;
+                        GLOBAL_SETTINGS.vaultThreeBalance += v3Cut;
 
                         await SystemSettings.updateOne({}, { 
-                            $set: { 
-                                virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
-                                vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
+                            $inc: { 
+                                virtualPrizePool: v1Cut, 
+                                vaultThreeBalance: v3Cut 
                             } 
                         });
-                    }  
+                    }
                     
-                    p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
-                    p.tickets -= 1;
-                    if(p.tickets === 0) delete activePlayers[data.phone];
+                    user.played += 1; 
+                    user.totalTicketsBought = (user.totalTicketsBought || 0) + requestedCount; 
+                    await user.save();
 
-                    totalTickets -= 1;
-                    totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                    let playPerTicket = playDeducted / requestedCount;
+                    let mainPerTicket = mainDeducted / requestedCount;
                     
-                    // 🔥 ከላይ ሲገዙ እንደተሰላው ሲመለስም በትክክል ይቀንሳል
+                    // 🚨 HACK FIX 4: ሌባው ከክላይንት የላከውን ዋጋ ሰርዘን፣ ሰርቨሩ በራሱ ዋጋ መድቦ ያስቀምጣል
+                    let cleanTicketsData = [];
+                    data.ticketsData.forEach(t => {
+                        cleanTicketsData.push({
+                            id: String(t.id),
+                            grid: t.grid,
+                            paidFromPlay: playPerTicket,
+                            paidFromMain: mainPerTicket
+                        });
+                    });
+
+                    if (!activePlayers[data.phone]) {
+                        activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: requestedCount, ticketsData: cleanTicketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
+                    } else { 
+                        activePlayers[data.phone].tickets += requestedCount; 
+                        activePlayers[data.phone].ticketsData.push(...cleanTicketsData); 
+                        activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
+                        activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetAmount;
+                    }
+                    
+                    totalTickets += requestedCount; 
+                    totalCollectedMoney += betAmount;
+
                     let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                    totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
-
-                    globalTakenTickets = globalTakenTickets.filter(id => id !== data.ticketId);
-
+                    totalPrizePool += (playDeducted * ((100 - uiAdminPercent) / 100)) + mainDeducted; 
+                    
+                    if (Array.isArray(data.ticketIds)) {
+                        data.ticketIds.slice(0, requestedCount).forEach(id => globalTakenTickets.push(String(id)));
+                    }
+                    
                     io.emit('update_taken_tickets', globalTakenTickets); 
                     socket.emit('balance_updated', data.phone);
-                    socket.emit('ticket_cancelled_success', data.ticketId);
+                } else {
+                    socket.emit('bet_error', `❌ በቂ ሂሳብ የለዎትም!`);
                 }
+            } catch (err) {
+                console.error("Ticket Buy Error:", err);
+                socket.emit('bet_error', `❌ የኔትወርክ መቆራረጥ አጋጥሟል! እባክዎ እንደገና ይሞክሩ።`);
+            } finally {
+                delete buyingLocks[data.phone];
             }
-        } finally {
-            delete buyingLocks[data.phone];
-        }
-    });
+        });
 
-});
+        // ==========================================
+        // 🔒 FIX: HACKER PROOF TICKET CANCELING
+        // ==========================================
+        socket.on('cancel_ticket', async (data) => {
+            if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
+            
+            // 🚨 HACK FIX 5: የተጭበረበረ ዳታ ማገጃ
+            if (!data || !data.phone || !data.ticketId) return;
+
+            if (buyingLocks[data.phone]) {
+                socket.emit('bet_error', `⚠️ እባክዎ ትንሽ ይጠብቁ... (Network Sync)`);
+                return; 
+            }
+            buyingLocks[data.phone] = true;
+
+            try {
+                const user = await User.findOne({phone: data.phone});
+                if(user) {
+                    let p = activePlayers[data.phone];
+                    
+                    // 🚨 HACK FIX 6: አንድ ካርቴላ ሁለቴ እንዳይሰረዝ ጥብቅ ማጣሪያ
+                    let canceledTicketIndex = p ? p.ticketsData.findIndex(t => String(t.id) === String(data.ticketId)) : -1;
+                    
+                    if(p && canceledTicketIndex !== -1) {
+                        let canceledTicket = p.ticketsData[canceledTicketIndex];
+                        
+                        let refundPlay = Number(canceledTicket.paidFromPlay) || 0;
+                        let refundMain = Number(canceledTicket.paidFromMain) || 0;
+                        
+                        if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
+
+                        user.playBalance += refundPlay;
+                        user.mainBalance += refundMain;
+                        user.played = Math.max(0, user.played - 1);
+                        user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
+                        await user.save();
+                   
+                        if (refundMain > 0) {
+                            let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
+                            let v1Cut = refundMain - v3Cut;
+
+                            GLOBAL_SETTINGS.virtualPrizePool = Math.max(0, GLOBAL_SETTINGS.virtualPrizePool - v1Cut);
+                            GLOBAL_SETTINGS.vaultThreeBalance = Math.max(0, GLOBAL_SETTINGS.vaultThreeBalance - v3Cut);
+
+                            await SystemSettings.updateOne({}, { 
+                                $set: { 
+                                    virtualPrizePool: GLOBAL_SETTINGS.virtualPrizePool, 
+                                    vaultThreeBalance: GLOBAL_SETTINGS.vaultThreeBalance 
+                                } 
+                            });
+                        }  
+                        
+                        // 🚨 HACK FIX 7: ካርቴላውን ከ Array ላይ ጠራርጎ ማጥፋት (Splice)
+                        p.ticketsData.splice(canceledTicketIndex, 1);
+                        p.tickets -= 1;
+                        if(p.tickets <= 0) delete activePlayers[data.phone];
+
+                        totalTickets -= 1;
+                        totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
+                        
+                        let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
+                        totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
+
+                        globalTakenTickets = globalTakenTickets.filter(id => String(id) !== String(data.ticketId));
+
+                        io.emit('update_taken_tickets', globalTakenTickets); 
+                        socket.emit('balance_updated', data.phone);
+                        socket.emit('ticket_cancelled_success', data.ticketId);
+                    } else {
+                        socket.emit('bet_error', `❌ ይህ ካርቴላ አልተገኘም ወይም ቀድሞ ተሰርዟል!`);
+                    }
+                }
+            } catch (err) {
+                console.error("Cancel Ticket Error:", err);
+                socket.emit('bet_error', `❌ የኔትወርክ መቆራረጥ አጋጥሟል! እባክዎ እንደገና ይሞክሩ።`);
+            } finally {
+                delete buyingLocks[data.phone];
+            }
+        });
+
+    });
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
