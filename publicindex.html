@@ -271,9 +271,21 @@
         .pc { height: 12px; border-radius: 2px; background: #1e293b; }
         .pc.hl { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
 
+        /* 🔥 INTERNET LOST ALERT 🔥 */
+        #offline-alert {
+            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95); color: white; padding: 12px 25px;
+            border-radius: 8px; font-weight: 900; font-size: 14px; z-index: 10000;
+            transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6); display: flex;
+            align-items: center; gap: 10px; pointer-events: none; letter-spacing: 0.5px;
+        }
+        #offline-alert.show { top: 20px; }
     </style>
 </head>
 <body>
+    <!-- 🔥 አዲሱ ኢንተርኔት መጥፋት ማሳወቂያ 🔥 -->
+<div id="offline-alert">❌ ኢንተርኔት ተቋርጧል! (Internet is lost)</div>
 
 <!-- 🔥 አዲሱ የቦነስ መውሰጃ በተን (Floating Claim Button) 🔥 -->
 <div id="promo-claim-float" onclick="claimWebPromo()" style="display:none; position:fixed; top: 120px; right: 10px; z-index: 5000; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 2px solid #fff; border-radius: 12px; padding: 10px 15px; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6); text-align: center; cursor: pointer; animation: pulseClaimFloat 1.2s infinite;">
@@ -734,6 +746,13 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
+    // 🔥 ኢንተርኔት ሲቋረጥ ሜሴጅ የሚያሳየው ፈንክሽን 🔥
+    function showOfflineAlert() {
+        const alertBox = document.getElementById('offline-alert');
+        alertBox.classList.add('show');
+        setTimeout(() => { alertBox.classList.remove('show'); }, 3000);
+    }
+    window.addEventListener('offline', () => { showOfflineAlert(); });
     let called = []; 
     let currentUser = null;
     let userTicketsData = [];
@@ -1491,6 +1510,11 @@
             d.setAttribute('data-num', i);
             
             d.onclick = () => { 
+                // 🛑 ኢንተርኔት መኖሩን ቼክ ማድረጊያ 🛑
+            if (!navigator.onLine || !socket.connected) {
+                showOfflineAlert();
+                return; 
+            }
                 if(isProcessingTicket) return; 
 
                 if(document.getElementById('timer').innerText.includes("LIVE")) return; 
