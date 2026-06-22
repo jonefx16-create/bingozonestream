@@ -2863,18 +2863,46 @@ io.on('connection', (socket) => {
     
     socket.on('buy_tickets', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-        if (buyingLocks[data.phone]) return; 
-        buyingLocks[data.phone] = true;
+        
+        // 🔥 1. HACKER BLOCKER: ዳታው ትክክል መሆኑን ማረጋገጥ
+        if (!data || typeof data !== 'object') return;
+        let phone = String(data.phone || "");
+        let ticketCount = parseInt(data.ticketCount);
+
+        // ሀከሩ ቁጥሩን በኔጌቲቭ (Negative) ወይም ከዜሮ በታች አድርጎ እንዳይሰርቅ መዝጊያ
+        if (isNaN(ticketCount) || ticketCount <= 0 || ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) return;
+        if (!Array.isArray(data.ticketsData) || data.ticketsData.length !== ticketCount) return;
+
+        // 🔥 2. ትክክለኛው ማስተካከያ (Blur እንዲያደርግ): የካርቴላ ቁጥሮችን በትክክል መቀበል
+        let incomingIds = data.ticketIds || data.ticketsData.map(t => t.id);
+        if (!Array.isArray(incomingIds) || incomingIds.length === 0) return;
+
+        // SPAM BLOCKER: እባብ/ሀከር ዳታ አጥፍቶ አንድ ካርቴላ ደጋግሞ እንዳይገዛ መዝጊያ
+        let isDuplicate = incomingIds.some(id => 
+            globalTakenTickets.includes(id) || 
+            globalTakenTickets.includes(String(id)) || 
+            globalTakenTickets.includes(Number(id))
+        );
+
+        if (isDuplicate) {
+            socket.emit('bet_error', `❌ የመረጡት ካርቴላ ቀድሞ ተይዟል! እባክዎ ሌላ ይምረጡ።`);
+            return;
+        }
+
+        if (buyingLocks[phone]) return; 
+        buyingLocks[phone] = true;
 
         try {
-            let currentTickets = activePlayers[data.phone] ? activePlayers[data.phone].tickets : 0;
-            if (currentTickets + data.ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
+            let currentTickets = activePlayers[phone] ? activePlayers[phone].tickets : 0;
+            if (currentTickets + ticketCount > GLOBAL_SETTINGS.maxTicketsPerUser) {
                 socket.emit('bet_error', `❌ ይቅርታ! በአጠቃላይ ከ ${GLOBAL_SETTINGS.maxTicketsPerUser} ካርቴላ በላይ መግዛት አይቻልም!`);
                 return;
             }
 
-            const betAmount = data.ticketCount * GLOBAL_SETTINGS.ticketPrice;
-            const user = await User.findOne({phone: data.phone});
+            const betAmount = ticketCount * GLOBAL_SETTINGS.ticketPrice;
+            if (betAmount <= 0) return; 
+
+            const user = await User.findOne({phone: phone});
             
             if(user && (user.playBalance + user.mainBalance) >= betAmount) {
                 let playDeducted = 0;
@@ -2902,7 +2930,7 @@ io.on('connection', (socket) => {
 
                 let realBetAmount = mainDeducted;
 
-                // 🔥 ከ Main Wallet የተቆረጠው ወደ ካዝና 1 እና 3 ብቻ ይገባል (ካዝና 2ን ይዘለዋል) 🔥
+                // ከ Main Wallet የተቆረጠው ወደ ካዝና 1 እና 3 ብቻ ይገባል
                 if (mainDeducted > 0) {
                     let v3Cut = mainDeducted * ((GLOBAL_SETTINGS.vaultThreePercent !== undefined ? GLOBAL_SETTINGS.vaultThreePercent : 10) / 100);
                     let v1Cut = mainDeducted - v3Cut;
@@ -2919,66 +2947,81 @@ io.on('connection', (socket) => {
                 }
                 
                 user.played += 1; 
-                user.totalTicketsBought = (user.totalTicketsBought || 0) + data.ticketCount; 
+                user.totalTicketsBought = (user.totalTicketsBought || 0) + ticketCount; 
                 await user.save();
 
-                let playPerTicket = playDeducted / data.ticketCount;
-                let mainPerTicket = mainDeducted / data.ticketCount;
+                let playPerTicket = playDeducted / ticketCount;
+                let mainPerTicket = mainDeducted / ticketCount;
                 
                 data.ticketsData.forEach(t => {
                     t.paidFromPlay = playPerTicket;
                     t.paidFromMain = mainPerTicket;
                 });
 
-                if (!activePlayers[data.phone]) {
-                    activePlayers[data.phone] = { name: data.name, phone: data.phone, tickets: data.ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
+                if (!activePlayers[phone]) {
+                    activePlayers[phone] = { name: data.name, phone: phone, tickets: ticketCount, ticketsData: data.ticketsData, isBot: false, hasDeposited: (user.totalDeposited > 0), realBetAmount: realBetAmount };
                 } else { 
-                    activePlayers[data.phone].tickets += data.ticketCount; 
-                    activePlayers[data.phone].ticketsData.push(...data.ticketsData); 
-                    activePlayers[data.phone].hasDeposited = (user.totalDeposited > 0);
-                    activePlayers[data.phone].realBetAmount = (activePlayers[data.phone].realBetAmount || 0) + realBetAmount;
+                    activePlayers[phone].tickets += ticketCount; 
+                    activePlayers[phone].ticketsData.push(...data.ticketsData); 
+                    activePlayers[phone].hasDeposited = (user.totalDeposited > 0);
+                    activePlayers[phone].realBetAmount = (activePlayers[phone].realBetAmount || 0) + realBetAmount;
                 }
                 
-                totalTickets += data.ticketCount; 
+                totalTickets += ticketCount; 
                 totalCollectedMoney += betAmount;
 
                 let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
-                // 🔥 ከ Main Wallet የተገዛው ሙሉ በሙሉ ወደ Prize Pool ስለሚሄድ (አድሚን ስለማይቆርጥ) ስሌቱ ተስተካክሏል
                 totalPrizePool += (playDeducted * ((100 - uiAdminPercent) / 100)) + mainDeducted; 
                 
-                data.ticketIds.forEach(id => globalTakenTickets.push(id));
+                // 🔥 3. ለሁሉም ሰው እና ለቦቶች BLUR እንዲያደርግ ዳታውን መላክ (THE FIX)
+                incomingIds.forEach(id => {
+                    if(!globalTakenTickets.includes(id)) globalTakenTickets.push(id);
+                });
                 io.emit('update_taken_tickets', globalTakenTickets); 
-                socket.emit('balance_updated', data.phone);
+                socket.emit('balance_updated', phone);
             }
         } finally {
-            delete buyingLocks[data.phone];
+            delete buyingLocks[phone];
         }
     });
 
     socket.on('cancel_ticket', async (data) => {
         if(GLOBAL_SETTINGS.isGamePaused || gameState !== "WAITING") return; 
-        if (buyingLocks[data.phone]) return; 
-        buyingLocks[data.phone] = true;
+        
+        // 🔥 4. REFUND HACK BLOCKER
+        if (!data || typeof data !== 'object') return;
+        let phone = String(data.phone || "");
+        let ticketId = data.ticketId;
+
+        if (!ticketId) return;
+
+        if (buyingLocks[phone]) return; 
+        buyingLocks[phone] = true;
 
         try {
-            const user = await User.findOne({phone: data.phone});
+            const user = await User.findOne({phone: phone});
             if(user) {
-                let p = activePlayers[data.phone];
-                let canceledTicket = p ? p.ticketsData.find(t => t.id === data.ticketId) : null;
+                let p = activePlayers[phone];
+                let canceledTicketIndex = p ? p.ticketsData.findIndex(t => String(t.id) === String(ticketId)) : -1;
                 
-                if(p && canceledTicket) {
+                if(p && canceledTicketIndex !== -1) {
                     
+                    let canceledTicket = p.ticketsData[canceledTicketIndex];
                     let refundPlay = canceledTicket.paidFromPlay || 0;
                     let refundMain = canceledTicket.paidFromMain || 0;
                     
                     if (refundPlay === 0 && refundMain === 0) { refundPlay = GLOBAL_SETTINGS.ticketPrice; }
+
+                    // ብሩን ከመመለሱ በፊት ካርቴላውን ከ ሲስተም ላይ ያጠፋዋል (Double Refund መከላከያ)
+                    p.ticketsData.splice(canceledTicketIndex, 1);
+                    p.tickets -= 1;
 
                     user.playBalance += refundPlay;
                     user.mainBalance += refundMain;
                     user.played = Math.max(0, user.played - 1);
                     user.totalTicketsBought = Math.max(0, (user.totalTicketsBought || 0) - 1); 
                     await user.save();
-               // 🚨 ከ Main Wallet የተገዛ ከነበረ፣ ሲሰረዝ ከካዝና 1 እና 3 ላይ ብቻ ይቀንሳል
+               
                     if (refundMain > 0) {
                         let v3Cut = refundMain * ((GLOBAL_SETTINGS.vaultThreePercent || 10) / 100);
                         let v1Cut = refundMain - v3Cut;
@@ -2994,30 +3037,26 @@ io.on('connection', (socket) => {
                         });
                     }  
                     
-                    p.ticketsData = p.ticketsData.filter(t => t.id !== data.ticketId);
-                    p.tickets -= 1;
-                    if(p.tickets === 0) delete activePlayers[data.phone];
+                    if(p.tickets === 0) delete activePlayers[phone];
 
                     totalTickets -= 1;
                     totalCollectedMoney -= GLOBAL_SETTINGS.ticketPrice;
                     
-                    // 🔥 ከላይ ሲገዙ እንደተሰላው ሲመለስም በትክክል ይቀንሳል
                     let uiAdminPercent = GLOBAL_SETTINGS.adminProfitPercent || 15;
                     totalPrizePool -= (refundPlay * ((100 - uiAdminPercent) / 100)) + refundMain; 
 
-                    globalTakenTickets = globalTakenTickets.filter(id => id !== data.ticketId);
+                    // የተሰረዘው ካርቴላ ለሌሎች ብዥ ማለቱ እንዲቆም ያደርገዋል
+                    globalTakenTickets = globalTakenTickets.filter(id => String(id) !== String(ticketId));
 
                     io.emit('update_taken_tickets', globalTakenTickets); 
-                    socket.emit('balance_updated', data.phone);
-                    socket.emit('ticket_cancelled_success', data.ticketId);
+                    socket.emit('balance_updated', phone);
+                    socket.emit('ticket_cancelled_success', ticketId);
                 }
             }
         } finally {
-            delete buyingLocks[data.phone];
+            delete buyingLocks[phone];
         }
     });
-
-});
 
 bot.setWebHook(`${WEB_URL}/bot${telegramToken}`);
 app.post(`/bot${telegramToken}`, (req, res) => { bot.processUpdate(req.body); res.sendStatus(200); });
