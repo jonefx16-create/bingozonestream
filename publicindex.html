@@ -1344,6 +1344,20 @@
         } else {
             document.body.classList.remove('paused-mode');
         }
+        // 🔥 ከአድሚን ፓነል የሚላከውን የባንክ መረጃ መቀበያ
+        if (data.bankInfo) {
+            // 1. የቆየውን ዳታ በአዲሱ መተካት
+            depAccounts.telebirr = { num: data.bankInfo.tbNum, name: data.bankInfo.tbName };
+            depAccounts.cbe = { num: data.bankInfo.cbeNum, name: data.bankInfo.cbeName };
+
+            // 2. አሁን ስክሪኑ ላይ የሚታየውን ወዲያውኑ መቀየር
+            let activeBtn = document.querySelector('#dep-bank-grid .bank-btn.active');
+            if (activeBtn) {
+                let method = activeBtn.getAttribute('data-bankname');
+                document.getElementById('m-dep-acc').innerText = depAccounts[method].num;
+                document.getElementById('m-dep-name').innerText = depAccounts[method].name;
+            }
+        }
 
         if (data.state === "WAITING") {
             isGameRunningLocally = false;
