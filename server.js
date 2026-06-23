@@ -299,7 +299,8 @@ async function loadSettings() {
         maxTicketsPerUser: s.maxTicketsPerUser !== undefined ? s.maxTicketsPerUser : 4,
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
         winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
-        jackpotBoostAmount: s.jackpotBoostAmount !== undefined ? s.jackpotBoostAmount : 0
+        jackpotBoostAmount: s.jackpotBoostAmount !== undefined ? s.jackpotBoostAmount : 0,
+       
         telebirrAccountName: s.telebirrAccountName || "Yohannes aberham",
         telebirrAccountNumber: s.telebirrAccountNumber || "0953839231",
         cbeAccountName: s.cbeAccountName || "Yohannes aberham",
