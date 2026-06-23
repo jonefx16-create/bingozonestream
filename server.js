@@ -77,7 +77,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     referredViaPromo: { type: Boolean, default: false }, 
     compensatedInvites: { type: Number, default: 0 },
     diagnosticFraudReported: { type: Boolean, default: false },
-    diagnosticNegativeReported: { type: Boolean, default: false }
+    diagnosticNegativeReported: { type: Boolean, default: false },
     lastActive: { type: Date, default: Date.now }
 }));
 
