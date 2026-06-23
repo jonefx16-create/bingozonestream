@@ -2564,6 +2564,12 @@ setInterval(() => {
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
             takenTickets: globalTakenTickets
+            bankInfo: {
+                tbName: GLOBAL_SETTINGS.telebirrAccountName,
+                tbNum: GLOBAL_SETTINGS.telebirrAccountNumber,
+                cbeName: GLOBAL_SETTINGS.cbeAccountName,
+                cbeNum: GLOBAL_SETTINGS.cbeAccountNumber
+            }
         });
         
         if (gameClock <= 0) { 
