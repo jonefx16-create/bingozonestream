@@ -1891,11 +1891,13 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.jackpotBoostAmount !== undefined) {
         s.jackpotBoostAmount = req.body.jackpotBoostAmount;
         jackpotBoostAmount = req.body.jackpotBoostAmount;
-        if(req.body.telebirrAccountName !== undefined) s.telebirrAccountName = req.body.telebirrAccountName;
+    }
+
+    // ከብሬኬቱ ውጭ ራሳቸውን ችለው እንዲህ ይቀመጡ
+    if(req.body.telebirrAccountName !== undefined) s.telebirrAccountName = req.body.telebirrAccountName;
     if(req.body.telebirrAccountNumber !== undefined) s.telebirrAccountNumber = req.body.telebirrAccountNumber;
     if(req.body.cbeAccountName !== undefined) s.cbeAccountName = req.body.cbeAccountName;
     if(req.body.cbeAccountNumber !== undefined) s.cbeAccountNumber = req.body.cbeAccountNumber;
-    }
 
     await s.save(); await loadSettings();
     res.json({ success: true });
