@@ -116,6 +116,8 @@
             .search-container { flex-direction: column; align-items: stretch; }
             .login-card { padding: 40px 20px; }
         }
+        /* 🔥 የ Pending Sums ስታይል 🔥 */
+        .summary-box { background: rgba(0,0,0,0.3); border: 1px dashed var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 18px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -432,6 +434,9 @@
 
         <!-- PENDING DEPOSITS -->
         <div id="tab-pend-dep" class="tab-content">
+            <div class="summary-box" style="color: var(--faded-green); border-color: var(--faded-green);">
+                📥 Total Pending Deposits: <span id="sum-pend-dep">0.00</span> ETB
+            </div>
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-pend-dep" onkeyup="simpleSearch('search-pend-dep', 'table-pend-dep')" placeholder="🔍 Search Phone, Bank, or Amount...">
             </div>
@@ -445,6 +450,10 @@
 
         <!-- PENDING WITHDRAWS -->
         <div id="tab-pend-wit" class="tab-content">
+            <div class="summary-box" style="color: var(--orange); border-color: var(--orange);">
+                📤 Total Pending Withdrawals: <span id="sum-pend-wit">0.00</span> ETB
+                <br><span style="font-size:12px; color:gray;">(Normal: <span id="sum-pend-wit-normal">0</span> | Promoter: <span id="sum-pend-wit-pro">0</span>)</span>
+            </div>
             <div class="search-container">
                 <input type="text" class="search-bar" id="search-pend-wit" onkeyup="simpleSearch('search-pend-wit', 'table-pend-wit')" placeholder="🔍 Search Phone, Bank, or Amount...">
             </div>
@@ -946,6 +955,29 @@
 
         <!-- SETTINGS & CONTROL -->
         <div id="tab-settings" class="tab-content">
+            <!-- 🔥 አዲሱ የባንክ ስም እና ቁጥር መቀየሪያ 🔥 -->
+            <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
+                <h3 style="margin-top:0; color:var(--cyan);">🏦 የባንክ አካውንት መቆጣጠሪያ (Bank Settings)</h3>
+                <p style="font-size:12px; color:gray;">ተጠቃሚዎች ብር ሲያስገቡ የሚያዩትን ስም እና አካውንት ቁጥር እዚህ ይቀይሩ።</p>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px; background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--blue);">
+                        <h4 style="margin-top:0; color:var(--blue);">📱 TeleBirr (ቴሌብር)</h4>
+                        <label style="font-size:11px; color:gray;">Account Name (የባለቤት ስም)</label>
+                        <input type="text" id="set-tb-name" placeholder="e.g. Abebe Kebede">
+                        <label style="font-size:11px; color:gray;">Account Number (ስልክ ቁጥር)</label>
+                        <input type="text" id="set-tb-num" placeholder="e.g. 0911...">
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 250px; background: rgba(168, 85, 247, 0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--purple);">
+                        <h4 style="margin-top:0; color:var(--purple);">🏦 CBE Birr (ሲቢኢ ብር)</h4>
+                        <label style="font-size:11px; color:gray;">Account Name (የባለቤት ስም)</label>
+                        <input type="text" id="set-cbe-name" placeholder="e.g. Abebe Kebede">
+                        <label style="font-size:11px; color:gray;">Account Number (ስልክ ቁጥር)</label>
+                        <input type="text" id="set-cbe-num" placeholder="e.g. 0911...">
+                    </div>
+                </div>
+                <button class="action-btn" style="width: 100%; margin-top: 15px; background:var(--cyan); color:black;" onclick="updateSettings('bank_accounts')">💾 Save Bank Accounts</button>
+            </div>
             <!-- 🟢 VIRTUAL POOL, DECOY & BONUS SETTINGS 🟢 -->
             <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 20px;">
                 <h3 style="margin-top:0; color:var(--cyan);">🧠 AI Illusion & Win Settings (የካዚኖ ጀርባ አሰራር)</h3>
@@ -1715,6 +1747,9 @@ async function submitManualDeposit() {
             let data = await res.json();
             
             sysSettings = data.settings;
+            if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
+            if (document.getElementById('u-weekly')) document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US');
+            if (document.getElementById('u-monthly')) document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
             window.activeBotPhones = data.activeBotPhones || []; 
 
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
@@ -1816,6 +1851,10 @@ async function submitManualDeposit() {
                 safeUpdate('set-decoy-chance', data.settings.decoyChancePercent !== undefined ? data.settings.decoyChancePercent : 15);
                 safeUpdate('set-bonus-win-perc', data.settings.bonusWinPercent !== undefined ? data.settings.bonusWinPercent : 0);
 
+                safeUpdate('set-tb-name', data.settings.telebirrAccountName || '');
+                safeUpdate('set-tb-num', data.settings.telebirrAccountNumber || '');
+                safeUpdate('set-cbe-name', data.settings.cbeAccountName || '');
+                safeUpdate('set-cbe-num', data.settings.cbeAccountNumber || '');
                 safeUpdate('set-price', data.settings.ticketPrice || 10);
                 safeUpdate('set-timer', data.settings.gameTimer || 40);
                 safeUpdate('set-max-tickets', data.settings.maxTicketsPerUser !== undefined ? data.settings.maxTicketsPerUser : 4);
@@ -2104,6 +2143,15 @@ async function submitManualDeposit() {
             let deps = data.txs.filter(t => t.type === 'deposit');
             let wits = data.txs.filter(t => t.type === 'withdraw' && t.method !== 'Promoter Comm');
             let proWits = data.txs.filter(t => t.type === 'withdraw' && t.method === 'Promoter Comm');
+            // Calculate Sums
+            let sumDep = deps.reduce((acc, t) => acc + t.amount, 0);
+            let sumWitNormal = wits.reduce((acc, t) => acc + t.amount, 0);
+            let sumWitPro = proWits.reduce((acc, t) => acc + t.amount, 0);
+            
+            if(document.getElementById('sum-pend-dep')) document.getElementById('sum-pend-dep').innerText = sumDep.toLocaleString('en-US', {minimumFractionDigits: 2});
+            if(document.getElementById('sum-pend-wit')) document.getElementById('sum-pend-wit').innerText = (sumWitNormal + sumWitPro).toLocaleString('en-US', {minimumFractionDigits: 2});
+            if(document.getElementById('sum-pend-wit-normal')) document.getElementById('sum-pend-wit-normal').innerText = sumWitNormal.toLocaleString('en-US');
+            if(document.getElementById('sum-pend-wit-pro')) document.getElementById('sum-pend-wit-pro').innerText = sumWitPro.toLocaleString('en-US');
             
             let bDep = document.getElementById('badge-dep'); if(deps.length > 0) { bDep.style.display = 'inline-block'; bDep.innerText = deps.length; } else { bDep.style.display = 'none'; }
             
@@ -2754,6 +2802,12 @@ async function submitManualDeposit() {
     
     async function updateSettings(type) { 
         let payload = { adminPass: pass }; 
+        if (type === 'bank_accounts') {
+            payload.telebirrAccountName = document.getElementById('set-tb-name').value.trim();
+            payload.telebirrAccountNumber = document.getElementById('set-tb-num').value.trim();
+            payload.cbeAccountName = document.getElementById('set-cbe-name').value.trim();
+            payload.cbeAccountNumber = document.getElementById('set-cbe-num').value.trim();
+        }
         if(type === 'password') { 
             let np = document.getElementById('set-pass').value; 
             if(!np) return alert("Enter admin pass!"); 
