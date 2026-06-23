@@ -2563,7 +2563,7 @@ setInterval(() => {
             state: gameState, timer: gameClock, totalPrizePool, jackpotBoost: jackpotBoostAmount,
             totalTickets, ticketPrice: GLOBAL_SETTINGS.ticketPrice, calledNumbers, playersCount: Object.keys(activePlayers).length, gameId, 
             maxTickets: GLOBAL_SETTINGS.maxTicketsPerUser, depBannerTextAm: GLOBAL_SETTINGS.depBannerTextAm, depBannerTextEn: GLOBAL_SETTINGS.depBannerTextEn, witBannerTextAm: GLOBAL_SETTINGS.witBannerTextAm, witBannerTextEn: GLOBAL_SETTINGS.witBannerTextEn, minWithdrawLimit: GLOBAL_SETTINGS.minWithdrawLimit,
-            takenTickets: globalTakenTickets
+            takenTickets: globalTakenTickets,
             bankInfo: {
                 tbName: GLOBAL_SETTINGS.telebirrAccountName,
                 tbNum: GLOBAL_SETTINGS.telebirrAccountNumber,
