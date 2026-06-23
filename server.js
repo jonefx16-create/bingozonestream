@@ -155,16 +155,13 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     ticketPrice: { type: Number, default: 10 }, 
     isGamePaused: { type: Boolean, default: false }, 
     gameTimer: { type: Number, default: 40 },
-    
     virtualPrizePool: { type: Number, default: 0 }, 
     vaultTwoBalance: { type: Number, default: 0 }, 
     vaultTwoPercent: { type: Number, default: 10 }, 
     vaultThreeBalance: { type: Number, default: 0 }, 
     vaultThreePercent: { type: Number, default: 10 }, 
-
     decoyChancePercent: { type: Number, default: 15 }, 
     bonusWinPercent: { type: Number, default: 0 }, 
-    
     isBotSystemActive: { type: Boolean, default: false },
     botWinnerForce: { type: String, default: 'bots' }, 
     mixBotCount: { type: Number, default: 1 }, 
@@ -172,26 +169,22 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     botDist2: { type: Number, default: 4 }, 
     botDist3: { type: Number, default: 3 }, 
     botDist4: { type: Number, default: 3 }, 
-
     isBotScheduleActive: { type: Boolean, default: false },
     botSchedule1: { type: Object, default: { start: 0, end: 8, min: 10, max: 15 } },
     botSchedule2: { type: Object, default: { start: 8, end: 12, min: 15, max: 25 } },
     botSchedule3: { type: Object, default: { start: 12, end: 18, min: 20, max: 40 } },
     botSchedule4: { type: Object, default: { start: 18, end: 24, min: 40, max: 60 } },
-    
     depBonusMinAmount: { type: Number, default: 50 }, 
     depBonusPercent: { type: Number, default: 50 }, 
     depBonusTier2Min: { type: Number, default: 200 },
     depBonusTier2Percent: { type: Number, default: 100 },
     depBonusTier3Min: { type: Number, default: 300 },
     depBonusTier3Percent: { type: Number, default: 150 },
-
     depBonusTimeRestricted: { type: Boolean, default: false }, 
     happyHourStart: { type: Number, default: 0 }, 
     happyHourEnd: { type: Number, default: 23 },
     depBannerTextAm: { type: String, default: "" }, 
     depBannerTextEn: { type: String, default: "" },
-    
     witBonusMinAmount: { type: Number, default: 100 }, 
     witBonusPercent: { type: Number, default: 5 }, 
     isWitBonusActive: { type: Boolean, default: false }, 
@@ -200,7 +193,6 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     witHappyHourEnd: { type: Number, default: 23 },
     witBannerTextAm: { type: String, default: "" }, 
     witBannerTextEn: { type: String, default: "" },
-    
     registerBonus: { type: Number, default: 10 }, 
     inviteBonus: { type: Number, default: 10 }, 
     adminProfitPercent: { type: Number, default: 15 },
@@ -208,6 +200,7 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     minWithdrawLimit: { type: Number, default: 50 },
     winPopupTimer: { type: Number, default: 12 },
     jackpotBoostAmount: { type: Number, default: 0 },
+    // 👇 እነዚህን በትክክል በኮማ ተለያይተው እዚህ ጋር ያስገቡ
     telebirrAccountName: { type: String, default: "Yohannes aberham" },
     telebirrAccountNumber: { type: String, default: "0953839231" },
     cbeAccountName: { type: String, default: "Yohannes aberham" },
