@@ -78,6 +78,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     compensatedInvites: { type: Number, default: 0 },
     diagnosticFraudReported: { type: Boolean, default: false },
     diagnosticNegativeReported: { type: Boolean, default: false }
+    lastActive: { type: Date, default: Date.now }
 }));
 
 const { BotUser, initBotDatabase } = require('./bots/bot.model');
@@ -207,6 +208,10 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     minWithdrawLimit: { type: Number, default: 50 },
     winPopupTimer: { type: Number, default: 12 },
     jackpotBoostAmount: { type: Number, default: 0 }
+    telebirrAccountName: { type: String, default: "Yohannes aberham" },
+    telebirrAccountNumber: { type: String, default: "0953839231" },
+    cbeAccountName: { type: String, default: "Yohannes aberham" },
+    cbeAccountNumber: { type: String, default: "0953839231" }
 }));
 
 const SystemLog = mongoose.model('SystemLog', new mongoose.Schema({
@@ -302,6 +307,10 @@ async function loadSettings() {
         minWithdrawLimit: s.minWithdrawLimit !== undefined ? s.minWithdrawLimit : 50,
         winPopupTimer: s.winPopupTimer !== undefined ? s.winPopupTimer : 12,
         jackpotBoostAmount: s.jackpotBoostAmount !== undefined ? s.jackpotBoostAmount : 0
+        telebirrAccountName: s.telebirrAccountName || "Yohannes aberham",
+        telebirrAccountNumber: s.telebirrAccountNumber || "0953839231",
+        cbeAccountName: s.cbeAccountName || "Yohannes aberham",
+        cbeAccountNumber: s.cbeAccountNumber || "0953839231",
     };
     jackpotBoostAmount = GLOBAL_SETTINGS.jackpotBoostAmount;
 }
@@ -323,7 +332,6 @@ async function checkTelegramJoin(telegramId) {
 
 function generateRefCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-const bankAccounts = { 'TeleBirr': { num: '0953839231', name: 'Yohannes aberham' }, 'CBEBirr': { num: '0953839231', name: 'Yohannes aberham' } };
 const WELCOME_PHOTO_URL = "https://i.postimg.cc/fyRC4Vsq/IMG-20260510-002811-640.jpg";
 
 function getTxRef(text) {
@@ -630,6 +638,7 @@ app.get('/api/getUser/:phone', async (req, res) => {
     if (!isFromOurSite || isHackerTool || isFakeBrowser) {
         console.log(`🚨 HACKER BLOCKED! Phone target: ${req.params.phone}, UA: ${userAgent}`);
         return res.status(403).json({ success: false, message: "❌ Access Denied! የተከለከለ (Security Block)" });
+        User.updateOne({phone: req.params.phone}, {$set: {lastActive: Date.now()}}).exec();
     }
 
     // ከላይ ያሉትን ማጣሪያዎች ካለፈ ብቻ ዳታውን ይሰጣል (አድሚንህ እና ዌብሳይትህ በተለመደው መንገድ ይሰራሉ)
@@ -1347,6 +1356,14 @@ app.post('/api/admin/live-players-list', auth, (req, res) => {
 app.post('/api/admin/live-stats', auth, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
+        let now = new Date();
+        let dayAgo = new Date(now - 24*60*60*1000);
+        let weekAgo = new Date(now - 7*24*60*60*1000);
+        let monthAgo = new Date(now - 30*24*60*60*1000);
+        
+        let dailyActive = await User.countDocuments({lastActive: {$gte: dayAgo}});
+        let weeklyActive = await User.countDocuments({lastActive: {$gte: weekAgo}});
+        let monthlyActive = await User.countDocuments({lastActive: {$gte: monthAgo}});
         let startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
@@ -1881,6 +1898,10 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     if(req.body.jackpotBoostAmount !== undefined) {
         s.jackpotBoostAmount = req.body.jackpotBoostAmount;
         jackpotBoostAmount = req.body.jackpotBoostAmount;
+        if(req.body.telebirrAccountName !== undefined) s.telebirrAccountName = req.body.telebirrAccountName;
+    if(req.body.telebirrAccountNumber !== undefined) s.telebirrAccountNumber = req.body.telebirrAccountNumber;
+    if(req.body.cbeAccountName !== undefined) s.cbeAccountName = req.body.cbeAccountName;
+    if(req.body.cbeAccountNumber !== undefined) s.cbeAccountNumber = req.body.cbeAccountNumber;
     }
 
     await s.save(); await loadSettings();
@@ -3361,10 +3382,24 @@ bot.on('message', async (msg) => {
 });
 
 bot.on('callback_query', async (query) => {
-    const chatId = query.message.chat.id; const data = query.data;
-    let user = await User.findOne({ telegramId: query.from.id.toString() }); let ln = getLang(user);
-    if(data.startsWith('lang_')) { if(user) { user.language = data.split('_')[1]; await user.save(); ln = getLang(user); bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); } bot.answerCallbackQuery(query.id); return; }
+    const chatId = query.message.chat.id; 
+    const data = query.data;
+    let user = await User.findOne({ telegramId: query.from.id.toString() }); 
+    let ln = getLang(user);
     
+    // 1. የቋንቋ ምርጫ
+    if(data.startsWith('lang_')) { 
+        if(user) { 
+            user.language = data.split('_')[1]; 
+            await user.save(); 
+            ln = getLang(user); 
+            bot.sendMessage(chatId, ln.lang_set, { parse_mode: "HTML", ...getMainMenu(user) }); 
+        } 
+        bot.answerCallbackQuery(query.id); 
+        return; 
+    }
+    
+    // 2. የፕሮሞ ቦነስ መውሰጃ (Claim Promo)
     if (data === 'claim_promo') {
         if(!user) return bot.answerCallbackQuery(query.id, { text: "❌ እባክዎ መጀመሪያ ይመዝገቡ!", show_alert: true });
         
@@ -3388,18 +3423,35 @@ bot.on('callback_query', async (query) => {
             }
         }
 
-        activeBonus.claimedBy.push(user.phone); activeBonus.currentClaims += 1; await activeBonus.save(); user.playBalance += activeBonus.amount; await user.save();
-        io.emit('balance_updated', user.phone); return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
+        activeBonus.claimedBy.push(user.phone); 
+        activeBonus.currentClaims += 1; 
+        await activeBonus.save(); 
+        user.playBalance += activeBonus.amount; 
+        await user.save();
+        io.emit('balance_updated', user.phone); 
+        return bot.answerCallbackQuery(query.id, { text: `🎉 እንኳን ደስ አሎት! የ ${activeBonus.amount} ETB ቦነስ አግኝተዋል!`, show_alert: true });
     }
 
-    if(!botState[chatId]) botState[chatId] = { step: 'idle' }; let state = botState[chatId];
+    // የቴሌግራም ስቴት (State) መቆጣጠሪያ
+    if(!botState[chatId]) botState[chatId] = { step: 'idle' }; 
+    let state = botState[chatId];
     
+    // 3. ዴፖዚት ሲደረግ (አዲሱ የባንክ ኮድ ያለበት)
     if (data.startsWith('dep_')) {
-        state.method = data.split('_')[1]; state.step = 'awaiting_dep_amt';
-        let accInfo = bankAccounts[state.method] || { num: '09...', name: 'Bingo Admin' };
+        state.method = data.split('_')[1]; 
+        state.step = 'awaiting_dep_amt';
+        
+        let accInfo = { num: '09...', name: 'Bingo Admin' };
+        if(state.method === 'TeleBirr') {
+            accInfo = { num: GLOBAL_SETTINGS.telebirrAccountNumber, name: GLOBAL_SETTINGS.telebirrAccountName };
+        } else if (state.method === 'CBEBirr') {
+            accInfo = { num: GLOBAL_SETTINGS.cbeAccountNumber, name: GLOBAL_SETTINGS.cbeAccountName };
+        }
+        
         let warn = state.method === 'TeleBirr' ? ln.warn_telebirr : (state.method === 'CBEBirr' ? ln.warn_cbebirr : "");
         bot.sendMessage(chatId, ln.bank_info(state.method, warn, accInfo.name, accInfo.num), { parse_mode: "HTML", ...cancelKeyboard(ln) });
     }
+    // 4. ዊዝድሮው (Withdraw) ሲደረግ
     else if (data.startsWith('wit_')) { 
         if(!user) return bot.answerCallbackQuery(query.id);
         state.method = data.split('_')[1]; 
@@ -3407,7 +3459,9 @@ bot.on('callback_query', async (query) => {
         state.step = 'awaiting_wit_amt'; 
         bot.sendMessage(chatId, ln.enter_wit_amt(user.phone, GLOBAL_SETTINGS.minWithdrawLimit), { parse_mode: "HTML", ...cancelKeyboard(ln) }); 
     }
-    botState[chatId] = state; bot.answerCallbackQuery(query.id);
+    
+    botState[chatId] = state; 
+    bot.answerCallbackQuery(query.id);
 });
 
 // 🔥 SECURITY FIX: ለ Admin እና ለ Finance መግቢያ ጥብቅ ቁጥጥር
