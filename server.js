@@ -585,6 +585,8 @@ app.post('/api/login', async (req, res) => {
     let password = String(req.body.password);
     
     let user = await User.findOne({ phone: phone, password: password });
+    // ተጫዋቹ ገብቶ ሲሳካለት ሰዓቱን ይመዘግባል
+await User.updateOne({ phone: user.phone }, { $set: { lastActive: new Date() } });
     if(user && user.status === 'banned') return res.json({ success: false, message: "❌ አካውንትዎ ታግዷል!" });
     if(user && !user.refCode) { user.refCode = generateRefCode(); await user.save(); } 
     
@@ -632,7 +634,8 @@ app.get('/api/getUser/:phone', async (req, res) => {
     if (!isFromOurSite || isHackerTool || isFakeBrowser) {
         console.log(`🚨 HACKER BLOCKED! Phone target: ${req.params.phone}, UA: ${userAgent}`);
         return res.status(403).json({ success: false, message: "❌ Access Denied! የተከለከለ (Security Block)" });
-        User.updateOne({phone: req.params.phone}, {$set: {lastActive: Date.now()}}).exec();
+        // ተጫዋቹ ጌሙን ሲከፍት የገባበትን ሰዓት ያድሳል
+await User.updateOne({ phone: req.params.phone }, { $set: { lastActive: new Date() } });
     }
 
     // ከላይ ያሉትን ማጣሪያዎች ካለፈ ብቻ ዳታውን ይሰጣል (አድሚንህ እና ዌብሳይትህ በተለመደው መንገድ ይሰራሉ)
