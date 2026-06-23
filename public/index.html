@@ -273,14 +273,19 @@
 
         /* 🔥 INTERNET LOST ALERT 🔥 */
         #offline-alert {
-            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 0; left: 50%; 
+            transform: translate(-50%, -150%);
             background: rgba(239, 68, 68, 0.95); color: white; padding: 12px 25px;
             border-radius: 8px; font-weight: 900; font-size: 14px; z-index: 10000;
-            transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6); display: flex;
             align-items: center; gap: 10px; pointer-events: none; letter-spacing: 0.5px;
+            opacity: 0; visibility: hidden; /* እንዳይታይ ይደብቀዋል */
         }
-        #offline-alert.show { top: 20px; }
+        #offline-alert.show { 
+            transform: translate(-50%, 20px); 
+            opacity: 1; visibility: visible; /* ሲጠራ ብቻ ያሳየዋል */
+        }
     </style>
 </head>
 <body>
