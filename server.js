@@ -207,7 +207,7 @@ const SystemSettings = mongoose.model('SystemSettings', new mongoose.Schema({
     maxTicketsPerUser: { type: Number, default: 4 },
     minWithdrawLimit: { type: Number, default: 50 },
     winPopupTimer: { type: Number, default: 12 },
-    jackpotBoostAmount: { type: Number, default: 0 }
+    jackpotBoostAmount: { type: Number, default: 0 },
     telebirrAccountName: { type: String, default: "Yohannes aberham" },
     telebirrAccountNumber: { type: String, default: "0953839231" },
     cbeAccountName: { type: String, default: "Yohannes aberham" },
