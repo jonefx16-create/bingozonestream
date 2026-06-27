@@ -1119,6 +1119,17 @@ app.post('/api/admin/bots-rename-all', auth, async (req, res) => {
     }
 });
 
+// 👇 አዲሱ ነጠላ ቦት ማጥፊያ ኮድ (ከ bots-rename-all በታች አስገባው) 👇
+
+app.post('/api/admin/delete-bot', auth, async (req, res) => {
+    try {
+        await BotUser.findByIdAndDelete(req.body.id);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// 👆 እስከዚህ 👆
+
 const botRoutes = require('./bots/bot.routes');
 app.use('/api/admin', botRoutes(SystemSettings, loadSettings, auth));
 
