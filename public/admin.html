@@ -1443,6 +1443,7 @@ async function submitManualDeposit() {
                         <td style="font-size:11px; color:var(--text-gray);">${dp}</td>
                         <td>
                             <button class="btn-sm btn-blue" onclick="openEditBotModal('${b._id}', '${safeName}', '${b.phone}', ${b.cardsCount || 1}, ${b.isActive !== false})">✏️ Edit</button>
+                            <button class="btn-sm btn-red" onclick="deleteBot('${b._id}')" style="margin-left:5px;">🗑️ Delete</button>
                         </td>
                     </tr>
                 `}).join('');
@@ -1570,6 +1571,26 @@ async function submitManualDeposit() {
         } catch(e) { alert("Network Error"); }
     }
 
+    // 👇 አዲሱ ነጠላ ቦት ማጥፊያ ጃቫስክሪፕት (ከ randomizeAllBotNames በታች አስገባው) 👇
+
+    async function deleteBot(id) {
+        if(!confirm("⚠️ እርግጠኛ ነዎት ይህን ቦት ማጥፋት ይፈልጋሉ?")) return;
+        try {
+            let res = await fetch('/api/admin/delete-bot', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({adminPass: pass, id: id}) 
+            });
+            let data = await res.json();
+            if(data.success) {
+                loadBotDB(); // ዳታቤዙን ሪፍሬሽ ያደርጋል
+            } else {
+                alert("❌ ማጥፋት አልተቻለም!");
+            }
+        } catch(e) { alert("Network Error"); }
+    }
+
+    // 👆 እስከዚህ 👆
     function previewLiveInject() {
         isBotInputDirty = true;
         let amt = parseInt(document.getElementById('instant-bot-amount').value);
