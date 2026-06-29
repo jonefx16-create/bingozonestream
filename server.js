@@ -436,6 +436,11 @@ async function autoApprovePendingDeposits() {
                                 await promoter.save();
                                 user.promoterCommissionGenerated += commission; 
                                 io.emit('balance_updated', promoter.phone);
+                                
+                                if(promoter.telegramId) {
+                                    let msg = `🎉 <b>የኮሚሽን ገቢ!</b>\n\nበእርስዎ የጋባዥ ሊንክ የመጣው <b>${user.name}</b> አሁን ገቢ አድርጓል።\n\n💰 <b>የእርስዎ ኮሚሽን:</b> +${commission} ETB\n💸 <b>ያልተከፈለ አጠቃላይ ኮሚሽን:</b> ${promoter.promoterUnpaidBalance} ETB`;
+                                    bot.sendMessage(promoter.telegramId, msg, {parse_mode: 'HTML'}).catch(e=>{});
+                                }
                             }
                         }
                         if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true; 
@@ -459,8 +464,12 @@ app.post('/api/webhook/iphone-sms-Tside04', async (req, res) => {
         const { secret, message } = req.body;
         if(secret !== "Bingo1234Secure") return res.status(401).json({ error: "Unauthorized" });
         if (!message) return res.json({ success: false, msg: "Empty message" });
-        let isReceivingMsg = /received|credited|transfer|gebi|into your account/i.test(message);
-        if(!isReceivingMsg) return res.json({ success: false, msg: "Not a receiving message" });
+        
+        // 🔥 የ SMS ማጣሪያ ማስተካከያ: "transfer" ወይም "debited" የሚል ካለበት በፍፁም አይቀበለውም (ወጪ የተደረገ ብር ስለሆነ)
+        let isReceivingMsg = /received|credited|gebi|into your account|deposit/i.test(message);
+        let isSendingMsg = /transfer|transferred|debited|out of your account/i.test(message);
+        
+        if(!isReceivingMsg || isSendingMsg) return res.json({ success: false, msg: "Not a receiving message or it's a withdrawal message" });
         let txRef = getTxRef(message);
         let amount = getBankAmount(message);
         if(amount > 0 && txRef) {
@@ -1005,6 +1014,12 @@ app.post('/api/admin/manual-receipt-deposit', auth, async (req, res) => {
                 promoter.promoterEarned += commission;
                 await promoter.save();
                 user.promoterCommissionGenerated += commission;
+                io.emit('balance_updated', promoter.phone);
+                
+                if(promoter.telegramId) {
+                    let msg = `🎉 <b>የኮሚሽን ገቢ!</b>\n\nበእርስዎ የጋባዥ ሊንክ የመጣው <b>${user.name}</b> አሁን ገቢ አድርጓል።\n\n💰 <b>የእርስዎ ኮሚሽን:</b> +${commission} ETB\n💸 <b>ያልተከፈለ አጠቃላይ ኮሚሽን:</b> ${promoter.promoterUnpaidBalance} ETB`;
+                    bot.sendMessage(promoter.telegramId, msg, {parse_mode: 'HTML'}).catch(e=>{});
+                }
             }
         }
 
@@ -1782,6 +1797,12 @@ app.post('/api/admin/action-tx', auth, async (req, res) => {
                     promoter.promoterEarned += commission;
                     await promoter.save();
                     user.promoterCommissionGenerated += commission;
+                    io.emit('balance_updated', promoter.phone);
+                    
+                    if(promoter.telegramId) {
+                        let msg = `🎉 <b>የኮሚሽን ገቢ!</b>\n\nበእርስዎ የጋባዥ ሊንክ የመጣው <b>${user.name}</b> አሁን ገቢ አድርጓል።\n\n💰 <b>የእርስዎ ኮሚሽን:</b> +${commission} ETB\n💸 <b>ያልተከፈለ አጠቃላይ ኮሚሽን:</b> ${promoter.promoterUnpaidBalance} ETB`;
+                        bot.sendMessage(promoter.telegramId, msg, {parse_mode: 'HTML'}).catch(e=>{});
+                    }
                 }
             }
             if (!user.hasMadeFirstDeposit) user.hasMadeFirstDeposit = true;
@@ -1918,6 +1939,18 @@ app.post('/api/admin/update-settings', auth, async (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/api/admin/daily-active-balances', auth, async (req, res) => {
+    try {
+        let now = new Date();
+        let dayAgo = new Date(now - 24*60*60*1000);
+        
+        let activeUsers = await User.find({ lastActive: { $gte: dayAgo }, mainBalance: { $gt: 0 } }, 'name phone mainBalance playBalance').sort({ mainBalance: -1 });
+        
+        res.json({ success: true, users: activeUsers });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
 app.post('/api/admin/trigger-cashback', auth, async (req, res) => {
     try {
         const minL = GLOBAL_SETTINGS.cashbackMinLoss || 200;
@@ -2049,21 +2082,55 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
             lastBroadcasts = []; 
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
-            for (let u of users) {
-                if(depositorsOnly) {
-                    if (requireDepositWithinHours > 0) {
-                        let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
-                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
-                        if (!recentDep) continue;
-                    } else {
-                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
-                        if (!validDep) continue;
-                    }
-                }
+            // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም ወዲያውኑ መልስ እንሰጠዋለን
+            res.json({ success: true, message: `✅ Promo Created! መልዕክቱ ከበስተጀርባ (Background) ለተጠቃሚዎች እየተላከ ነው...` });
 
-                try {
-                    let sentMsg;
-                    if (photoUrl && photoUrl.startsWith('data:image')) {
+            // 🔥 ከበስተጀርባ ቀስ እያለ ይልካል (እንዳይቋረጥ)
+            (async () => {
+                for (let u of users) {
+                    if(depositorsOnly) {
+                        if (requireDepositWithinHours > 0) {
+                            let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
+                            let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                            if (!recentDep) continue;
+                        } else {
+                            let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                            if (!validDep) continue;
+                        }
+                    }
+
+                    try {
+                        let sentMsg;
+                        if (photoUrl && photoUrl.startsWith('data:image')) {
+                            let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                            let photoBuffer = Buffer.from(base64Data, 'base64');
+                            sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
+                        } else if (photoUrl && photoUrl.startsWith('http')) { 
+                            sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
+                        } else { 
+                            sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                        }
+                        lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
+                    } catch(e) {} 
+                    
+                    // ቴሌግራም አድሚኑን ብሎክ እንዳያደርገው የ 50 ሚሊ-ሴኮንድ እረፍት
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                isBroadcasting = false;
+            })();
+            return; // ከስር ያለውን ኖርማል res.json እንዳይነካ
+        }
+        
+        // ቴሌግራም ካልተመረጠ ኖርማል መልስ ይሰጣል
+        res.json({ success: true, message: `✅ Promo Created Successfully!` });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Error processing promo." });
+    } finally {
+        if(req.body.platform !== 'tg' && req.body.platform !== 'both') {
+            isBroadcasting = false;
+        }
+    }
+});
                         let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
                         let photoBuffer = Buffer.from(base64Data, 'base64');
                         sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
@@ -2232,6 +2299,7 @@ let gameBotsQueue = [];
 let botWinTargetTurn = null; 
 let mixWinTargetTurn = null; 
 let mixDepWinnersHistory = []; 
+let activeCooldowns = {}; // 🔥 አዲሱ: የቅጣት ዙር መቆጣጠሪያ 
 
 function serverCheckBingo(grid, called) {
     let m = Array(5).fill().map(() => Array(5).fill(false));
@@ -2437,9 +2505,32 @@ async function declareWinners(winners) {
         winnerCount: winners.length,
         winnerDetails: safeWinnerDetails
     });
-}
+    // ... ከላይ ያሉት የ winners ኖቲፊኬሽን ኮዶች እንዳለ ሆነው ...
+
+    // 🔥 አዲሱ የቅጣት ዙር መቆጣጠሪያ እዚህ ጋር ይጀምራል
+    let realWinnersInThisGame = winners.filter(w => !w.player.isBot);
+    let totalShares = winners.length; 
+    
+    for (let rw of realWinnersInThisGame) {
+        if (totalShares === 1) {
+            activeCooldowns[rw.player.phone] = 30; // 100% የበላ ሰው ለ 30 ጌም ይታገዳል
+        } 
+        else if (totalShares === 2) {
+            activeCooldowns[rw.player.phone] = 20; // ለሁለት የተካፈሉ ለ 20 ጌም ይታገዳሉ
+        } 
+        else if (totalShares >= 3) {
+            activeCooldowns[rw.player.phone] = 10; // ለ 3፣ 4 ወይም 5 የተካፈሉ ለ 10 ጌም ይታገዳሉ
+        }
+    }
+} // <--- ይህ የ declareWinners ፈንክሽን መዝጊያ ቅንፍ ነው
 
 function resetToWaiting() {
+    // 🔥 በየጌሙ መጨረሻ የሁሉንም ቅጣት በ 1 መቀነስ
+    for (let phone in activeCooldowns) {
+        if (activeCooldowns[phone] > 0) activeCooldowns[phone]--;
+        if (activeCooldowns[phone] === 0) delete activeCooldowns[phone];
+    }
+    // ... ቀሪው ኮድ ይቀጥላል
     gameState = "WAITING"; gameClock = GLOBAL_SETTINGS.gameTimer; activePlayers = {}; 
     totalPrizePool = 0; totalCollectedMoney = 0; totalTickets = 0; 
     
@@ -2609,8 +2700,31 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
-            let turn = calledNumbers.length + 1;
-            
+            // 🔥 የ 13 ጥሪ ህግ (Block wins before turn 13)
+            let currentTurn = calledNumbers.length + 1;
+            if (currentTurn < 13) {
+                let safeNumbersToCall = currentDrawSequence.filter(num => {
+                    let tempCalled = [...calledNumbers, num];
+                    let triggersWin = false;
+                    for (let p of Object.values(activePlayers)) {
+                        for (let t of p.ticketsData) {
+                            if (serverCheckBingo(t.grid, tempCalled)) { triggersWin = true; break; }
+                        }
+                        if (triggersWin) break;
+                    }
+                    return !triggersWin; // ማንም ካላሸነፈበት ብቻ Safe ነው
+                });
+
+                if (safeNumbersToCall.length > 0) {
+                    let safeNum = safeNumbersToCall[Math.floor(Math.random() * safeNumbersToCall.length)];
+                    currentDrawSequence = currentDrawSequence.filter(n => n !== safeNum);
+                    calledNumbers.push(safeNum);
+                    io.emit('new_number', safeNum);
+                    return; // የዚህን ዙር ስራ ጨርሶ ይወጣል (አሸናፊ አይፈልግም)
+                }
+            }
+
+            let turn = currentTurn;
             let winForReal = [];  
             let winForBots = [];  
 
