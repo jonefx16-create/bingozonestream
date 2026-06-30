@@ -467,7 +467,8 @@
 
         <!-- USERS -->
         <div id="tab-users" class="tab-content">
-            <div class="stat-card" style="border-color: var(--faded-green);">
+            <div class="stats-grid" style="margin-bottom: 20px;">
+                <div class="stat-card" style="border-color: var(--faded-green);">
                     <h3 style="cursor:pointer; color:var(--cyan); text-decoration:underline;" onclick="openDailyActiveModal()">የዛሬ አሸናፊዎች (Risk) 👁️</h3>
                     <h2 id="u-daily-main" style="color:var(--gold); margin-bottom: 5px;">0.00</h2>
                     <div style="font-size:11px; color:gray; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px;">Daily Active Users: <b id="u-daily" style="color:var(--faded-green);">0</b></div>
@@ -1822,15 +1823,17 @@ async function submitManualDeposit() {
             
             sysSettings = data.settings;
             if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
+            
+            // 🔥 አዲሱ: Withdrawal Risk እዛው ዳሽቦርዱ ሳጥን ላይ ይታያል
+            if (document.getElementById('u-daily-main')) {
+                document.getElementById('u-daily-main').innerText = Number(data.dailyActiveMainBal || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETB";
+            }
+            
             if (document.getElementById('u-weekly')) document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US');
             if (document.getElementById('u-monthly')) document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
             window.activeBotPhones = data.activeBotPhones || []; 
 
             document.getElementById('box-total-reg').innerText = data.totalUsers.toLocaleString('en-US'); 
-            
-            if (document.getElementById('u-daily')) document.getElementById('u-daily').innerText = (data.dailyActive || 0).toLocaleString('en-US');
-            if (document.getElementById('u-weekly')) document.getElementById('u-weekly').innerText = (data.weeklyActive || 0).toLocaleString('en-US');
-            if (document.getElementById('u-monthly')) document.getElementById('u-monthly').innerText = (data.monthlyActive || 0).toLocaleString('en-US');
             
             if(document.getElementById('tab-live').classList.contains('active')) {
                 document.getElementById('stat-total-users').innerText = data.totalUsers.toLocaleString('en-US'); 
