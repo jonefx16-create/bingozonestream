@@ -2755,40 +2755,48 @@ setInterval(() => {
                     numToCall = currentDrawSequence[0];
                 }
             } 
-            // 3. ጥሪው ከ 26 በታች ከሆነ መደበኛው AI ስራውን ይቀጥላል
             else if (forceWinner === 'ai') {
-                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0; 
-                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     
-                let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; 
-                let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
+                let v1 = GLOBAL_SETTINGS.virtualPrizePool || 0;
+                let v2 = GLOBAL_SETTINGS.vaultTwoBalance || 0;
+                let v3 = GLOBAL_SETTINGS.vaultThreeBalance || 0;
+                let fullPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent || 15) / 100;
                 let isBonusLucky = (Math.random() * 100) < (GLOBAL_SETTINGS.bonusWinPercent || 0);
 
-                // 1. Mode መምረጥ (የአንተ ኮድ)
-                if (Math.random() < decoyChance) {
-                    forceWinner = 'bots';
-                } else {
-                    let maxSafePayout = hiddenPool * 0.20; 
-                    if (vaultTwo >= finalTotalPrize && depositorPlayers.length > 0) {
-                        forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 0;
-                    } else if (vaultThree >= (finalTotalPrize / 2) && depositorPlayers.length > 0) {
-                        forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 1;
-                    } else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
-                        forceWinner = isBonusLucky ? 'real' : (depositorPlayers.length > 0 ? 'mix_dep' : 'bots');
-                        GLOBAL_SETTINGS.mixBotCount = 0;
-                    } else {
-                        let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
-                        let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
-                        if (neededSplits > 5) neededSplits = 5; if (neededSplits < 2) neededSplits = 2; 
-
-                        if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
-                            forceWinner = 'bots'; 
-                        } else {
-                            forceWinner = isBonusLucky ? 'mix' : (depositorPlayers.length > 0 ? 'mix_dep' : 'bots');
-                            GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; 
-                        }
+                // 1. መጀመሪያ የ "ማን ይብላ" ውሳኔ በካዝናው መሰረት (Autopilot Decision)
+                let subMode = 'bots'; 
+                if (Math.random() > decoyChance) {
+                    if (v2 >= fullPrize && depositorPlayers.length > 0) {
+                        subMode = 'solo_real'; // ካዝና 2 ለ 1 ሰው
+                    } else if (v3 >= (fullPrize / 2) && depositorPlayers.length > 0) {
+                        subMode = 'split_2'; // ካዝና 3 ለ 2 ሰው (1 ሰው + 1 ቦት)
+                    } else if (v1 >= (fullPrize / 3) && eligiblePlayers.length > 0) {
+                        subMode = 'split_multi'; // ካዝና 1 ለ 3-5 ሰው
                     }
                 }
+
+                // 2. ረዳት AI: Turn 13 ካለፈ እና ውሳኔው 'ሰው ይብላ' ከሆነ የሱን ቁጥር ፈልገህ ጥራ
+                if (currentTurn >= dynamicWinTurn && subMode !== 'bots') {
+                    let activeTarget = (subMode === 'solo_real' || subMode === 'split_2') ? (freshDepositors[0] || depositorPlayers[0]) : (freshEligiblePlayers[0] || eligiblePlayers[0]);
+                    
+                    if (activeTarget) {
+                        let myNums = [];
+                        activeTarget.ticketsData[0].grid.flat().forEach(n => {
+                            if(n !== "FREE" && !calledNumbers.includes(n)) myNums.push(n);
+                        });
+                        if (myNums.length > 0) numToCall = myNums[Math.floor(Math.random() * myNums.length)];
+                    }
+                    
+                    // የመጨረሻ Mode-ማስተካከያ
+                    if (subMode === 'solo_real') forceWinner = 'real';
+                    else if (subMode === 'split_2') { forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 1; }
+                    else if (subMode === 'split_multi') { forceWinner = 'mix'; GLOBAL_SETTINGS.mixBotCount = 2; }
+                } else {
+                    // ካዝናው ባዶ ከሆነ ቦት እንዲበላ ኖርማሉን ቁጥር ጥራ
+                    forceWinner = 'bots';
+                    numToCall = currentDrawSequence[0];
+                }
+            }
 
                 // 2. 🔥 የግድ የሚያስፈልገው ማሟያ (Execution)፡-
                 // የመረጥነው Mode 'ሰው ይብላ' ከሆነ፣ Turn 13 ካለፈ የሰውየውን ቁጥር ፈልገህ ጥራ
