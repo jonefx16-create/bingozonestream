@@ -2046,16 +2046,7 @@ app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
-app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
-    try {
-        let activeBonus = await ActiveBonus.findOne({ isActive: true });
-        if(!activeBonus) return res.json({ success: false, message: "No active promo." });
-        res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
-    } catch(e) { res.status(500).json({ success: false }); }
-});
-
-let isBroadcasting = false; 
-
+app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
     isBroadcasting = true;
     try {
@@ -2081,55 +2072,21 @@ let isBroadcasting = false;
             lastBroadcasts = []; 
             const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
 
-            // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም ወዲያውኑ መልስ እንሰጠዋለን
-            res.json({ success: true, message: `✅ Promo Created! መልዕክቱ ከበስተጀርባ (Background) ለተጠቃሚዎች እየተላከ ነው...` });
-
-            // 🔥 ከበስተጀርባ ቀስ እያለ ይልካል (እንዳይቋረጥ)
-            (async () => {
-                for (let u of users) {
-                    if(depositorsOnly) {
-                        if (requireDepositWithinHours > 0) {
-                            let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
-                            let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
-                            if (!recentDep) continue;
-                        } else {
-                            let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
-                            if (!validDep) continue;
-                        }
+            for (let u of users) {
+                if(depositorsOnly) {
+                    if (requireDepositWithinHours > 0) {
+                        let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
+                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                        if (!recentDep) continue;
+                    } else {
+                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                        if (!validDep) continue;
                     }
-
-                    try {
-                        let sentMsg;
-                        if (photoUrl && photoUrl.startsWith('data:image')) {
-                            let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
-                            let photoBuffer = Buffer.from(base64Data, 'base64');
-                            sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
-                        } else if (photoUrl && photoUrl.startsWith('http')) { 
-                            sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
-                        } else { 
-                            sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
-                        }
-                        lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
-                    } catch(e) {} 
-                    
-                    // ቴሌግራም አድሚኑን ብሎክ እንዳያደርገው የ 50 ሚሊ-ሴኮንድ እረፍት
-                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
-                isBroadcasting = false;
-            })();
-            return; // ከስር ያለውን ኖርማል res.json እንዳይነካ
-        }
-        
-        // ቴሌግራም ካልተመረጠ ኖርማል መልስ ይሰጣል
-        res.json({ success: true, message: `✅ Promo Created Successfully!` });
-    } catch (e) {
-        res.status(500).json({ success: false, message: "Error processing promo." });
-    } finally {
-        if(req.body.platform !== 'tg' && req.body.platform !== 'both') {
-            isBroadcasting = false;
-        }
-    }
-});
+
+                try {
+                    let sentMsg;
+                    if (photoUrl && photoUrl.startsWith('data:image')) {
                         let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
                         let photoBuffer = Buffer.from(base64Data, 'base64');
                         sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
@@ -2151,7 +2108,6 @@ let isBroadcasting = false;
 });
 
 let lastBroadcasts = []; 
-
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው።" });
     isBroadcasting = true;
