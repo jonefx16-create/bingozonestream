@@ -467,11 +467,10 @@
 
         <!-- USERS -->
         <div id="tab-users" class="tab-content">
-            <div class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card" style="border-color: var(--faded-green);">
-                    <h3>Daily Active</h3>
-                    <h2 id="u-daily" style="color:var(--faded-green); margin-bottom: 5px;">0</h2>
-                    <div style="font-size:11px; color:gray; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px;">Main Bal: <b id="u-daily-main" style="color:var(--gold);">0.00</b></div>
+            <div class="stat-card" style="border-color: var(--faded-green);">
+                    <h3 style="cursor:pointer; color:var(--cyan); text-decoration:underline;" onclick="openDailyActiveModal()">የዛሬ አሸናፊዎች (Risk) 👁️</h3>
+                    <h2 id="u-daily-main" style="color:var(--gold); margin-bottom: 5px;">0.00</h2>
+                    <div style="font-size:11px; color:gray; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px;">Daily Active Users: <b id="u-daily" style="color:var(--faded-green);">0</b></div>
                 </div>
                 <div class="stat-card" style="border-color: var(--blue);"><h3>Weekly Active</h3><h2 id="u-weekly" style="color:var(--blue);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
@@ -1787,7 +1786,14 @@ async function submitManualDeposit() {
             let data = await res.json();
             
             if(data.success && data.users.length > 0) {
-                let html = data.users.map((u, i) => {
+                let headerHtml = `
+                    <div style="background: rgba(234, 88, 12, 0.15); border: 1px solid var(--orange); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                        <span style="font-size: 12px; color: var(--text-gray); text-transform: uppercase;">🔥 የዛሬ አሸናፊዎች ያላወጡት ብር (Risk)</span>
+                        <h2 style="margin: 5px 0 0 0; color: var(--orange); font-size: 24px;">${Number(data.totalRiskAmount).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</h2>
+                    </div>
+                `;
+
+                let listHtml = data.users.map((u, i) => {
                     return `
                     <div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
                         <div>
@@ -1795,14 +1801,13 @@ async function submitManualDeposit() {
                             <div style="font-family:monospace; font-size:13px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${u.phone}'); return false;">${u.phone}</a></div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="color:var(--gold); font-weight:bold; font-size:15px;">${Number(u.mainBalance).toLocaleString()} ETB</div>
-                            <div style="color:var(--faded-green); font-size:11px;">Play: ${Number(u.playBalance).toLocaleString()}</div>
+                            <div style="color:var(--gold); font-weight:bold; font-size:15px;">${Number(u.mainBalance).toLocaleString('en-US', {minimumFractionDigits: 2})} ETB</div>
                         </div>
                     </div>
                 `}).join('');
-                document.getElementById('daily-active-list').innerHTML = html;
+                document.getElementById('daily-active-list').innerHTML = headerHtml + listHtml;
             } else {
-                document.getElementById('daily-active-list').innerHTML = `<div style="text-align:center; color:gray;">በአሁኑ ሰዓት Main Balance ያለው የዛሬ ተጫዋች የለም።</div>`;
+                document.getElementById('daily-active-list').innerHTML = `<div style="text-align:center; color:gray;">በአሁኑ ሰዓት ዛሬ ያሸነፈ እና ያላወጣ (Risk) የለም።</div>`;
             }
         } catch(e) {
             document.getElementById('daily-active-list').innerHTML = `<div style="text-align:center; color:red;">መረጃ ማምጣት አልተቻለም።</div>`;
