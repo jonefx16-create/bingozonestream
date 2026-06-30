@@ -1383,16 +1383,20 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
         let dayAgo = new Date(now - 24*60*60*1000);
         let weekAgo = new Date(now - 7*24*60*60*1000);
         let monthAgo = new Date(now - 30*24*60*60*1000);
-        
+
+        // 🔥 ማስተካከያ: ይቺ መስመር ወደ ላይ መምጣት ነበረባት
+        let startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
         let dailyActive = await User.countDocuments({lastActive: {$gte: dayAgo}});
+        let weeklyActive = await User.countDocuments({lastActive: {$gte: weekAgo}});
+        let monthlyActive = await User.countDocuments({lastActive: {$gte: monthAgo}});
+
+        // 🔥 የዛሬ አሸናፊዎች Risk ስሌት
         let todaysWinTxs = await Transaction.find({ type: 'win', date: { $gte: startOfDay } }).select('phone');
         let todayWinnerPhones = [...new Set(todaysWinTxs.map(t => t.phone))];
         let todaysWinners = await User.find({ phone: { $in: todayWinnerPhones } }).select('mainBalance');
         let dailyActiveMainBal = todaysWinners.reduce((sum, u) => sum + (u.mainBalance || 0), 0);
-        let weeklyActive = await User.countDocuments({lastActive: {$gte: weekAgo}});
-        let monthlyActive = await User.countDocuments({lastActive: {$gte: monthAgo}});
-        let startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
 
         let txStats = await Transaction.aggregate([
             { $match: { date: { $gte: startOfDay }, status: 'Approved' } },
@@ -1467,9 +1471,11 @@ app.post('/api/admin/live-stats', auth, async (req, res) => {
             dailyWithdraw, 
             dailyBonus,
             totalUnplayedBonus,
+            dailyActiveMainBal, // 🔥 Risk Amount
             scheduleStatus: { active: GLOBAL_SETTINGS.isBotScheduleActive, time: timeStr, name: activeSchName, min: schMin, max: schMax }
         });
     } catch (e) {
+        console.error("Live Stats Error:", e);
         res.status(500).json({ success: false });
     }
 });
