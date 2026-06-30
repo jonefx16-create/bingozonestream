@@ -2797,6 +2797,8 @@ setInterval(() => {
                     numToCall = currentDrawSequence[0];
                 }
             }
+        }
+    } // ይሄ መስመር 
 
                 // 2. 🔥 የግድ የሚያስፈልገው ማሟያ (Execution)፡-
                 // የመረጥነው Mode 'ሰው ይብላ' ከሆነ፣ Turn 13 ካለፈ የሰውየውን ቁጥር ፈልገህ ጥራ
