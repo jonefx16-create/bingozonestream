@@ -468,7 +468,11 @@
         <!-- USERS -->
         <div id="tab-users" class="tab-content">
             <div class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card" style="border-color: var(--faded-green);"><h3>Daily Active</h3><h2 id="u-daily" style="color:var(--faded-green);">0</h2></div>
+                <div class="stat-card" style="border-color: var(--faded-green);">
+                    <h3>Daily Active</h3>
+                    <h2 id="u-daily" style="color:var(--faded-green); margin-bottom: 5px;">0</h2>
+                    <div style="font-size:11px; color:gray; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px;">Main Bal: <b id="u-daily-main" style="color:var(--gold);">0.00</b></div>
+                </div>
                 <div class="stat-card" style="border-color: var(--blue);"><h3>Weekly Active</h3><h2 id="u-weekly" style="color:var(--blue);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--purple);"><h3>Monthly Active</h3><h2 id="u-monthly" style="color:var(--purple);">0</h2></div>
                 <div class="stat-card" style="border-color: var(--orange);"><h3>Total Users</h3><h2 id="box-total-reg" style="color:var(--orange);">0</h2></div>
@@ -1261,6 +1265,17 @@
         <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('invited-modal').style.display='none'">Close</button>
     </div>
 </div>
+    <!-- DAILY ACTIVE MODAL -->
+<div class="modal" id="daily-active-modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <h3 style="color: var(--gold); margin-top:0; text-align: center;">🟢 የዛሬ ተጫዋቾች (Main Balance)</h3>
+        <p style="font-size: 12px; text-align: center; margin-bottom: 10px; color: var(--text-gray);">ባለፉት 24 ሰዓት ገብተው Main Balance ያላቸው ሰዎች ዝርዝር (ከፍተኛ ላለው ቅድሚያ ይሰጣል)</p>
+        <div id="daily-active-list" style="background: #000; padding: 15px; border-radius: 6px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto;">
+            <div style="text-align:center; color:gray;">Loading list...</div>
+        </div>
+        <button class="action-btn btn-red" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('daily-active-modal').style.display='none'">Close List</button>
+    </div>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -1760,6 +1775,39 @@ async function submitManualDeposit() {
         }
     }
 
+    async function openDailyActiveModal() {
+        document.getElementById('daily-active-modal').style.display = 'flex';
+        document.getElementById('daily-active-list').innerHTML = `<div style="text-align:center; color:gray;">Loading list...</div>`;
+        try {
+            let res = await fetch('/api/admin/daily-active-balances', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({adminPass: pass})
+            });
+            let data = await res.json();
+            
+            if(data.success && data.users.length > 0) {
+                let html = data.users.map((u, i) => {
+                    return `
+                    <div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="color:white; font-weight:bold;">${i+1}. ${u.name || 'Unknown'}</div>
+                            <div style="font-family:monospace; font-size:13px;"><a href="#" style="color:var(--cyan); text-decoration:none;" onclick="fetchAndShowUserInfo('${u.phone}'); return false;">${u.phone}</a></div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:var(--gold); font-weight:bold; font-size:15px;">${Number(u.mainBalance).toLocaleString()} ETB</div>
+                            <div style="color:var(--faded-green); font-size:11px;">Play: ${Number(u.playBalance).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `}).join('');
+                document.getElementById('daily-active-list').innerHTML = html;
+            } else {
+                document.getElementById('daily-active-list').innerHTML = `<div style="text-align:center; color:gray;">በአሁኑ ሰዓት Main Balance ያለው የዛሬ ተጫዋች የለም።</div>`;
+            }
+        } catch(e) {
+            document.getElementById('daily-active-list').innerHTML = `<div style="text-align:center; color:red;">መረጃ ማምጣት አልተቻለም።</div>`;
+        }
+    }
     async function loadLiveStats() {
         if(!pass) return;
         try {
