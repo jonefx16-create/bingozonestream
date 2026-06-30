@@ -2054,15 +2054,40 @@ app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
     }
 });
 
+app.post('/api/admin/send-single-bonus', auth, async (req, res) => {
+    let user = await User.findOne({ phone: String(req.body.phone) });
+    if(user) { 
+        user.playBalance += Number(req.body.amount); 
+        await user.save(); 
+        io.emit('balance_updated', user.phone); 
+        res.json({ success: true, message: `✅ Bonus of ${req.body.amount} ETB successfully sent to ${req.body.phone}!` });
+    } else {
+        res.json({ success: false, message: `❌ User with phone ${req.body.phone} not found! Check the number.` });
+    }
+});
+
 app.post('/api/admin/send-bulk-bonus', auth, async (req, res) => {
     if (req.body.phones === "ALL") { await User.updateMany({}, { $inc: { playBalance: Number(req.body.amount) } }); } 
     else { await User.updateMany({ phone: { $in: req.body.phones } }, { $inc: { playBalance: Number(req.body.amount) } }); }
     res.json({ success: true, message: `✅ Bulk Bonus of ${req.body.amount} ETB successfully sent!` });
 });
 
+app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
+    try {
+        let activeBonus = await ActiveBonus.findOne({ isActive: true });
+        if(!activeBonus) return res.json({ success: false, message: "No active promo." });
+        res.json({ success: true, claimedBy: activeBonus.claimedBy, max: activeBonus.maxUsers });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// 🔥 አዲሱ እና ፈጣኑ የቦነስ መፍጠሪያ እና ብሮድካስት (Background Sender)
+let isBroadcasting = false;
+let lastBroadcasts = []; 
+
 app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
-    if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
+    if (isBroadcasting) return res.json({ success: false, message: "⚠️ አሁን ሌላ መልዕክት በመላክ ላይ ነው። እባክዎ ትንሽ ይጠብቁ!" });
     isBroadcasting = true;
+    
     try {
         const { maxUsers, amount, minutes, message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours, platform } = req.body;
         let expires = new Date(Date.now() + (minutes * 60000));
@@ -2081,49 +2106,63 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
 
         if ((platform === 'tg' || platform === 'both') && message) {
             let query = { telegramId: { $ne: "" } };
-            
             const users = await User.find(query);
-            lastBroadcasts = []; 
-            const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
+            
+            // 🔥 ሰርቨሩ እንዳይንጠለጠል ወዲያውኑ "ተሳክቷል" የሚል መልስ ይሰጣል
+            res.json({ success: true, message: `✅ ቦነሱ ተፈጥሯል! ለ ${users.length} ሰዎች በቴሌግራም ከበስተጀርባ (Background) መላክ ጀምሯል...` });
 
-            for (let u of users) {
-                if(depositorsOnly) {
-                    if (requireDepositWithinHours > 0) {
-                        let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
-                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
-                        if (!recentDep) continue;
-                    } else {
-                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
-                        if (!validDep) continue;
-                    }
+            // 🔥 ከበስተጀርባ ቀስ እያለ (ያለ Error) መልዕክቱን ይልካል
+            (async () => {
+                lastBroadcasts = []; 
+                const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
+                
+                let photoBuffer = null;
+                if (photoUrl && photoUrl.startsWith('data:image')) {
+                    let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                    photoBuffer = Buffer.from(base64Data, 'base64');
                 }
 
-                try {
-                    let sentMsg;
-                    if (photoUrl && photoUrl.startsWith('data:image')) {
-                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
-                        let photoBuffer = Buffer.from(base64Data, 'base64');
-                        sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
-                    } else if (photoUrl && photoUrl.startsWith('http')) { 
-                        sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
-                    } else { 
-                        sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                for (let u of users) {
+                    if(depositorsOnly) {
+                        if (requireDepositWithinHours > 0) {
+                            let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
+                            let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                            if (!recentDep) continue;
+                        } else {
+                            let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                            if (!validDep) continue;
+                        }
                     }
-                    lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
-                } catch(e) {} 
-            }
+
+                    try {
+                        let sentMsg;
+                        if (photoBuffer) {
+                            sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, ...opts });
+                        } else if (photoUrl && photoUrl.startsWith('http')) { 
+                            sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, ...opts });
+                        } else { 
+                            sentMsg = await bot.sendMessage(u.telegramId, message, opts); 
+                        }
+                        lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
+                    } catch(e) {} 
+                    
+                    // 🔥 ቴሌግራም እንዳያግደው የ 40 ሚሊ-ሴኮንድ እረፍት
+                    await new Promise(resolve => setTimeout(resolve, 40));
+                }
+                isBroadcasting = false; 
+            })();
+        } else {
+            res.json({ success: true, message: `✅ ቦነሱ በተሳካ ሁኔታ ዌብሳይት ላይ ብቻ ተለቋል!` });
+            isBroadcasting = false;
         }
-        res.json({ success: true, message: `✅ Promo Created & Broadcasted Successfully!` });
     } catch (e) {
-        res.status(500).json({ success: false, message: "Error processing promo." });
-    } finally {
         isBroadcasting = false;
+        if (!res.headersSent) res.status(500).json({ success: false, message: "Error processing promo." });
     }
 });
 
-let lastBroadcasts = []; 
 app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
-    if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው።" });
+    if (isBroadcasting) return res.json({ success: false, message: "⚠️ አሁን ሌላ መልዕክት በመላክ ላይ ነው። እባክዎ ይጠብቁ!" });
     isBroadcasting = true;
     try {
         const { message, photoUrl, depositorsOnly, minDepositAmount, requireDepositWithinHours } = req.body;
@@ -2135,13 +2174,17 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         let query = { telegramId: { $ne: "" } };
         const users = await User.find(query);
         lastBroadcasts = []; 
-        let count = 0;
         
-        // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም (እንዳይሰቀል) ወዲያውኑ መልስ እንሰጠዋለን
+        // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም ወዲያውኑ መልስ እንሰጠዋለን
         res.json({ success: true, message: `✅ መልዕክቱ መላክ ጀምሯል። ለ ${users.length} ሰዎች ከበስተጀርባ (Background) ይላካል።` });
 
-        // 🔥 ከበስተጀርባ ቀስ እያለ ይልካል (እንዳይቋረጥ)
         (async () => {
+            let photoBuffer = null;
+            if (photoUrl && photoUrl.startsWith('data:image')) {
+                let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); 
+                photoBuffer = Buffer.from(base64Data, 'base64');
+            }
+
             for (let u of users) {
                 if(depositorsOnly) {
                     if (requireDepositWithinHours > 0) {
@@ -2156,8 +2199,7 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
 
                 try {
                     let sentMsg;
-                    if (photoUrl && photoUrl.startsWith('data:image')) {
-                        let base64Data = photoUrl.replace(/^data:image\/\w+;base64,/, ""); let photoBuffer = Buffer.from(base64Data, 'base64');
+                    if (photoBuffer) {
                         sentMsg = await bot.sendPhoto(u.telegramId, photoBuffer, { caption: message, parse_mode: "HTML" });
                     } else if (photoUrl && photoUrl.startsWith('http')) { 
                         sentMsg = await bot.sendPhoto(u.telegramId, photoUrl, { caption: message, parse_mode: "HTML" });
@@ -2165,15 +2207,11 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
                         sentMsg = await bot.sendMessage(u.telegramId, message, { parse_mode: "HTML" }); 
                     }
                     lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
-                    count++;
-                } catch(e) {
-                    // 🔥 ቦቱን ብሎክ ያደረገ ሰው ቢኖርም ኤረሩን ዘሎት ወደ ሚቀጥለው ሰው ያልፋል (አይቋረጥም)
-                } 
+                } catch(e) {} 
                 
-                // 🔥 ቴሌግራም አድሚኑን ብሎክ እንዳያደርገው የ 50 ሚሊ-ሴኮንድ እረፍት
-                await new Promise(resolve => setTimeout(resolve, 50));
+                await new Promise(resolve => setTimeout(resolve, 40));
             }
-            isBroadcasting = false; // ሲጨርስ መንገዱን ክፍት ያደርጋል
+            isBroadcasting = false;
         })();
         
     } catch (e) { 
