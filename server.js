@@ -2673,69 +2673,63 @@ setInterval(() => {
             gameClock = 3; 
             if (currentDrawSequence.length === 0) { resetToWaiting(); return; } 
 
-            // 🔥 የ 13 ጥሪ ህግ (Block wins before turn 13)
             let currentTurn = calledNumbers.length + 1;
-            if (currentTurn < 13) {
-                let safeNumbersToCall = currentDrawSequence.filter(num => {
-                    let tempCalled = [...calledNumbers, num];
-                    let triggersWin = false;
-                    for (let p of Object.values(activePlayers)) {
-                        for (let t of p.ticketsData) {
-                            if (serverCheckBingo(t.grid, tempCalled)) { triggersWin = true; break; }
-                        }
-                        if (triggersWin) break;
-                    }
-                    return !triggersWin; // ማንም ካላሸነፈበት ብቻ Safe ነው
-                });
 
+            let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
+            let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
+
+            // 🔥 ማስተካከያ 1: የተቀጡ (Cooldown ያለባቸው) ሰዎችን ለይቶ ማውጣት 
+            let eligibleRealPlayers = realPlayers.filter(p => !activeCooldowns[p.phone] || activeCooldowns[p.phone] <= 0);
+            let punishedRealPlayers = realPlayers.filter(p => activeCooldowns[p.phone] && activeCooldowns[p.phone] > 0);
+            let depositorPlayers = eligibleRealPlayers.filter(p => p.hasDeposited);
+
+            let winForEligible = [];
+            let winForPunished = [];
+            let winForBots = [];
+            let winForDepositor = [];
+
+            // የትኛው ቁጥር ለማን አሸናፊ እንደሚያደርግ ማጣራት
+            for(let testNum of currentDrawSequence) {
+                 let tempCalled = [...calledNumbers, testNum];
+                 for(let p of Object.values(activePlayers)) {
+                     let isBot = p.isBot;
+                     let isPunished = !isBot && (activeCooldowns[p.phone] > 0);
+                     let isEligible = !isBot && !isPunished;
+                     let isDep = isEligible && p.hasDeposited;
+
+                     for(let t of p.ticketsData) {
+                         if(serverCheckBingo(t.grid, tempCalled)) {
+                             if(isBot && !winForBots.includes(testNum)) winForBots.push(testNum);
+                             if(isPunished && !winForPunished.includes(testNum)) winForPunished.push(testNum);
+                             if(isEligible && !winForEligible.includes(testNum)) winForEligible.push(testNum);
+                             if(isDep && !winForDepositor.includes(testNum)) winForDepositor.push(testNum);
+                         }
+                     }
+                 }
+            }
+
+            // የ 13 ጥሪ ህግ (ከ 13 ጥሪ በፊት ማንም እንዳያሸንፍ መከልከል)
+            if (currentTurn < 13) {
+                let safeNumbersToCall = currentDrawSequence.filter(num => !winForBots.includes(num) && !winForEligible.includes(num) && !winForPunished.includes(num));
                 if (safeNumbersToCall.length > 0) {
                     let safeNum = safeNumbersToCall[Math.floor(Math.random() * safeNumbersToCall.length)];
                     currentDrawSequence = currentDrawSequence.filter(n => n !== safeNum);
                     calledNumbers.push(safeNum);
                     io.emit('new_number', safeNum);
-                    return; // የዚህን ዙር ስራ ጨርሶ ይወጣል (አሸናፊ አይፈልግም)
+                    return; 
                 }
             }
 
-            let turn = currentTurn;
-            let winForReal = [];  
-            let winForBots = [];  
+            let forceWinner = GLOBAL_SETTINGS.botWinnerForce;
 
-            for(let testNum of currentDrawSequence) {
-                 let tempCalled = [...calledNumbers, testNum];
-                 let realWins = false;
-                 let botWins = false;
-                 
-                 for(let p of Object.values(activePlayers)) {
-                     for(let t of p.ticketsData) {
-                         if(serverCheckBingo(t.grid, tempCalled)) {
-                             if(p.isBot) botWins = true;
-                             else realWins = true;
-                         }
-                     }
-                 }
-                 
-                 if(realWins) winForReal.push({num: testNum});
-                 if(botWins) winForBots.push({num: testNum});
-            }
-
-            let numToCall = null;
-            let forceWinner = GLOBAL_SETTINGS.botWinnerForce; 
-
-            let realPlayers = Object.values(activePlayers).filter(p => !p.isBot);
-            let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
-            let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
-
+            // AI Mode Logic
             if (forceWinner === 'ai') {
-                // ሦስቱንም ካዝናዎች (Vaults) ቼክ ያደርጋል
-                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;  // Vault 1 (ለማካፈል፣ ለቦነስ እና ለዲፖዚተሮች)
-                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     // Vault 2 (ለዲፖዚተሮች ብቻ)
-                let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; // Vault 3 (ለዲፖዚተሮች ብቻ)
+                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;  
+                let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     
+                let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; 
                 
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
                 let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
-                
-                // አድሚን ዳሽቦርድ ላይ ለቦነስ የሰጠው ፐርሰንት (ምሳሌ 10%)
                 let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
                 let isBonusLucky = (Math.random() * 100) < bonusWinChance;
 
@@ -2744,27 +2738,19 @@ setInterval(() => {
                 } else {
                     let maxSafePayout = hiddenPool * 0.20; 
 
-                    // 🎯 ቼክ 1: Vault 2 ውስጥ ብር ካለ፣ ለዲፖዚተር ብቻ ይሰጣል! (ቦነስ እዚህ አይደርስም)
                     if (vaultTwo >= finalTotalPrize && depositorPlayers.length > 0) {
                         forceWinner = 'mix_dep'; 
                         GLOBAL_SETTINGS.mixBotCount = 0; 
                     }
-                    // 🎯 ቼክ 2: Vault 3 ውስጥ ብር ካለ፣ ለዲፖዚተር ብቻ ያካፍላል! (ቦነስ እዚህ አይደርስም)
                     else if (vaultThree >= (finalTotalPrize / 2) && depositorPlayers.length > 0) {
                         forceWinner = 'mix_dep'; 
                         GLOBAL_SETTINGS.mixBotCount = 1; 
                     }
-                    // 🎯 ቼክ 3: Vault 1 ውስጥ ሙሉ ብር ካለ
                     else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
-                        // የ 10% ዕድሉ ከደረሰ (isBonusLucky) ለቦነስ ሰው ይፈቀዳል፣ ካልሆነ ግን ለዲፖዚተር ብቻ (ወይም ቦት)
-                        if(isBonusLucky) {
-                            forceWinner = 'real'; 
-                        } else {
-                            forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots';
-                        }
+                        if(isBonusLucky && eligibleRealPlayers.length > 0) forceWinner = 'real';
+                        else forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots';
                         GLOBAL_SETTINGS.mixBotCount = 0;
                     } 
-                    // 🎯 ቼክ 4: የድሮው ህግ (Vault 1 ላይ ብር ሲያንስ ለ 3፣ 4 ወይም 5 ያካፍላል)
                     else {
                         let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
                         let neededSplits = Math.ceil(finalTotalPrize / targetPayout);
@@ -2772,131 +2758,94 @@ setInterval(() => {
                         if (neededSplits > 5) neededSplits = 5;
                         if (neededSplits < 2) neededSplits = 2; 
 
-                        // ለማካፈልም ሆነ ለምንም ካዝና 1 ባዶ ከሆነ (ቦት ብቻ ይበላዋል!)
                         if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
                             forceWinner = 'bots'; 
                         } else {
-                            // ለማካፈል የሚበቃ ብር ካዝና 1 ውስጥ ካለ፣ የ 10% ዕድሉን ያየዋል
-                            if(isBonusLucky) {
-                                forceWinner = 'mix'; // ቦነሱም ያካፍላል
-                            } else {
-                                forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots'; // ዲፖዚተር ካለ ያካፍላል፣ ከሌለ ቦት ይበላዋል
-                            }
+                            if(isBonusLucky && eligibleRealPlayers.length > 0) forceWinner = 'mix'; 
+                            else forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots';
                             GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; 
                         }
                     }
                 }
             }
 
-            if (realPlayers.length === 0) forceWinner = 'bots';
+            if (eligibleRealPlayers.length === 0) forceWinner = 'bots';
             if (botPlayers.length === 0 && (forceWinner === 'mix' || forceWinner === 'mix_dep')) forceWinner = 'real';
-            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = 'bots'; 
+            if (depositorPlayers.length === 0 && forceWinner === 'mix_dep') forceWinner = (eligibleRealPlayers.length > 0 ? 'real' : 'bots'); 
 
-            if (forceWinner === 'real') {
-                let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
-                let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
+            let numToCall = null;
+            let mustWinNow = (currentTurn >= 26); // 🔥 ማስተካከያ 2: ጨዋታው ከ 26 ጥሪ በፍፁም እንዳያልፍ ያደርጋል!
 
-                if (realWinNum) {
-                    numToCall = realWinNum; 
+            if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_dep') {
+                let targetWinArray = (forceWinner === 'mix_dep') ? winForDepositor : winForEligible;
+
+                // የተቀጡትን እና ቦቶችን የሚያሸንፍ ቁጥር እናስወግዳለን
+                let winningNum = targetWinArray.find(n => !winForBots.includes(n) && !winForPunished.includes(n));
+
+                if (winningNum) {
+                    numToCall = winningNum; 
                 } else {
-                    numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
+                    if (mustWinNow) {
+                        // 26 ጥሪ ከሞላ ግዴታ ጌሙ ማለቅ አለበት!
+                        if (targetWinArray.length > 0) numToCall = targetWinArray[0];
+                        else if (winForBots.length > 0) { numToCall = winForBots[0]; forceWinner = 'bots'; }
+                        else numToCall = currentDrawSequence[0];
+                    } else {
+                        // 🔥 ማስተካከያ 3: ካዝና ውስጥ ብር ካለ፣ የሰዎችን ካርቴላ እያየ የሚያስፈልጋቸውን ቁጥር ጠርቶ ከ 26 ጥሪ በፊት ያሸንፋቸዋል!
+                        let safeFromBotsAndPunished = currentDrawSequence.filter(n => !winForBots.includes(n) && !winForPunished.includes(n));
+
+                        let neededNumbers = [];
+                        let targetPlayersForFill = (forceWinner === 'mix_dep') ? depositorPlayers : eligibleRealPlayers;
+
+                        if (forceWinner === 'mix_dep') {
+                            let fresh = depositorPlayers.filter(p => !mixDepWinnersHistory.includes(p.phone));
+                            if (fresh.length > 0) targetPlayersForFill = fresh;
+                            else mixDepWinnersHistory = []; // ሁሉም በልተው ከነበረ፣ እንደ አዲስ እድል ይስጣቸው
+                        }
+
+                        // የእውነተኛ ተጫዋቾችን ካርቴላ አይቶ የቀራቸውን ቁጥር ይሰበስባል
+                        for (let p of targetPlayersForFill) {
+                            for (let t of p.ticketsData) {
+                                for(let c=0; c<5; c++) {
+                                    for(let r=0; r<5; r++) {
+                                        let cellVal = t.grid[c][r];
+                                        if(cellVal !== "FREE" && !calledNumbers.includes(cellVal) && safeFromBotsAndPunished.includes(cellVal)) {
+                                            neededNumbers.push(cellVal);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (neededNumbers.length > 0) {
+                            // ከሚያስፈልጓቸው ቁጥሮች አንዱን መርጦ ይጠራል (እንዳያስታውቅ በ Random)
+                            numToCall = neededNumbers[Math.floor(Math.random() * neededNumbers.length)];
+                        } else {
+                            numToCall = safeFromBotsAndPunished.length > 0 ? safeFromBotsAndPunished[0] : currentDrawSequence[0];
+                        }
+                    }
                 }
             } 
-            else if (forceWinner === 'mix') {
-                let maxMixTurn = mixWinTargetTurn || 24; 
-                let safeFromBots = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n));
-                let realWinNum = safeFromBots.find(n => winForReal.some(w => w.num === n));
-                
-                if (realWinNum) {
-                    numToCall = realWinNum; 
-                } else {
-                    numToCall = safeFromBots.length > 0 ? safeFromBots[0] : currentDrawSequence[0];
-                }
-            }
-            else if (forceWinner === 'mix_dep') {
-                let maxMixTurn = mixWinTargetTurn || 24;
-
-                let winForNonDepositor = [];
-                for(let testNum of currentDrawSequence) {
-                     let tempCalled = [...calledNumbers, testNum];
-                     for(let p of realPlayers) {
-                         if (!p.hasDeposited) {
-                             for(let t of p.ticketsData) {
-                                 if(serverCheckBingo(t.grid, tempCalled)) {
-                                     winForNonDepositor.push(testNum);
-                                     break;
-                                 }
-                             }
-                         }
-                     }
-                }
-
-                let safeFromBotsAndNonDep = currentDrawSequence.filter(n => !winForBots.some(w => w.num === n) && !winForNonDepositor.includes(n));
-
-                // 🌟 አዲስ ማስተካከያ: ከዚህ በፊት ያላሸነፉ ሰዎችን (Fresh) እንለይ
-                let freshDepositors = depositorPlayers.filter(p => !mixDepWinnersHistory.includes(p.phone));
-
-                // ሁሉም ሰው አሸንፎ ከነበረ፣ ታሪኩን እናጥፋና ለሁሉም እንደአዲስ እድል እንስጥ
-                if (freshDepositors.length === 0 && depositorPlayers.length > 0) {
-                    mixDepWinnersHistory = [];
-                    freshDepositors = depositorPlayers;
-                }
-
-                let winForDepositor = [];
-                for(let testNum of safeFromBotsAndNonDep) {
-                     let tempCalled = [...calledNumbers, testNum];
-                     // ቅድሚያ ገና ላላሸነፉት (Fresh) ተጫዋቾች እንፈልግ
-                     for(let p of freshDepositors) {
-                         for(let t of p.ticketsData) {
-                             if(serverCheckBingo(t.grid, tempCalled)) {
-                                 winForDepositor.push(testNum);
-                                 break;
-                             }
-                         }
-                     }
-                }
-
-                // Fresh ተጫዋች ካልተገኘ፣ ለማንኛውም Depositor እንፈልግ (Fallback)
-                if(winForDepositor.length === 0) {
-                    for(let testNum of safeFromBotsAndNonDep) {
-                         let tempCalled = [...calledNumbers, testNum];
-                         for(let p of depositorPlayers) {
-                             for(let t of p.ticketsData) {
-                                 if(serverCheckBingo(t.grid, tempCalled)) {
-                                     winForDepositor.push(testNum);
-                                     break;
-                                 }
-                             }
-                         }
-                    }
-                }
-
-                let depWinNum = winForDepositor.length > 0 ? winForDepositor[0] : null;
-
-                if (depWinNum) {
-                    numToCall = depWinNum;
-                } else {
-                    numToCall = safeFromBotsAndNonDep.length > 0 ? safeFromBotsAndNonDep[0] : currentDrawSequence[0];
-                    if(!numToCall) numToCall = currentDrawSequence[0];
-                }
-            }
             else if (forceWinner === 'bots') {
-                let safeFromReal = currentDrawSequence.filter(n => !winForReal.some(w => w.num === n));
+                let winningNum = winForBots.find(n => !winForEligible.includes(n) && !winForPunished.includes(n));
 
-                if (turn >= botWinTargetTurn || safeFromReal.length === 0) {
-                    if (botPlayers.length > 0) {
-                        let chosenBot = botPlayers[Math.floor(Math.random() * botPlayers.length)];
-                        let tix = chosenBot.ticketsData[0]; 
-                        
-                        let safeNum = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
-                        numToCall = safeNum;
-                        
-                        makeNaturalBotTicket(tix, calledNumbers, numToCall);
+                if (mustWinNow || currentTurn >= (botWinTargetTurn || 18)) {
+                    if (winningNum) {
+                        numToCall = winningNum;
                     } else {
-                        numToCall = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
+                        if (botPlayers.length > 0) {
+                            let chosenBot = botPlayers[Math.floor(Math.random() * botPlayers.length)];
+                            let tix = chosenBot.ticketsData[0]; 
+                            let safeNum = currentDrawSequence.filter(n => !winForEligible.includes(n) && !winForPunished.includes(n))[0] || currentDrawSequence[0];
+                            numToCall = safeNum;
+                            makeNaturalBotTicket(tix, calledNumbers, numToCall);
+                        } else {
+                            numToCall = currentDrawSequence[0];
+                        }
                     }
                 } else {
-                    numToCall = safeFromReal.length > 0 ? safeFromReal[0] : currentDrawSequence[0];
+                    let safeFromAll = currentDrawSequence.filter(n => !winForBots.includes(n) && !winForEligible.includes(n) && !winForPunished.includes(n));
+                    numToCall = safeFromAll.length > 0 ? safeFromAll[0] : currentDrawSequence[0];
                 }
             }
             
@@ -2917,7 +2866,8 @@ setInterval(() => {
 
             if(winnersThisRound.length > 0) {
                 if (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_dep') {
-                    winnersThisRound = winnersThisRound.filter(w => !w.player.isBot);
+                    // 🔥 ማረጋገጫ: የተቀጡ ሰዎች በአጋጣሚ እንኳን ቢሞላላቸው ሲስተሙ ይሰርዘዋል (አያሸንፉም)
+                    winnersThisRound = winnersThisRound.filter(w => w.player.isBot || !activeCooldowns[w.player.phone]);
                 }
 
                 if (winnersThisRound.length === 0) {
@@ -2926,26 +2876,14 @@ setInterval(() => {
 
                 let actualReals = winnersThisRound.filter(w => !w.player.isBot);
 
-                if (forceWinner === 'mix' && actualReals.length > 0) {
-                    let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
-                    let availableBots = botPlayers.sort(() => Math.random() - 0.5);
-                    let toAdd = Math.min(mixCount, availableBots.length);
-                    for (let i = 0; i < toAdd; i++) {
-                        let b = availableBots.pop();
-                        let tix = b.ticketsData[0];
-                        
-                        makeNaturalBotTicket(tix, calledNumbers, numToCall); // 🎯
-                        
-                        winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
+                if ((forceWinner === 'mix' || forceWinner === 'mix_dep') && actualReals.length > 0) {
+                    if (forceWinner === 'mix_dep') {
+                        actualReals.forEach(w => {
+                            if (!mixDepWinnersHistory.includes(w.player.phone)) {
+                                mixDepWinnersHistory.push(w.player.phone);
+                            }
+                        });
                     }
-                }
-                
-                else if (forceWinner === 'mix_dep' && actualReals.length > 0) {
-                    actualReals.forEach(w => {
-                        if (!mixDepWinnersHistory.includes(w.player.phone)) {
-                            mixDepWinnersHistory.push(w.player.phone);
-                        }
-                    });
 
                     let mixCount = GLOBAL_SETTINGS.mixBotCount === 0 ? 0 : (GLOBAL_SETTINGS.mixBotCount || 1);
                     let availableBots = botPlayers.sort(() => Math.random() - 0.5);
@@ -2953,14 +2891,11 @@ setInterval(() => {
                     for (let i = 0; i < toAdd; i++) {
                         let b = availableBots.pop();
                         let tix = b.ticketsData[0];
-                        
-                        makeNaturalBotTicket(tix, calledNumbers, numToCall); // 🎯
-                        
+                        makeNaturalBotTicket(tix, calledNumbers, numToCall); 
                         winnersThisRound.push({ player: b, ticket: { id: tix.id, grid: tix.grid, paidFromPlay: GLOBAL_SETTINGS.ticketPrice, paidFromMain: 0 } });
                     }
                 }
                 
-                // ✅ አሸናፊዎቹ ከ 5 በላይ ከሆኑ (ቦቶችም ቢሆኑ) 5ቱን ብቻ መርጦ ይቆርጣል
                 if (winnersThisRound.length > 5) {
                     winnersThisRound = winnersThisRound.sort(() => Math.random() - 0.5).slice(0, 5);
                 }
