@@ -2056,7 +2056,6 @@ app.post('/api/admin/claim-bonus-list', auth, async (req, res) => {
 
 let isBroadcasting = false; 
 
-app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
     if (isBroadcasting) return res.json({ success: false, message: "⚠️ እባክዎ ይጠብቁ! አሁን መልዕክት በመላክ ላይ ነው። (Please wait, sending in progress...)" });
     isBroadcasting = true;
     try {
