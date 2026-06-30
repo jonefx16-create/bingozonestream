@@ -2736,27 +2736,45 @@ setInterval(() => {
             let botPlayers = Object.values(activePlayers).filter(p => p.isBot);
             let depositorPlayers = realPlayers.filter(p => p.hasDeposited); 
 
-            if (forceWinner === 'ai') {
-                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;  
+            // 🔥 የ 26 ጥሪ ገደብ እና የካዝና (Vault) ማገናዘቢያ ሎጂክ
+            if (currentTurn >= 26) {
+                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0;
+                let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
+
+                // 1. ካዝናው ውስጥ በቂ ብር ካለ እና ማሸነፍ የሚችል እውነተኛ ሰው ካለ (1 ቁጥር የቀረው)
+                if (hiddenPool >= finalTotalPrize && winForEligibleReal.length > 0) {
+                    numToCall = winForEligibleReal[0].num;
+                } 
+                // 2. ካዝናው ባዶ ከሆነ ወይም እውነተኛ ሰው ማሸነፍ የማይችል ከሆነ ቦት በግድ እንዲበላ ይደረጋል
+                else if (botPlayers.length > 0) {
+                    numToCall = currentDrawSequence[0];
+                    // 🎯 ጌሙ እንዲያልቅ የአንደኛውን ቦት ካርቴላ እዚህ ጋር እናስተካክላለን
+                    makeNaturalBotTicket(botPlayers[0].ticketsData[0], calledNumbers, numToCall);
+                } 
+                else {
+                    numToCall = currentDrawSequence[0];
+                }
+            } 
+            // 3. ጥሪው ከ 26 በታች ከሆነ መደበኛው AI ስራውን ይቀጥላል
+            else if (forceWinner === 'ai') {
+                let hiddenPool = GLOBAL_SETTINGS.virtualPrizePool || 0; 
                 let vaultTwo = GLOBAL_SETTINGS.vaultTwoBalance || 0;     
                 let vaultThree = GLOBAL_SETTINGS.vaultThreeBalance || 0; 
-                
                 let finalTotalPrize = totalPrizePool + jackpotBoostAmount;
-                let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent !== undefined ? GLOBAL_SETTINGS.decoyChancePercent : 15) / 100;
-                let bonusWinChance = GLOBAL_SETTINGS.bonusWinPercent || 0; 
-                let isBonusLucky = (Math.random() * 100) < bonusWinChance;
+                let decoyChance = (GLOBAL_SETTINGS.decoyChancePercent || 15) / 100;
+                let isBonusLucky = (Math.random() * 100) < (GLOBAL_SETTINGS.bonusWinPercent || 0);
 
+                // 1. Mode መምረጥ (የአንተ ኮድ)
                 if (Math.random() < decoyChance) {
                     forceWinner = 'bots';
                 } else {
                     let maxSafePayout = hiddenPool * 0.20; 
                     if (vaultTwo >= finalTotalPrize && depositorPlayers.length > 0) {
-                        forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 0; 
+                        forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 0;
                     } else if (vaultThree >= (finalTotalPrize / 2) && depositorPlayers.length > 0) {
-                        forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 1; 
+                        forceWinner = 'mix_dep'; GLOBAL_SETTINGS.mixBotCount = 1;
                     } else if (hiddenPool >= finalTotalPrize && finalTotalPrize <= maxSafePayout) {
-                        if(isBonusLucky) forceWinner = 'real'; 
-                        else forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots';
+                        forceWinner = isBonusLucky ? 'real' : (depositorPlayers.length > 0 ? 'mix_dep' : 'bots');
                         GLOBAL_SETTINGS.mixBotCount = 0;
                     } else {
                         let targetPayout = (hiddenPool >= finalTotalPrize) ? maxSafePayout : Math.max(hiddenPool, 1);
@@ -2766,10 +2784,22 @@ setInterval(() => {
                         if (hiddenPool < (finalTotalPrize / neededSplits) || hiddenPool <= 0) {
                             forceWinner = 'bots'; 
                         } else {
-                            if(isBonusLucky) forceWinner = 'mix'; 
-                            else forceWinner = depositorPlayers.length > 0 ? 'mix_dep' : 'bots'; 
+                            forceWinner = isBonusLucky ? 'mix' : (depositorPlayers.length > 0 ? 'mix_dep' : 'bots');
                             GLOBAL_SETTINGS.mixBotCount = neededSplits - 1; 
                         }
+                    }
+                }
+
+                // 2. 🔥 የግድ የሚያስፈልገው ማሟያ (Execution)፡-
+                // የመረጥነው Mode 'ሰው ይብላ' ከሆነ፣ Turn 13 ካለፈ የሰውየውን ቁጥር ፈልገህ ጥራ
+                if (currentTurn >= dynamicWinTurn && (forceWinner === 'real' || forceWinner === 'mix' || forceWinner === 'mix_dep')) {
+                    let targets = (forceWinner === 'mix_dep') ? depositorPlayers : eligiblePlayers;
+                    if (targets.length > 0) {
+                        let myNums = [];
+                        targets[0].ticketsData[0].grid.flat().forEach(n => {
+                            if(n !== "FREE" && !calledNumbers.includes(n)) myNums.push(n);
+                        });
+                        if (myNums.length > 0) numToCall = myNums[Math.floor(Math.random() * myNums.length)];
                     }
                 }
             }
@@ -2786,7 +2816,7 @@ setInterval(() => {
                 let realWinNum = safeFromBotsAndPenalized.find(n => winForEligibleReal.some(w => w.num === n));
 
                 if (realWinNum) numToCall = realWinNum; 
-                else numToCall = safeFromBotsAndPenalized.length > 0 ? safeFromBotsAndPenalized[0] : winNumBlockedFromPenalized[0];
+                else numToCall = (numToCall !== null) ? numToCall : (safeFromBotsAndPenalized.length > 0 ? safeFromBotsAndPenalized[0] : winNumBlockedFromPenalized[0]);
             }
             else if (forceWinner === 'mix_dep') {
                 let winForNonDepositor = [];
