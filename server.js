@@ -1150,10 +1150,11 @@ app.use('/api/admin', botRoutes(SystemSettings, loadSettings, auth));
 
 app.post('/api/admin/finance-raw-data', financeAuth, async (req, res) => {
     try {
-        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500);
-        let games = await GameHistory.find().sort({date: -1}).limit(100);
-        let bonuses = await ActiveBonus.find().sort({date: -1}).limit(50);
-        let users = await User.find({}, 'mainBalance playBalance'); 
+        // 🔥 .lean() ሚሞሪ (RAM) እንዳይሞላ እና ሰርቨር እንዳይዘጋ በጣም ይረዳል!
+        let txs = await Transaction.find({ status: { $in: ['Approved', 'Pending'] } }).sort({date: -1}).limit(500).lean();
+        let games = await GameHistory.find().sort({date: -1}).limit(100).lean();
+        let bonuses = await ActiveBonus.find().sort({date: -1}).limit(50).lean();
+        let users = await User.find({}, 'mainBalance playBalance').lean(); 
         res.json({ success: true, txs, games, bonuses, users, settings: GLOBAL_SETTINGS });
     } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -2106,12 +2107,11 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
 
         if ((platform === 'tg' || platform === 'both') && message) {
             let query = { telegramId: { $ne: "" } };
-            const users = await User.find(query);
+            // 🔥 .select() እና .lean() ተጠቅመን RAM እንዳይሞላ አድርገነዋል
+            const users = await User.find(query).select('telegramId phone').lean();
             
-            // 🔥 ሰርቨሩ እንዳይንጠለጠል ወዲያውኑ "ተሳክቷል" የሚል መልስ ይሰጣል
             res.json({ success: true, message: `✅ ቦነሱ ተፈጥሯል! ለ ${users.length} ሰዎች በቴሌግራም ከበስተጀርባ (Background) መላክ ጀምሯል...` });
 
-            // 🔥 ከበስተጀርባ ቀስ እያለ (ያለ Error) መልዕክቱን ይልካል
             (async () => {
                 lastBroadcasts = []; 
                 const opts = { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: `🎁 Claim ${amount} ETB Bonus`, callback_data: 'claim_promo' }]] } };
@@ -2126,10 +2126,10 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
                     if(depositorsOnly) {
                         if (requireDepositWithinHours > 0) {
                             let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
-                            let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                            let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } }).lean();
                             if (!recentDep) continue;
                         } else {
-                            let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                            let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } }).lean();
                             if (!validDep) continue;
                         }
                     }
@@ -2146,7 +2146,6 @@ app.post('/api/admin/create-claim-bonus', auth, async (req, res) => {
                         lastBroadcasts.push({ chatId: u.telegramId, messageId: sentMsg.message_id }); 
                     } catch(e) {} 
                     
-                    // 🔥 ቴሌግራም እንዳያግደው የ 40 ሚሊ-ሴኮንድ እረፍት
                     await new Promise(resolve => setTimeout(resolve, 40));
                 }
                 isBroadcasting = false; 
@@ -2172,10 +2171,10 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
         }
         
         let query = { telegramId: { $ne: "" } };
-        const users = await User.find(query);
+        // 🔥 .select() እና .lean() ተጠቅመን ሰርቨሩ እንዳይዘጋ አድርገነዋል
+        const users = await User.find(query).select('telegramId phone').lean();
         lastBroadcasts = []; 
         
-        // 🔥 የዌብሳይቱ ሎዲንግ እንዳይቆም ወዲያውኑ መልስ እንሰጠዋለን
         res.json({ success: true, message: `✅ መልዕክቱ መላክ ጀምሯል። ለ ${users.length} ሰዎች ከበስተጀርባ (Background) ይላካል።` });
 
         (async () => {
@@ -2189,10 +2188,10 @@ app.post('/api/admin/broadcast-telegram', auth, async (req, res) => {
                 if(depositorsOnly) {
                     if (requireDepositWithinHours > 0) {
                         let cutoff = new Date(Date.now() - (requireDepositWithinHours * 60 * 60 * 1000));
-                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } });
+                        let recentDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) }, date: { $gte: cutoff } }).lean();
                         if (!recentDep) continue;
                     } else {
-                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } });
+                        let validDep = await Transaction.findOne({ phone: u.phone, type: 'deposit', status: 'Approved', amount: { $gte: (minDepositAmount || 0) } }).lean();
                         if (!validDep) continue;
                     }
                 }
