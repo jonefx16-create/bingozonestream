@@ -4264,7 +4264,8 @@ setInterval(async () => {
         // 4. SupportMessage Cleanup (የእርዳታ መልዕክት 1000 ብቻ አስቀርቶ ያጠፋል)
         const msgCount = await SupportMessage.countDocuments();
         if (msgCount > 1000) {
-            const latestMsgs = await SupportMessage.find().sort({ date: -1 }).limit(1000);
+            // ሙሉ ዳታውን ከማምጣት ቀኑን ብቻ ያመጣል፣ RAM አይሞላም!
+const latestGames = await GameHistory.find().select('date').sort({ date: -1 }).limit(11000).lean();
             const oldestMsgToKeep = latestMsgs[latestMsgs.length - 1];
             if (oldestMsgToKeep) {
                 await SupportMessage.deleteMany({ date: { $lt: oldestMsgToKeep.date } });
