@@ -722,7 +722,7 @@ app.post('/api/promoter/withdraw', async (req, res) => {
         if (!user || !user.isPromoter) return res.json({ success: false, message: "Unauthorized" });
 
         let reqAmt = Number(req.body.amount);
-        if (isNaN(reqAmt) || reqAmt < 1000) return res.json({ success: false, message: "❌ ቢያንስ 1000 ብር መሆን አለበት!" });
+        if (isNaN(reqAmt) || reqAmt < 500) return res.json({ success: false, message: "❌ ቢያንስ 500 ብር መሆን አለበት!" });
         if (user.promoterUnpaidBalance < reqAmt) return res.json({ success: false, message: "❌ ያልተከፈለ ቀሪ ሂሳብዎ በቂ አይደለም!" });
 
         user.promoterUnpaidBalance -= reqAmt;
@@ -759,7 +759,18 @@ app.get('/api/user/my-active-tickets/:phone', (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => { 
     try {
-        let leaderboard = await User.find({ won: { $gt: 0 } }).sort({ won: -1 }).limit(10).select('name won'); 
+        // ባሸነፉት ሳይሆን ወጪ ባደረጉት (totalWithdrawn) ከ 1ኛ እስከ 10ኛ ይደረድራል
+        let topUsers = await User.find({ totalWithdrawn: { $gt: 0 } })
+                                 .sort({ totalWithdrawn: -1 })
+                                 .limit(10)
+                                 .select('name totalWithdrawn'); 
+                                 
+        // ዌብሳይትህ እንዳይበላሽ (Error እንዳያመጣ) የወጪውን ብር 'won' በሚለው ስም አድርገን እንልከዋለን
+        let leaderboard = topUsers.map(u => ({
+            name: u.name,
+            won: u.totalWithdrawn
+        }));
+
         res.json({ success: true, leaderboard }); 
     } catch(e) { res.json({ success: false }); }
 });
@@ -3744,7 +3755,7 @@ app.get('/promoter', async (req, res) => {
             brought: "👥 ያመጧቸው (Total)", active: "✅ ገቢ ያደረጉ (Active)", bal: "💰 ሂሳብ (Balance)", earned: "🎁 የተሰበሰበ ኮሚሽን",
             perc: "📈 የኮሚሽን መጠንዎ", link_title: "🔗 ኮሚሽን ማግኛ ሊንክ (Promo Link):", copy_hint: "📋 ይጫኑ ኮፒ ለማድረግ", copied: "✅ ሊንክዎ ኮፒ ተደርጓል (Link Copied)!",
             wit_title: "💸 ኮሚሽን ወጪ ማድረጊያ", wit_desc: "ያገኙትን ኮሚሽን በቀጥታ ወደ አካውንትዎ ያስገቡ",
-            amt_ph: "የብር መጠን (ቢያንስ 1000 ብር)", acc_ph: "የባንክ አካውንት (ወይም ስልክ)", btn_wit: "ወጪ አድርግ (Withdraw)",
+            amt_ph: "የብር መጠን (ቢያንስ 500 ብር)", acc_ph: "የባንክ አካውንት (ወይም ስልክ)", btn_wit: "ወጪ አድርግ (Withdraw)",
             wait: "እባክዎ ይጠብቁ...", alert_fill: "እባክዎ መረጃውን በትክክል ይሙሉ!", err_conn: "ግንኙነት ተቋርጧል",
             hist_title: "📜 የወጪ ታሪክ (Withdraw History)", date: "ቀን", amt: "መጠን", status: "ሁኔታ", no_hist: "ምንም ታሪክ የለም (No History)"
         },
@@ -3753,7 +3764,7 @@ app.get('/promoter', async (req, res) => {
             brought: "👥 Total Invited", active: "✅ Active Depositors", bal: "💰 Unpaid Balance", earned: "🎁 Total Earned",
             perc: "📈 Your Commission %", link_title: "🔗 Your Share Link:", copy_hint: "📋 Click to Copy", copied: "✅ Link Copied!",
             wit_title: "💸 Withdraw Commission", wit_desc: "Withdraw your earned commissions directly",
-            amt_ph: "Amount (Min 1000 ETB)", acc_ph: "Bank Account (or Phone)", btn_wit: "Withdraw Now",
+            amt_ph: "Amount (Min 500 ETB)", acc_ph: "Bank Account (or Phone)", btn_wit: "Withdraw Now",
             wait: "Please wait...", alert_fill: "Please fill in all details!", err_conn: "Connection Error",
             hist_title: "📜 Withdrawal History", date: "Date", amt: "Amount", status: "Status", no_hist: "No History Found"
         }
