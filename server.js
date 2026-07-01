@@ -37,7 +37,7 @@ const mongoURI = `mongodb+srv://${dbUser}:${dbPass}@${dbCluster}/${dbName}?retry
 
 mongoose.connect(mongoURI, { 
     autoIndex: true, 
-    maxPoolSize: 500 
+    maxPoolSize: 50 
 }).then(() => console.log("✅ Database Connected Successfully"))
   .catch(err => console.log("❌ DB Connection Error:", err.message));
 
@@ -526,6 +526,15 @@ const strictRateLimiter = (req, res, next) => {
 
 // የውሸት አካውንት መከላከያ
 const ipCreationCounts = new Map();
+// ይሄን ኮድ app.post('/api/register', ...) ከሚለው በላይ አስገብተው
+setInterval(() => {
+    const now = Date.now();
+    for (let [ip, limitData] of ddosLimiterMap.entries()) {
+        if (now > limitData.resetTime) {
+            ddosLimiterMap.delete(ip); // ሚሞሪ እንዳይሞላ ያጸዳል
+        }
+    }
+}, 10 * 60 * 1000);
 
 // 🚀 ከላይ የሰራነውን ማጣሪያ (strictRateLimiter) መመዝገቢያው ላይ እናስገባዋለን
 app.post('/api/register', strictRateLimiter, async (req, res) => {
