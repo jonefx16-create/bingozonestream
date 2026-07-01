@@ -4240,44 +4240,42 @@ setInterval(async () => {
 // ==========================================
 setInterval(async () => {
     try {
-        // 1. GameHistory Cleanup (የቅርብ ጊዜ 5000 ጌሞችን ብቻ አስቀርቶ የድሮውን ያጠፋል)
+        // 1. GameHistory Cleanup (የቅርብ ጊዜ 11000 ጌሞችን ብቻ አስቀርቶ የድሮውን ያጠፋል)
         const gameCount = await GameHistory.countDocuments();
-        if (gameCount > 11000) {
-            const latestGames = await GameHistory.find().sort({ date: -1 }).limit(11000);
-            const oldestGameToKeep = latestGames[latestGames.length - 1];
-            if (oldestGameToKeep) {
-                await GameHistory.deleteMany({ date: { $lt: oldestGameToKeep.date } });
+        if (gameCount > 10000) {
+            // RAM እንዳይሞላ select('date') ተጠቅመናል
+            const gamesToKeep = await GameHistory.find().select('date').sort({ date: -1 }).limit(10000).lean();
+            if (gamesToKeep.length === 10000) {
+                await GameHistory.deleteMany({ date: { $lt: gamesToKeep[9999].date } });
             }
         }
 
-        // 2. BankSMS Cleanup (ጥቅም ላይ የዋሉ 1000 ሜሴጆችን ብቻ አስቀርቶ ያጠፋል)
+        // 2. BankSMS Cleanup (1000 ሜሴጆችን ብቻ አስቀርቶ ሌላውን ሙሉ በሙሉ ያጠፋል)
         const smsCount = await BankSMS.countDocuments();
         if (smsCount > 1000) {
-            const latestSMS = await BankSMS.find().sort({ dateReceived: -1 }).limit(1000);
-            const oldestSMSToKeep = latestSMS[latestSMS.length - 1];
-            if (oldestSMSToKeep) {
-                await BankSMS.deleteMany({ dateReceived: { $lt: oldestSMSToKeep.dateReceived }, isUsed: true });
+            const smsToKeep = await BankSMS.find().select('dateReceived').sort({ dateReceived: -1 }).limit(1000).lean();
+            if (smsToKeep.length === 1000) {
+                // 🔥 isUsed: true የሚለውን አጥፍተነዋል። አሁን የቆሸሸ እና አላስፈላጊ (Spam) ሜሴጆችንም ጠራርጎ ያጠፋል!
+                await BankSMS.deleteMany({ dateReceived: { $lt: smsToKeep[999].dateReceived } });
             }
         }
 
         // 3. SystemLog Cleanup (የሲስተም ሎግ 1000 ብቻ አስቀርቶ ያጠፋል)
         const logCount = await SystemLog.countDocuments();
         if (logCount > 1000) {
-            const latestLogs = await SystemLog.find().sort({ date: -1 }).limit(1000);
-            const oldestLogToKeep = latestLogs[latestLogs.length - 1];
-            if (oldestLogToKeep) {
-                await SystemLog.deleteMany({ date: { $lt: oldestLogToKeep.date } });
+            const logsToKeep = await SystemLog.find().select('date').sort({ date: -1 }).limit(1000).lean();
+            if (logsToKeep.length === 1000) {
+                await SystemLog.deleteMany({ date: { $lt: logsToKeep[999].date } });
             }
         }
 
         // 4. SupportMessage Cleanup (የእርዳታ መልዕክት 1000 ብቻ አስቀርቶ ያጠፋል)
         const msgCount = await SupportMessage.countDocuments();
         if (msgCount > 1000) {
-            // ሙሉ ዳታውን ከማምጣት ቀኑን ብቻ ያመጣል፣ RAM አይሞላም!
-const latestGames = await GameHistory.find().select('date').sort({ date: -1 }).limit(11000).lean();
-            const oldestMsgToKeep = latestMsgs[latestMsgs.length - 1];
-            if (oldestMsgToKeep) {
-                await SupportMessage.deleteMany({ date: { $lt: oldestMsgToKeep.date } });
+            // 🔥 የነበረው የ GameHistory እና latestMsgs ERROR ተስተካክሏል!
+            const msgsToKeep = await SupportMessage.find().select('date').sort({ date: -1 }).limit(1000).lean();
+            if (msgsToKeep.length === 1000) {
+                await SupportMessage.deleteMany({ date: { $lt: msgsToKeep[999].date } });
             }
         }
         
